@@ -1,0 +1,1527 @@
+<reference id="ref.pcre">
+  <title>Funciones de expresiones regulares compatibles con Perl</title>
+  <titleabbrev>PCRE</titleabbrev>
+
+  <partintro>
+   <para>
+    La sintaxis, para los patrones usados en estas funciones, es muy semejante
+    al Perl. Las expresiones estarán encerradas por delimitadores, por ejemplo
+    una barra de dividir (/). Cualquier carácter puede ser usado para delimitar
+    incluso los que no son caracteres alfanuméricos o la barra invertida (\). Si el
+    carácter delimitador ha sido usado en la propia expresión, es necesario que
+    sea precedido por una barra inversa.
+   </para>
+
+   <para>
+    El delimitador de fin puede ser seguido por varios modificadores que
+    afectarán al resultado.
+    Examina <link linkend="pcre.pattern.modifiers">Modificadores de Patrones</link>.
+   </para>
+
+   <para>
+    <example>
+     <title>Ejemplos de patrones válidos</title>
+     <itemizedlist>
+      <listitem><simpara>/<\/\w+>/</simpara></listitem>
+      <listitem><simpara>|(\d{3})-\d+|Sm</simpara></listitem>
+      <listitem><simpara>/^(?i)php[34]/</simpara></listitem>
+     </itemizedlist>
+    </example>
+   </para>
+
+   <para>
+    <example>
+     <title>Ejemplos de patrones no válidos</title>
+     <itemizedlist>
+      <listitem><simpara>/href='(.*)' - falta el delimitador de fin</simpara></listitem>
+      <listitem><simpara>/\w+\s*\w+/J - el modificador 'J' es desconocido</simpara></listitem>
+      <listitem><simpara>1-\d3-\d3-\d4| - falta el delimitador de inicio</simpara>
+      </listitem>
+     </itemizedlist>
+    </example>
+   </para>
+
+   <note>
+    <simpara>
+     Para las funciones de expresiones compatibles con Perl se necesita
+     PHP 4 o PHP 3.0.9 o superior.
+    </simpara>
+   </note>
+
+  </partintro>
+
+  <refentry id="function.preg-match">
+   <refnamediv>
+    <refname>preg_match</refname>
+    <refpurpose>Realiza un emparejamiento dada una expresión</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>preg_match</function></funcdef>
+     <paramdef>string <parameter>pattern</parameter></paramdef>
+     <paramdef>string <parameter>subject</parameter></paramdef>
+     <paramdef>array <parameter><optional>matches</optional></parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca en <parameter>subject</parameter> para un emparejamiento, dada la expresión
+     <parameter>pattern</parameter>.</para>
+    <para>
+     Si <parameter>matches</parameter> es dado, entonces será definido con
+     el resultado de la búsqueda. $matches[0] contendrá el texto que empareja
+     con el patrón en su totalidad. $matches[1] tendrá la cadena que empareje con
+     el primer subpatrón que esté entre paréntesis y así sucesivamente.</para>
+    <para>
+     Devuelve true si se encontró en la cadena un emparejamiento dado el patrón
+     <parameter>pattern</parameter>, false si no se produjo o hubo un error.</para>
+    <para>
+     <example>
+      <title>Obtener el número de la siguiente página dada una cadena</title>
+      <programlisting>
+if (preg_match("/page\s+#(\d+)/i", "Go to page #9.", $parts))
+    print "Next page is $parts[1]";             // La siguiente página es $parts[1]
+else
+    print "Page not found.";                    // Página no encontrada
+      </programlisting>
+     </example>
+
+     Examinar también <function>preg_match_all</function>,
+     <function>preg_replace</function>, y
+     <function>preg_split</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.preg-match-all">
+   <refnamediv>
+    <refname>preg_match_all</refname>
+    <refpurpose>Realiza un completo emparejamiento de expresiones</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>preg_match_all</function></funcdef>
+     <paramdef>string <parameter>pattern</parameter></paramdef>
+     <paramdef>string <parameter>subject</parameter></paramdef>
+     <paramdef>array <parameter>matches</parameter></paramdef>
+     <paramdef>int <parameter><optional>order</optional></parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca en <parameter>subject</parameter> todos los emparejamientos de la
+     expresión <parameter>pattern</parameter> y los pone en <parameter>matches</parameter>
+     de la forma indicada por <parameter>order</parameter>.</para>
+    <para>
+     Después de encontrar el primer emparejamiento, las subsiguientes búsquedas
+     empiezan desde el punto del último casamiento.
+    <para>
+     <parameter>order</parameter> puede tener los siguientes valores:
+     <variablelist>
+      <varlistentry>
+       <term>PREG_PATTERN_ORDER</term>
+       <listitem>
+        <para>
+         Los resultados serán devueltos de manera que $matches[0] es un array con el
+         patrón de búsqueda completo, $matches[1] es una array de las cadenas
+         casadas por el primer subpatrón que esté entre paréntesis y así sucesivamente.
+         <informalexample>
+          <programlisting>
+preg_match_all("|&lt;[^>]+>(.*)&lt;/[^>]+>|U", "&lt;b>example: &lt;/b>&lt;div align=left>this is a test&lt;/div>", $out, PREG_PATTERN_ORDER);
+print $out[0][0].", ".$out[0][1]."\n";
+print $out[1][0].", ".$out[1][1]."\n"
+          </programlisting>
+         </informalexample>
+
+         Esta ejemplo dará como resultado:
+         <informalexample>
+          <programlisting>
+&lt;b>example: &lt/b>, &lt;div align=left>this is a test&lt;/div>
+example: , this is a test
+          </programlisting>
+         </informalexample>
+
+         Así, $out[0] contiene el array con las cadena que casan completamente con el patrón
+         y $out[1] con las cadenas que se encuentran entre los tags.</para>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>PREG_SET_ORDER</term>
+       <listitem>
+        <para>
+         Los resultados son dados de manera que $matches[0] es una array del
+         primer conjunto de emparejamientos, $matches[1] es un array de los
+         segundos conjuntos de casamientos y así sucesivamente.
+         <informalexample>
+          <programlisting>
+preg_match_all("|&lt;[^>]+>(.*)&lt;/[^>]+>|U", "&lt;b>example: &lt;/b>&lt;div align=left>this is a test&lt;/div>", $out, PREG_SET_ORDER);
+print $out[0][0].", ".$out[0][1]."\n";
+print $out[1][0].", ".$out[1][1]."\n"
+          </programlisting>
+         </informalexample>
+
+         Este ejemplo dará como resultado:
+         <informalexample>
+          <programlisting>
+&lt;b>example: &lt;/b>, example:
+&lt;div align=left>this is a test&lt;/div>, this is a test
+          </programlisting>
+         </informalexample>
+         En este caso, $matches[0] es el primer conjunto de emparejamientos y
+         $matches[0][0] tiene el casamiento completo, $matches[0][1] el del
+         primer subpatrón y así sucesivamente. Similarmente, $matches[1] es el
+         segundo conjunto de emparejamientos, etc.</para>
+       </listitem>
+      </varlistentry>
+     </variablelist></para>
+
+    <para>
+     Si <parameter>order</parameter> no es dado, se asume PREG_PATTERN_ORDER.</para>
+    <para>
+     Devuelve el número de casamientos completos, false si no hubo o se produjo
+     error.</para>
+    <para>
+     <example>
+      <title>Obtener los número de teléfonos de un texto.</title>
+      <programlisting>
+preg_match_all("/\(?  (\d{3})?  \)?  (?(1)  [\-\s] ) \d{3}-\d{4}/x",
+               "Call 555-1212 or 1-800-555-1212", $phones);
+      </programlisting>
+     </example></para>
+
+    <simpara>
+     Examina también <function>preg_match</function>,
+     <function>preg_replace</function>,
+     y <function>preg_split</function>.</simpara>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.preg-replace">
+   <refnamediv>
+    <refname>preg_replace</refname>
+    <refpurpose>Lleva a cabo la búsqueda de una expresión y su sustitución</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>mixed <function>preg_replace</function></funcdef>
+     <paramdef>mixed <parameter>pattern</parameter></paramdef>
+     <paramdef>mixed <parameter>replacement</parameter></paramdef>
+     <paramdef>mixed <parameter>subject</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca en <parameter>subject</parameter> los emparejamientos con
+     <parameter>pattern</parameter> y los sustituye por
+     <parameter>replacement</parameter>.</para>
+    <para>
+     <parameter>replacement</parameter> puede contener referencias de la forma
+     <literal>\\<replaceable>n</replaceable></literal>. Éstas serán
+     sustituidas por el texto obtenido por el patrón del paréntesis
+     <replaceable>n</replaceable>ésimo. <replaceable>n</replaceable> puede tener
+     un valor de cero a noventa y nueve, y <literal>\\0</literal> se refiere al
+     texto casado por el patrón completo. Para obtener el número del subpatrón
+     de búsqueda, los paréntesis abiertos son contados de izquierda derecha
+     tomando el primero como uno.</para>
+    <para>
+     Si el patrón no es encontrado en <parameter>subject</parameter>, entonces
+     no se realizarán cambios.</para>
+    <para>
+     Todos los parámetros de la función <function>preg_replace</function> pueden
+     ser un array.</para>
+    <para>
+     Si <parameter>subject</parameter> es un array, entonces la búsqueda y sustitución
+     es realizada para todos los elementos de <parameter>subject</parameter>,
+     y el valor devuelto es también un array.</para>
+    <para>
+     Si <parameter>pattern</parameter> y <parameter>replacement</parameter>
+     son arrays, entonces <function>preg_replace</function> toma un valor desde
+     cada array y los usas para buscar y sustituir sobre
+     <parameter>subject</parameter>.  Si <parameter>replacement</parameter>
+     tiene menos valores que <parameter>pattern</parameter>, entonces la cadena
+     vacía es usada como valor para el resto de sustituciones. Si <parameter>pattern</parameter>
+     es una array y <parameter>replacement</parameter> es una cadena,
+     entonces esta cadena de sustitución es usada para todos los valores de
+     <parameter>pattern</parameter>. Sin embargo, lo contrario no tiene sentido.
+     </para>
+    <para>
+     El modificador <literal>/e</literal> hace que la función <function>preg_replace</function>
+     trate el parámetro <parameter>replacement</parameter> como código PHP después
+     de que la apropiada sustitución sea hecha. Atención, asegúrate que <parameter>replacement</parameter>
+     es un código PHP correcto, de otro modo PHP dará un error de parse en la
+     línea que contenga <function>preg_replace</function>.
+     <note>
+      <para>
+       Este modificador fue añadido en PHP 4.0.</para>
+     </note></para>
+
+    <para>
+     <example>
+      <title>Sustituir varios valores</title>
+      <programlisting>
+$patterns = array("/(19|20\d{2})-(\d{1,2})-(\d{1,2})/", "/^\s*{(\w+)}\s*=/");
+$replace = array("\\3/\\4/\\1", "$\\1 =");
+print preg_replace($patterns, $replace, "{startDate} = 1999-5-27");
+      </programlisting>
+     </example>
+
+     Esta ejemplo dará como resultado:
+
+     <programlisting>
+      $startDate = 5/27/1999
+     </programlisting>
+
+     <example>
+      <title>Usar el modificador /e</title>
+      <programlisting>
+preg_replace("/(<\/?)(\w+)([^>]*>)/e", "'\\1'.strtoupper('\\2').'\\3'", $html_body);
+      </programlisting>
+
+      <para>
+       Pondrá en mayúscula todos los tags HTML del texto de entrada.</para>
+     </example></para>
+
+    <para>
+     Examina también <function>preg_match</function>,
+     <function>preg_match_all</function>, y
+     <function>preg_split</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.preg-split">
+   <refnamediv>
+    <refname>preg_split</refname>
+    <refpurpose>Divide una cadena dada una expresión</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array preg_split</funcdef>
+     <paramdef>string <parameter>pattern</parameter></paramdef>
+     <paramdef>string <parameter>subject</parameter></paramdef>
+     <paramdef>int <parameter><optional>limit</optional></parameter></paramdef>
+     <paramdef>int <parameter><optional>flags</optional></parameter></paramdef>
+    </funcsynopsis>
+
+    <note>
+     <para>
+      El parámetro <parameter>flags</parameter> fue añadido en la Beta 3 de PHP
+      </para>
+    </note>
+
+    <para>
+     Devuelve un array conteniendo las subcadenas de
+     <parameter>subject</parameter> divididas mediante los emparejamientos limitados
+     por <parameter>pattern</parameter>.</para>
+    <para>
+     Si <parameter>limit</parameter> es proporcionado, entonces sólo
+     <parameter>limit</parameter> subcadenas son devueltas.</para>
+    <para>
+     Si el flags es PREG_SPLIT_NO_EMPTY entonces las cadenas vacías no serán
+     devueltas por <function>preg_split</function>.</para>
+    <para>
+     <example>
+      <title>Obtener las partes de una cadena de búsqueda</title>
+      <programlisting>
+$keywords = preg_split("/[\s,]+/", "hypertext language, programming");
+      </programlisting>
+     </example>
+
+     Examinar también <function>preg_match</function>,
+     <function>preg_match_all</function>, y
+     <function>preg_replace</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.preg-quote">
+   <refnamediv>
+    <refname>preg_quote</refname>
+    <refpurpose>Prepara los caracteres de expresiones</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>preg_quote</function></funcdef>
+     <paramdef>string <parameter>str</parameter></paramdef>
+    </funcsynopsis>
+
+    <para>
+     <function>preg_quote</function> toma <parameter>str</parameter>
+     y pone una barra invertida (\) delante de todo carácter que sea parte
+     de la sintaxis de las expresiones. Es útil si tienes una cadena en tiempo
+     de ejecución y puede contener caracteres especiales.</para>
+    <para>
+     Los caracteres especiales de las expresiones son:
+     <screen>. \\ + * ? [ ^ ] $ ( ) { } = ! < > | :</screen>
+
+    <note>
+     <para>
+      Esta función fue añadida en PHP 3.0.9.</para>
+    </note></para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.preg-grep">
+   <refnamediv>
+    <refname>preg_grep</refname>
+    <refpurpose>Devuelve un array con los elementos que casen con el patrón</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>preg_grep</function></funcdef>
+     <paramdef>string <parameter>pattern</parameter></paramdef>
+     <paramdef>array <parameter>input</parameter></paramdef>
+    </funcsynopsis>
+
+    <para>
+     <function>preg_grep</function> devuelve un array conteniendo los elementos
+     del array <parameter>input</parameter> que emparejen con el patrón
+     (<parameter>pattern</parameter>) dado.</para>
+    <para>
+     <example>
+      <title>Ejemplo de la función <function>preg_grep</function></title>
+      <programlisting>
+preg_grep("/^(\d+)?\.\d+$/", $array); // encuentra todos los números reales en el array
+      </programlisting>
+     </example>
+
+    <note>
+     <para>
+      Esta función fue añadida en PHP 4.0.</para>
+    </note></para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="pcre.pattern.modifiers">
+   <refnamediv>
+    <refname>Modificadores de Patrones</refname>
+    <refpurpose>describe los modificadores posibles en los patrones de expresiones
+    regulares (regex)</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <para>
+     Los posibles modificadores PRCE (Funciones de Expresiones Compatibles con Perl),
+     en este momento, son mostrados a continuación. Los nombres entre paréntesis
+     se refieren a nombres internos PCRE para dichos modificadores.</para>
+
+    <para>
+     <blockquote>
+      <variablelist>
+       <varlistentry>
+        <term><emphasis>i</emphasis> (PCRE_CASELESS)</term>
+        <listitem>
+         <simpara>
+          Si es usado, no se distinguirá entre mayúsculas y minúsculas.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>m</emphasis> (PCRE_MULTILINE)</term>
+        <listitem>
+         <simpara>
+          Por defecto, PCRE trata la cadena de entrada como si fuera una sola línea
+          de caracteres (aun cuando tenga varias). El carácter especial de "inicio de línea"
+          (^) empareja sólo al principio de la cadena, mientras el carácter especial de
+          "fin de línea" ($) casa sólo el fin de la entrada, o antes un
+          carácter de nueva línea (a menos que el modificador <emphasis>E</emphasis>
+          sea definido). Esto es lo mismo que en Perl.</simpara>
+
+         <simpara>
+          Cuando este modificador es utilizado, los constructores de "inicio de
+          línea" y "fin de línea" son emparejados con el carácter de nueva línea.
+          Esto es equivalente al modificador /m del Perl. Si no hay caracteres "\n"
+          en la cadena de entrada, o no existen ^ o $ en el patrón, entonces
+          este modificador no alterará el resultado.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>s</emphasis> (PCRE_DOTALL)</term>
+        <listitem>
+         <simpara>
+          Si se usa, el carácter especial de un punto en el patrón emparejará todos los
+          caracteres, incluyendo el de nueva línea. Sin él, el carácter de nueva
+          línea es excluido. Este modificador equivale a /s en Perl. Una cláusula
+          como [^a] siempre casa con un carácter de nueva línea, independientemente
+          de la utilización de este modificador.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>x</emphasis> (PCRE_EXTENDED)</term>
+        <listitem>
+         <simpara>
+          Si es definido, los caracteres de información con espacios en blanco en
+          el patrón son ignorados excepto cuando son precedidos por una barra
+          invertida o dentro de una clase carácter, y los caracteres entre
+          un # fuera de una clase carácter y los siguientes caracteres de nueva
+          línea, incluidos, son ignorados también. Esto es equivalente al /x en
+          Perl y hace posible incluir comentarios dentro de patrones complejos.
+          Sin embargo, esto es sólo aplicable a caracteres de información. Los
+          caracteres de espacio en blanco nunca pueden aparecer en la secuencia
+          de caracteres especiales de un patrón, por ejemplo en la secuencia
+          (?( la cual introduce un subpatrón condicional.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>e</emphasis></term>
+        <listitem>
+         <simpara>
+          Si es usado, <function>preg_replace</function> hace las sustituciones
+          \\ de forma habitual, evalúa el código PHP y usa el resultado para
+          realizar una sustitución en la cadena de búsqueda.</simpara>
+         <simpara>
+          Sólo <function>preg_replace</function> hace uso de este modificador y
+          es ignorado por las otras funciones PCRE.</simpara>
+         <note>
+          <para>
+           Este modificador fue añadido en PHP 4.0.</para>
+         </note>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>A</emphasis> (PCRE_ANCHORED)</term>
+        <listitem>
+         <simpara>
+          Si es definido, el patrón es forzado a ser "anclado", esto es,
+          es obligado a emparejar sólo desde el inicio de la cadena (el "subject
+          string"). Esta característica también puede realizarse con el apropiado
+          patrón, y esta es la única manera de hacerlo en Perl.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>E</emphasis> (PCRE_DOLLAR_ENDONLY)</term>
+        <listitem>
+         <simpara>
+          Si es usado, el carácter del dólar en el patrón casará sólo con fin
+          de la cadena de entrada (subject).Sin este modificador, un dólar
+          es también emparejado con el carácter inmediatamente antes del de
+          una nueva línea (pero no antes de cualquier otra nueva línea). Este
+          modificador es ignorado si <emphasis>m</emphasis> es definido. No hay
+          equivalente en Perl para este modificador.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>S</emphasis></term>
+        <listitem>
+         <simpara>
+          Cuando un patrón va a ser usado varias veces, es mejor dedicar más tiempo
+          a analizarlo para acelerar el proceso de casamientos. Si es definido
+          entonces se realizar un análisis adicional. Estudiar a un patrón es sólo útil
+          para los no anclados, esto es, no tienen un carácter de inicio fijado.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>U</emphasis> (PCRE_UNGREEDY)</term>
+        <listitem>
+         <simpara>
+          Este modificador invierte la "codicia" de los cuantificadores aunque
+          no son ansiosos por defecto, se vuelven codiciosos si son seguidos
+          por un "?". No es compatible con Perl. también puede usarse dentro del
+          patrón.</simpara>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><emphasis>X</emphasis> (PCRE_EXTRA)</term>
+        <listitem>
+         <simpara>
+          Este modificador activa características adicionales del PCRE que
+          no son compatible con Perl. Cualquier barra invertida en el patrón
+          que sea seguida por una letra que no tenga una interpretación especial
+          provocará un error, estas combinaciones están reservado para futuras
+          ampliaciones. Por defecto, como en Perl, una barra invertida seguida
+          por una letra sin un significado especial es tratada literalmente.
+          No hay otras características controladas por este modificador a
+          la fecha de hoy.</simpara>
+        </listitem>
+       </varlistentry>
+      </variablelist>
+     </blockquote></para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="pcre.pattern.syntax">
+   <refnamediv>
+    <refname>Sintaxis de los Patrones</refname>
+    <refpurpose>describe la sintaxis de PCRE regex</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <literallayout>
+     La librería PCRE es un conjunto de funciones que implementan emparejamientos
+     dados patrones de expresiones regulares usando la misma sintaxis y semántica que
+     Perl 5, con unas pocas diferencias (ver más adelante). La actual versión
+     corresponde a Perl 5.005.
+   </literallayout></refsect1>
+
+   <refsect1>
+    <title>Diferencias frente a Perl</title>
+    <literallayout>
+     Las diferencias descritas aquí son con respecto a Perl 5.005.
+
+     1. Por defecto, un carácter de espacio en blanco es cualquier carácter
+     que la función isspace() de la librería C reconozca, así es posible
+     compilar PCRE con tablas alternativas de tipos de caracteres. Normalmente
+     isspace() casa con el espacio, salto de pagina, nueva línea, retorno de carro,
+     tabulador horizontal y vertical. Perl 5 ya no incluye el tabulador vertical
+     en su conjunto de caracteres de espacio en blanco. La secuencia de
+     escape \n que estuvo durante mucho tiempo en la documentación de Perl nunca
+     fue reconocida. Sin embargo, el carácter fue tratado como espacio en blanco
+     hasta la 5.002. En 5.004 y 5.005 no casa \s.
+
+     2. PCRE no permite repetir cuantificadores sobre sentencias hacia adelante.
+     Perl las permite, pero no de la forma que puedas pensar.
+     Por ejemplo, (?!a){3} no dice que los próximos tres caracteres no son "a".
+     En realidad significa que los siguientes caracteres no son "a" tres veces.
+
+     3. Los subpatrones encontrados dentro de sentencias de más adelante
+     negativas son contados, pero sus entradas en el vector de desplazamientos
+     no son definidas. Perl define sus variables numéricas desde cualquiera de
+     tales patrones que son casados antes de que la sentencia falle emparejar
+     algo, pero solo si las sentencies de más adelante negativas contienen una
+     opción sola.
+
+     4. Aunque los caracteres de cero binario son soportados en la cadena de
+     entrada, no son permitidos en un patrón porque son pasados como un cadena
+     típica de C, terminada por cero. La secuencia de escape "\0" puede ser
+     usada en el patrón para representar el cero binario.
+
+     5. Las siguientes secuencias de Perl no son soportadas:
+     \l,  \u,  \L,  \U,  \E, \Q. En efecto, estas son implementadas por
+     manipuladores de cadenas típicos de Perl y no son parte de los patrones del
+     motor de búsqueda.
+
+     6. La secuencia \G de Perl no es soportada ya que no es relevante para
+     emparejamientos de patrones sencillos.
+
+     7. Obviamente, PCRE no soporta el constructor (?{code})
+
+     8. Hay algunas diferencias en Perl 5.005_02 respecto a las definiciones
+     de las cadenas de captura cuando parte de un patrón es repetido. Por
+     ejemplo, casando "aba" con el patrón /^(a(b)?)+$/ define $2 al valor "b",
+     pero emparejando "aabbaa" con /^(aa(bb)?)+$/ deja $2 sin definir. Sin
+     embargo, si el patrón es cambiado a /^(aa(b(b))?)+$/ entones $2 (y $3) son
+     definidos.
+
+     En Perl 5.004 $2 es definido en ambos casos, y también es cierto en PCRE.
+     Si en el futuro Perl cambia a una regla diferente, PCRE puede cambiar para
+     seguirla.
+
+     9. Otra discrepancia aún no resuelta es que en Perl 5.005_02 el patrón
+     /^(a)?(?(1)a|b)+$/ casa la cadena "a", pero en PCRE eso no es así. Sin
+     embargo, en ambos Perl y PCRE /^(a)?a/ empareja "a" dejando $1 sin definir.
+
+     10. PCRE da algunas extensiones para facilitar las expresiones de PERL:
+
+     (a) Aunque las sentencias de más adelante deben emparejar cadenas de longitud fija,
+     cada opción de una sentencia de punto actual puede casar con una cadena de
+     longitud diferente. Perl 5.005 requiere que todas ellas tengan la misma
+     longitud.
+
+     (b) Si es definido PCRE_DOLLAR_ENDONLY  y PCRE_MULTILINE no lo es, el
+     carácter especial $ sólo casa con el final de la cadena.
+
+     (c) Si se define PCRE_EXTRA, una barra invertida seguida de una letra sin
+     un significado especial provoca un error.
+
+     (d) Si defines PCRE_UNGREEDY, la voracidad de los cuantificadores de
+     repetición es invertida, esto es, por defecto son no codiciosos, pero
+     seguidos por una interrogación si lo son.
+
+    </literallayout>
+   </refsect1>
+
+   <refsect1>
+    <title>Detalles de las expresiones</title>
+    <literallayout>
+     La sintaxis y la semántica de las expresiones soportadas por PCRE es
+     descrita a continuación. Las expresiones son descritas en la documentación
+     del Perl y en numerosos libros, algunos de los cuales tienen mucho
+     ejemplares, Jeffrey Friedl's  "Mastering  Regular  Expressions",  publicado
+     por O'Reilly  (ISBN 1-56592-257-3), las cubre con gran detalle. La presente
+     descripción es propuesta como documentación de referencia.
+
+     Una expresión es un patrón que es emparejada repetidamente, dada una cadena
+     de entrada, de izquierda a derecha. Muchos caracteres se representan a ellos
+     mismos en el patrón. Como un ejemplo trivial, el patrón
+
+       The quick brown fox
+
+     casa una parte de una cadena de entrada que es idéntica a ella. El poder
+     de las expresiones proviene de la posibilidad de incluir alternativas y
+     repeticiones en el patrón. Éstos son codificados en el patrón usando
+     <emphasis>meta</emphasis>-<emphasis>characters</emphasis> (caracteres
+     especiales también llamados meta caracteres), los cuales no se representan
+     a ellos mismos, en vez de eso, son interpretados de una manera especial.
+
+     Hay dos diferentes conjuntos de caracteres especiales: aquellos que son
+     reconocidos en cualquier parte en el patrón excepto dentro corchetes ('[' y ']'),
+     y aquellos que son reconocidos dentro. Fuera de los corchetes, los caracteres
+     especiales son:
+
+       \      carácter de escape genérico con diferentes usos
+       ^      secuencia de inicio de la cadena de entrada (o línea, en modo multilínea)
+       $      secuencia de fin de la cadena de entrada (o línea, en modo multilínea)
+       .      empareja cualquier carácter excepto el de nueva línea (por defecto)
+       [      inicia definición de clase de caracteres
+       |      inicio de opción alternativa
+       (      inicio de subpatrón
+       )      fin de subpatrón
+       ?      amplia el significado de (
+              también es el cuantificador 0 ó 1
+              también es el cuantificador minimizado
+       *      cero o más cuantificadores
+       +      uno o más cuantificadores
+       {      inicia el cuantificador min/max
+
+
+     Parte de un patrón dentro de corchetes ([]) es llamado un "character  class"
+     (clase de caracteres). En una clase de caracteres los únicos caracteres
+     especiales son:
+
+       \      carácter de escape genérico
+       ^      niega la clase, pero sólo si el primer carácter
+       -      indica un rango de caracteres
+       ]      finaliza la clase de caracteres
+
+     Las secciones siguientes describen el uso de cada uno de los caracteres
+     especiales (meta caracteres).
+
+BARRA INVERTIDA
+
+     El carácter de barra invertida tiene varios usos. Primero, si es seguido
+     por un carácter que no sea alfanumérico, toma el significado que el
+     carácter pueda tener. Este uso de la barra invertida, como un carácter de
+     escape, se aplica tanto dentro como fuera de las clases de caracteres.
+
+     Por ejemplo, si quieres casar un carácter "*", debes escribir "\*" en el patrón.
+     Esto es aplicable ya sea o no el carácter siguiente interpretado como un
+     carácter especial, por eso siempre es aconsejable preceder un carácter
+     no alfanumérico con "\" para especificar que se representa a él mismo. En
+     particular, si quieres casar una barra invertida, escribe "\\".
+
+     Si el patrón es compilado con la opción PCRE_EXTENDED , los espacios en
+     blanco en el patrón (fuera de una clase de caracteres) y los caracteres entre
+     un "#" fuera de una clase de caracteres y el carácter de nueva línea
+     son ignorado. Una barra invertida de escape puede usarse para
+     incluir un espacio en blanco o el carácter "#" como parte del patrón.
+
+     Un segundo uso de la barra invertida sirve para codificar caracteres no
+     imprimibles en los patrones de una manera visible. No hay restricciones
+     sobre la apariencia de los caracteres no imprimibles, quitando el cero
+     binario de terminación de un patrón, pero cuando un patrón es preparado
+     con un editor de texto, normalmente es fácil utilizar una de las siguientes
+     secuencias de escape que representan sus caracteres binarios:
+
+       \a     alarma, esto es, el carácter BEL (07 en hexadecimal)
+       \cx    "control-x", donde x es cualquier carácter
+       \e     escape (1B en hexadecimal)
+       \f     nueva página (0C en hexadecimal)
+       \n     nueva línea (0A en hexadecimal)
+       \r     retorno de carro (0D en hexadecimal)
+       \t     tabulador (09 en hexadecimal)
+       \xhh   carácter con código hh en hexadecimal
+       \ddd   carácter con código ddd en octal
+
+     El efecto de "\cx" es como sigue: si "x" es  una letra minúscula,
+     es convertida a mayúscula. Entonces el sexto bit del carácter (40 en
+     hexadecimal) es invertido. Esto es, "\cz" es 1A en hexadecimal, pero "\c{"
+     es 3B en hexadecimal, mientras "\c;" es 7B en hexadecimal.
+
+     Después de "\x", hasta dos dígitos hexadecimales son leídos (las letras
+     pueden ser mayúsculas o minúsculas).
+
+     Después de "\0" son leídos dos dígitos octales más. En ambos casos, si hay
+     menos de dos dígitos, se usrará lo que haya. Esto es, la secuencia "\0\x\07"
+     indica dos ceros binarios seguidos por un carácter BEL. Asegúrate dar dos
+     dígitos después del inicial cero si el carácter que sigue es un dígito octal.
+
+     El uso de una barra invertida seguido por otro dígito que no sea el cero
+     es complejo. Fuera de una clase carácter, PCRE interpreta cualquier dígito
+     como un número decimal. Si el número es menor que diez, o si ha habido
+     al menos tantos paréntesis capturados a la izquierda en la expresión,
+     entonces la secuencia entera es tomada como una <emphasis>back</emphasis>
+     <emphasis>reference</emphasis> (referencia atrás). Una descripción
+     de como trabaja esto es dada después, siguiendo la discusión de subpatrones
+     con paréntesis.
+
+     Dentro de una clase carácter, o si el número decimal es mayor que nueve y
+     no ha habido tantos subpatrones capturados PCRE relee los tres dígitos
+     octales siguientes a la barra invertida y genera un byte desde los ocho
+     bits menos significativos del valor. Cualquier dígito a continuación se
+     representa a  él mismo. Por ejemplo:
+
+       \040   es otro modo de escribir un espacio
+       \40    es lo mismo, siempre que haya menos de cuarenta subpatrones abiertos
+       \7     siempre es una referencia atrás
+       \11    puede ser una referencia atrás o un tabulador
+       \011   siempre es un tabulador
+       \0113  es el carácter con código octal 113 (ya que no puede haber más de
+              noventa y nueve referencias atrás)
+       \377   es un byte con todos sus bits a uno
+       \81    puede ser una referencia atrás o un cero binario seguido por
+              dos caracteres "8" y "1"
+
+     Ten en cuenta que el valor octal de un número mayor o igual a cien no debe
+     ser precedido por un cero ya que no son leídos más de tres dígitos octales.
+
+     Todas las secuencias que definen el valor de un byte pueden ser usadas
+     tanto dentro como fuera de la clase carácter. Además, la secuencia
+     "\b" es interpretada como el carácter backspace (hex 08) dentro. Fuera es
+     definido de otra manera (ver más adelante).
+
+     El tercer uso de la barra invertida es para especificar los tipos de
+     caracteres genéricos:
+
+       \d     cualquier un dígito decimal
+       \D     cualquier carácter que no sea un dígito decimal
+       \s     cualquier carácter de espacio en blanco (whitespace)
+       \S     cualquier carácter que no sea un espacio en blanco
+       \w     cualquier carácter de "palabra"
+       \W     cualquier carácter que no se de "palabra"
+
+     Cada pareja de secuencia de escape divide el conjunto global de caracteres
+     en dos. Cualquier carácter dado empareja en uno y sólo uno de cada pareja.
+
+     Un carácter de "palabra" es cualquier letra o dígito o el carácter subrayado,
+     esto es, cualquier carácter puede ser parte de una "palabra" en Perl. La
+     definición de letras y dígitos es controlada por la tabla de caracteres de
+     PERL, y puede ser variada si las especificaciones regionales son tomadas en
+     cuenta (ver "Soporte regional más adelante"). Por ejemplo, en Francia algunos
+     caracteres tienen un código superior a 128, para representar las letras
+     acentuadas, y son emparejados por \w.
+
+     Estas secuencias de tipos de caracteres pueden aparecer tanto dentro como
+     fuera de las clases carácter. Cada una casa un carácter del tipo apropiado.
+     Si el punto de casamiento actual es el final de la cadena, todo ello falla,
+     ya que no hay más caracteres que casar.
+
+     El cuarto uso de la barra invertida es para ciertas sentencias (assertions).
+     Una sentencia especifica una condición que tiene que ser encontrada en
+     un punto particular de un emparejamiento, sin utilizar ningún carácter de la
+     cadena de entrada. El uso de subpatrones para sentencias más complicadas
+     es descrito después. Las sentencias de barra invertida son
+
+       \b     limites de palabra
+       \B     no sean limites de palabra
+       \A     inicio de la cadena de entrada (independiente del modo multilínea)
+       \Z     fin de la cadena de entrada o de una nueva línea delante del final
+              (independiente del modo multilínea)
+       \z     fin de la cadena de entrada (independiente de modo multilínea)
+
+     Estas sentencias no pueden aparecer dentro de una clase carácter (pero ten
+     en cuenta que "\b" tiene un significado diferente, quiere decir el carácter
+     backspace dentro de una clase carácter)
+
+     Un límite de palabra es una posición en la cadena de entrada donde un
+     carácter y el anterior no emparejan con \w o \W (por ejemplo, uno casa con
+     \w y el otro con \W), o el principio o el final de la cadena si el primero
+     o el último carácter emparejan con \w, respectivamente.
+
+     Las sentencias \A, \Z y \z se diferencian de los tradicionales circunflejo
+     y dólar (ver más adelante) en que sólo emparejan el inicio y fin de la
+     cadena de entrada sin tener en cuenta las opciones definidas. No les afectan
+     las opciones PCRE_NOTBOL o PCRE_NOTEOL. La diferencia entre \Z y \z es que
+     \Z casa antes una nueva línea que es el último carácter de la cadena como
+     también el final de la cadena, sin embargo \z sólo casa el final.
+
+CIRCUNFLEJO Y DOLAR
+
+     Fuera de una clase carácter, en el modo de emparejamiento por defecto, el
+     carácter circunflejo es una sentencia la cual es verdadera sólo si el punto
+     de casamiento actual es el inicio de la cadena de entrada. Dentro de una
+     clase carácter, el circunflejo tiene significado completamente distinto
+     (ver más adelante).
+
+     El circunflejo no necesita ser el primer carácter del patrón si son posibles
+     un número de alternativas, pero será la primera cosa en cada alternativa
+     en la cual aparezca si el patrón casa esa opción.
+     Si todas las alternativas posibles empiezan con un circunflejo, esto es,
+     si el patrón es obligado a casar sólo con en el inicio de la cadena de entrada,
+     se dice que es un patrón "anclado". También hay otros constructores que
+     pueden hacer que un patrón sea anclado.
+
+     Un carácter de dólar es una sentencia que es verdadera sólo si el
+     punto de emparejamiento actual es el final de la cadena de entrada, o
+     inmediatamente antes de un carácter de nueva línea, el cual es el último
+     carácter en la cadena, por defecto. El dólar no necesita ser el último
+     carácter del patrón si hay varias alternativas, pero será el último elemento
+     en cualquier alternativa en el que aparezca. El dólar no tiene
+     un significado especial en una clase carácter.
+
+     El significado del dólar puede ser cambiado para que sólo empareje el
+     final de la cadena de entrada definiendo la opción PCRE_DOLLAR_ENDONLY a la
+     hora de compilar o tiempo de ejecución. Esto no afecta a la sentencia \Z.
+
+     El significado de los caracteres circunflejo y dólar cambia si la opción
+     PCRE_MULTILINE es definida. Cuando éste es el caso, casan, respectivamente,
+     inmediatamente antes y después de un carácter "\n" interno,
+     además de emparejar con el inicio y el final de la cadena. Por ejemplo, el
+     patrón  /^abc$/ casa con la cadena de entrada "def\nabc" en modo multilínea,
+     pero en otro modo no. Consecuentemente, los patrones anclados son en modo
+     línea ya que todas las opciones que empiezan con "^" no son ancladas en modo
+     multilínea. La opción PCRE_DOLLAR_ENDONLY es ignorada si PCRE_MULTILINE es
+     definido.
+
+     Ten en cuenta que las secuencias \A, \Z y \z pueden ser usadas para casar
+     el inicio y el final de la cadena en ambos modos, y si todas las opciones
+     de un patrón empiezan con \A siempre es anclado, independientemente de si
+     PCRE_MULTILINE es definido o no.
+
+FINAL (PUNTO)
+     Fuera de una clase carácter, un punto en el patrón casa con un carácter
+     cualquiera en la cadena de entrada, incluyendo un carácter no imprimible,
+     exceptuando el de nueva línea (por defecto). Si la opción PCRE_DOTALL es
+     definida, entonces los puntos casan con los de nueva línea también. El
+     manejo de puntos es completamente independiente del uso del circunflejo y el
+     dólar, la única relación entre ellos son los caracteres de nueva línea. Los
+     puntos no tienen un significado especial dentro de una clase carácter.
+
+CORCHETES
+
+     Un corchete de apertura crea una clase carácter, terminada por uno de cierre.
+     Un corchete de cierre no tiene un significado especial. Si un corchete de
+     cierre es necesitado como un miembro de la clase, será el primer carácter
+     de datos en la clase (después de un circunflejo inicial, si está presente)
+     o con una barra invertida antes.
+
+     Si una clase carácter casa con un carácter único en la cadena; el carácter
+     debe estar en el conjunto de los caracteres definidos por la clase, a menos
+     que el primero sea un circunflejo, en cuyo caso el carácter de la cadena de
+     entrada no debe estar en el conjunto definido por la clase. Si un circunflejo
+     es necesitado como un miembro de la clase, asegúrate que no es el primero o
+     es precedido por una barra invertida.
+
+     Por ejemplo, la clase carácter [aeiou] empareja cualquier vocal minúscula,
+     mientras [^aeiou] casa cualquier carácter que no sea una vocal minúscula.
+     Ten en cuenta que un circunflejo es una notación convenida para especificar
+     los caracteres que están en la clase enumerando los que no lo están. No es
+     una sentencia: consume un carácter de la cadena de entrada y falla si
+     el punto actual es final.
+
+     Cuando se define el emparejamiento sin tener en cuenta mayúsculas y minúsculas
+     (caseless), cualquier letra en una clase representa ambas, por ejemplo,
+     un patrón caseless [aeiou] empareja tanto "A" como "a" y un caseless
+     [^aeiou] no casa con "A"
+
+     El carácter de nueva línea nunca es tratado de un modo especial en una
+     clase carácter, aunque se hallan definido cualquiera de las opciones
+     PCRE_DOTALL o PCRE_MULTILINE. Una clase como [^a] siempre casa con una
+     nueva línea.
+
+     El carácter de menos puede ser usado para especificar un rango de caracteres
+     en una clase miembro. Por ejemplo, [d-m] casa con cualquier letra entre d
+     y m ambas incluidas. Si un carácter de menos es necesitado en una clase,
+     debe ser precedido por una barra invertida o aparecer en una posición donde
+     no pueda ser interpretado como indicador de una rango, normalmente al inicio
+     o al final de la clase.
+
+     No es posible tener el carácter literal "]" como el de final de un rango.
+     Un patrón como [W-]46] es interpretado como una clase de dos caracteres
+     ("W" y "-") seguido por la cadena literal "46]", por lo que emparejaría con
+     "W46]" o "-46]". Sin embargo, si el carácter "]" es precedido con una barra
+     invertida es tomado por el final del rango, así [W-\]46] es interpretado
+     como una clase conteniendo un rango seguido por dos caracteres. La
+     representación octal o hexadecimal de "]" puede ser usada para finalizar
+     un rango.
+
+     Los rangos trabajan en la secuencia ASCII. Se pueden especificar mediante
+     la representación numérica de los mismos, por ejemplo [\000-\037]. Si
+     un rango que incluye letras es usado cuando es definida la opción de no
+     tener en cuenta mayúsculas y minúsculas casan ambas. Por ejemplo, [W-c]
+     es equivalente a [][\^_`wxyzabc], teniendo en cuenta mayúsculas y
+     minúsculas, y si la tabla de caracteres para la región "fr" es usada,
+     entonces [\xc8-\xcb] empareja los caracteres E acentuados en ambos casos.
+
+     Los tipos de caracteres \d, \D, \s, \S,  \w,  y  \W también pueden aparecer
+     en una clase carácter y añaden los caracteres que ellos casen para la clase.
+     Por ejemplo, [\dABCDEF] casa cualquier dígito hexadecimal. Un circunflejo
+     puede ser usado convenientemente con el tipo de carácter mayúsculo para
+     especificar un conjunto más restrictivo de caracteres que el de un casamiento
+     con tipo de carácter minúsculo. Por ejemplo, la clase [^\W_] empareja
+     cualquier letra o digito pero no el subrayado.
+
+     Todos los caracteres no alfanuméricos y los diferentes a \, -, ^ (al
+     principio) y ] no tienen un significado especial en una clase, y éstos
+     tampoco si son definidos convenientemente.
+
+BARRA VERTICAL
+
+     Los caracteres de barra vertical son usados para separar patrones
+     alternativos. Por ejemplo, el patrón
+
+       gilbert|sullivan
+
+     casa con "gilbert" o "sullivan". Cualquier cantidad de opciones pueden ser
+     implementadas, y una alternativa vacía se permite (emparejando la
+     cadena vacía). El proceso de casamiento intenta cada una de izquierda a
+     derecha, y la primera que valga es usada. Si las alternativas están dentro
+     de un subpatrón, "valga" significa que casa el resto del patrón principal
+     como también la alternativa en el subpatrón.
+
+
+DEFINIENDO LAS OPCIONES INTERNAS
+
+     Las definiciones de PCRE_CASELESS, PCRE_MULTILINE,  PCRE_DOTALL,
+     y PCRE_EXTENDED pueden ser cambiadas desde dentro del patrón mediante
+     una secuencia de letras de opciones de Perl encerradas entre "(?" y ")".
+     Las letras de opciones son
+
+       i  para PCRE_CASELESS
+       m  para PCRE_MULTILINE
+       s  para PCRE_DOTALL
+       x  para PCRE_EXTENDED
+
+     Por ejemplo, (?im) define sin tener en cuenta mayúsculas y minúsculas y modo
+     multilínea. También es posible eliminar estas opciones precediendo las
+     letras con un menos y una combinación de definiciones y eliminaciones tal
+     como (?im-sx), la cual define PCRE_CASELESS y PCRE_MULTILINE mientras
+     elimina PCRE_DOTALL y PCRE_EXTENDED, también se permite. Si una letra
+     aparece antes y después del menos, la opción es eliminada.
+
+     El ámbito de estas opciones cambia dependiendo dónde ocurra la definición.
+     Las definiciones que son hechas fuera de subpatrones (como antes), el efecto es
+     el mismo que si la opción se define o elimina al inicio del casamiento. Los
+     siguientes patrones se comportan todos de la misma manera:
+
+       (?i)abc
+       a(?i)bc
+       ab(?i)c
+       abc(?i)
+
+     el cual tiene el mismo efecto que compilar el patrón abc con la opción
+     PCRE_CASELESS. En otras palabras, tales definiciones de "nivel superior"
+     se aplican a todo el patrón (a menos que haya otro cambio dentro del
+     subpatrón). Si hay más de una definición de la misma opción en el mismo
+     nivel superior, la definición más a la derecha se usa.
+
+     Si un cambio de opción sucede dentro de un subpatrón, el efecto es diferente.
+     Esto es un cambio respecto de la conducta de Perl 5.005. Un cambio de opción
+     dentro de un subpatrón afecta sólo a la parte del subpatrón que lo sigue,
+     por eso
+
+       (a(?i)b)c
+
+     empareja abc y aBc y ninguna otra cadena (asumiendo que no es usado
+     PCRE_CASELESS). De este modo, las opciones pueden ser hechas para
+     tener diferente significado en diferente partes del patrón. Cualquier
+     cambio realizado en una alternativa provoca que todo el subpatrón la use.
+     Por ejemplo,
+
+       (a(?i)b|c)
+
+     empareja "ab", "aB", "c", y "C", siempre y cuando case "C" la primera
+     opción es abandonada antes de definir la opción. Esto es porque los efectos
+     de definiciones de opción ocurren en tiempo de compilación. De otro modo,
+     éstos sería una conducta muy rara.
+
+     Las opciones específicas PCRE PCRE_UNGREEDY y PCRE_EXTRA pueden ser
+     cambiadas del mismo modo que las opciones compatibles con Perl usando
+     los caracteres U y X respectivamente. La bandera (?X) es especial ya que
+     siempre debe aparecer antes que cualquier otra en el patrón, incluso cuando
+     es definida a nivel superior. Es mejor ponerla en el inicio.
+
+SUBPATRONES
+
+     Los subpatrones son delimitados por paréntesis y pueden estar anidados.
+     Marcando parte de un patrón como un subpatrón permite dos cosas:
+
+     1. Define un conjunto de opciones. Por ejemplo, el patrón
+
+       cat(aract|erpillar|)
+
+     empareja con "cat",  "cataract",  or  "caterpillar". Sin los paréntesis,
+     casaría "cataract", "erpillar" o la cadena vacía.
+
+     2. Define el subpatrón como un subpatrón capturado. Cuando el patrón sea
+     emparejado por completo, esa porción de la cadena de entrada que casa con
+     el subpatrón es devuelta mediante el argumento <emphasis>ovector</emphasis>
+     de <function>pcre_exec</function>. Los paréntesis abiertos son contados de
+     izquierda a derecha (empezando por uno) para definir los números de
+     subpatrones capturados.
+
+     Por ejemplo, si la cadena "the red king" es casada con el patrón
+
+       the ((red|white) (king|queen))
+
+     las subcadenas capturadas son "red king", "red",  y  "king" y los números
+     son 1,2 y 3
+
+     El hecho de que los paréntesis realicen dos funciones no siempre es útil.
+     A menudo, hay veces que un subpatrón agrupado es necesitado sin una
+     querer una captura. Si un paréntesis abierto le sigue "?:", el
+     subpatrón  no hace ninguna captura, y no es contado cuando compute el
+     número de subpatrones capturados. Por ejemplo, si la cadena "the white
+     queen" es casada con el patrón
+
+       the ((?:red|white) (king|queen))
+
+     las subcadenas capturadas son "white queen" y "queen" y son numeradas como
+     1 y 2. El número máximo de subcadenas es de 99 y el número máximo de
+     subpatrones, capturados o no, es de 200.
+
+     Como un atajo, si cualquier definición de opción es necesitada al inicio
+     de un subpatrón no capturado, las letras de opciones pueden aparecer entre
+     "?" y ":". Así los dos patrones
+
+       (?i:saturday|sunday)
+       (?:(?i)saturday|sunday)
+
+     emparejan como el mismo conjunto de cadena de entrada exactamente. Ya que
+     las alternativas son intentadas de izquierda a derecha, y las opciones
+     no son dejadas de tener en cuenta hasta que el final de subpatrón se
+     alcanza, una definición de opción en una alternativa afecta al resto, por
+     eso el patrón anterior empareja tanto con "SUNDAY" como con "Saturday".
+
+REPETICION
+
+     La repetición es especificada por cuantificadores, la cual puede utilizarla
+     cualquiera de los siguientes elementos:
+
+       un carácter, posiblemente precedido por el meta carácter .
+       una clase carácter
+       una referencia atrás (ver la próxima sección)
+       un subpatrón con paréntesis (a menos que sea una sentencia, ver más adelante)
+
+     El cuantificador de repetición general indica un número mínimo y un máximo
+     de casamientos permitidos, dando los dos números entre llaves, separados
+     por coma. El número debe ser menor que 65536, y el primero debe ser menor
+     o igual que el segundo. Por ejemplo:
+
+       z{2,4}
+
+     casa con "zz", "zzz", o "zzzz". Una llave de cierre por si misma no es un
+     carácter especial. Si el segundo número es omitido, pero aparece la coma,
+     entonces no hay límite superior; si el segundo número y la coma son
+     omitidos, el cuantificador indica el número exacto de repeticiones. Así
+
+       [aeiou]{3,}
+
+     empareja al menos tres vocales seguidas, pero pueden ser muchas más, mientras
+
+       \d{8}
+
+     casa exactamente ocho dígitos. Una llave abierta en una posición donde un
+     cuantificador no es permitido o una que no empareje con la sintaxis de un
+     cuantificador es tomada como un carácter literal. Por ejemplo, {,6} no es
+     un cuantificador, pero sí una cadena literal de cuatro caracteres.
+
+     Se permite el cuantificado {0}, provocando que la expresión se comporte
+     como si el elemento anterior y el cuantificador no estuvieran presentes.
+
+     Por conveniencia (y compatibilidad histórica) los cuantificadores más comunes
+     tienen abreviaciones de un solo carácter.
+
+       *    es equivalente a {0,}
+       +    es equivalente a {1,}
+       ?    es equivalente a {0,1}
+
+     Es posible construir bucles infinitos mediante un subpatrón que pueda
+     casar ningún carácter con un cuantificador que no tenga límite superior,
+     por ejemplo:
+
+       (a?)*
+
+     Las primeras versiones de Perl y PCRE dan un error en tiempo de compilación
+     para tales patrones. Sin embargo, ya que existen casos donde esto puede ser
+     útil, esto patrones son aceptados ahora, pero si cualquier repetición del
+     subpatrón no casa ningún carácter, el bucle es roto.
+
+     Por defecto, los cuantificadores son "codiciosos", esto es, casan tantas
+     veces como les es posible (hasta el número máximo de veces permitido), sin
+     provocar que el resto del patrón falle. El ejemplo clásico de donde viene
+     este problema es en intentar casar comentarios en los programas en C.
+     Estos aparecen entre las secuencias /* y */ y dentro de la secuencia los
+     caracteres * y / pueden aparecer individualmente. Un modo de casar
+     comentarios en C es aplicando el patrón
+
+       /\*.*\*/
+
+     para la cadena
+
+       /* first command */  not comment  /* second comment */
+
+     falla, porque casa la cadena entera debido a la voracidad del elemento .*
+
+     Sin embargo, si un cuantificador le siguw un signo de interrogación
+     entonces cesa la voracidad y empareja el mínimo número de veces posibles,
+     así el patrón
+
+       /\*.*?\*/
+
+     hace las cosas correctamente con los comentarios en C. El significado de
+     los cuantificadores variables no es cambiado en otro modo, justo el número
+     preferido de casamientos. No confundas el uso de las interrogaciones con
+     su uso como un cuantificador mas. Ya que tiene dos usos, a veces puede
+     parecer doble, como en
+
+       \d??\d
+
+     el cual empareja un dígito normalmente, pero puede casar dos si ese el
+     único modo de casar el resto del patrón.
+
+     Si se define la opción PCRE_UNGREEDY (la cual no es posible en Perl)
+     entonces los cuantificadores no son voraces por defecto, pero uno puede
+     serlo seguido por una interrogación. En otras palabras, invierte la conducta
+     por defecto.
+
+     Cuando un subpatrón entre paréntesis es cuantificado con un número mínimo
+     de repeticiones superior a uno o con un límite máximo, se necesita más
+     almacenamiento para compilar el patrón, en proporción al tamaño del mínimo
+     o del máximo.
+
+     Si un patrón empieza con .* o .{0,}  y la opción PCRE_DOTALL (equivalente
+     a /s del Perl) es definida, esta permitiendo el . para casar nuevas líneas,
+     entonces el patrón es anclado implícitamente. PCRE trata tales patrones
+     como si estuvieran precedidos por \A. En los casos donde se conoce que la
+     cadena de entrada no contiene nuevas líneas, es conveniente definir
+     PCRE_DOTALL cuando el patrón empieza con .* para obtener esta optimización
+     o usar ^ para indicar explícitamente anclamiento.
+
+     Cuando un subpatrón capturado es repetido, el valor capturado es la
+     subcadena que empareja la iteración final. Por ejemplo, el patrón
+
+       (tweedle[dume]{3}\s*)+
+
+     con la cadena de entrada "tweedledum tweedledee" el valor de la subcadena
+     capturada es "tweedledee". Sin embargo, si hay subpatrones capturados
+     anidadamente, los valores capturados correspondientes pueden haber sido
+     definidos en las iteraciones anteriores. Por ejemplo, después de casar
+     "aba" con
+
+       /(a|(b))+/
+
+     el valor de la segunda subcadena capturada es "b".
+
+REFERENCIAS ATRAS
+
+     Fuera de una clase carácter, una barra invertida seguida por un digito
+     mayor que cero (y posiblemente más dígitos) es una referencia atrás a un
+     subpatrón capturado antes (a su izquierda) en el patrón, siempre que haya
+     habido tantos paréntesis a la izquierda capturados.
+
+     Sin embargo, si el número decimal seguido por la barra invertida es menor
+     que diez, siempre es tomado como una referencia atrás, y da error sólo si
+     no hay los suficientes subpatrones capturados en todo el patrón. En otras
+     palabras, los paréntesis que son referidos no necesitan estar a la
+     izquierda de la referencia para un número menor de diez.  Examina la sección
+     anterior titulada "Barra invertida" para más detalles del manejo de los
+     dígitos con la barra invertida.
+
+     Una referencia atrás empareja si casa el subpatrón capturado en el actual
+     punto de la cadena de entrada, mejor que casar cualquier subpatrón de la
+     misma. Así el patrón
+
+       (sens|respons)e and \1ibility
+
+     casa con "sense and sensibility" y "response and  responsi bility",  pero
+     no "sense  and  responsibility". Si el casamiento con la distinción entre
+     minúsculas y mayúsculas está activado en el momento de la referencia atrás,
+     entonces la distinción de las letras es relevante. Por ejemplo,
+
+       ((?i)rah)\s+\1
+
+     casa con "rah rah" y "RAH RAH", pero no "RAH  rah", pero el subpatrón
+     capturado originalmente es emparejado sin la distinción.
+
+     Puede haber más de una referencia atrás en el mismo subpatrón. Si un
+     subpatrón no ha sido usado en un emparejamiento particular, entonces
+     cualquier referencia atrás siempre fallara. Por ejemplo, el patrón
+
+       (a|(bc))\2
+
+     fallará siempre si inicia a casar con "a" mejor que con "bc". Ya que puede
+     haber hasta 99 referencias atrás, todos los dígitos seguidos por una barra
+     invertida son tomados como parte de número potencial de referencias atrás.
+     Si el patrón continua con un carácter de dígito, entonces algún delimitador
+     debe ser usado para terminar la referencia atrás. Si la opción PCRE_EXTENDED
+     es definida, este puede ser el espacio en blanco. De otro modo un comentario
+     vació puede ser usado.
+
+     Una referencia atrás ocurre dentro del paréntesis al cual refiere, falla
+     cuando el subpatrón es usado por primera vez, así por ejemplo, (a\1) nunca
+     emparejará. Sin embargo, tal referencia puede ser útil dentro de los
+     subpatrones repetidos. Por ejemplo, el patrón
+
+       (a|b\1)+
+
+     casa con cualquier número de "a"s y también con "aba", "ababaa" etc. Para
+     cada iteración del subpatrón, la referencia atrás casa la cadena de
+     caracteres correspondiente a la iteración anterior. Para que esto trabaje,
+     el patrón debe ser tal que la primera iteración no necesite casar la referencia
+     atrás. Esto puede hacerse usando alternativas, como en el ejemplo anterior,
+     o por medio de cuantificadores con un número mínimo de cero.
+
+SENTENCIAS
+
+     Una sentencia es un test sobre los caracteres siguiendo o precediendo el
+     punto actual de emparejamiento que no consume caracteres. Las sentencias
+     codificadas como \b, \B,  \A,  \Z,  \z, ^ y $ son descritas después. Las
+     sentencias más complejas son codificadas como subpatrones. Hay dos clases:
+     aquellas que condicionan más adelante de la posición actual en la cadena
+     de entrada (lookahead)y las que lo hacen en este punto (lookbehind).
+
+     Un subpatrón de sentencia es emparejado del modo típico, excepto que no
+     hace que el punto actual de emparejamiento cambie. Sentencias que condicionan
+     más adelante empiezan con (?= para sentencias afirmativas y (?! para las
+     negativas
+
+       \w+(?=;)
+
+     empareja una palabra seguida por un punto y coma. pero no incluye el
+     punto y coma en el casamiento, y
+
+       foo(?!bar)
+
+     casa cualquier ocurrencia de "foo" que no es seguida por "bar". Ten en cuenta
+     que el patrón similar
+
+       (?!foo)bar
+
+     no encuentra una ocurrencia de "bar" que es precedida por algo que no sea "foo";
+     encuentra cualquier ocurrencia de "bar", ya que la sentencia (?!foo) es siempre
+     verdadera cuando los tres primeros caracteres son "bar". Una sentencia en el
+     punto actual es necesaria para realizar este efecto. Las sentencias de punto
+     actual empiezan con (?&lt;= para sentencias afirmativas y (?&lt;! para las
+     negativas. Por ejemplo,
+
+       (?&lt;!foo)bar
+
+     encuentra una ocurrencia de "bar" que no es precedida por "foo".
+     Los contenidos de un sentencia de punto actual están limitados para que todas
+     las cadenas que emparejen deban tener una longitud fijada. Sin embargo, si
+     hay varias alternativas, no todas tienen que tener la misma longitud. Así
+
+       (?&lt;=bullock|donkey)
+
+     es permitido, pero
+
+       (?&lt;!dogs?|cats?)
+
+     da error en tiempo de compilación. Opciones que emparejen diferentes
+     longitudes de cadenas son permitidas sólo a nivel superior de la sentencia
+     de punto actual. Ésta es una extensión comparada con Perl 5.005, la cual
+     requiere que todas las opciones a casar tengan la misma longitud. Una
+     sentencia como
+
+       (?&lt;=ab(c|de))
+
+     no es permitida, ya que sus opciones a nivel superior pueden casar dos
+     longitudes diferentes, pero es aceptable si se rescribe para usar dos
+     opciones a nivel superior:
+
+       (?&lt;=abc|abde)
+
+     La implementación de sentencias de punto actual es, para cada alternativa,
+     mover temporalmente la posición actual hacia atrás por la longitud fijada
+     e intentar casar. Si no hay suficientes caracteres antes de la posición
+     actual, fallará. Las sentencias de punto actual en unión con subpatrones de
+     sólo una vez pueden ser particularmente útiles para emparejamientos de finales
+     de cadenas; un ejemplo es dado al final de la sección sobre subpatrones
+     de una sola vez.
+
+     Varias sentencias (de cualquier tipo) pueden suceder consecutivamente.
+     Por ejemplo,
+
+       (?&lt;=\d{3})(?&lt;!999)foo
+
+     empareja "foo" precedido por tres dígitos que no sean "999".
+     Además, las sentencias puede ser anidadas en cualquier combinación. Por
+     ejemplo,
+
+       (?&lt;=(?&lt;!foo)bar)baz
+
+     empareja una ocurrencia de "baz" que es precedida por "bar" la cual no sea
+     precedida por "foo".
+
+     Los subpatrones de sentencias no son subpatrones capturados, y no pueden
+     ser repetidos, ya que no tiene sentido la misma cosa varias veces. Si una
+     sentencia contiene subpatrones capturados dentro de ella, éstos son siempre
+     contados para el propósito de la numeración de los subpatrones capturados
+     en todo el patrón. Las subcadenas capturadas son tenidas en cuenta para
+     las sentencias afirmativas, pero no para las negativas (no tiene sentido).
+
+     El contador de sentencias llega hasta un máximo de doscientos subpatrones
+     con paréntesis.
+
+SUBPATRONES DE UNA SOLA VEZ
+
+     Maximizando y minimizando las repeticiones para ver si un número diferente
+     de éstas permite al resto del patrón emparejar, causa múltiples evaluaciones
+     de la cadena de entrada. A veces es útil prevenir esto, cambiando el patrón
+     o provocando que la repetición falle pronto, cuando el creador del patrón
+     conoce que no hay puntos en común.
+
+     Considera, por ejemplo, el patrón \d+foo cuando se aplica a esta cadena de
+     entrada
+
+       123456bar
+
+     Después de emparejar los seis dígitos falla al emparejar "foo", la acción
+     normal del casamiento es intentar otra vez con sólo cinco dígitos que
+     emparejen con el elemento \d+, y entonces con cuatro, y así, antes de fallar.
+     Subpatrones de una sola vez dan el modo de especificar que una parte del
+     patrón tiene que emparejar, no es re-evaluado de esta manera, así el
+     casamiento fallará al emparejar "foo" la primera vez. La notación es otra
+     clase de paréntesis especial, iniciado con (?gt; como en este ejemplo:
+
+       (?&gt;\d+)bar
+
+     Esta clase de paréntesis "bloquean" la parte del patrón que tiene que
+     ser emparejada una vez y un fallo impide que la re-evalue.
+
+     Una descripción alternativa es que un subpatrón de este tipo case los
+     caracteres de la cadena que un patrón fijo emparejaría, si estuviera anclado
+     en el punto actual de la cadena de entrada.
+
+     Subpatrones de una sola vez no son subpatrones capturados. Estos casos tal
+     como el ejemplo anterior pueden ser interpretado como de una repetición
+     maximizada que debe tragar todo lo que pueda.
+     Por esto, mientras ambos \d+ y \d? están preparados para ajustar el número
+     de dígitos que emparejan para hacer que el resto del patrón case, (?&gt;\d+)
+     sólo puede emparejar un secuencia de dígitos entera.
+
+     Esta construcción, por supuesto, puede contener subpatrones arbitriamente
+     complicados y pueden estar anidados.
+
+     Subpatrones de una sola vez pueden usarse con sentencias de punto actual
+     para especificar eficientes emparejamientos al final de la cadena de entrada.
+     Consideremos un patrón sencillo como este
+
+       abcd$
+
+     cuando se aplica a una cadena larga con la cual no empareja. Ya que el
+     casamiento va de izquierda a derecha, PCRE buscará cada "a" en la cadena
+     y entonces verá si lo que sigue casa con el resto del patrón. Si el patrón
+     se escribe así
+
+       ^.*abcd$
+
+     entonces el .* inicial casará primero la cadena entera, pero cuando esto
+     falle, volverá atrás para emparejar todo menos el último carácter, entonces
+     los dos últimos y así sucesivamente. Otra vez la búsqueda de "a" cubre la
+     cadena completa, de derecha a izquierda, de esta manera no se mejora. Sin
+     embargo, si el patrón fuese este
+
+       ^(?&gt;.*)(?&lt;=abcd)
+
+     entonces no hay vuelta atrás para el elemento .*; sólo puede casar la cadena
+     entera. La sentencia de punto actual subsiguiente hace un test sencillo
+     sobre los últimos cuatro caracteres. Si falla, el casamiento inmediatamente
+     da un resultado negativo. Para cadena largas, este acercamiento da una
+     diferencia significativa en tiempo de ejecución.
+
+SUBPATRONES CONDICIONALES
+
+     Es posible hacer que el casamiento procese un subpatrón condicionalmente
+     o elegir entre dos subpatrones alternativos, dependiendo del resultado
+     de una sentencia o si un subpatrón capturado previamente casó o no.
+
+     Las dos formas posibles de subpatrones condicionales son
+
+       (?(condition)yes-pattern)
+       (?(condition)yes-pattern|no-pattern)
+
+     Si la condición es satisfecha, el yes-pattern es usado; sino el no-pattern
+     es utilizado si existe. Si hay más de dos alternativas en el subpatrón, se
+     produce un error en tiempo de compilación.
+
+     Hay dos clases de condiciones. Si el texto entre los paréntesis consiste
+     de una secuencia de dígitos, entonces la condición es verdadera si el
+     subpatrón capturado de ese número ha sido casado previamente. Consideremos
+     el siguiente patrón, contiene espacios en blanco para hacerlo más leíble
+     (asumimos la opción PCRE_EXTENDED) y lo dividimos en tres partes para
+     facilitar la discusión:
+
+       ( \( )?    [^()]+    (?(1) \) )
+
+     La primera parte empareja un paréntesis opcional abierto, y si el carácter
+     esta presente, lo define como la primera subcadena capturada. La segunda
+     parte casa uno o más caracteres que no están entre paréntesis. La tercera
+     parte es un subpatrón condicional que examina si el primer conjunto de
+     paréntesis casa o no. Si fuera así, esto es, si la cadena de entrada
+     empieza por un paréntesis abierto, la condición es cierta, y el yes-pattern
+     es ejecutado y un paréntesis de cierre es requerido. De otro modo, ya que
+     no-pattern no esta presente, el subpatrón no casa con nada. En otras
+     palabras, este patrón casa una secuencia de datos sin paréntesis
+     opcionalmente limitada por ellos.
+
+     Si la condición no es una secuencia de dígitos, debe ser una sentencia.
+     Esto puede ser una sentencia de más adelante positiva o negativa o una
+     de punto actual. Consideremos este patrón, otra vez conteniendo espacios
+     en blanco sin significado y con la segunda alternativa en la siguiente línea:
+
+       (?(?=[^a-z]*[a-z])
+       \d{2}[a-z]{3}-\d{2}  |  \d{2}-\d{2}-\d{2} )
+
+     La condición es una sentencia de más adelante positiva que empareja una
+     secuencia opcional de cualquier cosas menos letras seguido por una letra.
+     En otras palabras, examina la presencia de al menos una letra en la cadena
+     de entrada. Si una letra es encontrada, la cadena es casada con la primera
+     alternativa; sino lo es con la segunda. Este patrón casa cadenas de una de
+     estas dos formas dd-aaa-dd o dd-dd-dd, donde aaa son letra y dd son dígitos.
+
+COMENTARIOS
+
+     La secuencia (?# marca el inicio de un comentario el cual continua hasta
+     el primer paréntesis. Los paréntesis anidados no son permitidos. Los
+     caracteres que forman un comentario no forman parte del patrón de
+     emparejamiento.
+
+     Si la opción PCRE_EXTENDED es definida, un carácter # fuera de una clase
+     carácter crea un comentario que continua hasta la próxima línea del patrón.
+
+RENDIMIENTO
+
+     Ciertos elementos que pueden aparecer en los patrones son más eficientes
+     que otros. Es más eficiente usar una clase carácter como [aeiou] que un
+     conjunto de alternativas tal como (a|e|i|o|u). En general, los constructores
+     más sencillos que dan la conducta requerida son, normalmente, más eficientes.
+     El libro de Jeffrey Friedl contiene un montón de discusiones sobre la
+     optimización de expresiones regulares para un rendimiento eficiente.
+
+     Cuando un patrón empieza con .* y la opción PCRE_DOTALL está definida, el
+     patrón es anclado implícitamente por PCRE, ya que sólo puede casar el inicio
+     de la cadena de entrada. Sin embargo, si PCRE_DOTALL no es definido, PCRE
+     no puede hacer esta optimización, ya que el meta carácter . no tiene porque
+     casar con una nueva línea y si la cadena de entrada contiene varias nuevas
+     líneas, el patrón puede emparejar desde el carácter inmediatamente siguiente
+     a uno de ellos en vez del inicio. Por ejemplo, el patrón
+
+        (.*) second
+
+     casa la cadena de entrada "first\nand second" (donde \n representa un carácter
+     de nueva línea) con la primera subcadena capturada empezando con "and".
+     En otras palabras, PCRE tiene que intentar los casamientos iniciándolos
+     después de cada nueva línea en la cadena de entrada.
+
+     Si estas usando un patrón con cadenas de entrada que no contienen nuevas
+     líneas, el mejor rendimiento se obtiene definiendo PCRE_DOTALL o iniciando
+     el patrón con ^.* para indicar anclamiento explícito. Esto previene a PCRE
+     tener que examinar toda la cadena de entrada buscando nuevas líneas para
+     empezar de nuevo.
+    </literallayout>
+   </refsect1>
+  </refentry>
+</reference>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

@@ -1,0 +1,1884 @@
+ <reference id="ref.xml">
+  <title>Funciones de int&eacute;rprete XML</title>
+  <titleabbrev>XML</titleabbrev>
+
+  <partintro>
+   <sect1 id="xml.partintro">
+    <title>Introducci&oacute;n</title>
+    <sect2 id="xml.intro">
+     <title>Acerca de XML</title>
+     <para>
+      XML (eXtensible Markup Language) es un formato de informaci&oacute;n
+      para el intercambio de documentos estructurado en la "Web"
+      Es un est&aacute;ndar definido por el consorcio de la 
+      "World Wide Web" (W3C).  Se puede encontrar
+      informaci&oacute;n sobre XML y tecnolog&iacute;s relacionadas en
+      <ulink url="&url.xml;">&url.xml;</ulink>.
+     </para>
+    </sect2>
+    <sect2 id="xml.install">
+     <title>Instalaci&oacute;n</title>
+     <para>
+      Esta extensi&oacute;n usa <productname>expat</productname>, que se puede
+      encontrar en <ulink url="&url.expat;">&url.expat;</ulink>.  El 
+      Makefile que viene con expat no crea una biblioteca por defecto,
+      se puede usar esta regla de make para eso:
+      <programlisting role="makefile">
+libexpat.a: $(OBJS)
+	ar -rc $@ $(OBJS)
+	ranlib $@
+      </programlisting>
+      Se puede conseguir un paquete RPM de expat en  <ulink
+      url="&url.expat.rpm;">&url.expat.rpm;</ulink>.
+     </para>
+     <para>
+      Nota que si se usa Apache-1.3.7 o posterior, ya tienes
+      la biblioteca requerida expat.  Simplemente, configura PHP usando
+      <option role="configure">--with-xml</option> (sin ninguna
+      ruta adicional) y usar&aacute; autom&aacute;ticamente la biblioteca
+      expat incluida en Apache.
+     </para>
+     <para>
+      En UNIX, ejecuta <command>configure</command> con la opci&oacute;n
+      <option role="configure">--with-xml</option>.  La
+      biblioteca <productname>expat</productname> deber&iacute;a ser instalada
+      en alg&uacute;n lugar donde el compilador pueda encontrarlo.
+      Si se compila PHP como un m&oacute;dulo para Apache 1.3.9 o posterior,
+      PHP autom&aacute;ticamente usar&aacute; la biblioteca integrada
+      <productname>expat</productname> de Apache. Puede necesitar establecer
+      <envar>CPPFLAGS</envar> y <envar>LDFLAGS</envar> en su
+      entorno antes de ejecutar "configure" si se ha instalado
+      expat en alg&uacute;n lugar ex&oacute;tico.
+     </para>
+     <para>
+      Compila PHP.  <emphasis>&iexcl;Ta-tam!</emphasis> Ya debería estar.
+     </para>
+    </sect2>
+
+    <sect2 id="xml.about">
+     <title>Sobre Esta Extensi&oacute;n</title>
+     <para>
+      Esta extensi&oacute;n de PHP implementa soporte para
+      <productname>expat</productname> de James Clarkin en PHP.
+      Este conjunto de herramientas permite interpretar, pero no
+      validar, documentos XML.  Soporta tres 
+      <link linkend="xml.encoding">codificaciones de caracteres</link>
+      fuente, tambi&eacute;n proporcionados por PHP: 
+      <literal>US-ASCII</literal>, <literal>ISO-8859-1</literal> y 
+      <literal>UTF-8</literal>.  <literal>UTF-16</literal> no est&aacute;
+      soportado.
+     </para>
+     <para>
+      Esta extensi&oacute;n permite <link 
+      linkend="function.xml-parser-create">crear int&eacute;rpretes de XML</link>
+      y definir entonces <emphasis>gestores</emphasis> para diferentes 
+      eventos XML. Cada int&eacute;rprete XML tiene tambi&eacute;n unos
+      cuantos <link linkend="function.xml-parser-set-option">
+      par&aacute;metros</link> que se pueden ajustar.
+     </para>
+     <para>
+      Los gestores de eventos XML definidos son:
+      <table>
+       <title>Gestores de XML soportados</title>
+       <tgroup cols="2">
+	<thead>
+	 <row>
+	  <entry>Funci&oacute;n PHP para establecer gestor</entry>
+	  <entry>Descripci&oacute;n del evento</entry>
+	 </row>
+	</thead>
+	<tbody>
+	 <row>
+	  <entry><function>xml_set_element_handler</function></entry>
+	  <entry>
+	   Los eventos de elemento ("element") se producen cuando el
+         int&eacute;rprete XML encuentra etiquetas de comienzo o
+         fin.  Hay gestores separados para etiquetas de comienzo y
+         etiquetas de fin.
+	  </entry>
+	 </row>
+	 <row>
+	  <entry>
+	   <function>xml_set_character_data_handler</function>
+	  </entry>
+	  <entry>
+	   La informaci&oacute;n de caracteres es, por definición, todo el
+         contenido no "marcado" de los documentos XML, incluidos
+         los espacios en blanco entre etiquetas.  Nota que el
+	   int&eacute;rprete XML no a&ntilde;ade o elimina ning&uacute;n
+         espacio en blanco, depende de la aplicaci&oacute;n (de ti) 
+         decidir si el espacio en blanco es significativo.
+	  </entry>
+	 </row>
+	 <row>
+	  <entry>
+	   <function>xml_set_processing_instruction_handler</function>
+	  </entry>
+	  <entry>
+ 	   Los programadores de PHP deber&iacute;an estar ya familiarizados
+         con las instrucciones de procesado (PI).  &lt;?php ?&gt; es
+         una instrucci&oacute;n de procesado, donde 
+         <replaceable>php</replaceable> se denomina el "objetivo de procesado".
+	   El manejo de &eacute;stos es espec&iacute;fico a cada
+	   aplicaci&oacute;n, salvo que todos los objetivos PI que comienzan
+	   con "XML" est&aacute;n reservados.
+	  </entry>
+	 </row>
+	 <row>
+	  <entry><function>xml_set_default_handler</function></entry>
+	  <entry>
+	   Todo lo que no va a otro gestor, va al gestor por defecto.
+	   Se tendrán en el gestor por defecto cosas como las declaraciones
+	   de tipos de documento y XML.
+	  </entry>
+	 </row>
+	 <row>
+	  <entry>
+	   <function>xml_set_unparsed_entity_decl_handler</function>
+	  </entry>
+	  <entry>
+	   Este gestor se llamar&aacute; para la declaraci&oacute;n
+	   de una entidad no analizada (NDATA).
+	  </entry>
+	 </row>
+	 <row>
+	  <entry>
+	   <function>xml_set_notation_decl_handler</function>
+	  </entry>
+	  <entry>
+	   Este gestor se llama para la declaraci&oacute;n de una anotaci&oacute;n.
+	  </entry>
+	 </row>
+	 <row>
+	  <entry>
+	   <function>xml_set_external_entity_ref_handler</function>
+	  </entry>
+	  <entry>
+	   Este gestor se llama cuando el intérprete XML encuentra una
+	   referencia a una entidad general interpretada externa.  Puede ser
+	   una referencia a un archivo o URL, por ejemplo.  Ver <link
+	   linkend="example.xml-external-entity">el ejemplo de entidad externa
+	   </link> para demostraci&oacute;n.
+	  </entry>
+	 </row>
+	</tbody>
+       </tgroup>
+      </table>
+     </para>
+    </sect2>
+
+    <sect2 id="xml.case-folding">
+     <title>Case Folding</title>
+     <para>
+      Las funciones manejadoras de elementos pueden tomar sus nombres
+      de elementos "<glossterm>case-folded</glossterm>". Case-folding 
+      se define en el estándar XML como "un proceso aplicado a una
+      secuencia de caracteres, en el cual aquellos identificados como
+      sin-mayúsculas son reemplazados por sus equivalentes en mayúsculas".
+      En otras palabras, cuando se trata de XML, case-folding simplemente
+      significa poner en mayúsculas.
+     </para>
+     <para>
+      Por defecto, todos los nombres de elementos que se pasan a las
+      funciones gestoras estan "pasados a mayúsculas". Esta conducta
+      puede ser observada y controlada por el analizador XML con las
+      funciones
+      <function>xml_parser_get_option</function> y
+      <function>xml_parser_set_option</function>,
+      respectivamente.
+     </para>
+    </sect2>
+
+    <sect2 id="xml.error-codes">
+     <title>C&oacute;digos de Error</title>
+     <para>
+      Las siguientes constantes se definen para c&oacute;digos de error
+      XML (como los devuelve <function>xml_parse</function>):
+      <simplelist>
+       <member>XML_ERROR_NONE</member>
+       <member>XML_ERROR_NO_MEMORY</member>
+       <member>XML_ERROR_SYNTAX</member>
+       <member>XML_ERROR_NO_ELEMENTS</member>
+       <member>XML_ERROR_INVALID_TOKEN</member>
+       <member>XML_ERROR_UNCLOSED_TOKEN</member>
+       <member>XML_ERROR_PARTIAL_CHAR</member>
+       <member>XML_ERROR_TAG_MISMATCH</member>
+       <member>XML_ERROR_DUPLICATE_ATTRIBUTE</member>
+       <member>XML_ERROR_JUNK_AFTER_DOC_ELEMENT</member>
+       <member>XML_ERROR_PARAM_ENTITY_REF</member>
+       <member>XML_ERROR_UNDEFINED_ENTITY</member>
+       <member>XML_ERROR_RECURSIVE_ENTITY_REF</member>
+       <member>XML_ERROR_ASYNC_ENTITY</member>
+       <member>XML_ERROR_BAD_CHAR_REF</member>
+       <member>XML_ERROR_BINARY_ENTITY_REF</member>
+       <member>XML_ERROR_ATTRIBUTE_EXTERNAL_ENTITY_REF</member>
+       <member>XML_ERROR_MISPLACED_XML_PI</member>
+       <member>XML_ERROR_UNKNOWN_ENCODING</member>
+       <member>XML_ERROR_INCORRECT_ENCODING</member>
+       <member>XML_ERROR_UNCLOSED_CDATA_SECTION</member>
+       <member>XML_ERROR_EXTERNAL_ENTITY_HANDLING</member>
+      </simplelist>
+     </para>
+    </sect2>
+    <sect2 id="xml.encoding">
+     <title>Codificaci&oacute;n de caracteres</title>
+     <para>
+      La extension XML de PHP soporta el conjunto de caracteres <ulink
+      url="&url.unicode;">Unicode</ulink> a trav&eacute;s de
+      diferentes <glossterm>codificaciones de caracteres</glossterm>.  
+      Hay dos tipos de codificaciones de caracteres, <glossterm>
+      coficaci&oacute;n de fuente</glossterm> y <glossterm>
+      codificaci&oacute;n de destino</glossterm>.
+      La representaci&oacute;n interna de PHP del documento est&aacute;
+      siempre codificada con <literal>UTF-8</literal>.
+     </para>
+     <para>
+      La codificaci&oacute;n de fuente se hace cuando un documento XML es
+      <link linkend="function.xml-parse">interpretado</link>.  Al <link
+      linkend="function.xml-parser-create">crear un int&eacute;rprete XML
+      </link>, se puede especificar una codificaci&oacute;n de fuente
+      (esta codificaci&oacute;n no se puede cambiar m&aacute; tarde
+      durante el tiempo de vida del int&eacute;rprete XML).  Las
+      codificaciones de fuente soportadas son <literal>ISO-8859-1</literal>,
+      <literal>US-ASCII</literal> y <literal>UTF-8</literal>.  Las
+      dos primeras son codificaciones de byte-&uacute;nico, lo que significa
+      que cada car&aacute;cter se representa por un solo byte.
+      <literal>UTF-8</literal> puede codificar caracteres compuestos por
+      un n&uacute;mero variable de bits (hasta 21) en de uno a cuatro 
+      bytes.  La codificaci&oacute;n fuente por defecto usada por PHP es
+      <literal>ISO-8859-1</literal>.
+     </para>
+     <para>
+      La codificaci&oacute;n de destino se hace cuando PHP pasa datos
+      a las funciones gestoras XML.  Cuando se crea un int&eacute;rprete
+      XML, la codificaci&oacute;n de destino se crea igual a la 
+      codificaci&oacute;n de fuente, pero se puede cambiar en cualquier
+      momento. La codificaci&oacute;n de destino afectar&aacute; a
+      la informaci&oacute;n de los caracteres as&iacute; como a los nombres
+      de las etiquetas y a los objetivos de instrucciones de procesado.
+     </para>
+     <para>
+      Si el int&eacute;rprete XML encuentra caracteres fuera del rango
+      que su codificaci&oacute;n de fuente es capaz de representar,
+      devolver&aacute; un error.  
+     </para>
+     <para>
+      Si PHP encuentra caracteres en el documento XML interpretado que
+      no pueden ser representados en la codificaci&oacute;n de destino
+      elegida, los caracteres problema ser&aacute;n "degradados".
+      Actualmente, esto significa que tales caracteres se reemplazan por
+      un signo de interrogaci&oacute;n.
+     </para>
+    </sect2>
+   </sect1>
+
+   <sect1 id="xml.examples">
+    <title>Algunos Ejemplos</title>
+    <para>
+     Aqu&iacute; hay algunos ejemplos de archivos de comandos PHP 
+     que interpretan documentos XML.
+    </para>
+    <sect2 id="example.xml-structure">
+     <title>Ejemplos de Estructuras de Elementos XML</title>
+     <para>
+      Este primer ejemplo muestra la estructura del elemento inicio en
+      un documento con indentación.
+      <example>
+       <title>Muestra la Estructura del Elemento XML</title>
+       <programlisting role="php">
+$file = "data.xml";
+$depth = array();
+
+function startElement($parser, $name, $attrs) {
+    global $depth;
+    for ($i = 0; $i &lt; $depth[$parser]; $i++) {
+        print "  ";
+    }
+    print "$name\n";
+    $depth[$parser]++;
+}
+
+function endElement($parser, $name) {
+    global $depth;
+    $depth[$parser]--;
+}
+
+$xml_parser = xml_parser_create();
+xml_set_element_handler($xml_parser, "startElement", "endElement");
+if (!($fp = fopen($file, "r"))) {
+    die("could not open XML input");
+}
+
+while ($data = fread($fp, 4096)) {
+    if (!xml_parse($xml_parser, $data, feof($fp))) {
+        die(sprintf("XML error: %s at line %d",
+                    xml_error_string(xml_get_error_code($xml_parser)),
+                    xml_get_current_line_number($xml_parser)));
+    }
+}
+xml_parser_free($xml_parser);
+       </programlisting>
+      </example>
+     </para>
+    </sect2>
+
+    <sect2 id="example.xml-map-tags">
+     <title>Ejemplo de Mapeo de Etiquetas XML</title>
+     <para>
+      <example>
+       <title>Traduciendo XML a HTML</title>
+       <para>
+        Este ejemplo transforma etiquetas de un documento XML directamente
+        a etiquetas HTML. Los elementos no encontrados en el "array de
+        traducci&oacute;n ("map array") son ignorados. Por supuesto, este
+        ejemplo solamente funcionar&aacute; con un tipo de documentos XML
+	espec&iacute;fico.
+	<programlisting role="php">
+$file = "data.xml";
+$map_array = array(
+    "BOLD"     => "B",
+    "EMPHASIS" => "I",
+    "LITERAL"  => "TT"
+);
+
+function startElement($parser, $name, $attrs) {
+    global $map_array;
+    if ($htmltag = $map_array[$name]) {
+        print "&lt;$htmltag>";
+    }
+}
+
+function endElement($parser, $name) {
+    global $map_array;
+    if ($htmltag = $map_array[$name]) {
+        print "&lt;/$htmltag>";
+    }
+}
+
+function characterData($parser, $data) {
+    print $data;
+}
+
+$xml_parser = xml_parser_create();
+// usa case-folding para que estemos seguros de encontrar la etiqueta
+// en $map_array
+xml_parser_set_option($xml_parser, XML_OPTION_CASE_FOLDING, true);
+xml_set_element_handler($xml_parser, "startElement", "endElement");
+xml_set_character_data_handler($xml_parser, "characterData");
+if (!($fp = fopen($file, "r"))) {
+    die("could not open XML input");
+}
+
+while ($data = fread($fp, 4096)) {
+    if (!xml_parse($xml_parser, $data, feof($fp))) {
+        die(sprintf("XML error: %s at line %d",
+                    xml_error_string(xml_get_error_code($xml_parser)),
+                    xml_get_current_line_number($xml_parser)));
+    }
+}
+xml_parser_free($xml_parser);
+	</programlisting>
+       </para>
+      </example>
+     </para>
+    </sect2>
+
+    <sect2 id="example.xml-external-entity">
+     <title>Ejemplo de Entidad Externa XML</title>
+     <para>
+      Este ejemplo resalta el c&oacute;digo XML. Ilustra c&oacute;mo
+      usar un gestor de referencia de entidades extenas para incluir
+      y analizar otros documentos, así como cu&uacute;ntos PIs pueden
+      ser procesados, y un modo de determinar "confianza" para PIs que
+      contienen c&oacute;digo.
+     </para>
+     <para>
+      Los documentos XML que se pueden usar en este ejemplo se encuentran
+      bajo el ejemplo (<filename>xmltest.xml</filename> y
+      <filename>xmltest2.xml</filename>.)
+     </para>
+     <para>
+      <example>
+       <title>Ejemplo de Entidades Externas</title>
+       <programlisting role="php">
+$file = "xmltest.xml";
+
+function trustedFile($file) {
+    // solamente conf&iacute;a en archivos locales que nos pertenezcan
+    if (!eregi("^([a-z]+)://", $file) 
+        &amp;&amp; fileowner($file) == getmyuid()) {
+            return true;
+    }
+    return false;
+}
+
+function startElement($parser, $name, $attribs) {
+    print "&amp;lt;&lt;font color=\"#0000cc\"&gt;$name&lt;/font&gt;";
+    if (sizeof($attribs)) {
+        while (list($k, $v) = each($attribs)) {
+            print " &lt;font color=\"#009900\"&gt;$k&lt;/font&gt;=\"&lt;font 
+                   color=\"#990000\"&gt;$v&lt;/font&gt;\"";
+        }
+    }
+    print "&amp;gt;";
+}
+
+function endElement($parser, $name) {
+    print "&amp;lt;/&lt;font color=\"#0000cc\"&gt;$name&lt;/font&gt;&amp;gt;";
+}
+
+function characterData($parser, $data) {
+    print "&lt;b&gt;$data&lt;/b&gt;";
+}
+
+function PIHandler($parser, $target, $data) {
+    switch (strtolower($target)) {
+        case "php":
+            global $parser_file;
+            // Si el documento analizado es "de confianza", diremos
+            // que es seguro ejecutar c&oacute;digo PHP en su interior.
+            // Si no, en vez de ello mostrar&aacute; el c&oacute;digo.
+            if (trustedFile($parser_file[$parser])) {
+                eval($data);
+            } else {
+                printf("Untrusted PHP code: &lt;i&gt;%s&lt;/i&gt;", 
+                        htmlspecialchars($data));
+            }
+            break;
+    }
+}
+
+function defaultHandler($parser, $data) {
+    if (substr($data, 0, 1) == "&amp;" &amp;&amp; substr($data, -1, 1) == ";") {
+        printf('&lt;font color="#aa00aa"&gt;%s&lt;/font&gt;', 
+                htmlspecialchars($data));
+    } else {
+        printf('&lt;font size="-1"&gt;%s&lt;/font&gt;', 
+                htmlspecialchars($data));
+    }
+}
+
+function externalEntityRefHandler($parser, $openEntityNames, $base, $systemId,
+                                  $publicId) {
+    if ($systemId) {
+        if (!list($parser, $fp) = new_xml_parser($systemId)) {
+            printf("Could not open entity %s at %s\n", $openEntityNames,
+                   $systemId);
+            return false;
+        }
+        while ($data = fread($fp, 4096)) {
+            if (!xml_parse($parser, $data, feof($fp))) {
+                printf("XML error: %s at line %d while parsing entity %s\n",
+                       xml_error_string(xml_get_error_code($parser)),
+                       xml_get_current_line_number($parser), $openEntityNames);
+                xml_parser_free($parser);
+                return false;
+            }
+        }
+        xml_parser_free($parser);
+        return true;
+    }
+    return false;
+}
+
+
+function new_xml_parser($file) {
+    global $parser_file;
+
+    $xml_parser = xml_parser_create();
+    xml_parser_set_option($xml_parser, XML_OPTION_CASE_FOLDING, 1);
+    xml_set_element_handler($xml_parser, "startElement", "endElement");
+    xml_set_character_data_handler($xml_parser, "characterData");
+    xml_set_processing_instruction_handler($xml_parser, "PIHandler");
+    xml_set_default_handler($xml_parser, "defaultHandler");
+    xml_set_external_entity_ref_handler($xml_parser, "externalEntityRefHandler");
+    
+    if (!($fp = @fopen($file, "r"))) {
+        return false;
+    }
+    if (!is_array($parser_file)) {
+        settype($parser_file, "array");
+    }
+    $parser_file[$xml_parser] = $file;
+    return array($xml_parser, $fp);
+}
+
+if (!(list($xml_parser, $fp) = new_xml_parser($file))) {
+    die("could not open XML input");
+}
+
+print "&lt;pre&gt;";
+while ($data = fread($fp, 4096)) {
+    if (!xml_parse($xml_parser, $data, feof($fp))) {
+        die(sprintf("XML error: %s at line %d\n",
+                    xml_error_string(xml_get_error_code($xml_parser)),
+                    xml_get_current_line_number($xml_parser)));
+    }
+}
+print "&lt;/pre&gt;";
+print "parse complete\n";
+xml_parser_free($xml_parser);
+
+?>
+       </programlisting>
+      </example>
+     </para>
+     <para id="example.xml-xmltest.xml">
+      <example>
+       <title>xmltest.xml</title>
+       <programlisting role="xml">
+&lt;?xml version='1.0'?>
+&lt;!DOCTYPE chapter SYSTEM "/just/a/test.dtd" [
+&lt;!ENTITY plainEntity "FOO entity">
+&lt;!ENTITY systemEntity SYSTEM "xmltest2.xml">
+]>
+&lt;chapter>
+ &lt;TITLE>Title &amp;plainEntity;&lt;/TITLE>
+ &lt;para>
+  &lt;informaltable>
+   &lt;tgroup cols="3">
+    &lt;tbody>
+     &lt;row>&lt;entry>a1&lt;/entry>&lt;entry morerows="1">b1&lt;/entry>&lt;entry>c1&lt;/entry>&lt;/row>
+     &lt;row>&lt;entry>a2&lt;/entry>&lt;entry>c2&lt;/entry>&lt;/row>
+     &lt;row>&lt;entry>a3&lt;/entry>&lt;entry>b3&lt;/entry>&lt;entry>c3&lt;/entry>&lt;/row>
+    &lt;/tbody>
+   &lt;/tgroup>
+  &lt;/informaltable>
+ &lt;/para>
+ &amp;systemEntity;
+ &lt;sect1 id="about">
+  &lt;title>About this Document&lt;/title>
+  &lt;para>
+   &lt;!-- this is a comment -->
+   &lt;?php print 'Hi!  This is PHP version '.phpversion(); ?>
+  &lt;/para>
+ &lt;/sect1>
+&lt;/chapter>
+       </programlisting>
+      </example>
+     </para>
+     <para id="example.xml-xmltest2.xml">
+      Este archivo se incluye desde <filename>xmltest.xml</filename>:
+      <example>
+       <title>xmltest2.xml</title>
+       <programlisting role="xml">
+&lt;?xml version="1.0"?>
+&lt;!DOCTYPE foo [
+&lt;!ENTITY testEnt "test entity">
+]>
+&lt;foo>
+   &lt;element attrib="value"/>
+   &amp;testEnt;
+   &lt;?php print "This is some more PHP code being executed."; ?>
+&lt;/foo>
+       </programlisting>
+      </example>
+     </para>
+    </sect2>
+   </sect1>
+  </partintro>
+
+  <refentry id="function.xml-parser-create">
+   <refnamediv>
+    <refname>xml_parser_create</refname>
+    <refpurpose>crea un analizador de XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int <function>xml_parser_create</function></funcdef>
+     <paramdef>string 
+      <parameter><optional>encoding</optional></parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>encoding</parameter> (opcional)</term>
+       <listitem>
+	<para>
+         Qu&eacute; codificaci&oacute;n de caracteres deber&iacute;a
+         usar el analizador. Las siguientes codificaci&oacute;n de
+         caracteres están soportadas:
+	 <simplelist>
+	  <member><literal>ISO-8859-1</literal> (por defecto)</member>
+	  <member><literal>US-ASCII</literal></member>
+	  <member><literal>UTF-8</literal></member>
+	 </simplelist>
+	</para>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+     Esta funci&oacute;n crea un analizador XML y devuelve un &iacute;ndice
+     para usarlo con otras funciones XML. Devuelve <literal>false</literal>
+     en caso de fallo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-object">
+   <refnamediv>
+    <refname>xml_set_object</refname>
+    <refpurpose>Usa un analizador XML dentro de un objecto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>void <function>xml_set_object</function></funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>object <parameter>&amp;object</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Esta funci&oacute;n hace a <parameter>parser</parameter> utilizable
+     dentro de <parameter>object</parameter>. Todas las funciones de callback
+     establecidas por <function>xml_set_element_handler</function> etc se
+     asumen como m&eacute;todos de <parameter>object</parameter>.
+    </para>
+    <programlisting role="php">
+&lt;?php
+class xml  {
+var $parser;
+
+function xml() {
+    $this->parser = xml_parser_create();
+    xml_set_object($this->parser,&$this);
+    xml_set_element_handler($this->parser,"tag_open","tag_close");
+    xml_set_character_data_handler($this->parser,"cdata");
+}
+
+function parse($data) { 
+    xml_parse($this->parser,$data);
+}
+
+function tag_open($parser,$tag,$attributes) { 
+    var_dump($parser,$tag,$attributes); 
+}
+
+function cdata($parser,$cdata) { 
+    var_dump($parser,$cdata);
+}
+
+function tag_close($parser,$tag) { 
+    var_dump($parser,$tag); 
+}
+
+} // end of class xml
+
+$xml_parser = new xml();
+$xml_parser->parse("&lt;A ID=\"hallo\">PHP&lt;/A>");
+?>
+   </programlisting>
+    <para>
+     <note> 
+      <para>
+       <function>xml_set_object</function> es gestionable a partir de PHP
+       4.0.
+      </para>
+     </note>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-element-handler">
+   <refnamediv>
+    <refname>xml_set_element_handler</refname>
+    <refpurpose>establece gestores de los elementos principio y fin</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_element_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string 
+      <parameter>startElementHandler</parameter>
+     </paramdef>
+     <paramdef>string 
+      <parameter>endElementHandler</parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para>
+     Establece las funciones de gestion de elementos para el analizador XML
+     <parameter>parser</parameter>.
+     <parameter>startElementHandler</parameter> y
+     <parameter>endElementHandler</parameter> son strings que contienen
+     los nombres de las funciones que deben existir cuando
+     <function>xml_parse</function> es llamado por
+     <parameter>parser</parameter>.
+    </para>
+    <para>
+     La funci&oacute;n denominada <parameter>startElementHandler</parameter>
+     debe aceptar tres par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>startElementHandler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>name</parameter></paramdef>
+      <paramdef>string <parameter>attribs</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term> 
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+	 referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>name</parameter></term>
+       <listitem>
+	<simpara>
+	 El segundo par&aacute;metro, <parameter>name</parameter>, contiene
+         el nombre del elemento para el que se llama a este gestor. Si la
+         propiedad de 
+	 <link linkend="xml.case-folding">case-folding</link>
+         tiene efecto para este analizador, el nombre del elemento
+         estar&aacute; en may&uacute;sculas.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>attribs</parameter></term>
+       <listitem>
+	<simpara>
+         El tercer par&aacute;metro, <parameter>attribs</parameter>, contiene
+         un array asociativo con los atributos de los elementos (si hay).
+         Las claves de este array son los nombres de los atributos, los
+         valores son los valores de los atributos. Los nombres de los
+	 atributos est&aacute;n en may&uacute;sculas (<link
+	 linkend="xml.case-folding">case-folded</link>) con el mismo criterio
+	 que los nombres de los elementos.  Los valores de los atributos
+	 <emphasis>no</emphasis> sufren las consecuencias de case-folding.
+	</simpara>
+	<simpara>
+         El orden original de los atributos se puede recuperar recorriendo
+	 <parameter>attribs</parameter> del modo usual, usando
+         <function>each</function>.  La primera clave del array es el
+	 el primer atributo, y as&iacute; sucesivamente.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     La funci&oacute;n llamada <parameter>endElementHandler</parameter>
+     debe aceptar dos par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>endElementHandler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>name</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term> 
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+	 referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>name</parameter></term>
+       <listitem>
+	<simpara>
+	 El segundo par&aacute;metro, <parameter>name</parameter>, contiene
+         el nombre del elemento para el que se llama a este gestor. Si la
+         propiedad de 
+	 <link linkend="xml.case-folding">case-folding</link>
+         tiene efecto para este analizador, el nombre del elemento
+         estar&aacute; en may&uacute;sculas.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se establecieron los gestores, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-character-data-handler">
+   <refnamediv>
+    <refname>xml_set_character_data_handler</refname>
+    <refpurpose>Establece gestores de datos de caracteres</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_character_data_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece la funci&oacute;n gestora de datos de caracteres para
+     el analizador XML <parameter>parser</parameter>.
+     <parameter>handler</parameter> es un string que contiene el nombre
+     de la funci&oacute;n  que debe existir cuando
+     <function>xml_parse</function> es llamado por
+     <parameter>parser</parameter>.</para>
+    <para>
+     La funci&oacute;n nombrada en <parameter>handler</parameter> debe aceptar
+     dos par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>data</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+	 referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>data</parameter></term>
+       <listitem>
+	<simpara>
+	 El segundo par&aacute;metro, <parameter>data</parameter>, contiene
+	 los datos caracteres como string.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist></para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-processing-instruction-handler">
+   <refnamediv>
+    <refname>xml_set_processing_instruction_handler</refname>
+    <refpurpose>
+     Establece el gestor de instrucciones de procesado (PI) 
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_processing_instruction_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece ela funci&oacute;n de gesti&oacute;n de instrucciones
+     de procesado (PI) para el analizador XML <parameter>parser</parameter>.
+     <parameter>handler</parameter> es un string que contiene el nombre de
+     una funci&oacute;n que debe existir cuando
+     <function>xml_parse</function> es llamada por
+     <parameter>parser</parameter>.
+    </para>
+    <para>
+     Una instrucci&oacute;n de procedado tiene el siguiente formato:
+     <informalexample>
+      <programlisting>&lt;?
+       <replaceable>target</replaceable> 
+       <replaceable>data</replaceable>?>
+      </programlisting>
+     </informalexample>
+     Puedes poner c&oacute;digo PHP en esa etiqueta, pero ten en cuenta
+     una limitaci&oacute;n: en una PI XML, la etiqueta de fin de la PI
+     (<literal>?&gt;</literal>) no puede ser citada, por lo que
+     esta secuencia de caracteres no deber&iacute;a aparecer en el
+     c&oacute;digo PHP que insertes con las PIs en documentos XML.
+     Si lo hace, el resto del c&oacute;digo PHP, as&iacute; como la
+     etiqueta de fin de PI "real", ser&aacute;n tratados como datos
+     de caracteres.
+    </para>
+    <para>
+     La funci&oacute;n nombrada en <parameter>handler</parameter> debe aceptar
+     tres par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>target</parameter></paramdef>
+      <paramdef>string <parameter>data</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term> <listitem><simpara>
+       El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+       referencia al analizador XML que llama al gestor.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>target</parameter></term>
+       <listitem><simpara>
+	 El segundo par&aacute;metro, <parameter>target</parameter>, contiene
+	 el objetivo PI.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>data</parameter></term>
+       <listitem><simpara>
+	 El tercer par&aacute;metro, <parameter>data</parameter>, contiene
+	 los datos PI.</simpara></listitem>
+      </varlistentry>
+     </variablelist></para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-default-handler">
+   <refnamediv>
+    <refname>xml_set_default_handler</refname>
+    <refpurpose>set up default handler</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_default_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece la funci&oacute;n gestora por defecto para un analizador
+     XML <parameter>parser</parameter>.  <parameter>handler</parameter> es
+     un string que contiene el nombre de la funci&oacute;n que debe existir
+     cuando <function>xml_parse</function> es llamado por
+     <parameter>parser</parameter>.</para>
+    <para>
+     La funci&oacute;n nombrada en <parameter>handler</parameter> debe aceptar
+     dos par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>data</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term>
+	<parameter>parser</parameter>
+       </term> 
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+         referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+	<parameter>data</parameter>
+       </term>
+       <listitem>
+	<simpara>
+	 El segundo par&aacute;metro, <parameter>data</parameter>, contiene
+	 los caracteres de dato.  Esto puede ser la declaraci&oacute;n XML,
+	 la declaraci&oacute;n de tipo de documento, entidades u otros datos
+	 para los cuales no existe otro gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-unparsed-entity-decl-handler">
+   <refnamediv>
+    <refname>xml_set_unparsed_entity_decl_handler</refname>
+    <refpurpose>
+     Establece un gestor de declaraciones de entidades no analizadas
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_unparsed_entity_decl_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece la funci&oacute;n gestora de declaraci&oacute;n de
+     entidades no analizadas para el analizador XML
+     <parameter>parser</parameter>. <parameter>handler</parameter>
+     es una cadena que contiene el nombre de una funci&oacute;n que
+     debe existir cuando <function>xml_parse</function> es llamada por
+     <parameter>parser</parameter>.</para>
+    <para>
+     Este gestor ser&aacute; llamado si el analizador XML encuentra una
+     declaraci&oacute;n de entidades externas con una declaraci&oacute;n
+     NDATA, como la siguiente:
+     <programlisting role="xml">
+&lt;!ENTITY <parameter>name</parameter> {<parameter>publicId</parameter> | <parameter>systemId</parameter>} 
+        NDATA <parameter>notationName</parameter>&gt;
+     </programlisting>
+    </para>
+    <para>
+     Mira <ulink url="&url.rec-xml;#sec-external-ent">la secci&oacute;n 4.2.2
+     de las especificaciones XML 1.0 </ulink> para la definici&oacute;n de
+     entidades externas de notaci&oacute;n declarada.
+    </para> 
+    <para> La funci&oacute;n nombrada en 
+     <parameter>handler</parameter> debe aceptar seis par&aacute;metros:
+     <funcsynopsis>
+      <funcdef><replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>entityName</parameter></paramdef>
+      <paramdef>string <parameter>base</parameter></paramdef>
+      <paramdef>string <parameter>systemId</parameter></paramdef>
+      <paramdef>string <parameter>publicId</parameter></paramdef>
+      <paramdef>string <parameter>notationName</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+         referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>entityName</parameter></term>
+       <listitem>
+	<simpara>
+         El nombre de la entidad que va a ser definida.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>base</parameter></term>
+       <listitem><simpara>
+         Esta es la base para resolver el identificador de sistema
+	 (<parameter>systemId</parameter>) de la entidad externa.
+	 Actualmente este par&aacute;metro siempre ser&aacute;
+	 una cadena vac&iacute;a.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>systemId</parameter></term>
+       <listitem>
+	<simpara>
+         Identificador de Sistema para la entidad externa.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>publicId</parameter></term>
+       <listitem>
+	<simpara> 
+         Identificador p&uacute;blico para la entidad externa.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>notationName</parameter></term>
+       <listitem>
+	<simpara> 
+         Nombre de la notaci&oacute;n de esta entidad (ver
+	 <function>xml_set_notation_decl_handler</function>).
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist></para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-notation-decl-handler">
+   <refnamediv>
+    <refname>xml_set_notation_decl_handler</refname>
+    <refpurpose>Establece gestores de declaraciones de notaci&oacute;n
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_notation_decl_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece las funciones gestoras de declaraciones de notaci&oacute;n
+     para el analizador XML <parameter>parser</parameter>.
+     <parameter>handler</parameter> es un string que contiene el nombre de
+     una funci&oacute;n que debe existir  cuando
+     <function>xml_parse</function> es llamado por
+     <parameter>parser</parameter>.
+    </para>
+    <para>
+     Una declaraci&oacute;n de notaci&oacute;n es parte del DTD del
+     documento y tiene el siguiente formato: <programlisting role="xml">
+     &lt;!NOTATION <parameter>name</parameter> 
+     {<parameter>systemId</parameter> | <parameter>publicId</parameter>}
+     &gt;</programlisting> Ver <ulink url="&url.rec-xml;#Notations">
+     la secci&oacute;n 4.7 de las especificaciones XML 1.0</ulink>
+     para la definici&oacute;n de declaraciones de notaci&oacute;n.
+    </para>
+    <para>
+     La funci&oacute;n llamada por <parameter>handler</parameter> debe
+     aceptar cinco par&aacute;metros: 
+     <funcsynopsis>
+      <funcdef><replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string <parameter>notationName</parameter></paramdef>
+      <paramdef>string <parameter>base</parameter></paramdef>
+      <paramdef>string <parameter>systemId</parameter></paramdef>
+      <paramdef>string <parameter>publicId</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term>
+	<parameter>parser</parameter>
+       </term> 
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+         referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>notationName</parameter></term>
+       <listitem>
+	<simpara>
+	 Este es el <parameter>nombre</parameter> de la notaci&oacute;n,
+         como se describi&oacute; arriba en el formato de notaci&oacute;n.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+	<parameter>base</parameter>
+       </term>
+       <listitem>
+	<simpara>
+	 Esta es la base para resolver el identificador de sistema
+	 (<parameter>systemId</parameter>) de la declaraci&oacute;n.
+	 En la actualidad este par&aacute;metro es siempre la cadena
+	 vac&iacute;a.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>systemId</parameter></term>
+       <listitem>
+	<simpara>
+	 Identificador de sistema de la declaraci&oacute;n de notaci&oacute;n
+	 externa.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+	<parameter>publicId</parameter>
+       </term>
+       <listitem>
+	<simpara>
+	 Identificador p&uacute;blico de la declaraci&oacute;n de
+	 notaci&oacute;n externa.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-set-external-entity-ref-handler">
+   <refnamediv>
+    <refname>xml_set_external_entity_ref_handler</refname>
+    <refpurpose>Establece gestores de referencia de entidades externas
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_set_external_entity_ref_handler</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>handler</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Establece la funci&oacute;n gestora de declaraciones de notaci&oacute;n
+     para el analizador XML <parameter>parser</parameter>.
+     <parameter>handler</parameter> es un string que contiene el nombre de
+     una funci&oacute;n que debe existir  cuando
+     <function>xml_parse</function> es llamado por
+     <parameter>parser</parameter>.
+    </para>
+    <para>
+     La funci&oacute;n llamada por <parameter>handler</parameter> 
+     debe aceptar cinco par&aacute;metros, y deber&iacute;a devolver
+     un valor entero. Si el valor devuelto desde el gestor (handler)
+     es falso (lo cual ocurrir&aacute; si no se devuelve un valor),
+     el analizador XML dejar&aacute; de analizar y 
+     <function>xml_get_error_code</function> devolver&aacute; <systemitem
+     class="constant">XML_ERROR_EXTERNAL_ENTITY_HANDLING</systemitem>.
+     <funcsynopsis>
+      <funcdef>int <replaceable>handler</replaceable></funcdef>
+      <paramdef>int <parameter>parser</parameter></paramdef>
+      <paramdef>string
+       <parameter>openEntityNames</parameter>
+      </paramdef>
+      <paramdef>string <parameter>base</parameter></paramdef>
+      <paramdef>string <parameter>systemId</parameter></paramdef>
+      <paramdef>string <parameter>publicId</parameter></paramdef>
+     </funcsynopsis>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+         El primer par&aacute;metro, <replaceable>parser</replaceable>, es una
+         referencia al analizador XML que llama al gestor.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>openEntityNames</parameter></term>
+       <listitem>
+	<simpara>
+	 El segundo par&aacute;metro, <parameter>openEntityNames</parameter>,
+	 es una lista, separada por espacios, de los nombres de las entidades
+	 que se abren para el an&aacute;lisis de esta entidad (incluido el
+	 nombre de la entidad referenciada).
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>base</parameter></term>
+       <listitem>
+	<simpara>
+	 Esta es la base para resolver el identificador de sistema
+	 (<parameter>systemid</parameter>) de la entidad externa.
+	 En la actualidad este par&aacute;metro es siempre la cadena
+	 vac&iacute;a.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>systemId</parameter></term>
+       <listitem>
+	<simpara>
+	 El cuarto par&aacute;metro, <parameter>systemId</parameter>, es el
+	 identificador del sistema tal como se especific&oacute;
+	 en la declaraci&oacute;n de la entidad.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>publicId</parameter></term>
+       <listitem>
+	<simpara>
+	 El quinto par&aacute;metro, <parameter>publicId</parameter>, es el
+	 identificador p&uacute;blico como se especific&oacute; 
+	 en la declaraci&oacute;n de la entidad, o una cadena vac&iacute;a
+	 si no se especific&oacute; ninguno; el espacio en blanco en el
+	 identificador p&uacute;blico se habr&aacute; normalizado como se
+	 requiere en las especificaciones XML.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Si una funci&oacute;n gestora se establece como la cadena vac&iacute;a,
+     o <literal>false</literal>, el gestor en cuesti&oacute;n se deshabilita.
+    </para>
+    <para>
+     Se devuelve true si se estableci&oacute; el gestor, false si
+     <parameter>parser</parameter> no es un analizador.
+    </para>
+    <para>
+     En la actualidad no hay soporte para gestores objeto/m&eacute;todo.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-parse">
+   <refnamediv>
+    <refname>xml_parse</refname>
+    <refpurpose>comienza a analizar un documento XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int <function>xml_parse</function></funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>string <parameter>data</parameter></paramdef>
+     <paramdef>int 
+      <parameter><optional>isFinal</optional></parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML que se va a utilizar.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>data</parameter></term>
+       <listitem>
+	<simpara>
+	 Conjunto de informaci&oacute;n que se analizar&aacute;. Un
+	 documento puede ser analizado por trozos llamando varias veces
+	 a <function>xml_parse</function> con nueva informaci&oacute;n,
+	 siempre que se establezca el par&aacute;metro
+	 <parameter>isFinal</parameter> y sea true cuando el 
+	 &uacute;ltimo dato sea analizado.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>isFinal</parameter> (optional)</term>
+       <listitem>
+	<simpara>
+	 Si existe y es true, <parameter>data</parameter> es el
+	 &uacute;ltimo pedazo de informaci&oacute;n env&iacute;ado en
+	 este an&aacute;lisis.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Cuando el documento XML es analizado, se hacen llamadas a los gestores
+     para los eventos configurados tantas veces como sea necesario,
+     despu&eacute;s de que esta funci&oacute;n devuelva true o false.
+    </para>
+    <para>
+     Devuelve true si el an&aacute;lisis se realiza con &eacute;xito,
+     false si no tiene &eacute;xito, o si <parameter>parser</parameter>
+     no referencia a un analizador v&aacute;lido. Para an&aacute;lisis
+     fallidos, se puede recuperar informaci&oacute;n de error con
+     <function>xml_get_error_code</function>,
+     <function>xml_error_string</function>,
+     <function>xml_get_current_line_number</function>,
+     <function>xml_get_current_column_number</function> y
+     <function>xml_get_current_byte_index</function>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-get-error-code">
+   <refnamediv>
+    <refname>xml_get_error_code</refname>
+    <refpurpose>obtiene el c&oacute;digo de error del analizador XML
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int <function>xml_get_error_code</function></funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML del que obtener el c&oacute;digo
+	 de error.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> 
+     no referencia un analizador v&aacute;lido, o si no devuelve uno
+     de los c&oacute;digos de error listados en la 
+     <link linkend="xml.error-codes">secci&oacute;n de c&oacute;digos de
+     error</link>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-error-string">
+   <refnamediv>
+    <refname>xml_error_string</refname>
+    <refpurpose>obtiene la cadena de error del analizador XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>string <function>xml_error_string</function></funcdef>
+     <paramdef>int <parameter>code</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>code</parameter></term>
+       <listitem>
+	<simpara>
+	 Un c&oaucte;digo de error de <function>xml_get_error_code</function>.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Devuelve una cadena con una descripci&oacute;n textual del c&oacute;digo
+     de error <parameter>code</parameter>, o false si no se encontr&oacute; 
+     descripci&oacute;n.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-get-current-line-number">
+   <refnamediv>
+    <refname>xml_get_current_line_number</refname>
+    <refpurpose>obtiene el n&uacute;mero de l&iacute;nea actual de un 
+      analizador XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_get_current_line_number</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML del que obtener el n&uacute;mero
+	 de l&iacute;nea.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si no devuelve en qu&eacute;
+     l&iacute;nea se encuentra actualmente el buffer de datos del analizador.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-get-current-column-number">
+   <refnamediv>
+    <refname>xml_get_current_column_number</refname> 
+    <refpurpose>
+     Obtiene el n&uacute;mero de columna actual para un analizador XML.
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_get_current_column_number</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML del que obtener el n&uacute;mero
+	 de columna.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si no devuelve en qu&eacute;
+     columna de la l&iacute;nea actual (como se obtiene de 
+     <function>xml_get_current_line_number</function>) en la que se
+     encuentra el analizador.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-get-current-byte-index">
+   <refnamediv>
+    <refname>xml_get_current_byte_index</refname>
+    <refpurpose>obtiene el &iacute;ndice del byte actual para un analizador
+     XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int 
+      <function>xml_get_current_byte_index</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML del que obtener el &iacute;ndice
+	 del byte.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si no devuelve en qu&eacute;
+     &iacute;ndice de byte se encuentra el buffer de datos del analizador
+     (empezando en 0).
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-parser-free">
+   <refnamediv>
+    <refname>xml_parser_free</refname>
+    <refpurpose>Libera un analizador XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>string <function>xml_parser_free</function></funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML que se liberar&aacute;.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist></para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si no libera el analizador y
+     devuelve true.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-parser-set-option">
+   <refnamediv>
+    <refname>xml_parser_set_option</refname>
+    <refpurpose>establece las opciones de un analizador XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>int <function>xml_parser_set_option</function></funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>int <parameter>option</parameter></paramdef>
+     <paramdef>mixed <parameter>value</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML en el que establecer opciones.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>option</parameter></term>
+       <listitem>
+	<simpara>
+	 Opci&oacute;n que se establecer&aacute;. Ver m&aacute;s abajo.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>value</parameter></term>
+       <listitem>
+	<simpara>
+	 El nuevo valor de la opci&oacute;n.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si la opci&oacute;n no pudo
+     ser establecida. Si no, la opci&oacute;n se establece y devuelve true.
+    </para>
+    <para>
+     Las opciones siguientes est&aacute;n disponibles:
+     <table>
+      <title>Opciones de analizador XML</title>
+      <tgroup cols="3">
+       <thead>
+	<row>
+	 <entry>Opci&oacute;n constante</entry>
+	 <entry>Tipo de Datos</entry>
+	 <entry>Descripci&oacute;n</entry>
+	</row>
+       </thead>
+       <tbody>
+	<row>
+	 <entry>XML_OPTION_CASE_FOLDING</entry>
+	 <entry>integer</entry>
+	 <entry>
+	  Controla si <link
+	  linkend="xml.case-folding">case-folding</link> se habilita
+	  para este analizador XML. Habilitado por defecto.
+	 </entry>
+	</row>
+	<row>
+	 <entry>XML_OPTION_TARGET_ENCODING</entry>
+	 <entry>string</entry> 
+	 <entry>
+	  Establece qu&eacute; <link linkend="xml.encoding">
+	  codificaci&oacute;n destino</link> se usa en este analizador
+	  XML. Por defecto, esta puesta al mismo que la codificaci&oacute;n
+	  fuente usada por <function>xml_parser_create</function>.
+	  Las codificaciones de destino soportadas son 
+	  <literal>ISO-8859-1</literal>, <literal>US-ASCII</literal> y
+	  <literal>UTF-8</literal>.
+	 </entry>
+	</row>
+       </tbody>
+      </tgroup>
+     </table>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.xml-parser-get-option">
+   <refnamediv>
+    <refname>xml_parser_get_option</refname>
+    <refpurpose>obtiene las opciones de un analizador XML</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>mixed
+      <function>xml_parser_get_option</function>
+     </funcdef>
+     <paramdef>int <parameter>parser</parameter></paramdef>
+     <paramdef>int <parameter>option</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>parser</parameter></term>
+       <listitem>
+	<simpara>
+	 Una referencia al analizador XML del que obtener opciones.
+	</simpara>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>option</parameter></term>
+       <listitem>
+	<simpara>
+	 Qu&eacute; opci&oacute;n recuperar.  Ver
+	 <function>xml_parser_set_option</function> para una lista de
+	 opciones.
+	</simpara>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     Esta funci&oacute;n devuelve false si <parameter>parser</parameter> no
+     referencia un analizador v&aacute;lido, o si la opci&oacute;n no pudo
+     ser establecida. Si no, se devuelve la opci&oacute;n.
+    </para>
+    <para>
+     Mirar <function>xml_parser_set_option</function> para la lista de
+     opciones.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.utf8-decode">
+   <refnamediv>
+    <refname>utf8_decode</refname> 
+    <refpurpose>
+     Convierte una cadena codificada UTF-8 a ISO-8859-1
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>string <function>utf8_decode</function></funcdef>
+     <paramdef>string <parameter>data</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Esta funci&oacute;n decodifica<parameter>data</parameter>, asume
+     codificaci&oacute;n <literal>UTF-8</literal> , a 
+     <literal>ISO-8859-1</literal>.
+    </para>
+    <para>
+     Mira <function>utf8_encode</function> para una explicaci&oacute;n de
+     codificaci&oacute;n UTF-8.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.utf8-encode">
+   <refnamediv>
+    <refname>utf8_encode</refname>
+    <refpurpose>codifica una cadena ISO-8859-1 a UTF-8</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <funcsynopsis>
+     <funcdef>string <function>utf8_encode</function></funcdef>
+     <paramdef>string <parameter>data</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Esta funci&oacute;n codifica la cadena <parameter>data</parameter> a
+     <literal>UTF-8</literal>, y devuelve la versi&oacute;n codificada.
+     <literal>UTF-8</literal> es un mecanismo est&aacute;ndar usado por
+     <acronym>Unicode</acronym>para codificar valores de <glossterm>
+     caracteres amplios</glossterm> en un chorro de bytes.
+     <literal>UTF-8</literal> es transparente a caracteres de
+     <abbrev>ASCII</abbrev> plano, es auto-sincronizado (significa
+     que es posible para un programa averiguar d&oacute;nde comienzan los
+     caracteres en el chorro de bytes) y se puede usar con funciones de
+     comparaci&oacute;n de cadenas normales para ordenar y otros fines.
+     PHP codifica caracteres <literal>UTF-8</literal> en hasta cuatro bytes,
+     como esto:
+     <table>
+      <title>Codificaci&oacute;n UTF-8</title>
+      <tgroup cols="3">
+       <thead>
+	<row>
+	 <entry>bytes</entry>
+	 <entry>bits</entry>
+	 <entry>representaci&oacute;n</entry>
+	</row>
+       </thead>
+       <tbody>
+	<row>
+	 <entry>1</entry>
+	 <entry>7</entry>
+	 <entry>0bbbbbbb</entry>
+	</row>
+	<row>
+	 <entry>2</entry>
+	 <entry>11</entry>
+	 <entry>110bbbbb 10bbbbbb</entry>
+	</row>
+	<row>
+	 <entry>3</entry>
+	 <entry>16</entry>
+	 <entry>1110bbbb 10bbbbbb 10bbbbbb</entry>
+	</row>
+	<row>
+	 <entry>4</entry>
+	 <entry>21</entry>
+	 <entry>11110bbb 10bbbbbb 10bbbbbb 10bbbbbb</entry>
+	</row>
+       </tbody>
+      </tgroup>
+     </table>
+     Cada <replaceable>b</replaceable> representa un bit que puede ser
+     usado para almacenar datos de caracteres.
+    </para>
+   </refsect1>
+  </refentry>
+
+ </reference>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

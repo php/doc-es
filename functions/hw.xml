@@ -1,0 +1,1778 @@
+<reference id="ref.hyperwave">
+  <title>Funciones para Hyperwave</title>
+  <titleabbrev>Hyperwave</titleabbrev>
+
+  <partintro>
+
+   <sect1 id="hw-intro">
+    <title>Introducción</title>
+    <para>
+     <productname>Hyperwave</productname> ha sido desarrollado en el <ulink url="http://www.iicm.edu">IICM</ulink> en Graz. Comenzó con
+     el nombre <acronym>Hyper-G</acronym> y cambió a Hyperwave cuando
+     fue comercializado (Si lo recuerdo bien, fue en 1996).</para>
+    <para>
+     Hyperwave no es software gratuiro. La versión actual, 4.1, está
+     disponible en <ulink url="http://www.hyperwave.com/">www.hyperwave.com</ulink>. Se
+     puede solicitar gratuitamente una versión limitada (30 días).</para>
+    <para>
+     Hyperwave es un sistema de información similar a una base de
+     datos (<acronym>HIS</acronym>, Hyperwave Information Server - Servidor
+     Hyperwave de Información). Su objetivo es el almacenamiento y
+     manipulación de documentos. Un documento puede ser cualquier bloque
+     posible de datos que también puede ser almacenado en un archivo. Cada
+     documento se acompaña por su registro de objeto. El registro de objeto
+     contiene metadatos para el documento. Los metadatos son una lista de
+     atributos que pueden ser extendidos por el usuario. Ciertos atributos
+     siempre son fijados por el servidor Hyperwave, otros pueden ser
+     modificados por el usuario. Un atributo es un par nombre/valor de la
+     forma nombre=valor. El registro completo del objeto tiene tantos de
+     estos pares como guste el usuario. El nombre de un atributo no tiene
+     porqué ser único, p. ej. un título puede aparecer varias veces en el
+     registro de un objeto. Esto tiene sentido si se desea especificar un
+     título en diferentes idiomas. En dicho caso existe la convención de
+     que cada valor de título esté precedido por la abreviatura de dos
+     letras del idioma, seguida por dos puntos, como p. ej. 'en:Title in
+     English' o 'es:Título en Español'. Otros atributos tales como
+     descripciones o palabras clave son canditatos potenciales a esta
+     diferenciación. También se pueden reemplazar las abreviaturas de
+     idioma por cualquier otra cadena siempre y cuando estén separadas
+     por los dos puntos del resto del valor del atributo.</para>
+    <para>
+     Cada registro de objeto tiene una representación nativa como cadena
+     con cada par nombre/valor separado por una línea nueva. La extensión
+     Hyperwave también conoce una segunda representación que consiste en
+     un array asociativo donde el nombre del atributo es la clave. Los
+     valores de atributo multilingües en sí mismos forman otro array
+     asociativo donde la clave es la abreviatura del idioma. Realmente
+     cualquier atributo múltiple forma una tabla asociativa donde la cadena
+     a la izquierda de los dos puntos en el valor de atributo es la clave.
+     (Esto no se ha implementado por completo. Sólo los atributos 
+     Title, Description y Keyword son tratados adecuadamente.)</para>
+    <para>
+     Aparte de los documentos, todos los hiper-enlaces contenidos en un
+     documento son almacenados también como registros de objeto. Cuando
+     el documento sea insertado en la base de datos, los hiper-enlaces
+     que haya en un documento serán borrados del mismo y almacenados
+     como objetos individuales.
+     El registro de objeto del enlace contiene información acerca
+     de dónde comienza y dónde termina.
+     Para recuperar el documento original se deberá recuperar el
+     documento sin los enlaces y la lista de los mismos para reinsertarla
+     (Las funciones <function>hw_pipedocument</function> y <function>hw_gettext</function>
+     hacen esto para usted). La ventaja de separar los enlaces del
+     documento es obvia. Una vez un documento al que apunta un enlace
+     cambia de nombre, el enlace puede modificarse fácilmente. El documento
+     que contiene el enlace no se ve afectado. Incluso se puede añadir
+     un enlace a un documento sin alterarlo.</para>
+    <para>
+     Decir que <function>hw_pipedocument</function> y <function>hw_gettext</function>
+     hacen automáticamente la inserción de enlaces no es tan simple como suena.
+     Insertar los enlaces implica una cierta jerarquía en los documentos. En
+     un servidor web esto viene dado por el sistema de archivos, pero el Hyperwave
+     tiene su propia jerarquía y los nombres no representan la posición de un
+     objeto en dicha jerarquía. Por tanto, la creación de los enlaces precisa
+     primeramente de realizar un mapeado entre el espacio de nombres y la
+     jerarquía del Hyperwave y el espacio de nombres respectivo de una
+     jerarquía de web. La diferencia fundamental entre Hyperwave y la web
+     es la distinción clara entre nombres y jerarquía que se da en el primero.
+     El nombre no contiene ninguna información sobre la posición del objeto
+     en la jerarquía. En la web, el nombre también contiene la información
+     sobre la posición en la jerarquía del objeto. Esto nos lleva a dos
+     posibles formas de mapeo. O bien se reflejan la jerarquía del Hyperwave
+     y el nombre del objeto Hyperwave en el URL o sólo el nombre.
+     Para facilitar las cosas, se utiliza el segundo método. El objeto
+     Hyperwave de nombre 'mi_objeto' es mapeado a 'http://host/mi_objeto' sin
+     importar dónde reside dentro de la jerarquía de Hyperwave.
+     Un objeto con el nombre 'padre/mi_objeto' podría ser el hijo de
+     'mi_objeto' en la jerarquía Hyperwave, aunque en el espacio de nombres
+     web aparezca justamente lo opuesto y el usuario pueda ser llevado a 
+     confusión. Esto sólo se puede evitar seleccionando nombres de objetos
+     razonables.</para>
+    <para>
+     Hecha esta decisión surge un segundo problema. ¿Cómo implicar al PHP?
+     el URL http://host/mi_objeto no llamará a ningún script PHP a no ser
+     que se le diga al servidor que lo transforme en p. ej. 
+     'http://host/script_php3/mi_objeto' y que el 'script_php3' luego
+     evalúe la variable $PATH_INFO y recupere el objeto con nombre 'mi_objeto'
+     del servidor Hyperwave. Hay sólo un pequeño inconveniente que se 
+     puede resolver fácilmente. Cuando se reescribe cualquier URL no se
+     permite el acceso a ningún otro documento en el servidor web. Un
+     script de PHP para buscar en el servidor Hyperwave sería imposible.
+     Por lo tanto se necesitará al menos una segunda regla de reescritura
+     para que excluya ciertos URL, como los que empiecen p. ej. por 
+     http://host/Hyperwave. Básicamente esto sería compartir un espacio
+     de nombres entre el servidor web y el servidor Hyperwave.</para>
+    <para>
+     Los enlaces se insertan en los documentos basándose en el mecanismo
+     citado más arriba.</para>
+    <para>
+     Se vuelve más complicado si el PHP no se está ejecutando como módulo
+     del servidor o como script CGI, sino que se ejecuta como aplicación,
+     p. ej. para volcar el contenido del servidor de Hyperwave a un CD-ROM.
+     En dicho caso tiene sentido mantener la jerarquía Hyperwave y mapearla
+     en el sistema de archivos. Esto entra conflicto con los nombres de los
+     objetos si estos reflejan su propia jerarquía (p. ej. eligiendo nombres
+     que comienzan por '/'). Por tanto, la '/' tendrá que ser reemplazada
+     por otro carácter, p. ej. '_' para continuar.</para>
+    <para>
+     El protocolo de red para comunicarse con el servidor Hyperwave se 
+     denomina <ulink url="http://www.hyperwave.de/7.17-hg-prot">HG-CSP</ulink> (Hyper-G
+     Client/Server Protocol, Protocolo Hyper-G Cliente/Servidor). Está basado
+     en mensajes que inician ciertas acciones, p. ej. obtener el registro de
+     un objeto. En versiones anteriores del Servidor Hyperwave se distribuyeron
+     dos clientes nativos (Harmony, Amadeus) para la comunicación con
+     el servidor. Ambos desaparecieron cuando se comercializó el Hyperwave.
+     Para sustituírlo se proporcionó el llamado wavemaster. El wavemaster es
+     como un conversor de protocolo de <abbrev>HTTP</abbrev> a <abbrev>HG-CSP</abbrev>.
+     La idea es realizar toda la administración de la base de datos y la 
+     visualización de documentos con una interfaz web. El wavemaster implementa
+     una serie de posicionadores para acciones que permiten personalizar la 
+     interfaz. Dicho conjunto de posicionadores se denomina el Lenguaje <abbrev>PLACE</abbrev>.
+     El <abbrev>PLACE</abbrev> no posee muchas de las características de
+     un lenguaje de programación real y las extensiones al mismo únicamente
+     alargan la lista de posicionadores. Esto ha obligado al uso de JavaScript
+     que, en mi opinión, no hace la vida más fácil.</para>
+
+    <para>
+     Añadir soporte de Hyperwave al PHP rellenaría el espacio
+     que deja la falta de un lenguaje de programación que permita 
+     personalizar la interfaz. El PHP implementa todos los mensajes
+     definidos en el <abbrev>HG-CSP</abbrev> pero además proporciona 
+     comandos más poderosos, p. ej. recuperar documentos completos.</para>
+
+    <para>
+     El Hyperwave tiene su propia terminología para dar nombre a ciertos
+     tipos de información. Esta ha sido ampliamente extendida y anulada.
+     Casi todas las funciones operan en uno de los siguientes tipos de 
+     datos.
+
+     <itemizedlist>
+      <listitem><simpara>
+        ID de objeto: Un valor entero único paara cada objeto del 
+        servidor Hyperwave. También es uno de los atributos del registro
+        de objeto (ObjectID). Los ID de objeto se usan generalmente como
+        parámetros de entrada que especifican a un objeto.
+       </simpara></listitem>
+      <listitem><simpara>
+      	registro de objeto: Una cadena con pares atributo-valor con la
+      	forma atributo=valos. Los pares están separados unos de otros
+      	por un retorno de carro. Un registro de objeto puede convertirse
+      	fácilmente en una tabla (array) de objetos usando <function>hw_object2array</function>.
+        Varias funciones devuelven registros de objeto. Los nombres de
+        dichas funciones terminan en obj.
+       </simpara></listitem>
+      <listitem><simpara>
+      	tabla de objetos: Una tabla asociativa con todos los atributos
+      	de un objeto. La clave es el nombre del atributo. Si un atributo
+      	aparece más de una vez en un registro de objeto será convertido
+      	en otra tabla asociativa o indizada. Los atributos que dependen
+      	del idioma (como el título, claves o descripción) se convertirán
+      	en una tabla asociativa con la abreviatura del idioma como clave.
+      	El resto de los atributos múltiples crearán una tabla indizada. Las
+      	funciones de PHP nunca devuelven tablas de objetos.
+       </simpara></listitem>
+      <listitem><simpara>
+        hw_document: Este es un nuevo tipo de datos que almacena el documento
+        actual, p. ej. HTML, PDF, etc. Está algo optimizado para documentos
+        HTML pero puede usarse para cualquier formato.
+       </simpara></listitem>
+     </itemizedlist></para>
+
+    <para>
+     Varias funciones que devuelven una tabla de registros de objeto
+     también devuelven una tabla asociativa con información estadística
+     sobre los mismos. La tabla es el último elemento del registro de
+     objeto. La tabla estadística contiene los siguientes elementos:
+     <variablelist>
+      <varlistentry>
+       <term>Hidden</term>
+       <listitem><simpara>
+       	 Número de registros de objeto con el atributo PresentationHints
+         puesto a Hidden.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>CollectionHead</term>
+       <listitem><simpara>
+         Número de registros de objeto con el atributo
+         PresentationHints puesto a CollectionHead.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>FullCollectionHead</term>
+       <listitem><simpara>
+         Número de registros de objeto con el atributo
+         PresentationHints puesto a FullCollectionHead.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>CollectionHeadNr</term>
+       <listitem><simpara>
+         Índice a una tabla de regitros de objeto con el
+         atributo PresentationHints puesto a CollectionHead.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>FullCollectionHeadNr</term>
+       <listitem><simpara>
+         Índice a una tabla de regitros de objeto con el
+         atributo PresentationHints puesto a FullCollectionHead.</simpara></listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>Total</term>
+       <listitem><simpara>
+         Total: Número de registros de objeto.</simpara></listitem>
+      </varlistentry>
+     </variablelist></para>
+   </sect1>
+
+   <sect1 id="hw-apache">
+    <title>Integración con Apache</title>
+    <para>
+     La extensión Hyperwave se utiliza mejor cuando el PHP se compila
+     como un módulo de Apache. En tal caso el servidor Hyperwave subyacente
+     puede ser ocultado casi por completo de los usuarios si el Apache utiliza
+     su motor de re-escritura. Las siguientes instrucciones explicarán esto.</para>
+
+    <para>
+     Como el PHP con soporte Hyperwave incluído en el Apache se ha diseñado
+     para sustituir la solución nativa de Hyperwave basada en Wavemaster,
+     asumiré que el servidor Apache sólo sirve como interfaz web para
+     el Hyperwave. Esto no es necesario, pero simplifica la configuración.
+     El concepto es bastante sencillo. Primeramente necesita un script PHP
+     que evalúe la variable <envar>PATH_INFO</envar> y que trate su
+     valor como el nombre de un objeto Hyperwave. Llamemos a este script
+     'Hyperwave'. El URL <systemitem role="url">http://nombre.servidor/Hyperwave/nombre_de_objeto</systemitem>
+     devolvería entonces el objeto Hyperwave llamado 'nombre_de_objeto'.
+     Dependiendo del tipo del objeto, así reaccionará el script. Si es
+     una colección, probablemente devolverá un lista de hijos. Si es un
+     documento devolverá el tipo MIME y el contenido. Se puede mejorar
+     ligeramente si se usa el motor de re-escritura del Apache. Desde el
+     punto de vista del usuario será más sencillo si el URL <systemitem role="url">http://nombre.servidor/nombre de objeto</systemitem>
+     devuelve el objeto. La regla de reescritura es muy sencilla:
+
+     <informalexample><programlisting role="apache-conf">
+RewriteRule ^/(.*) /usr/local/apache/htdocs/HyperWave/$1 [L]
+</programlisting></informalexample>
+
+     Ahora todo URL apunta a un objeto en el servidor Hyperwave. Esto
+     provoca un problema sencillo de resolver. No hay forma de ejecutar otro
+     script, p. ej. para buscar, salvo el script 'Hyperwave'. Esto se puede
+     solucionar con otra regla de reescritura como la siguiente:
+
+     <informalexample><programlisting role="apache-conf">
+RewriteRule ^/hw/(.*) /usr/local/apache/htdocs/hw/$1 [L]
+</programlisting></informalexample>
+
+     Esta reservará el directorio <filename class="directory">/usr/local/apache/htdocs/hw</filename> para
+     script adicionales y otros archivos. Sólo hay que asegurarse que esta
+     regla se evalúa antes de la otra. Sólo hay un pequeño inconveniente:
+     todos los objetos Hyperwave cuyo nombre comienza por 'hw/' serán ocultados.
+     así que asegúrese que no utiliza dichos nombres. Si necesita más directorios,
+     p. ej. para imágenes, simplemente añada más reglas o sitúe los archivos en
+     un solo directorio. Por último, no olvide conectar el motor de
+     re-escritura con
+
+     <informalexample><programlisting role="apache-conf">
+RewriteEngine on
+</programlisting></informalexample>
+
+     Mi experiencia me ha demostrado que necesitará los siguientes scripts:
+
+     <itemizedlist>
+       <listitem><simpara>
+        para devolver el script en sí</simpara></listitem>
+       <listitem><simpara>
+        para permitir las búsquedas</simpara></listitem>
+       <listitem><simpara>
+        para identificarse</simpara></listitem>
+       <listitem><simpara>
+        para ajustar su perfil</simpara></listitem>
+       <listitem><simpara>
+        uno para cada función adicional como mostrar los atributos
+        del objeto, mostrar información sobre usuarios, mostrar el
+        estado del servidor, etc.</simpara></listitem>
+     </itemizedlist></para>
+   </sect1>
+
+   <sect1 id="hw-todo">
+    <title>Pendientes</title>
+    <para>
+     Aún hay varias cosas pendientes:
+     <itemizedlist>
+      <listitem><simpara>hw_InsertDocument debe dividirse en
+        <function>hw_InsertObject</function> y
+        <function>hw_PutDocument</function>.</simpara></listitem>
+      <listitem><simpara>Los nombres de algunas funciones aún no están fijados.
+       </simpara></listitem>
+      <listitem><simpara>Muchas funciones precisan la conexión actual
+        como primer parámetro. Esto obliga a escribir mucho, lo cual no es
+        con frecuencia necesario si sólo hay una conexión abierta. Una
+        conexión por defecto mejoraría esto.</simpara></listitem>
+      <listitem><simpara>La conversión de registro de objeto a tabla de 
+        objeto necesita manipular cualquier atributo múltiple.
+       </simpara></listitem>
+     </itemizedlist></para>
+   </sect1>
+  </partintro>
+
+  <refentry id="function.hw-array2objrec">
+   <refnamediv>
+    <refname>hw_Array2Objrec</refname>
+    <refpurpose>convierte atributos de tabla de objeto a registro de objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>strin <function>hw_array2objrec</function></funcdef>
+     <paramdef>array <parameter>tabla_objetos</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Convierte una <parameter>tabla_objetos</parameter> en un registro de objeto.
+     Los atributos múltiples como 'Título' en distintos idiomas son tratados
+     correctamente.</para>
+    <para>
+     Vea también <function>hw_objrec2array</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-children">
+   <refnamediv>
+    <refname>hw_Children</refname>
+    <refpurpose>id de objeto de los hijos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_children</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de id de objeto. Cada uno de ellos
+     pertenece a un hijo de la colección cuyo ID es 
+     <parameter>IDobjeto</parameter>.
+     La tabla contiene tanto los documentos como las colecciones hijas.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-childrenobj">
+   <refnamediv>
+    <refname>hw_ChildrenObj</refname>
+    <refpurpose>registros de objeto de los hijos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_childrenobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de registros de objeto. Cada uno de ellos
+     pertenece a un hijo de la colección cuyo ID es 
+     <parameter>IDobjeto</parameter>.
+     La tabla contiene tanto los documentos como las colecciones hijas.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-close">
+   <refnamediv>
+    <refname>hw_Close</refname>
+    <refpurpose>cierra la conexión Hyperwave</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_close</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve false si la conexión no es un índice válido de conexión,
+     y true en caso contrario. Cierra la conexión dada con el servidor
+     de Hyperwave.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-connect">
+   <refnamediv>
+    <refname>hw_Connect</refname>
+    <refpurpose>abre una conexión</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_connect</function></funcdef>
+     <paramdef>string <parameter>servidor</parameter></paramdef>
+     <paramdef>int <parameter>puerto</parameter></paramdef>
+     <paramdef>string <parameter>usuario</parameter></paramdef>
+     <paramdef>string <parameter>clave</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Abre una conexión con un servidor Hyperwave y devuelve un índice
+     de conexión si hay éxito, o false si la conexión no se pudo realizar.
+     Cada argumento debe ser una cadena entrecomillada salvo el número de
+     puerto. Los argumentos de <parameter>usuario</parameter> y
+     <parameter>clave</parameter> son opcionales y pueden omitirse. En
+     tal caso no se realizará identificación alguna con el servidor. Es
+     similar a identificarse como el usuario 'anonymous'. Esta función
+     devuelve un índice de conexión que se necesita para otras funciones
+     Hyperwave. Puede tener varias conexiones abiertas a la vez. Recuerde
+     que la clave no está encriptada.</para>
+    <para>
+     Vea también <function>hw_pConnect</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-cp">
+   <refnamediv>
+    <refname>hw_Cp</refname>
+    <refpurpose>copia objetos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_cp</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>array <parameter>tabla_id_objeto</parameter></paramdef>
+     <paramdef>int <parameter>id destino</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Copia los objetos cuyos id se especifican en el segundo parámetro
+     a la colección identificada como <parameter>id destino</parameter>.</para>
+    <para>
+     El valor devuelto es el número de objetos copiados.</para>
+    <para>
+     Vea también <function>hw_mv</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-deleteobject">
+   <refnamediv>
+    <refname>hw_Deleteobject</refname>
+    <refpurpose>borra objetos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_deleteobject</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>objeto_a_borrar</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Borra el objeto con el id dado como segundo parámetro. Borrará
+     todas las instancias del mismo.</para>
+    <para>
+     Devuelve TRUE si no hay error o FALSE en caso contrario.</para>
+    <para>
+     Vea también <function>hw_mv</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-docbyanchor">
+   <refnamediv>
+    <refname>hw_DocByAnchor</refname>
+    <refpurpose>id del objeto al que pertenece un enlace</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_docbyanchor</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDenlace</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el id de objeto del documento al que pertenece 
+     el <parameter>IDenlace</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-docbyanchorobj">
+   <refnamediv>
+    <refname>hw_DocByAnchorObj</refname>
+    <refpurpose>registro de objeto al que pertenece un enlace</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_docbyanchorobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDenlace</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el registro de objeto del documento al que 
+     pertenece el <parameter>IDenlace</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-documentattributes">
+   <refnamediv>
+    <refname>hw_DocumentAttributes</refname>
+    <refpurpose>registro de objeto de un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_documentattributes</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el registro de objeto del documento dado.</para>
+    <para>
+     Vea también <function>hw_DocumentBodyTag</function>,
+              <function>hw_DocumentSize</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-documentbodytag">
+   <refnamediv>
+    <refname>hw_DocumentBodyTag</refname>
+    <refpurpose>marca 'BODY' de un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_documentbodytag</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve la marca BODY del documento. Si el documento es de tipo
+     HTML la etiqueta BODY deberá imprimirse antes que el documento.</para>
+    <para>
+     Vea también <function>hw_DocumentAttributes</function>,
+              <function>hw_DocumentSize</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-documentcontent">
+   <refnamediv>
+    <refname>hw_DocumentContent</refname>
+    <refpurpose>devuelve el contenido de un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_documentcontent</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el contenido del documento. Si el documento es de tipo
+     HTML el contenido es todo lo que hay tras la etiqueta BODY. La
+     información de las etiquetas HEAD y BODY se almacenan en el registro
+     de objeto.</para>
+    <para>
+     Vea también <function>hw_DocumentAttributes</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_DocumentSetContent</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-documentsetcontent">
+   <refnamediv>
+    <refname>hw_DocumentSetContent</refname>
+    <refpurpose>fija/sustituye el contenido de un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_documentsetcontent</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+     <paramdef>string <parameter>contenido</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Fija o sustituye el contenido del documento. Si el documento es de
+     tipo HTML el contenido es todo lo que hay tras la etiqueta BODY. La
+     información de las etiquetas HEAD y BODY se almacenan en el registro
+     de objeto. Si proporciona también esta información en el contenido
+     del documento, el servidor Hyperwave modificará el registro del objeto
+     cuando sea insertado el documento. Probablemente no es una buena idea.
+     Si esta función falla, el documento retendrá su anterior contenido.</para>
+    <para>
+     Vea también <function>hw_DocumentAttributes</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_DocumentContent</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-documentsize">
+   <refnamediv>
+    <refname>hw_DocumentSize</refname>
+    <refpurpose>tamaño de un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_documentsize</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el tamaño en bytes del documento.</para>
+    <para>
+     Vea también <function>hw_DocumentBodyTag</function>,
+              <function>hw_DocumentAttributes</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-errormsg">
+   <refnamediv>
+    <refname>hw_ErrorMsg</refname>
+    <refpurpose>devuelve un mensaje de error</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_errormsg</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una cadena que contiene el último mensaje de error o 'No Error'.
+     Si devuelve false es que la función fracasó.
+     El mensaje está relacionado con el último comando.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-edittext">
+   <refnamediv>
+    <refname>hw_EditText</refname>
+    <refpurpose>recupera documento de texto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_edittext</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Envía el documento de texto al servidor. El registro de objeto
+     del documento no puede ser modificado mientras el documento es
+     editado.
+     Esta función sólo funcionará para objetos puros de texto. No
+     abrirá ninguna conexión especial de datos y por tanto bloquea
+     la conexión de control durante la transferencia.</para>
+    <para>
+     Vea también <function>hw_PipeDocument</function>,
+              <function>hw_FreeDocument</function>,
+              <function>hw_DocumentBodyTag</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_OutputDocument</function>,
+              <function>hw_GetText</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-error">
+   <refnamediv>
+    <refname>hw_Error</refname>
+    <refpurpose>número de error</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_error</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el último número de error. Si el valor devuelto es 0 no ha
+     habido errores. El error está relacionado con el último comando.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-free-document">
+   <refnamediv>
+    <refname>hw_Free_Document</refname>
+    <refpurpose>libera un documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_free_document</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Libera la memoria ocupada por el documento Hyperwave.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getparents">
+   <refnamediv>
+    <refname>hw_GetParents</refname>
+    <refpurpose>id de objeto de los padres</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getparentsobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla indizada de id de objeto. Cada una pertenece a un
+     padre del objeto con ID <parameter>IDobjeto</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getparentsobj">
+   <refnamediv>
+    <refname>hw_GetParentsObj</refname>
+    <refpurpose>registros de objeto de los padres</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getparentsobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla indizada de registros de objeto junto a una tabla asociativa
+     con información estadística sobre estos. La tabla asociativa es el último
+     elemento de la tabla devuelta. Cada registro de objeto pertenece a un
+     padre del objeto con ID <parameter>IDobjeto</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getchildcoll">
+   <refnamediv>
+    <refname>hw_GetChildColl</refname>
+    <refpurpose>id de objeto de colecciones hijas</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getchildcoll</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de id de objeto. Cada ID de objeto
+     pertenece a una colección hija de la colección con ID
+     <parameter>IDobjeto</parameter>. La función no devolverá
+     documentos hijos.</para>
+    <para>
+     Vea también <function>hw_GetChildren</function>,
+              <function>hw_GetChildDocColl</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getchildcollobj">
+   <refnamediv>
+    <refname>hw_GetChildCollObj</refname>
+    <refpurpose>registros de objeto de colecciones hijas</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getchildcollobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de registros de objeto. Cada uno de ellos
+     pertenece a una colección hija de la colección con ID
+     <parameter>IDobjeto</parameter>. La función no devolverá
+     documentos hijos.</para>
+    <para>
+     Vea también <function>hw_ChildrenObj</function>,
+              <function>hw_GetChildDocCollObj</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getremote">
+   <refnamediv>
+    <refname>hw_GetRemote</refname>
+    <refpurpose>Obtiene un documento remoto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_getremote</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un documento remoto. Los documentos remotos en la
+     notación de Hyperwave son los obtenidos de una fuente externa.
+     Los documentos remotos típicos son páginas web externas o
+     consultas a bases de datos. Para poder acceder a las fuentes
+     externas a través de documentos remotos, el Hyperwave presenta
+     el HGI (Hyperwave Gateway Interface - Interfaz de Pasarela de
+     Hyperwave) que es similar al CGI. Actualmente, sólo se puede 
+     acceder a servidores ftp y http y a algunas bases de datos.
+     Llamar a <function>hw_GetRemote</function> devuelve el documento de
+     la fuente externa. Si desea usar esta función debe familiarizarse
+     con los HGI. Debería considerar el usar PHP en lugar del Hyperwave
+     para acceder a fuentes externas. Añadir soporte de bases de datos
+     a través de una pasarela Hyperwave sería más difícil que hacerlo
+     en PHP.</para>
+    <para>
+     Vea también <function>hw_GetRemoteChildren</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getremotechildren">
+   <refnamediv>
+    <refname>hw_GetRemoteChildren</refname>
+    <refpurpose>Obtiene el hijo del documento remoto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_getremotechildren</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>string <parameter>registro de objeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el hijo de un documento remoto. Los hijos de documentos
+     remotos son en sí mismos documentos remotos.
+     Esto tiene sentido cuando se afina una consulta de bases de datos
+     y se explica en la Guía de Programación de Hyperwave. Si el número
+     de hijos es 1 la función devolverá el documento en sí mismo formateado
+     con la Interfaz de Pasarela de Hyperwave (HGI). Si el número de hijos
+     es mayor de 1 devolverá una tabla de registros de objeto, con cada
+     uno posible candidato para otra llamada a <function>hw_GetRemoteChildren</function>. 
+     Dichos registros de objeto son virtuales y no existen en el servidor
+     Hyperwave, y por lo tanto no poseen un ID de objeto válido. La apariencia
+     exacta de dicho registro de objeto depende del HGI.
+     Si desea usar esta función deberá estar muy familiarizado con los HGI.
+     También debería considerar el uso del PHP en lugar de Hyperwave para
+     acceder a fuentes externas. Añadir soporte de bases de datos a través
+     de una pasarela de Hyperwave resulta más difícil que hacerlo en PHP.</para>
+    <para>
+     Vea también <function>hw_GetRemote</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getsrcbydestobj">
+   <refnamediv>
+    <refname>hw_GetSrcByDestObj</refname>
+    <refpurpose>Devuelve los enlaces que apuntan al objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getsrcbydestobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve los registros de objeto de todos los enlaces que apuntan al
+     objeto con ID <parameter>IDobjeto</parameter>. El objeto puede ser tanto
+     un documento como un enlace de tipo destino.</para>
+    <para>
+     Vea también <function>hw_GetAnchors</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getobject">
+   <refnamediv>
+    <refname>hw_GetObject</refname>
+    <refpurpose>registro de objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getobject</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>[int|array] <parameter>IDobjeto</parameter></paramdef>
+     <paramdef>string <parameter>consulta</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el registro de objeto para el objeto cuyo ID es 
+     <parameter>IDobjeto</parameter> si el segundo parámetro es un
+     entero. Si es una tabla la función devolverá una tabla de
+     registros de objeto. En tal caso, el último parámetro, que es
+     una cadena de consulta, también es evaluado.</para>
+    <para>
+     La cadena de consulta tiene la sintáxis siguiente:</para>
+    <simpara>
+     &lt;expr> ::= "(" &lt;expr> ")" |</simpara>  <simpara>
+             "!" &lt;expr> |          /* NO */</simpara><simpara>
+             &lt;expr> "||" &lt;expr> |  /* O */</simpara><simpara>
+             &lt;expr> "&amp;&amp;" &lt;expr> |  /* Y */</simpara><simpara>
+             &lt;atributo> &lt;operador> &lt;valor></simpara><simpara>
+
+  &lt;atributo> ::= /* cualquier atributo (Título, Autor, TipoDocumento ...) */</simpara><simpara>
+
+  &lt;operador> ::= "=" |    /* igual */</simpara><simpara>
+                 "&lt;" |    /* menor que (comparación de cadenas) */</simpara><simpara>
+                 ">" |    /* mayor que (comparación de cadenas) */</simpara><simpara>
+                 "~"      /* expresión regular */</simpara><simpara></simpara>
+    <para>
+     La consulta permite seleccionar elementos de la lista de objetos
+     dada. Al contrario de otras funciones de búsqueda, esta consulta
+     no puede utilizar atributos indizados. El número de registros de
+     objeto devueltos depende de la consulta y de si está permitido el
+     acceso al objeto.</para>
+    <para>
+     Vea también <function>hw_GetAndLock</function>,
+              <function>hw_GetObjectByQuery</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getandlock">
+   <refnamediv>
+    <refname>hw_GetAndLock</refname>
+    <refpurpose>devuelve registro de objeto y lo bloquea</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_getandlock</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el registro de objeto para el objeto con ID
+     <parameter>IDobjeto</parameter>.
+     También bloqueará el objeto, de modo que otros usuarios no
+     podrán acceder al mismo hasta que sea desbloqueado.</para>
+    <para>
+     Vea también <function>hw_Unlock</function>,
+              <function>hw_GetObject</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-gettext">
+   <refnamediv>
+    <refname>hw_GetText</refname>
+    <refpurpose>obtiene un documento de texto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_gettext</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+     <paramdef>mixed
+      <parameter>
+       <optional>IDraiz/prefijo</optional>
+      </parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el documento con ID de objeto 
+     <parameter>IDobjeto</parameter>. Si el documento tiene
+     enlaces que pueden ser insertados, serán insertados ahora.
+     El parámetro opcional <parameter>IDraiz/prefijo</parameter> puede
+     ser una cadena o un entero. Si es un entero determina la forma en
+     que los enlaces se insertan en el documento. Por defecto es 0 y
+     los enlaces se crean a partir del nombre del objeto de destino de
+     los mismos. Esto es útil para aplicaciones web. Si un enlace apunta
+     a un objeto con nombre 'pelicula_internet' el enlace HTML será
+     &lt;A HREF="/pelicula_internet">. La posición actual del objeto
+     de destino en la jerarquía de documentos es despreciada. Tendrá que
+     ajustar su navegador web para que reescriba dicho URL a, por ejemplo,
+     '/mi_script.php3/pelicula_internet'. 'mi_script.php3' deberá 
+     evaluar $PATH_INFO y recuperar el documento.
+     Todos los enlaces tendrán el prefijo '/mi_script.php3'. Si no desea
+     este efecto puede fijar el parámetro opcional
+     <parameter>IDraiz/prefijo</parameter> al prefijo que desee
+     en su lugar. En este caso deberá ser una cadena.</para>
+    <para>
+     Si el <parameter>IDraiz/prefijo</parameter> es un entero
+     distinto de 0, el enlace se construye con todos los nombres
+     de objeto comenzando con el objeto de id <parameter>IDraiz/prefijo</parameter>,
+     separado por una barra relativa al objeto actual.
+     Si por ejemplo el documento anterior 'pelicula_internet' está situado
+     en 'a-b-c-pelicula_internet' donde '-' es el separador entre niveles
+     jerárquicos en el servidor Hyperwave y el documento fuente está
+     situado en 'a-b-d-fuente', el enlace HTML resultante sería:
+     &lt;A HREF="../c/pelicula_internet">. Esto es útil cuando desea
+     bajarse el contenido completo del servidor al disco y mapear
+     la jerarquía de documentos en el sistema de archivos.</para>
+    <para>
+     Esta función sólo trabajará en documentos de texto puros. No
+     se abrirá una conexión de datos especial y por tanto bloqueará
+     la conexión de control durante la transferencia.</para>
+    <para>
+     Vea también <function>hw_PipeDocument</function>,
+              <function>hw_FreeDocument</function>,
+              <function>hw_DocumentBodyTag</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_OutputDocument</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getobjectbyquery">
+   <refnamediv>
+    <refname>hw_GetObjectByQuery</refname>
+    <refpurpose>buscar objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getobjectbyquery</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>string <parameter>consulta</parameter></paramdef>
+     <paramdef>int <parameter>max_resultados</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca objetos en todo el servidor y devuelve una tabla de id de
+     objeto. El número máximo de resultados será <parameter>max_resultados</parameter>. 
+     Si <parameter>max_resultados</parameter> vale -1, el número máximo
+     de resultados es ilimitado.</para>
+    <para>
+     La consulta funcionará sólo con atributos indizados.</para>
+    <para>
+     Vea también <function>hw_GetObjectByQueryObj</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getobjectbyqueryobj">
+   <refnamediv>
+    <refname>hw_GetObjectByQueryObj</refname>
+    <refpurpose>buscar objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getobjectbyqueryobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>string <parameter>consulta</parameter></paramdef>
+     <paramdef>int <parameter>max_resultados</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca objetos en todo el servidor y devuelve una tabla de registros
+     de objeto. El número máximo de resultados será <parameter>max_resultados</parameter>. 
+     Si <parameter>max_resultados</parameter> vale -1, el número máximo
+     de resultados es ilimitado.</para>
+    <para>
+     La consulta funcionará sólo con atributos indizados.</para>
+    <para>
+     Vea también <function>hw_GetObjectByQuery</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getobjectbyquerycoll">
+   <refnamediv>
+    <refname>hw_GetObjectByQueryColl</refname>
+    <refpurpose>buscar objeto en colección</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getobjectbyquerycoll</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+     <paramdef>string <parameter>consulta</parameter></paramdef>
+     <paramdef>int <parameter>max_resultados</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca objetos en la colección cuyo ID es
+     <parameter>IDobjeto</parameter> y devuelve una tabla de
+     ID de objeto. El número máximo de resultados será 
+     <parameter>max_resultados</parameter>. Si <parameter>max_resultados</parameter>
+     vale -1, el número máximo de resultados es ilimitado.</para>
+    <para>
+     La consulta funcionará sólo con atributos indizados.</para>
+    <para>
+     Vea también <function>hw_GetObjectByQueryCollObj</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getobjectbyquerycollobj">
+   <refnamediv>
+    <refname>hw_GetObjectByQueryCollObj</refname>
+    <refpurpose>buscar objeto en colección</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getobjectbyquerycollobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+     <paramdef>string <parameter>consulta</parameter></paramdef>
+     <paramdef>int <parameter>max_resultados</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Busca objetos en la colección cuyo ID es
+     <parameter>IDobjeto</parameter> y devuelve una tabla de
+     registros de objeto. El número máximo de resultados será 
+     <parameter>max_resultados</parameter>. Si <parameter>max_resultados</parameter>
+     vale -1, el número máximo de resultados es ilimitado.</para>
+    <para>
+     La consulta funcionará sólo con atributos indizados.</para>
+    <para>
+     Vea también <function>hw_GetObjectByQueryColl</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getchilddoccoll">
+   <refnamediv>
+    <refname>hw_GetChildDocColl</refname>
+    <refpurpose>id de objeto de documentos hijos de una colección</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getchilddoccoll</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de id de objeto para los documentos hijos de una
+     colección.</para>
+    <para>
+     Vea también <function>hw_GetChildren</function>,
+              <function>hw_GetChildColl</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getchilddoccollobj">
+   <refnamediv>
+    <refname>hw_GetChildDocCollObj</refname>
+    <refpurpose>registros de objeto de documentos hijos de una colección</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getchilddoccollobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de registros de objeto para los documentos hijos 
+     de una colección.</para>
+    <para>
+     Vea también <function>hw_ChildrenObj</function>,
+              <function>hw_GetChildCollObj</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getanchors">
+   <refnamediv>
+    <refname>hw_GetAnchors</refname>
+    <refpurpose>id de objeto de los enlaces de un documento</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getanchors</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de id de objeto con los enlaces del documento
+     cuyo ID es <parameter>IDobjeto</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getanchorsobj">
+   <refnamediv>
+    <refname>hw_GetAnchorsObj</refname>
+    <refpurpose>registros de objeto de los enlaces de un documento</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_getanchorsobj</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de registros de objeto con los enlaces del documento
+     cuyo ID es <parameter>IDobjeto</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-mv">
+   <refnamediv>
+    <refname>hw_Mv</refname>
+    <refpurpose>mueve objetos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_mv</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>array <parameter>tabla de id de objeto</parameter></paramdef>
+     <paramdef>int <parameter>id origen</parameter></paramdef>
+     <paramdef>int <parameter>id destino</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Mueve los objetos cuyas id se especifican en el segundo parámetro
+     desde la colección con id <parameter>id origen</parameter> hasta
+     la colección con el id <parameter>id destino</parameter>.
+     Si el id de destino es 0, los objetos serán disociados
+     de la colección origen. Si esta fuese la última instancia
+     del objeto, este sería borrado. Si desea borrar todas las instancias
+     de una vez, utilice <function>hw_deleteobject</function>.</para>
+    <para>
+     El valor devuelto es el número de objetos movidos.</para>
+    <para>
+     Vea también <function>hw_cp</function>,
+              <function>hw_deleteobject</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-identify">
+   <refnamediv>
+    <refname>hw_Identify</refname>
+    <refpurpose>identificarse como usuario</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_identify</function></funcdef>
+     <paramdef>string <parameter>nombre</parameter></paramdef>
+     <paramdef>string <parameter>clave</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Le identifica como el usuario <parameter>nombre</parameter> y
+     <parameter>clave</parameter>. La identificación sólo es
+     válida para la sesión actual. No pienso que esta función sea
+     necesaria con mucha frecuancia. En muchos casos será más fácil
+     identificarse al abrir la conexión.</para>
+    <para>
+     Vea también <function>hw_Connect</function>.</para>
+   </refsect1>
+  </refentry>
+  <refentry id="function.hw-incollections">
+   <refnamediv>
+    <refname>hw_InCollections</refname>
+    <refpurpose>comprueba si los id de objeto están en las colecciones</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_incollections</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>array <parameter>tabla_id_objeto</parameter></paramdef>
+     <paramdef>array <parameter>tabla_id_colecciones</parameter></paramdef>
+     <paramdef>int <parameter>colecciones_devueltas</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Comprueba si el conjunto de objetos (documentos o colecciones)
+     especificado por el parámetro <parameter>tabla_id_objeto</parameter> es parte de
+     las colecciones enumeradas en <parameter>tabla_id_colecciones</parameter>.
+     Cuando el cuarto parámetro <parameter>colecciones_devueltas</parameter> es 0,
+     el subconjunto de id de objeto que es parte de las colecciones (es decir,
+     los documentos o colecciones hijos de una o más colecciones de id de
+     colecciones o de sus subcolecciones, recursivamente) es devuelto en forma
+     de tabla. Cuando el cuarto parámetro es 1, sin embargo, el conjunto de
+     colecciones que tienen uno o más objetos de este subconjunto como hijos
+     es devuelto como tabla. Esta opción permite a un cliente, p. ej., 
+     remarcar en una visualización gráfica la parte de la jerarquía de 
+     colecciones que contiene las coincidencias de una consulta previa.</para>
+    <para></para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-info">
+   <refnamediv>
+    <refname>hw_Info</refname>
+    <refpurpose>información sobre conexión</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_info</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve información sobre la conexión actual. La cadena devuelta
+     tiene el siguiente formato: &lt;Cadenaservidor&gt;, &lt;Anfitrión&gt;,
+     &lt;Puerto&gt;, &lt;Usuario&gt;, &lt;Puerto del Usuario&gt;,
+     &lt;Intercambio de bytes&gt;</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-inscoll">
+   <refnamediv>
+    <refname>hw_InsColl</refname>
+    <refpurpose>insertar colección</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_inscoll</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+     <paramdef>array <parameter>tabla_objetos</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Inserta una nueva colección con los atributos de la 
+     <parameter>tabla_objetos</parameter> en la colección
+     cuyo ID de objeto es <parameter>IDobjeto</parameter>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-insdoc">
+   <refnamediv>
+    <refname>hw_InsDoc</refname>
+    <refpurpose>insertar documento</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_insdoc</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDpadre</parameter></paramdef>
+     <paramdef>string <parameter>registro_de_objeto</parameter></paramdef>
+     <paramdef>string <parameter>texto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Inserta un nuevo documento con los atributos del
+     <parameter>registro_de_objeto</parameter> en la colección cuyo
+     ID de objeto es <parameter>IDpadre</parameter>. Esta función inserta
+     tanto un registro de objeto sólo como un registro de objeto y el texto
+     puro en ASCII dado en <parameter>texto</parameter> si este es
+     especificado.
+     si desea insertar un documento general de cualquier tipo, utilice
+     en su lugar <function>hw_insertdocument</function>.</para>
+    <para>
+     Vea también <function>hw_InsertDocument</function>,
+              <function>hw_InsColl</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-insertdocument">
+   <refnamediv>
+    <refname>hw_InsertDocument</refname>
+    <refpurpose>subir cualquier objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_insertdocument</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>id_padre</parameter></paramdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+      Sube un documento a la colección dada por 
+      <parameter>id_padre</parameter>.
+      El documento debe ser creado antes con la función
+      <function>hw_NewDocument</function>. Asegúrese que el
+      registro de objeto del nuevo documento contenga al menos
+      los atributos: Type, DocumentType, Title y Name (así, en inglés). 
+      Posiblemente desee fijar también el MimeType. La función devuelve
+      la id de objeto del nuevo documento, o false.</para>
+    <para>
+     Vea también <function>hw_PipeDocument</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-insertobject">
+   <refnamediv>
+    <refname>hw_InsertObject</refname>
+    <refpurpose>inserta un registro de objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_insertobject</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>string <parameter>reg de objeto</parameter></paramdef>
+     <paramdef>string <parameter>parametro</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+      Inserta un objeto en el servidor. Este puede consistir en
+      cualquier objeto hyperwave válido. Vea la documentación sobre
+      el HG-CSP si desea información detallada sobre cuáles tienen
+      que ser los parámetros.</para>
+    <para>
+      Nota: Si se desea insertar un enlace, el atributo Position
+      siempre se fijará a un valor comienzo/final o a 'invisible'.
+      Las posiciones invisibles se necesitan si la anotación no
+      tiene enlace correspondiente en el texto anotado.</para>
+    <para>
+     Vea también <function>hw_PipeDocument</function>,
+              <function>hw_InsertDocument</function>,
+              <function>hw_InsDoc</function>,
+              <function>hw_InsColl</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-mapid">
+   <refnamediv>
+    <refname>hw_mapid</refname>
+    <refpurpose>Mapea in id global a un id virtual local</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_mapid</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>id servidor</parameter></paramdef>
+     <paramdef>int <parameter>id objeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+      Mapea un id de objeto global en un servidor hyperwave, incluso
+      con aquellos a los que no se ha conectado con <function>hw_connect</function>,
+      sobre un id virtual de objeto. Este id virtual se puede utilizar
+      como cualquier otro id de objeto, p. ej. para obtener el registro
+      de objeto por medio de <function>hw_getobject</function>. El id de
+      servidor es la primera parte del id global de objeto (GOid) de aquel
+      que es realmene el número IP expresado como entero.</para>
+    <para>
+      Nota: Para usar esta función deberá activar el indicador
+      F_DISTRIBUTED, que actualmenes sólo se puede fijar en tiempo
+      de compilación desde hg_comm.c. Por defecto está inactivo. Lea
+      el comentario al principio de hg_comm.c
+      </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-modifyobject">
+   <refnamediv>
+    <refname>hw_Modifyobject</refname>
+    <refpurpose>modifica el registro de objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_modifyobject</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>objeto_a_cambiar</parameter></paramdef>
+     <paramdef>array <parameter>eliminar</parameter></paramdef>
+     <paramdef>array <parameter>añadir</parameter></paramdef>
+     <paramdef>int <parameter>modo</parameter></paramdef>
+
+    </funcsynopsis>
+    <para>
+     Este comando permite eliminar, añadir, o modificar atributos individuales
+     de un registro de objeto. El objeto está especificado por el ID de
+     objeto <parameter>objeto_a_cambiar</parameter>. La primera tabla,
+     <parameter>eliminar</parameter>, es la lista de atributos a eliminar.
+     La segunda tabla, <parameter>añadir</parameter>, es la lista de atributos
+     a añadir. Para modificar un atributo, hay que borrar el antiguo y añadir
+     uno nuevo. <function>hw_modifyobject</function> siempre eliminará los
+     atributos antes de añadir los nuevos excepto si el valor del atributo
+     a eliminar no es una cadena o una tabla.</para>
+
+    <para>
+     El último parámetro determina si la modificación se realiza de manera
+     recursiva. 1 quiere decir que sea recursiva. Si alguno de los objetos
+     no se puede modificar, será ignorado sin avisar.
+     Incluso <function>hw_error</function> podría no indicar un
+     error aunque alguno de los objetos no pueda ser modificado.</para>
+
+    <para>
+     Las claves de ambas tablas son los nombres de los atributos. El valor
+     de cada elemento de la tabla puede ser una tabla, una cadena o cualquier
+     otra cosa. Si es una tabla, cada valor de atributo se construye como
+     la clave de cada elemento más dos puntos y el valor de cada elemento. Si
+     es una cadena se toma como valor del atributo. Una cadena vacía producirá
+     la supresión completa del atributo. Si el valor no es ni cadena ni tabla,
+     sino otra cosa, p. ej. un entero, no se realizará operación alguna en el
+     atributo. Esto es necesario se desea añadir un atributo completamente
+     nuevo, no solamente un nuevo valor para un atributo existente. Si la
+     tabla eliminar contuviera una cadena vacía para dicho atributo, este
+     se intentaría suprimir, lo que fallaría porque este no existe. La
+     siguiente adición de un nuevo valor para dicho atributo también fallará.
+     Fijando el valor para dicho atributo p. ej. a 0 hará que ni siquiera
+     se intente eliminar, pero funcionará la adición del mismo.</para>
+
+    <para>
+     Si desea cambiar el atributo 'Nombre' con el valor actual 'libros' por
+     el de 'artículos' deberá crear dos tablas y llamar a <function>hw_modifyobject</function>.
+     <example>
+      <title>modificando un atributo</title>
+      <programlisting role="php">
+       // $conexion es una conexión con el servidor Hyperwave
+       // $idobj es la ID del objeto a modificar
+       $tablasupr = array("Nombre" => "libros");
+       $tablaanad = array("Nombre" => "artículos");
+       $hw_modifyobject($conexion, $idobj, $tablasupr, $tablaanad);
+      </programlisting>
+     </example>
+     Para borrar/añadir un par nombre=valor de/a el registro de objeto,
+     simplemente pase la tabla eliminar/añadir y fije el último/tercer
+     parámetro a tabla vacía. Si el atributo es el primero con dicho
+     nombre que se añade, fije el valor del atributo en la tabla eliminar
+     a un valor entero.
+     <example>
+      <title>añadiendo un atributo completamente nuevo</title>
+      <programlisting role="php">
+       // $conexion es una conexión con el servidor Hyperwave
+       // $idobj es la ID del objeto a modificar
+       $tablasupr = array("Nombre" => 0);
+       $tablaanad = array("Nombre" => "artículos");
+       $hw_modifyobject($conexion, $idobj, $tablasupr, $tablaanad);
+      </programlisting>
+     </example></para>
+    <para>
+     <note>
+      <simpara>
+       Los atributos plurilingües, p. ej. 'Título', se pueden modificar
+       de dos maneras. O bien proporcionando los valores de los atributos
+       en su forma nativa 'lenguaje':'título', bien proporcionando una tabla
+       con los elementos para cada lenguaje según se describe más arriba.
+       El ejemplo anterior podría quedar entonces:</simpara>
+     </note>
+     <example>
+      <title>modificando el atributo Título</title>
+      <programlisting role="php">
+       $tablasupr = array("Título" => "es:Libros");
+       $tablaanad = array("Título" => "es:Artículos");
+       $hw_modifyobject($conexion, $idobj, $tablasupr, $tablaanad);
+      </programlisting>
+     </example>
+      o
+     <example>
+      <title>modificando el atributo Título</title>
+      <programlisting role="php">
+       $tablasupr = array("Título" => array("es" => "Libros"));
+       $tablaanad = array("Título" => array("es" => "Artículos", "ge"=>"Artikel"));
+       $hw_modifyobject($conexion, $idobj, $tablasupr, $tablaanad);
+      </programlisting>
+     </example>
+     Esto elimina el título español 'Libros' y añade el título español
+     'Artículos' y el título alemán 'Artikel'.
+     <example>
+      <title>eliminando atributos</title>
+      <programlisting role="php">
+       $tablasupr = array("Título" => "");
+       $tablaanad = array("Tñitulo" => "es:Artículos");
+       $hw_modifyobject($conexion, $idobj, $tablasupr, $tablaanad);
+      </programlisting>
+     </example>
+     <note><simpara>
+       Esto eliminará todos los atributos con el nombre 'Título' y añadirá
+       un nuevo atributo 'Título'. Esto es útil cuando se desea eliminar
+       atributos de forma recursiva.
+      </simpara></note>
+     <note>
+      <simpara>
+       Si necesita eliminar todos los atributos con un cierto nombre
+       tendrá que pasar una cadena vacía como el valor del atributo.</simpara>
+     </note>
+    <note><simpara>
+     Sólo los atributos 'Title', 'Description' y 'Keyword' (así, en inglés)
+     manejarán de forma apropiada el prefijo de idioma. Si estos atributos
+     no llevaran prefijo de idioma, se les asignariá el prefijo 'xx'.
+    </simpara></note>
+    <note><simpara>
+     El atributo 'Name' es bastante especial. En algunos casos no puede ser
+     completamente eliminado. Obtendrá un mensaje de error 'Change of base
+     attribute' ('Cambio de atributo base', no está muy claro cuando ocurre).
+     Por tanto, tendrá siempre que añadir un nuevo atributo Name primero y
+     luego eliminar el anterior.
+    </simpara></note>
+    <note><simpara>
+      No debe rodear esta función de llamadas a 
+      <function>hw_getandlock</function> ni a <function>hw_unlock</function>.
+      <function>hw_modifyobject</function> ya lo hace internamente.
+    </simpara></note></para>
+    <para>
+     Devuelve TRUE si no hay error o FALSE en caso contrario.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-new-document">
+   <refnamediv>
+    <refname>hw_New_Document</refname>
+    <refpurpose>crear nuevo documento</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_new_document</function></funcdef>
+     <paramdef>string <parameter>registro_de_objeto</parameter></paramdef>
+     <paramdef>string <parameter>datos_documento</parameter></paramdef>
+     <paramdef>int <parameter>tama_documento</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un nuevo documento Hyperwave en el que los datos del
+     documento están fijados a <parameter>datos_documento</parameter> y el
+     registro de objeto a <parameter>registro_de_objeto</parameter>. La
+     longitud de los <parameter>datos_documento</parameter> debe pasarse en
+     <parameter>tama_documento</parameter>. Esta función no inserta el
+     documento en el servidor Hyperwave.</para>
+    <para>
+     Vea también <function>hw_FreeDocument</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_DocumentBodyTag</function>,
+              <function>hw_OutputDocument</function>,
+              <function>hw_InsertDocument</function>.</para>
+   </refsect1>
+  </refentry>
+  
+  <refentry id="function.hw-objrec2array">
+   <refnamediv>
+    <refname>hw_Objrec2Array</refname>
+    <refpurpose>convierte atributos de registro de objeto a tabla de objetos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>hw_objrec2array</function></funcdef>
+     <paramdef>string <parameter>registro_de_objeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Convierte un <parameter>registro_de_objeto</parameter> en una tabla de objetos.
+     Las claves de la tabla resultante son los nombres de los atributos.
+     Los atributos múltiples como 'Título' en distintos idiomas forman
+     su propia tabla. Las claves de esta tabla son las partes a la izquierda
+     de los dos puntos del valor del atributo. Actualmente, sólo los atributos
+     'Title', 'Description' y 'Keyword' (así, en inglés) son correctamente
+     tratados. Otros atributos múltiples generan una tabla indizada. Actualmente,
+     sólo el atributo 'Group' es tratado correctamente.</para>
+    <para>
+     Vea también <function>hw_array2objrec</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-outputdocument">
+   <refnamediv>
+    <refname>hw_OutputDocument</refname>
+    <refpurpose>muestra el documento_hw</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_outputdocument</function></funcdef>
+     <paramdef>int <parameter>documento_hw</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Muestra el documento sin la etiqueta BODY.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-pconnect">
+   <refnamediv>
+    <refname>hw_pConnect</refname>
+    <refpurpose>hacer una conexión de base de datos permanente</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_pconnect</function></funcdef>
+     <paramdef>string <parameter>servidor</parameter></paramdef>
+     <paramdef>int <parameter>puerto</parameter></paramdef>
+     <paramdef>string <parameter>usuario</parameter></paramdef>
+     <paramdef>string <parameter>clave</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un índice de conexión si hay éxito, o false si la conexión
+     no puede hacerse. Abre una conexión permanente a un servidor Hyperwave.
+     Cada uno de los argumentos debe ser una cadena entrecomillada excepto
+     el número de puerto. El argumento <parameter>usuario</parameter>
+     y la <parameter>clave</parameter> son opcionales y pueden
+     omitirse. En tal caso no se realizará ninguna identificación con
+     el servidor. Es similar a la identificación anónima del usuario.
+     Esta función devuelve un índice de conexión que se necesita
+     para otras funciones de Hyperwave. Se pueden tener varias conexiones
+     permanentes abiertas a la vez.</para>
+    <para>
+     Vea también <function>hw_Connect</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-pipedocument">
+   <refnamediv>
+    <refname>hw_PipeDocument</refname>
+    <refpurpose>recupera cualquier documento</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_pipedocument</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el documento Hyperwave cuyo ID de objeto es 
+     <parameter>IDobjeto</parameter>. Si el documento tiene
+     enlaces que pueden ser insertados, deberán haberse insertado ya.
+     El documento será transferido a través de una conexión de datos
+     especial que no bloquea la conexión de control.</para>
+    <para>
+     Vea también <function>hw_GetText</function> para saber más sobre
+     		inserción de enlaces,
+              <function>hw_FreeDocument</function>,
+              <function>hw_DocumentSize</function>,
+              <function>hw_DocumentBodyTag</function>,
+              <function>hw_OutputDocument</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-root">
+   <refnamediv>
+    <refname>hw_Root</refname>
+    <refpurpose>ID del objeto raíz</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_root</function></funcdef>
+     <paramdef><parameter></parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve la ID de objeto de la colección hiper-raíz. Actualmente
+     siempre vale 0. La colección hija de la hiper-raíz es la colección
+     raíz del servidor al que se ha conectado.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-unlock">
+   <refnamediv>
+    <refname>hw_Unlock</refname>
+    <refpurpose>desbloquea objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_unlock</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+     <paramdef>int <parameter>IDobjeto</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Desbloquea un documento para que otros usuarios puedan
+     acceder al mismo de nuevo.</para>
+    <para>
+     Vea también <function>hw_GetAndLock</function>.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-who">
+   <refnamediv>
+    <refname>hw_Who</refname>
+    <refpurpose>Lista de los usuarios actualmente conectados</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>hw_who</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una tabla de los usuarios actualmente conectados al servidor
+     Hyperwave. Cada elemento de esta tabla contiene en sí mismo los elementos
+     ID, nombre, sistema, onSinceDate (conectadoDesdeFecha), onSinceTime 
+     (conectadoDesdeHora), TotalTime (TiempoTotal) y self (propio). 'self'
+     es 1 si esta línea corresponde al usuario que realizó la petición.</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.hw-getusername">
+   <refnamediv>
+    <refname>hw_Username</refname>
+    <refpurpose>nombre del usuario actualmente conectado</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>hw_getusername</function></funcdef>
+     <paramdef>int <parameter>conexión</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve el nombre de usuario de la conexión.</para>
+   </refsect1>
+  </refentry>
+
+ </reference>
+
+<!-- Mantenga este comentario al final del archivo
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

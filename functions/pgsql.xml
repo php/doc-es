@@ -1,0 +1,1020 @@
+ <reference id="ref.pgsql">
+  <title>Funciones de PostgreSQL</title>
+  <titleabbrev>PostgreSQL</titleabbrev>
+
+  <partintro>
+   <para>
+    Postgres, desarrollado originalmente en el UC Berkeley Computer Science
+    Department, ha sido pionero en muchos de los conceptos relacionales/orientados
+    a objeto que ahora están empezando a estar disponibles en algunas bases de datos
+    comperciales. Tiene soporte de lenguaje SQL92/SQL3, integridad transaccional,
+    y extensibilidad de tipos. PostgreSQL es un descendiente de dominio público, más concretamente
+    open source, del código original de Berkeley.
+   </para>
+   <para>
+    PostgreSQL se encuentra disponible sin coste alguno. La versión actual la tienes a tu
+    disposición en <ulink url="&url.pgsql;">www.PostgreSQL.org</ulink>.
+   </para>
+   <para>
+    Desde la versión 6.3 (02/03/1998) PostgreSQL usa sockets tipo Unix. Abajo se da
+    una tabla con las diferentes posibilidades. El socket se encuentra en el ficheero
+    <filename>/tmp/.s.PGSQL.5432</filename>. Esta opción se controla mediante
+    el flag '-i' del <command>postmaster</command> y cuando se incluye significa
+    "escuchar sockets TCP/IP además de los de dominio Unix" ya que si no se le dice
+    nada solo escucha sockets tipo Unix.
+    <table>
+     <title>Postmaster y PHP</title>
+     <tgroup cols="3">
+      <thead>
+       <row>
+	<entry>Postmaster</entry>
+	<entry>PHP</entry>
+	<entry>Estado</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+	<entry>postmaster &</entry>
+	<entry>pg_connect("", "", "", "", "dbname");</entry>
+	<entry>OK</entry>
+       </row>
+       <row>
+	<entry>postmaster -i &</entry>
+	<entry>pg_connect("", "", "", "", "dbname");</entry>
+	<entry>OK</entry>
+       </row>
+       <row>
+	<entry>postmaster &</entry>
+	<entry>pg_connect("localhost", "", "", "", "dbname");</entry>
+	<entry>
+	 Unable to connect to PostgreSQL server: connectDB() failed:
+	 Is the postmaster running and accepting TCP/IP (with -i)
+	 connection at 'localhost' on port '5432'? in
+	 /path/to/file.php3 on line 20.
+         (Imposible conectar al servidor PostgreSQL, la llamada connectDB() ha fallado:
+         ¿Está funcionando el postmaster aceptando conextiones TCP/IP (con -i)
+         en 'localhost' en el puerto '5432'? en /path/to/file.php3 en linea 20.
+	</entry>
+       </row>
+       <row>
+	<entry>postmaster -i &</entry>
+	<entry>pg_connect("localhost", "", "", "", "dbname");</entry>
+	<entry>OK</entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </table>
+   </para>
+   <para>
+    Uno puede establecer una conexión con el siguiente comando:
+   </para>
+   <para>
+    Para usar el interface de objetos grandes (large object o lo), es necesario
+    encapsularlo en un bloque de transacción. Un bloque de transacción
+    empieza con un <command>begin</command> y si la transacción fue
+    valida termina con <command>commit</command> y <command>end</command>.  Si la
+    transacción falla debe ser cerrada con 
+    <command>abort</command> y <command>rollback</command>.
+
+    <example>
+     <title>Usando Objetos Grandes (lo)</title>
+     <programlisting role="php">
+&lt;?php
+$database = pg_Connect ("", "", "", "", "jacarta");
+pg_exec ($database, "begin");
+    $oid = pg_locreate ($database);
+    echo ("$oid\n");
+    $handle = pg_loopen ($database, $oid, "w");
+    echo ("$handle\n");
+    pg_lowrite ($handle, "gaga");
+    pg_loclose ($handle);
+pg_exec ($database, "commit")
+pg_exec ($database, "end")
+?>
+     </programlisting>
+    </example>
+   </para>
+  </partintro>
+
+  <refentry id="function.pg-close">
+   <refnamediv>
+    <refname>pg_Close</refname>
+    <refpurpose>Cierra una conexión PostgreSQL</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>bool <function>pg_close</function></funcdef>
+     <paramdef>int <parameter>connection</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve false si connection no es un indice de conexión valido y true en
+     cualquier otro caso. Cierra la conexión a la base de datos PostgreSQL asociada con el
+     indice de conexión pasado como parámetro.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-cmdtuples">
+   <refnamediv>
+    <refname>pg_cmdTuples</refname>
+    <refpurpose>Devuelve el número de tuplas afectadas</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_cmdtuples</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_cmdTuples</function> devuelve el número de tuplas
+     (instancias o filas) afectadas por consultas INSERT, UPDATE y DELETE.
+     Si no hay ninguna tupla afectada la función devolverá 0.
+     <example>
+      <title>pg_cmdtuples</title>
+      <programlisting role="php">
+&lt;?php
+$result = pg_exec($conn, "INSERT INTO verlag VALUES ('Autor')");
+$cmdtuples = pg_cmdtuples($result);
+echo $cmdtuples . " <- cmdtuples affected.";
+?>
+      </programlisting>
+     </example>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-connect">
+   <refnamediv>
+    <refname>pg_Connect</refname>
+    <refpurpose>Abre una conexión</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_connect</function></funcdef>
+     <paramdef>string <parameter>host</parameter></paramdef>
+     <paramdef>string <parameter>port</parameter></paramdef>
+     <paramdef>string <parameter>options</parameter></paramdef>
+     <paramdef>string <parameter>tty</parameter></paramdef>
+     <paramdef>string <parameter>dbname</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un índice de conexión en caso de éxito, o falso si la conexión
+     no se puede realizar. Esta función abre una conexión a una base de datos
+     PostgreSQL. Cada uno de los argumentos debe ser una cadena entrecomillada,
+     incluyendo el número de puerto. Los parámetros options y tty son opcionales
+     y pueden ser omitidos. Esta función devuelve un índice de conexión que se necesitará
+     para otras funciones PostgreSQL. Puedes tener multiples conexiones abiertas
+     al mismo tiempo.
+    </para>
+    <para>
+     Una conexión también se puede establecer con el siguiente comando:
+     <command>$conn = pg_connect("dbname=marliese port=5432");</command>
+     
+     Otros parámetros aparte de <parameter>dbname</parameter> y
+     <parameter>port</parameter> son <parameter>host</parameter>, 
+     <parameter>tty</parameter>, <parameter>options</parameter>,
+     <parameter>user</parameter> y <parameter>password</parameter>.
+    </para>
+    <para>
+     Ver también <function>pg_pConnect</function>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-dbname">
+   <refnamediv>
+    <refname>pg_DBname</refname>
+    <refpurpose>Nombre de la base de datos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_dbname</function></funcdef>
+     <paramdef>int <parameter>connection</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+Devuelve el nombre de la base de datos a la cual es el índice de conexión con
+PostgreSQL está conectado, o false si connection no es un índice de conexión válido.
+</para>
+</refsect1
+  </refentry>
+
+  <refentry id="function.pg-errormessage">
+   <refnamediv>
+    <refname>pg_ErrorMessage</refname>
+    <refpurpose>mensaje de error</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_errormessage</function></funcdef>
+     <paramdef>int <parameter>connection</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve una cadena que contiene el mensaje de error, o false en caso
+de fallo. Probablemente no se podrán obtener los detalles del error a través de la
+función
+<function>pg_errormessage</function> si ocurre un error en la última acción de base
+de datos para la cual existe una conexión valida, esta función retornará una cadena
+conteniendo el mensaje de error generado por el servidor "backend".
+</para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-exec">
+   <refnamediv>
+    <refname>pg_Exec</refname>
+    <refpurpose>Ejecuta una consulta (query)</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_exec</function></funcdef>
+     <paramdef>int <parameter>connection</parameter></paramdef>
+     <paramdef>string <parameter>query</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un índice de resultado si se pudo ejecutar la consulta, o false en caso
+     de fallo o si connection no es un índice de conexión válido. Se pueden obtener
+     detalles acerca del error mediante la función  <function>pg_ErrorMessage</function>
+     siempre que  conection sea válido. Envia una sentencia SQL a la base de datos PostgreSQL
+     especificada por el índice de conexión. connection debe ser un índice válido
+     devuelto por <function>pg_Connect</function>. El valor de devuelto por esta función es
+     un índice para ser usado al acceder a los resultados de la consulta desde otras funciones
+     PostgreSQL.
+     
+     <note>
+      <simpara>
+       PHP/FI devuelvía 1 si no es una consulta que tenga que devolver datos
+       (inserts o updates, por ejemplo) y un valor mayor que 1 incluso en el
+       caso de selects que no devolvieron nada. En PHP no se puede contar con
+       ninguna de esas suposiciones.
+      </simpara>
+     </note>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fetch-array">
+   <refnamediv>
+    <refname>pg_Fetch_Array</refname>
+    <refpurpose>obtiene una fila en la forma de un array</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>pg_fetch_array</function></funcdef>
+     <paramdef>int <parameter>result</parameter></paramdef>
+     <paramdef>int <parameter>row</parameter></paramdef>
+     <paramdef>int 
+      <parameter><optional>result_type</optional></parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve: Un array que se corresponde con la fila obtenida, o false si no
+     hay más filas.</para>
+    <para>
+     <function>pg_fetch_array</function> es una versión extendida de <function>pg_fetch_row</function>.
+     Además de almacenar los datos en los índices numericos del array resultante,
+     también almacena los datos usando índices asociativos, empleando para ello
+     el nombre del campo como la llave o índice.
+    </para>
+    <para>
+     El tercer parámetro opcional <parameter>result_type</parameter> en
+     <function>pg_fetch_array</function> es una constante y puede tomar cualquiera
+     de los siguientes valores: PGSQL_ASSOC, PGSQL_NUM, y PGSQL_BOTH.
+     <note>
+      <para>
+       <parameter>Result_type</parameter> se añadio en PHP 4.0.
+      </para>
+     </note>
+    </para>
+    <para>
+     Una cosa importante a tener en cuenta es que usar
+     <function>pg_fetch_array</function> NO es significativamente más lento que usar
+     <function>pg_fetch_row</function>, y sin embargo el valor añadido que 
+     aporta sí lo es.
+    </para>
+    <para>
+     Para más detalles, ver
+     <function>pg_fetch_row</function>
+    </para>
+    <example>
+     <title>PostgreSQL fetch array</title>
+     <programlisting role="php">
+&lt;?php 
+$conn = pg_pconnect("","","","","publisher");
+if (!$conn) {
+    echo "An error occured.\n";
+    exit;
+}
+
+$result = pg_Exec ($conn, "SELECT * FROM authors");
+if (!$result) {
+    echo "An error occured.\n";
+    exit;
+}
+
+$arr = pg_fetch_array ($result, 0);
+echo $arr[0] . " <- array\n";
+
+$arr = pg_fetch_array ($result, 1);
+echo $arr["author"] . " <- array\n";
+?>
+     </programlisting>
+    </example>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fetch-object">
+   <refnamediv>
+    <refname>pg_Fetch_Object</refname>
+    <refpurpose>obtener una fila en forma de objeto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>object <function>pg_fetch_object</function></funcdef>
+     <paramdef>int <parameter>result</parameter></paramdef>
+     <paramdef>int <parameter>row</parameter></paramdef>
+     <paramdef>int 
+      <parameter><optional>result_type</optional></parameter>
+     </paramdef>
+    </funcsynopsis>
+    <para> 
+     Devuelve: Un objeto cuyas propiedades se corresponden con los campos de la fila obtenida, o false
+     si no hay más filas.
+    </para>
+    <para> 
+     <function>pg_fetch_object</function> es parecida a 
+     <function>pg_fetch_array</function>, con una diferencia - se devuelve un objeto,
+     en vez de un array. Indirectamente, eso significa que solo puedes acceder a los
+     datos por medio de su nombre de campo, y no a través de sus posiciones
+     (los números son nombres de propiedad invalidos).
+    </para>
+    <para>
+     El tercer parámetro opcional <parameter>result_type</parameter> en
+     <function>pg_fetch_object</function> es una constante y puede tomar
+     cualquiera de los siguientes valores: PGSQL_ASSOC, PGSQL_NUM, y PGSQL_BOTH.
+     <note>
+      <para>
+       <parameter>Result_type</parameter> se añadio en PHP 4.0.
+      </para>
+     </note>
+    </para>
+    <para>
+     Referente a la velocidad, la función es identica a 
+     <function>pg_fetch_array</function>, y practicamente tan rápida como
+     <function>pg_fetch_row</function> (la diferencia es insignificante).
+    </para>
+    <para> 
+     Ver también: <function>pg_fetch_array</function> y
+     <function>pg_fetch_row</function>.
+     <example>
+      <title>Postgres fetch object</title>
+      <programlisting role="php">
+&lt;?php 
+$database = "verlag";
+$db_conn = pg_connect ("localhost", "5432", "", "", $database);
+if (!$db_conn): ?>
+    &lt;H1>Failed connecting to postgres database &lt;? echo $database ?>&lt;/H1> &lt;?
+    exit;
+endif;
+
+$qu = pg_exec ($db_conn, "SELECT * FROM verlag ORDER BY autor");
+$row = 0; // postgres needs a row counter other dbs might not 
+
+while ($data = pg_fetch_object ($qu, $row)):
+    echo $data->autor." (";
+    echo $data->jahr ."): ";
+    echo $data->titel."&lt;BR>";
+    $row++;
+endwhile; ?>
+
+&lt;PRE>&lt;?php
+$fields[] = Array ("autor", "Author");
+$fields[] = Array ("jahr",  "  Year");
+$fields[] = Array ("titel", " Title");
+
+$row= 0; // postgres needs a row counter other dbs might not
+while ($data = pg_fetch_object ($qu, $row)):
+    echo "----------\n";
+    reset ($fields);
+    while (list (,$item) = each ($fields)):
+        echo $item[1].": ".$data->$item[0]."\n";
+    endwhile;
+    $row++;
+endwhile;
+echo "----------\n"; ?>
+&lt;/PRE> &lt;?php
+pg_freeResult ($qu);
+pg_close ($db_conn);
+?>
+      </programlisting>
+     </example>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fetch-row">
+   <refnamediv>
+    <refname>pg_Fetch_Row</refname>
+    <refpurpose>obtiene la fila como un array enumerado</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>array <function>pg_fetch_row</function></funcdef>
+     <paramdef>int <parameter>result</parameter></paramdef>
+     <paramdef>int <parameter>row</parameter></paramdef>
+    </funcsynopsis>
+    <para> 
+     Devuelve: Un array que se corresponde con la fila obtenida, o false en el
+     caso de que no haya más filas.
+    </para>
+    <para>
+     <function>pg_fetch_row</function> obtiene una fila de datos a partir
+     del resultado asociado con el identificador de resultado especificado. La fila
+     se devuelve en forma de array. Cada columna del resultado se almacena en una
+     posición del array, empezando a partir de la posición 0.
+    </para>
+    <para>
+     Las siguientes llamadas a <function>pg_fetch_row</function> devolverán la
+     fila siguiente en el conjunto resultado, o falso en el caso de que no haya
+     más filas que devolver.
+    </para>
+    <para>
+     Ver también: <function>pg_fetch_array</function>,
+     <function>pg_fetch_object</function>,
+     <function>pg_result</function>.
+     <example>
+      <title>Postgres fetch row</title>
+      <programlisting role="php">
+&lt;?php 
+$conn = pg_pconnect("","","","","publisher");
+if (!$conn) {
+    echo "An error occured.\n";
+    exit;
+}
+
+$result = pg_Exec ($conn, "SELECT * FROM authors");
+if (!$result) {
+    echo "An error occured.\n";
+    exit;
+}
+
+$row = pg_fetch_row ($result, 0);
+echo $row[0] . " <- row\n";
+
+$row = pg_fetch_row ($result, 1);
+echo $row[0] . " <- row\n";
+
+$row = pg_fetch_row ($result, 2);
+echo $row[1] . " <- row\n";
+?>
+      </programlisting>
+     </example>
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldisnull">
+   <refnamediv>
+    <refname>pg_FieldIsNull</refname>
+    <refpurpose>Comprueba si un campo es NULO</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_fieldisnull</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>row</parameter></paramdef>
+     <paramdef>mixed <parameter>field</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Comprueba si un campo vale NULL o no. Devuleve 0 si el campo en la fila
+     dada no es NULO y uno en el caso de que lo sea. El campo se puede especificar
+     mediante un número o un nombre de campo. La numeración de filas empieza
+     en 0.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldname">
+   <refnamediv>
+    <refname>pg_FieldName</refname>
+    <refpurpose>Devuelve el nombre de un campo</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_fieldname</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>field_number</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FieldName</function> devolverá el nombre del campo que ocupa
+     el número de columna dado en el identificador de resultado de PostgreSQL. La
+     numeración de los campos empieza con 0.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldnum">
+   <refnamediv>
+    <refname>pg_FieldNum</refname>
+    <refpurpose>Devuelve el número de una columna</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_fieldnum</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>string <parameter>field_name</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FieldNum</function> devolverá el número de la columna que
+     corresponde al campo cuyo nombre le damos, dentro del identificador de
+     resultado de PostgreSQL. La numeración de campos comienza en 0. Esta función
+     devolverá -1 en caso de error.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldprtlen">
+   <refnamediv>
+    <refname>pg_FieldPrtLen</refname>
+    <refpurpose>Devuelve la longitud impresa</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_fieldprtlen</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>row_number</parameter></paramdef>
+     <paramdef>string <parameter>field_name</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FieldPrtLen</function> devolverá la longitud impresa real
+     (número de caracteres) de un valor específico dentro del identificador
+     de resultado PostgreSQL. La
+     numeración de filas comienza en 0. Esta función devolverá -1 en caso de error.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldsize">
+   <refnamediv>
+    <refname>pg_FieldSize</refname> 
+    <refpurpose>
+     Devuelve el tamaño de almacenamiento interno de un campo en concreto
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_fieldsize</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>field_number</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FieldSize</function> devolverá el tamaño de almacenamiento
+     interno (en bytes) de uno de los campos del resultado PostgreSQL que le hemos pasado.
+     La numeración de campos empieza en 0. Un tamaño de
+     campo de -1 indica que se trata de un campo de longitud variable. La función
+     devolverá false en caso de error.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-fieldtype">
+   <refnamediv>
+    <refname>pg_FieldType</refname> 
+    <refpurpose>
+     Devuelve el nombre del tipo de dato correspondiente al campo cuyo número pasamos como parámetro
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_fieldtype</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>field_number</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FieldType</function> devolverá una cadena con el
+     nombre del tipo de datos de un campo dado dentro del identificador de resultado  
+     PostgreSQL result_id.
+     La numeración de campos empieza en 0.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-freeresult">
+   <refnamediv>
+    <refname>pg_FreeResult</refname> 
+    <refpurpose>Libera memoria</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_freeresult</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_FreeResult</function> solo necesita ser llamada si estamos
+     preocupados por usar demasiada memoria mientras el script se está ejecutando.
+     La memoria correspondiente a todos los resultados de consulta se libera
+     automáticamente cuando termina el script. Pero, si estás seguro de que no
+     vas a necesitar más los datos del resultado en el script, puedes llamar a
+     <function>pg_FreeResult</function> con el identificador del resultado
+     como parámetro y la memoria asociada al resultado será liberada.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-getlastoid">
+   <refnamediv>
+    <refname>pg_GetLastOid</refname> 
+    <refpurpose>Devuelve el identificador del último objeto insertado</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_getlastoid</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_GetLastOid</function> se puede usar para conseguir
+     el Oid (identificador de objeto) asignado a una tupla insertada
+     si el identificador de resultado proviene de una llamada a <function>pg_Exec</function>
+     que fuese un INSERT SQL. Esta función devuelve un entero positivo si
+     hay un Oid válido y -1 en caso de que ocurriese un error durante
+     el último comando enviado a través de la función <function>pg_Exec</function>
+     o si esta no fuese un INSERT.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-host">
+   <refnamediv>
+    <refname>pg_Host</refname> 
+    <refpurpose>Devuelve el nombre del host</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_host</function></funcdef>
+     <paramdef>int <parameter>connection_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_Host</function> devuelve el nombre del host 
+     al que identificador conexión PostgreSQL pasado está conectado.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-loclose">
+   <refnamediv>
+    <refname>pg_loclose</refname>
+    <refpurpose>Cierra un objeto grande (large object)</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>void <function>pg_loclose</function></funcdef>
+     <paramdef>int <parameter>fd</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_loclose</function> cierra un Large
+     Object. <parameter>fd</parameter> es el descriptor de fichero
+     del fichero grande obtenido a través de <function>pg_loopen</function>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-locreate">
+   <refnamediv>
+    <refname>pg_locreate</refname>
+    <refpurpose>Crea un objeto grande</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_locreate</function></funcdef>
+     <paramdef>int <parameter>conn</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_locreate</function> Crea un  Large
+     Object y devuelve su oid.
+     <parameter>conn</parameter> determina una conexión de base de datos
+     válida. Los modos de acceso INV_READ, INV_WRITE, y INV_ARCHIVE de 
+     PostgreSQL no están soportados, el objeto se crea siempre con acceso
+     tanto de lectura como de escritura. modo El INV_ARCHIVE ha desaparecido 
+     incluso de PostgreSQL mismo (a partir de la versión 6.3).
+
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-loopen">
+   <refnamediv>
+    <refname>pg_loopen</refname>
+    <refpurpose>Abre un objeto grande</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_loopen</function></funcdef>
+     <paramdef>int <parameter>conn</parameter></paramdef>
+     <paramdef>int <parameter>objoid</parameter></paramdef>
+     <paramdef>string <parameter>mode</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_loopen</function> abre un Large Object (objeto grande)
+     y devuelve un descriptor de fichero para el objeto grande. El descriptor
+     de fichero encapsula información acerca de la conexión. No se debe
+     cerrar la conexión antes de cerrar el descriptor de fichero al objeto grande.
+     <parameter>objoid</parameter> especifica un oid válido para un objeto
+     grande y <parameter>mode</parameter> puede ser "r", "w", o "rw".
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-loread">
+   <refnamediv>
+    <refname>pg_loread</refname>
+    <refpurpose>lee un large object (objeto grande)</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_loread</function></funcdef>
+     <paramdef>int <parameter>fd</parameter></paramdef>
+     <paramdef>int <parameter>len</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_loread</function> lee como mucho
+     <parameter>len</parameter> bytes a partir de un objeto grande
+     y lo devuelve como una cadena.
+
+     <parameter>fd</parameter> especifica un descriptor de fichero
+     de objeto grande válido y <parameter>len</parameter> especifica
+     máximo número de bytes que se deben leer del objeto grande.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-loreadall">
+   <refnamediv>
+    <refname>pg_loreadall</refname>
+    <refpurpose>Lee un objeto grande entero</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>void <function>pg_loreadall</function></funcdef>
+     <paramdef>int <parameter>fd</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_loreadall</function> lee un objeto grande
+     y lo pasa tal cual al browser después de enviar todas las cabeceras 
+     pendientes. Principalmente dirijido a mandar datos binarios como
+     imagenes o sonido.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-lounlink">
+   <refnamediv>
+    <refname>pg_lounlink</refname>
+    <refpurpose>borra un large object</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>void <function>pg_lounlink</function></funcdef>
+     <paramdef>int <parameter>conn</parameter></paramdef>
+     <paramdef>int <parameter>lobjid</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_lounlink</function> borra el objeto grande con 
+     identificador
+     <parameter>lobjid</parameter>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-lowrite">
+   <refnamediv>
+    <refname>pg_lowrite</refname>
+    <refpurpose>escribe en un objeto grande</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_lowrite</function></funcdef>
+     <paramdef>int <parameter>fd</parameter></paramdef>
+     <paramdef>string <parameter>buf</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_lowrite</function> escribe todo lo que puede en un 
+     objeto grande a partir de la variable <parameter>buf</parameter> 
+     y devuelve el número de bytes realmente escritos, o falso si ocurre
+     algún error.
+     <parameter>fd</parameter> es un descriptor de fichero para 
+     el objeto grande obtenido a través de  <function>pg_loopen</function>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-numfields">
+   <refnamediv>
+    <refname>pg_NumFields</refname> 
+    <refpurpose>Devuelve el número de campos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_numfields</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_NumFields</function> devuelve el número de campos
+     (columnas) en un resultado PostgreSQL. El parámetro es un identificador
+     de resultado válido devuelto por <function>pg_Exec</function>. La función
+     devuelve -1 en caso de error.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-numrows">
+   <refnamediv>
+    <refname>pg_NumRows</refname> 
+    <refpurpose>Devuelve el número de filas</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_numrows</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_NumRows</function> devuelve el número de filas
+     en un resultado PostgreSQL. El parámetro es un identificador de 
+     resultado PostgreSQL válido devuelto por <function>pg_Exec</function>. 
+     En caso de error se devuelve -1.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-options">
+   <refnamediv>
+    <refname>pg_Options</refname> 
+    <refpurpose>Devuelve opciones</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_options</function></funcdef>
+     <paramdef>int <parameter>connection_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_Options</function> devuelve una cadena
+     que contiene las opciones especificadas en el identificador
+     de conexión con PostgreSQL dado.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-pconnect">
+   <refnamediv>
+    <refname>pg_pConnect</refname>
+    <refpurpose>
+     Crea una conexión persistente con una base de datos
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_pconnect</function></funcdef>
+     <paramdef>string <parameter>host</parameter></paramdef>
+     <paramdef>string <parameter>port</parameter></paramdef>
+     <paramdef>string <parameter>options</parameter></paramdef>
+     <paramdef>string <parameter>tty</parameter></paramdef>
+     <paramdef>string <parameter>dbname</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     Devuelve un índice de conexión en caso de éxito, o false si no es 
+     posible realizar la conexión. Abre una conexión persistente hacia
+     una base de datos de PostgreSQL. Cada uno de los parámetros puede ser
+     una cadena entrecomillada (quoted), incluyendo el número de puerto.
+     Los parámetros options y tty son opcionales y pueden omitirse. Esta
+     función devuelve un índice de conexión que luego será empleado al llamar
+     a otras funciones PostgreSQL. Puedes tener multiples conexiones 
+     persistentes abiertas al mismo tiempo. Ver también
+     <function>pg_Connect</function>.
+    </para>
+    <para>
+     Una conexión también se puede establecer con el comando siguiente:
+     <command>$conn = pg_pconnect("dbname=marliese port=5432");</command>
+     Otros parámetros además de <parameter>dbname</parameter> y
+     <parameter>port</parameter> son <parameter>host</parameter>, 
+     <parameter>tty</parameter>, <parameter>options</parameter>,
+     <parameter>user</parameter> y <parameter>password</parameter>.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-port">
+   <refnamediv>
+    <refname>pg_Port</refname>
+    <refpurpose>Devuelve el número de puerto</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>int <function>pg_port</function></funcdef>
+     <paramdef>int <parameter>connection_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_Port</function> devuelve el número del puerto 
+     al que el identificador de conexión con PostgreSQL está conectado.
+    </para>
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-result">
+   <refnamediv>
+    <refname>pg_Result</refname>
+    <refpurpose>Devuelve valores a partir de un identificador de resultado</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>mixed <function>pg_result</function></funcdef>
+     <paramdef>int <parameter>result_id</parameter></paramdef>
+     <paramdef>int <parameter>row_number</parameter></paramdef>
+     <paramdef>mixed <parameter>fieldname</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_Result</function> devuelve valores a partir
+     de un identificador de resultado generado en la función <function>pg_Exec</function>. 
+     Los parámetros <parameter>row_number</parameter> y
+     <parameter>fieldname</parameter> especifican que celda en la
+     tabla queremos obtener. La numeración de filas comienza en 0. En vez
+     de usar el nombre del campo también puedes usar el índice del campo como 
+     un número sin entrecomillar. Los índices de campo comienzan también en 0.
+    </para>
+    <para>
+    
+     PostgreSQL tiene muchos tipos y solo los básicos están soportados 
+     directamente aquí. Todas las formas de enteros, boleanos y oids se devuelven
+     como valores enteros. Todas las formas de los tipos float y real se 
+     devuelven como valores double. Todos los demás tipos, incluyendo los
+     arrays se devuelven como cadenas formateadas de la misma 
+     manera en que PostgreSQL usa por defecto. De la misma forma en
+     que lo verías en el programa <command>psql</command>.
+    </para>  
+   </refsect1>
+  </refentry>
+
+  <refentry id="function.pg-tty">
+   <refnamediv>
+    <refname>pg_tty</refname>
+    <refpurpose>Devuelve el nombre del tty</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripción</title>
+    <funcsynopsis>
+     <funcdef>string <function>pg_tty</function></funcdef>
+     <paramdef>int <parameter>connection_id</parameter></paramdef>
+    </funcsynopsis>
+    <para>
+     <function>pg_tty</function> devuelve el nombre
+     del tty hacia el que se dirije la salida de depuración del lado
+     del servidor en el identificador de conexión de PostgreSQL dado.
+    </para>
+   </refsect1>
+  </refentry>
+
+ </reference>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
