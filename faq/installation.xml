@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.7 $ -->
-<!-- EN-Revision: 1.28 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.8 $ -->
+<!-- EN-Revision: 1.30 Maintainer: lboshell Status: ready -->
  <chapter id="faq.installation">
   <title>Instalaci&oacute;n</title>
   <titleabbrev>Instalaci&oacute;n</titleabbrev>
@@ -22,6 +22,111 @@
   </para>
 
   <qandaset>
+   <qandaentry id="faq.installation.apache2">
+    <question>
+     <para>
+      &iquest;Porqu&eacute; no debo usar Apache 2 en un entorno en
+      producci&oacute;n?
+     </para>
+    </question>
+    <answer>
+     <para>
+      La siguiente respuesta se encuentra basada en este extracto
+      modificado de un correo por Rasmus Lerdorf.
+     </para>
+     <para>
+      Apache 2 es una versi&oacute;n escrita desde ceros y una
+      completa modificaci&oacute;n de arquitectura a partir de Apache
+      1. No es como ir de PHP 3 a PHP4, o de PHP 4 a PHP 5. Hay
+      bastante c&oacute;digo que es com&uacute;n, y ciertamente la
+      arquitectura base de PHP no ha cambiado a trav&eacute;s de los
+      a&ntilde;os. Asi que comparar Apache 1 y Apache 2 contra PHP 4 y
+      PHP 5 no tiene sentido. La arquitectura ha sido probada a lo
+      largo de los a&ntilde;os y el c&oacute;digo, aunque es un poco
+      inmanejable en algunas partes, es una entidad conocida. PHP fue
+      dise&ntilde;ado desde los primeros d&iacute;as contra aquella
+      arquitectura b&aacute;sica de Apache 1 y funciona extremadamente
+      bien cuando se usa con &eacute;ste.
+     </para>
+     <para>
+      La caracter&iacute;stica m&aacute;s importante que atrae a la
+      gente a Apache 2 es el uso de hilos. En Windows, en donde la
+      mayor&iacute;a de bibliotecas b&aacute;sicos son, y deben ser,
+      seguras con hilos, Apache 2 realmente tiene sentido y
+      ser&iacute;a bueno resolver los peque&ntilde;os problemas en esa
+      plataforma. Sin embargo, en UNIX existen bastante bibliotecas
+      b&aacute;sicas en donde no se conoce su seguridad con hilos. Y
+      no se trata de extensiones PHP, se trata de bibliotecas de
+      terceros por debajo de los cientos de extensiones de PHP. Es
+      realmente dif&iacute;cil determinar si cierta biblioteca externa
+      es segura con hilos. Existen bastantes variables involucradas,
+      incluyendo el SO, la versi&oacute;n del SO, la biblioteca libc,
+      la versi&oacute;n de esa biblioteca e incluso, en algunas
+      plataformas, las banderas de compilaci&oacute;n usadas para
+      generar las bibliotecas. Y para hacerlo aun m&aacute;s
+      divertido, rastrear un problema de seguridad con hilos se
+      encuentra bastante cerca a lo imposible. Cientos de personas
+      bien pueden declarar que Apache+PHP+cualquier/extensi&oacute;n
+      funciona perfectamente para ellos, pero quiz&aacute;s ellos
+      s&oacute;lo reciben un mill&oacute;n de peticiones al
+      d&iacute;a. Luego llega otro usuario quien recibe 100 millones
+      de peticiones al d&iacute;a y usa una avanzada m&aacute;quina
+      con doble-procesador y todo se arruina ya que de repente ahora
+      la oportunidad para alguna peque&ntilde;a condici&oacute;n de
+      carrera se ha hecho mucho mayor debido a las velocidades
+      m&aacute;s r&aacute;pidas de cpu, el segundo cpu y la mayor
+      frecuencia de las peticiones. Y el reporte del fallo que
+      recibimos de este usuario ser&aacute; algo similar a:
+     </para>
+     <blockquote>
+      <para>
+       A veces no funciona. La mayor&iacute;a de veces funciona bien,
+       pero de repente de vez en cuando no. El error es diferente
+       cada vez y no tengo idea de c&oacute;mo reproducirlo,
+       &iexcl;pero arr&eacute;glenlo de inmediato!!!
+      </para>
+     </blockquote>
+
+     <para>&iquest;Qu&eacute; podemos hacer al respecto?</para>
+     <para>
+      Hay un n&uacute;mero de razones t&eacute;cnicas (que pueden
+      resolverse) por las que Rasmus no piensa que Apache2+PHP sea una
+      buena idea en un entorno en producci&oacute;n, pero
+      dej&aacute;ndolas de lado, realmente todo converge a un simple
+      concepto:
+     </para>
+     <para>
+      PHP es pegamento. Es el pegamento usado para construir
+      interesantes aplicaciones web, uniendo docenas de bibliotecas
+      externas y haci&eacute;ndolas parecer una entidad coherente a
+      trav&eacute;s de una interfaz de lenguaje intuitiva y
+      f&aacute;cil de aprender. La flexibilidad y poder de PHP depende
+      de la estabilidad y robustez de la plataforma
+      subyacente. Necesita de un SO que funcione, un servidor web que
+      funcione y unas bibliotecas externas que funcionen para unirlo
+      todo. Cuando uno cualquiera de estos elementos deja de trabajar,
+      PHP necesita identificar los problemas y solucionarlos
+      r&aacute;pidamente. Al hacer m&aacute;s complejo el marco de
+      referencia base, no disponiendo de hilos de ejecuci&oacute;n
+      completamente separados, segmentos de memoria completamente
+      separados y una caja de arena segura para que cada
+      petici&oacute;n trabaje, se introduce una base d&eacute;bil al
+      sistema de PHP.
+     </para>
+     <para>
+      Usar la versi&oacute;n mpm anterior a la bifurcaci&oacute;n
+      ocurrida en Apache 2 para evitar el uso de hilos es posible, y
+      s&iacute;, tambi&eacute;n funciona usar un mecanismo
+      independiente fastcgi para evitar los hilos, pero entonces se
+      estar&iacute;an evitando caracter&iacute;sticas que definen al
+      servidor web. En este punto de desarrollo, Rasmus aun afirma que
+      se est&aacute; mejor siguiendo con Apache 1 para servir
+      p&aacute;ginas PHP, con la nota de precauci&oacute;n de que
+      Apache 1 opera bastante mal en Windows.
+     </para>
+    </answer>
+   </qandaentry>
+
    <qandaentry id="faq.installation.phpini">
     <question>
      <para>
