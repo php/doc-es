@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.3 Maintainer: baoengb Status: ready -->
+  <refentry id="function.mysqli-stmt-bind-param">
+   <refnamediv>
+    <refname>mysqli_stmt_bind_param</refname>
+    <refname>stmt->bind_param</refname>
+    <refpurpose>Enlaza variables como par&aacute;metros a una sentencia preparada</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <para>Estilo por procedimientos:</para>
+    <methodsynopsis>
+     <type>bool</type><methodname>mysqli_stmt_bind_param</methodname>
+     <methodparam><type>objeto</type><parameter>stmt</parameter></methodparam>
+     <methodparam><type>cadena</type><parameter>types</parameter></methodparam>
+     <methodparam><type>mixto</type><parameter>var1</parameter></methodparam>
+     <methodparam choice="opt"><type>mixto</type><parameter>var2, ...</parameter></methodparam>
+    </methodsynopsis>
+    <para>Estilo orientado a objetos (m&eacute;todo):</para>
+    <classsynopsis>
+     <ooclass><classname>stmt</classname></ooclass>
+     <methodsynopsis>
+      <type>bool</type>
+       <methodname>bind_param</methodname>
+      <methodparam><type>matriz</type><parameter>types</parameter></methodparam>
+      <methodparam><type>mixto</type><parameter>var1</parameter></methodparam>
+      <methodparam choice="opt"><type>mixto</type><parameter>var2, ...</parameter></methodparam>
+     </methodsynopsis>
+    </classsynopsis>
+    <para>
+     <function>mysqli_stmt_bind_param</function> es usada para enlazar variables 
+     para los marcadores de par&aacute;metros en la sentencia SQL que fue pasada 
+     a <function>mysql_prepare</function>.
+     La cadena <parameter>types</parameter> contiene uno o m&aacute;s caracteres 
+     los cuales especifican los tipos para las variables enlazadas correspondientes.
+     <table>
+      <title>Especificaci&oacute;n de caracteres de tipo</title>
+      <tgroup cols='2'>
+       <thead>
+        <row>
+         <entry>Caracter</entry>
+         <entry>Descripci&oacute;n</entry>
+        </row>
+       </thead>
+       <tbody>
+        <row>
+         <entry>i</entry>
+         <entry>La variable correspondiente tiene tipo entero</entry>
+        </row>
+        <row>
+         <entry>d</entry>
+         <entry>La variable correspondiente tiene tipo doble</entry>
+        </row>
+        <row>
+         <entry>s</entry>
+         <entry>La variable correspondiente tiene tipo cadena</entry>
+        </row>
+        <row>
+         <entry>b</entry>
+         <entry>La variable correspondiente tiene tipo BLOB y ser&aacute; enviada 
+         en paquetes</entry>
+        </row>
+       </tbody>
+      </tgroup>
+     </table>
+    </para>
+    <note>
+      <para>
+       Si el tama&ntilde;o de los datos de la variable exceden el tama&ntilde;o 
+       maximo permitido para un paquete (max_allowed_package), tienes que 
+       espec&iacute;ficar <literal>b</literal> en <parameter>types</parameter> y
+       usar <function>mysqli_stmt_send_long_data</function> para enviar los datos
+       en paquetes.
+      </para>
+      <para>
+       El n&uacute;mero de variables y longitud de la cadena <parameter>types</parameter> 
+       debe coincidir los par&aacute;metros en la sentencia.
+     </para>
+    </note>
+   </refsect1>
+   <refsect1>
+    <title>Valores regresados</title>
+    <para>
+     &return.success;
+    </para>
+   </refsect1>
+   <refsect1>
+   <title>Vea tambi&eacute;n</title>
+    <para>
+     <function>mysqli_stmt_bind_result</function>,
+     <function>mysqli_stmt_execute</function>,
+     <function>mysqli_stmt_fetch</function>,
+     <function>mysqli_prepare</function>,
+     <function>mysqli_stmt_send_long_data</function>,
+     <function>mysqli_stmt_errno</function>,
+     <function>mysqli_stmt_error</function>
+    </para>
+   </refsect1>
+   <refsect1>
+    <title>Ejemplos</title>
+    <example>
+     <title>Estilo orientado a objetos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli('localhost', 'my_user', 'my_password', 'world');
+
+/* check connection */
+if (mysqli_connect_errno()) {
+    printf("Connect failed: %s\n", mysqli_connect_error());
+    exit();
+}
+
+$stmt = $mysqli->prepare("INSERT INTO CountryLanguage VALUES (?, ?, ?, ?)");
+$stmt->bind_param('sssd', $code, $language, $official, $percent);
+
+$code = 'DEU';
+$language = 'Bavarian';
+$official = "F";
+$percent = 11.2;
+
+/* execute prepared statement */
+$stmt->execute();
+
+printf("%d Row inserted.\n", $stmt->affected_rows);
+
+/* close statement and connection */
+$stmt->close();
+
+/* Clean up table CountryLanguage */
+$mysqli->query("DELETE FROM CountryLanguage WHERE Language='Bavarian'");
+printf("%d Row deleted.\n", $mysqli->affected_rows);
+
+/* close connection */
+$mysqli->close();
+?>
+]]>
+    </programlisting>
+    </example>
+    <example>
+     <title>Estilo por procedimientos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$link = mysqli_connect('localhost', 'my_user', 'my_password', 'world');
+
+/* check connection */
+if (!$link) {
+    printf("Connect failed: %s\n", mysqli_connect_error());
+    exit();
+}
+
+$stmt = mysqli_prepare($link, "INSERT INTO CountryLanguage VALUES (?, ?, ?, ?)");
+mysqli_stmt_bind_param($stmt, 'sssd', $code, $language, $official, $percent);
+
+$code = 'DEU';
+$language = 'Bavarian';
+$official = "F";
+$percent = 11.2;
+
+/* execute prepared statement */
+mysqi_stmt_execute($stmt);
+
+printf("%d Row inserted.\n", mysqli_stmt_affected_rows($stmt));
+
+/* close statement and connection */
+mysqli_stmt_close($stmt);
+
+/* Clean up table CountryLanguage */
+mysqli_query($link, "DELETE FROM CountryLanguage WHERE Language='Bavarian'");
+printf("%d Row deleted.\n", mysqli_affected_rows($link));
+
+/* close connection */
+mysqli_close($link);
+?>
+]]>
+     </programlisting>
+    </example>
+    <para>
+     Los ejemplos anteriores producir&aacute;n la siguiente salida:
+    </para>
+    <screen>
+<![CDATA[
+1 Row inserted.
+1 Row deleted.
+]]>
+    </screen>
+   </refsect1>
+  </refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
