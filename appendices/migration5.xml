@@ -1,0 +1,1021 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.39 Maintainer: lboshell Status: ready -->
+ <appendix id="migration5">
+  <title>Migraci&oacute;n desde PHP 4 a PHP 5</title>
+
+  <section id='migration5.changes'>
+   <title>Qu&eacute; ha cambiado en PHP 5</title>
+   <para>
+    PHP 5 y el Motor Zend 2 integrado han mejorado significativamente
+    el rendimiento y las capacidades de PHP, al mismo tiempo que se
+    han tomado precauciones para evitar al m&aacute;ximo
+    incompatibilidades con el c&oacute;digo existente. Por lo tanto,
+    migrar su c&oacute;digo desde PHP 4 a la versi&oacute;n 5 debe
+    resultar bastante f&aacute;cil. La mayor&iacute;a de c&oacute;digo
+    PHP 4 existente debe estar listo para correr sin modificaciones,
+    pero aun es buena idea que conozca sobre las <link
+    linkend="migration5.incompatible">pocas diferencias</link> y tome
+    sus precauciones para probar el c&oacute;digo antes de actualizar
+    versiones en entornos en producci&oacute;n.
+   </para>
+  </section>
+
+  <section id="migration5.incompatible">
+   <title>Cambios Incompatibles con Versiones Anteriores</title>
+   <para>
+    Aunque la mayor&iacute;a de c&oacute;digo PHP 4 existente debe
+    correr sin modificaciones, es importante que preste
+    atenci&oacute;n a los siguientes cambios incompatibles con
+    versiones anteriores:
+   </para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Existen algunas <link linkend="reserved.keywords">palabras clave
+      nuevas</link>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>strrpos</function> y <function>strripos</function>
+      ahora usan la cadena entera como aguja.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      El uso de &iacute;ndices de cadena inv&aacute;lidos generan
+      errores de tipo <constant>E_ERROR</constant> en lugar de
+      <constant>E_WARNING</constant>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se modific&oacute; <function>array_merge</function> para que
+      acepte &uacute;nicamente matrices. Si una variable de un tipo
+      diferente a matriz es pasada, se genera un error de tipo
+      <constant>E_WARNING</constant> para cada uno de esos
+      par&aacute;metros.
+
+      Tenga cuidado, ya que su c&oacute;digo puede comenzar a emitir
+      anuncios <constant>E_WARNING</constant> de la nada.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La variable de servidor PATH_TRANSLATED ya no es definida de
+      forma impl&iacute;cita bajo la SAPI de Apache2, a diferencia del
+      comportamiento de PHP 4, en donde se define con el mismo valor
+      de la variable de servidor SCRIPT_FILENAME cuando no se define
+      por Apache. Este cambio fue realizado para seguir la <ulink
+      url="&url.cgispecs;">especificaci&oacute;n CGI</ulink>. Por
+      favor refi&eacute;rase al <ulink url="&url.php.bugs;23610">bug
+      #23610</ulink> para m&aacute;s informaci&oacute;n.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La constante <constant>T_ML_COMMENT</constant> ya no es definida
+      por la extensi&oacute;n <link
+      linkend="ref.tokenizer">Tokenizer</link>. Si el valor de
+      error_reporting es <constant>E_ALL</constant>, PHP
+      generar&aacute; una noticia. Aunque la constante
+      <constant>T_ML_COMMENT</constant> nunca fue usada, estaba
+      definida en PHP 4. Tanto en PHP 4 como en PHP 5 // y /* */ son
+      resueltos como la constante <constant>T_COMMENT</constant>. Sin
+      embargo, los comentarios estilo PHPDoc /** */, que son
+      interpretados a partir de PHP 5, se reconocen como
+      <constant>T_DOC_COMMENT</constant>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      $_SERVER debe poblarse con argc y argv si <link
+      linkend="ini.variables-order">variables_order</link> incluye
+      "S". Si ha configurado su sistema espec&iacute;ficamente para no
+      crear $_SERVER, entonces por supuesto que no
+      aparecer&aacute;. El cambio fue hecho para lograr que argc y
+      argv siempre estuvieran disponibles en la versi&oacute;n CLI
+      independientemente del par&aacute;metro <link
+      linkend="ini.variables-order">variables_order</link>. Es decir,
+      ahora la versi&oacute;n CLI define siempre las variables
+      globales $argc y $argv.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Un objeto sin propiedades ya no es considerado "vac&iacute;o".
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      En algunos casos, las clases deben ser declaradas antes de ser
+      usadas. Esto s&oacute;lo ocurre si algunas de las nuevas
+      caracter&iacute;sticas de PHP 5 son usadas. De otro modo el
+      comportamiento antiguo se conserva.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>get_class</function>, ,
+      <function>get_parent_class</function> y
+      <function>get_class_methods</function> devuelven ahora el nombre
+      de las clases/m&eacute;todos como ellos fueron declarados
+      (siguiendo las may&uacute;sculas y min&uacute;sculas) lo cual
+      puede llevar a problemas en scripts viejos que depend&iacute;an
+      en el comportamiento anterior (el nombre de la
+      clase/m&eacute;todo era devuelto en min&uacute;sculas
+      siempre). Una posible soluci&oacute;n es buscar las funciones
+      mencionadas en todos sus scripts y usar
+      <function>strtolower</function>.
+     </simpara>
+     <simpara>
+      Este cambio en la sensibilidad a min&uacute;sculas y
+      may&uacute;sculas se aplica tambi&eacute;n a las <link
+      linkend="language.constants.predefined">constantes predefinidas
+      m&aacute;gicamente</link> <constant>__CLASS__</constant>,
+      <constant>__METHOD__</constant>, y
+      <constant>__FUNCTION__</constant>. Los valores son devueltos
+      exactamente como son declarados (sensibles a may&uacute;sculas y
+      min&uacute;sculas).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ip2long</function> ahora devuelve &false; cuando una
+      direcci&oacute;n IP inv&aacute;lida es pasada como argumento a
+      la funci&oacute;n, y no <literal>-1</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Si hay funciones definidas en el archivo incluido, &eacute;stas
+      pueden ser usadas en el archivo principal, sin importar que
+      est&eacute;n antes de una sentencia <function>return</function>
+      o despu&eacute;s. Si el archivo es incluido dos veces, PHP 5
+      produce un error fatal ya que las funciones ya han sido
+      declaradas, mientras que PHP 4 no se queja al respecto. Se
+      recomienda usar <function>include_once</function> en lugar de
+      revisar si el archivo ya hab&iacute;a sido incluido y retornar
+      condicionalmente al interior del archivo incluido.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>include_once</function> y
+      <function>require_once</function> primero normalizan la ruta del
+      archivo incluido en Windows de modo que incluir A.php y a.php
+      incluyen el archivo solo una vez.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para>
+    <example>
+     <title><function>strrpos</function> y
+      <function>strripos</function> ahora usan la cadena entera como
+      aguja</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+var_dump(strrpos('ABCDEF','DEF')); //int(3)
+
+var_dump(strrpos('ABCDEF','DAF')); //bool(false)
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    <example>
+     <title>Un objeto sin propiedades ya no es considerado
+     "vac&iacute;o"</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+class prueba { }
+$p = new prueba();
+
+var_dump(empty($p)); // echo bool(false)
+
+if ($p) {
+    // Se ejecuta
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    <example>
+     <title>En algunos casos, las clases deben declararse antes de ser
+     usadas</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+// funciona sin errores:
+$a = new a();
+class a {
+}
+
+
+// gerena un error:
+$a = new b();
+
+interface c{
+}
+class b implements c {
+}
+
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+  </section>
+
+  <section id="migration5.cli-cgi">
+   <title>CLI y CGI</title>
+   <para>
+    En PHP 5, se efectuaron algunos cambios en el entorno CLI y los
+    nombres de archivo CGI. En PHP 5, la versi&oacute;n CGI fue
+    renombrada a <filename>php-cgi.exe</filename> (previamente
+    <filename>php.exe</filename>) y la versi&oacute;n CLI ahora existe
+    en el directorio principal (previamente era
+    <filename>cli/php.exe</filename>).
+   </para>
+   <para>
+    En PHP 5 se introdujo tambi&eacute;n un nuevo modo:
+    <filename>php-win.exe</filename>. Este es igual a la
+    versi&oacute;n CLI, excepto que php-win no genera ninguna salida y
+    por lo tanto no provee una consola (no aparece una "caja de dos"
+    en la pantalla"). Este comportamiento es similar a php-gtk.
+   </para>
+   <para>
+    En PHP 5, la versi&oacute;n CLI siempre define las variables
+    globales <varname>$argv</varname> y <varname>$argc</varname>,
+    independientemente a cualquier directiva en &php.ini;. Incluso
+    teniendo el par&aacute;metro <link
+    linkend="ini.register-argc-argv">register_argc_argv</link> como
+    <literal>off</literal> no tendr&aacute; efecto en la
+    versi&oacute;n CLI.
+   </para>
+   <para>
+    Vea tambi&eacute;n la <link
+    linkend="features.commandline">referencia de la l&iacute;nea de
+    comandos</link>.
+   </para>
+  </section>
+
+  <section id="migration5.configuration">
+   <title>Migraci&oacute;n de Archivos de Configuraci&oacute;n</title>
+   <para>
+    Dado que los m&oacute;dulos ISAPI cambiaron sus nombres, de
+    php4xxx a php5xxx, es necesario hacer algunos cambios en los
+    archivos de configuraci&oacute;n. Tambi&eacute;n ocurrieron
+    cambios en los nombres de archivos CLI y CGI. Por favor
+    refi&eacute;rase a la <link
+    linkend="migration5.cli-cgi">secci&oacute;n correspondiente</link>
+    para m&aacute;s informaci&oacute;n.
+   </para>
+   <para>
+    Migrar la configuraci&oacute;n de Apache es extremadamente
+    simple. Consulte el ejemplo a continuaci&oacute;n para verificar
+    el cambio que necesita realizar:
+    <example>
+     <title>Migraci&oacute;n de archivos de configuraci&oacute;n de
+     Apache para PHP 5</title>
+
+     <programlisting role="apache-conf">
+<![CDATA[
+# cambie esta linea:
+LoadModule php4_module /php/sapi/php4apache2.dll
+
+# por esta:
+LoadModule php5_module /php/php5apache2.dll
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Si su servidor web est&aacute; usando PHP en modo CGI, debe notar
+    que la versi&oacute;n CGI ha cambiado su nombre de
+    <filename>php.exe</filename> a
+    <filename>php-cgi.exe</filename>. En apache, debe hacer algo como
+    lo siguiente:
+    <example>
+     <title>Migraci&oacute;n de archivos de configuraci&oacute;n de
+     Apache para PHP 5, modo CGI</title>
+     <programlisting role="apache-conf">
+<![CDATA[
+# cambie esta linea:
+Action application/x-httpd-php "/php/php.exe"
+
+# por esta:
+Action application/x-httpd-php "/php/php-cgi.exe"
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    En otros servidores web necesita cambiar ya sea el nombre de
+    archivo CGI o del m&oacute;dulo ISAPI.
+   </para>
+  </section>
+
+  <section id="migration5.functions">
+   <title>Nuevas Funciones</title>
+   <para>
+    En PHP 5 aparecen algunas funciones nuevas. A continuaci&oacute;n
+    se presenta una lista de ellas:
+   </para>
+   <para><link linkend="ref.array">Matrices</link>:</para>
+    <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>array_combine</function> - Crea una matriz usando una
+      matriz para las claves y otra para sus valores
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_diff_uassoc</function> - Computa la diferencia
+      de matrices con un chequeo adicional de &iacute;ndices, el cual
+      es realizado con una llamada de retorno entregada por el usuario
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_udiff</function> - Computa la diferencia de
+      matrices usando una llamada de retorno para la
+      comparaci&oacute;n de datos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_udiff_assoc</function> - Computa la diferencia
+      de matrices con un chequeo adicional de &iacute;ndices. Los
+      datos son comparados usando una llamada de retorno
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_udiff_uassoc</function> - Computa la diferencia
+      de matrices con un chequeo adicional de &iacute;ndices. Los
+      datos son comparados usando una llamada de retorno. El chequeo
+      de &iacute;ndices es realizado usando una llamada de retorno
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_walk_recursive</function> - Aplica una
+      funci&oacute;n de usuario recursivamente a cada miembro de una
+      matriz
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_uintersect_assoc</function> - Computa la
+      intersecci&oacute;n de matrices con un chequeo adicional de
+      &iacute;ndices. Los datos son comparados usando una llamada de
+      retorno
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_uintersect_uassoc</function> - Computa la
+      intersecci&oacute;n de matrices con un chequeo adicional de
+      &iacute;ndices. Tanto los datos como los &iacute;ndices son
+      comparados usando llamadas de retorno
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>array_uintersect</function> - Computa la
+      intersecci&oacute;n de matrices. Los datos son comparados usando
+      una llamada de retorno
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para><link linkend="ref.ibase">InterBase</link>:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>ibase_affected_rows</function> - Devuelve el
+      n&uacute;mero de filas que fueron afectadas por la consulta
+      anterior
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_backup</function> - Inicia una labor de respaldo
+      en el administrador de servicios y retorna inmediatamente
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_commit_ret</function> - Aplica una
+      transacci&oacute;n sin cerrarla
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_db_info</function> - Solicita
+      estad&iacute;sticas sobre una base de datos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_drop_db</function> - Elimina una base de datos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_errcode</function> - Devuelve un c&oacute;digo
+      de error
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_free_event_handler</function> - Cancela un
+      gestor de eventos registrado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_gen_id</function> - Incrementa el generador
+      nombrado y devuelve su nuevo valor
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_maintain_db</function> - Ejecuta un comando de
+      mantenimiento en el servidor de bases de datos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_name_result</function> - Asigna un nombre a un
+      conjunto de resultados
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_num_params</function> - Devuelve el
+      n&uacute;mero de par&aacute;metros en una consulta preparada
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_param_info</function> - Devuelve
+      informaci&oacute;n sobre un par&aacute;metro en una consulta
+      preparada
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_restore</function> - Inicia una labor de rescate
+      en el administrador de servicios y retorna inmediatamente
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_rollback_ret</function> - Revierte una
+      transacci&oacute;n y conserva su contexto
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_server_info</function> - Solicita
+      estad&iacute;sticas sobre una base de datos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_service_attach</function> - Conectarse al
+      administrador de servicios
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_service_detach</function> - Desconectarse del
+      administrador de servicios
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_set_event_handler</function> - Registrar una
+      llamada de retorno a ser usada cuando se publican eventos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ibase_wait_event</function> - Esperar a que un evento
+      sea publicado por la base de datos
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para><link linkend="ref.iconv">iconv</link>:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>iconv_mime_decode</function> - Decodifica un campo de
+      cabecera MIME
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_mime_decode_headers</function> - Decodifica
+      m&uacute;ltiples campos de cabecera MIME de una vez
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_mime_encode</function> - Compone un campo de
+      cabecera MIME
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_strlen</function> - Devuelve el conteo de
+      caracteres de la cadena
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_strpos</function> - Encuentra la posici&oacute;n
+      de la primera ocurrencia de una aguja al interior de un pajar
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_strrpos</function> - Encuentra la &uacute;ltima
+      ocurrencia de una aguja al interior del rango especificado del
+      pajar
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>iconv_substr</function> - Recorta parte de una cadena
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para><link linkend="ref.stream">Secuencias</link>:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>stream_copy_to_stream</function> - Copia datos de una
+      secuencia a otra
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_get_line</function> - Obtiene una l&iacute;nea
+      de un recurso tipo secuencia hasta cierto l&iacute;mite indicado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_accept</function> - Acepta una
+      conexi&oacute;n sobre un socket creado por
+      <function>stream_socket_server</function>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_client</function> - Abre una
+      conexi&oacute;n de socket de Internet Abierto o Dominio Unix
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_get_name</function> - Recupera el nombre
+      de sockets locales o remotos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_recvfrom</function> - Recibe datos de un
+      socket, conectado o no
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_sendto</function> - Envia un mensaje a
+      un socket, bien est&eacute; conectado o no
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>stream_socket_server</function> - Crea un socket de
+      servidor de Internet o de dominio Unix
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para><link linkend="ref.datetime">Fecha y hora</link>:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>idate</function> - Dar formato de entero a una
+      fecha/hora local
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>date_sunset</function> - Hora de crep&uacute;sculo
+      para un d&iacute;a y ubicaci&oacute;n determinados
+    </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>date_sunrise</function> - Hora del alba para un
+      d&iacute;a y ubicaci&oacute;n determinados
+    </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>time_nanosleep</function> - Espera por un
+      n&uacute;mero de segundos y nano-segundos
+    </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para><link linkend="ref.strings">Cadenas</link>:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>str_split</function> - Convierte una cadena en una
+      matriz
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>strpbrk</function> - Busca una cadena por un conjunto
+      cualquiera de caracteres
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>substr_compare</function> - Comparaci&oacute;n segura
+      con material binario, opcionalmente insensitiva a
+      may&uacute;sculas y min&uacute;sculas, de dos cadenas a partir
+      de un desplazamiento, y hasta un l&iacute;mite da caracteres
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <para>Other:</para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <function>convert_uudecode</function> - decodificar una cadena
+      con el algoritmo uuencode
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>convert_uuencode</function> - Codificar una cadena con
+      el algoritmo uuencode
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>curl_copy_handle</function> - Copiar un gestor cURL
+      junto con todas sus preferencias
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>dba_key_split</function> - Separa una llave
+      representada como cadena a una representaci&oacute;n de matriz
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>dbase_get_header_info</function> - Obtiene la
+      informaci&oacute;n de cabecera de una base de datos dBase
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>dbx_fetch_row</function> - Recupera filas desde un
+      resultado de consulta que us&oacute; la bandera
+      DBX_RESULT_UNBUFFERED
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>fbsql_set_password</function> - Cambia la
+      contrase&ntilde;a para un usuario determinado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>file_put_contents</function> - Escribe una cadena a un
+      archivo
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ftp_alloc</function> - Reserva espacio para que el
+      archivo sea cargado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>get_declared_interfaces</function> - Devuelve una
+      matriz de todas las interfaces declaradas
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>get_headers</function> - Recupera todas las cabeceras
+      enviadas por el servidor en respuesta a una petici&oacute;n HTTP
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>headers_list</function> - Devuelve una lista de
+      cabeceras de respuesta enviadas (o listas para ser enviadas)
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>http_build_query</function> - Generar una cadena query
+      codificada estilo URL
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>image_type_to_extension</function> - Obtiene la
+      extensi&oacute;n de archivo para el tipo de imagen devuelto por
+      <function>getimagesize</function>,
+      <function>exif_read_data</function>,
+      <function>exif_thumbnail</function>,
+      <function>exif_imagetype</function>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>imagefilter</function> - Aplica un filtro sobre una
+      imagen usando un &aacute;ngulo personalizado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>imap_getacl</function> - Obtiene el valor ACL para la
+      casilla de correo dada
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>ldap_sasl_bind</function> - Enlaza con el directorio
+      LDAP usando SASL
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>mb_list_encodings</function> - Devuelve una matriz de
+      todas las codificaciones soportadas
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>pcntl_getpriority</function> - Obtiene la prioridad de
+      cualquier proceso
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>pcntl_wait</function> - Espera o devuelve el status de
+      un hijo bifurcado como se define por la llamada de sistema
+      waitpid()
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>pg_version</function> - Devuelve una matriz con el
+      cliente, protocolo y versi&oacute;n del servidor (cuando se
+      encuentra disponible)
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>php_check_syntax</function> - Verifica la sintaxis del
+      archivo especificado
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>php_strip_whitespace</function> - Devuelve el
+      c&oacute;digo fuente con los comentarios y espacios eliminados
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>proc_nice</function> - Cambia la prioridad del proceso
+      actual
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>pspell_config_data_dir</function> - Cambia la
+      ubicaci&oacute;n de los archivos de datos del lenguaje
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>pspell_config_dict_dir</function> - Cambia la
+      ubicaci&oacute;n de la lista principal de palabras
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>setrawcookie</function> - Env&iacute;a una cookie sin
+      codificar el valor en estilo url
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>snmp_read_mib</function> - Lee y realiza
+      an&aacute;lisis sint&aacute;ctico sobre un archivo MIB en el
+      &aacute;rbol MIB activo
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <function>sqlite_fetch_column_types</function> - Devuelve una
+      matriz de tipos de columna de una tabla en particular
+     </simpara>
+    </listitem>
+   </itemizedlist>
+   <note>
+    <para>
+     La extensi&oacute;n <link linkend="ref.tidy">Tidy</link> ha
+     modificado tambi&oacute;n su API por completo.
+    </para>
+   </note>
+  </section>
+
+
+  <section id="migration5.newconf">
+   <title>Nuevas Directivas</title>
+   <para>
+    Algunas directivas de &php.ini; se han incorporado en PHP
+    5. Aqu&iacute; se presenta una lista de ellas:
+   </para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      mail.force_extra_parameters - Obliga a que se agreguen los
+      par&aacute;metros especificados como par&aacute;metros extra al
+      ejecutable de sendmail. Estos par&aacute;metros siempre
+      reemplazan el valor del quinto par&aacute;metro de
+      <function>mail</function>, incluso en modo seguro
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <link
+      linkend="ini.register-long-arrays">register_long_arrays</link> -
+      habilita/deshabilita el registro de las largas variables
+      obsoletas $HTTP_*_VARS
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <link
+      linkend="ini.session.hash-function">session.hash_function</link>
+      - selecciona una funci&oacute;n de resumen criptogr&aacute;fico
+      (MD5 o SHA-1)
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <link
+      linkend="ini.session.hash-bits-per-character">session.hash_bits_per_character</link>
+      - define cu&aacute;ntos bits deben almacenarse en cada caracter
+      cuando se convierten datos binarios de hash a algo m&aacute;s
+      legible (de 4 a 6)
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <link
+      linkend="ini.zend.ze1-compatibility-mode">zend.ze1_compatibility_mode</link>
+      - Habilita el modo de compatibilidad con el Motor Zend 1 (PHP 4)
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </section>
+
+  <section id="migration5.databases">
+   <title>Bases de Datos</title>
+   <para>
+    Hubo algunos cambios en PHP 5 relacionados con las bases de datos
+    (MySQL y SQLite).
+   </para>
+   <para>
+    En PHP 5 las bibliotecas de cliente MySQL no se incluyen, debido a
+    problemas de licencia, entre otros. Para m&aacute;s
+    informaci&oacute;n, lea la <link
+    linkend="faq.databases.mysql.php5">entrada del FAQ</link>.
+   </para>
+   <para>
+
+    Tambi&eacute;n hay una nueva extensi&oacute;n, <link
+    linkend="ref.mysqli">MySQLi (MySQL Mejorado)</link>, la cual
+    est&aacute; dise&ntilde;ada para trabajar con MySQL 4.1 y
+    superior.
+   </para>
+   <para>
+    A partir de PHP 5, la extensi&oacute;n <link
+    linkend="ref.sqlite">SQLite</link> viene incorporada en
+    PHP. SQLite es un motor de bases de datos embebible y no es una
+    biblioteca de cliente usada para conectarse con un servidor grande
+    de bases de datos (como MySQL o PostgreSQL). La biblioteca SQLite
+    lee y escribe directamente hacia y desde los archivos de bases de
+    datos en disco.
+   </para>
+  </section>
+
+
+  <section id='migration5.oop'>
+   <title>Nuevo Modelo de Objetos</title>
+   <para>
+    En PHP 5 existe un nuevo Modelo de Objetos. El manejo de objetos
+    en PHP ha sido re-escrito por completo, permitiendo una mejora en
+    rendimiento y muchas caracter&iacute;sticas nuevas. En versiones
+    previas de PHP, los objetos eran manejados como tipos primitivos
+    (por ejemplo enteros y cadenas). La desventaja de este
+    m&eacute;todo era que sem&aacute;nticamente el objeto completo era
+    copiado cuando una variable era asignada, o pasada como
+    par&aacute;metro a un m&eacute;todo. En el nuevo enfoque, los
+    objetos son referenciados por gestor, y no por valor (puede
+    pensarse en el gestor como un identificador de objeto).
+   </para>
+   <para>
+    Muchos programadores de PHP no son conscientes siquiera de los
+    detalles que implican las copias en el modelo antiguo de objetos
+    y, por lo tanto, la mayor&iacute;a de aplicaciones de PHP
+    funcionar&aacute;n sin problemas, o con muy pocas modificaciones.
+   </para>
+   <para>
+    El nuevo Modelo de Objetos es documentado en la <link
+     linkend="language.oop5">Referencia del Lenguaje</link>.
+   </para>
+   <para>
+    Vea tambi&eacute;n la directiva <link
+    linkend="ini.zend.ze1-compatibility-mode">zend.ze1_compatibility_mode</link>
+    para compatibiladad con PHP 4.
+   </para>
+  </section>
+
+  <section id='migrating5.errorrep'>
+   <title>Reporte de Errores</title>
+   <para>
+    A partir de PHP 5, la nueva constante de reporte de errores E_STRICT
+    se encuentra disponible con el valor 2048. &Eacute;sta habilita
+    sugerencias en tiempo de ejecuci&oacute;n por parte de PHP sobre
+    la inter-operabilidad de su c&oacute;digo y compatibilidad hacia
+    adelante, que le ayudar&aacute;n a sincronizarse con los
+    &uacute;ltimos y mejores m&eacute;todos de escritura de
+    c&oacute;digo. Por ejemplo, un mensaje STRICT puede advertirle
+    cuando use funciones obsoletas.
+   </para>
+   <note>
+    <simpara>
+     E_ALL no incluye E_STRICT, as&iacute; que esta constante no
+     est&aacute; habilitada por defecto.
+    </simpara>
+   </note>
+  </section>
+
+ </appendix>
+
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
