@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.17 Maintainer: rafael Status: ready -->
+
+  <sect1 id="install.apache">
+ <title>Servidores-Apache</title>
+ <para>
+  Esta secci&oacute;n contiene informaci&oacute;n espec&iacute;fica
+  sobre la instalaci&oacute;n de <literal>PHP</literal> con Apache,
+  tanto para la versi&oacute;n <link
+  linkend="install.apache.unix">Unix</link> como <link
+  linkend="install.apache.windows">Windows</link>. Las instrucciones
+  de <link linkend="install.apache2">instalaci&oacute;n con
+  apache2</link> se encuentran en su propia p&aacute;gina.  
+ </para>
+ 
+ <sect2 id="install.apache.unix">
+  <title>Instalando PHP con Apache en Unix</title>
+  <para>
+   Se pueden seleccionar argumentos a usar con el comando
+   <command>configure</command> de la linea 10 de m&aacute;s abajo, de la
+   lista completa de <link linkend="install.configure">opciones de
+   configuraci&oacute;n</link>. Los n&uacute;meros de versiones han sido omitidos
+   aqui para asegurarse que las instrucciones no son incorrectas,
+   debeis cambiar 'xxx' con los valores correctos de vuestros
+   ficheros.
+  </para>
+  
+  <example id="install.apache.unix.longer">
+   <title>
+    Instrucciones de instalaci&oacute;n para PHP 4 (Versi&oacute;n m&oacute;dulo compartido
+    de Apache)</title>
+   <screen>
+<![CDATA[
+1.  gunzip apache_xxx.tar.gz
+2.  tar -xvf apache_xxx.tar
+3.  gunzip php-xxx.tar.gz
+4.  tar -xvf php-xxx.tar
+5.  cd apache_xxx
+6.  ./configure --prefix=/www --enable-module=so
+7.  make
+8.  make install
+9.  cd ../php-xxx
+10. ./configure --with-mysql --with-apxs=/www/bin/apxs
+11. make
+12. make install
+
+  Si decides cambiar las opciones de configuraci&oacute;n despues de la
+  instalaci&oacute;n, solamente se necesita repetir los tres &uacute;ltimos
+  pasos. Solamente se necesita arrancar de nuevo Apache para que
+  cargue el nuevo m&oacute;dulo. No es necesario recompilar Apache.
+
+13. cp php.ini-dist /usr/local/lib/php.ini
+
+  Se puede editar el fichero php.ini para configurar como PHP
+  funciona. Si quereis tener este fichero en otra localizaci&oacute;n, podeis
+  usar --with-config-file-path=/path en el paso 10.
+
+14. Editar el fichero  httpd.conf &oacute; srm.conf y comprobar que estas
+    lineas existen y no est&aacute;n comentadas:
+  
+   AddType application/x-httpd-php .php
+
+   LoadModule php4_module        libexec/libphp4.so
+ 
+  Podeis elegir la extension que querais aqui, .php es simplemente una
+  sugerencia. Se puede incluso tener .html y .php3 se puede
+  a&ntilde;adir por asuntos de compatibilidad hacia atras.
+
+  El "path" a la derecha de LoadModule debe de coincidir con el "path"
+  del m&oacute;dulo PHP en vuestro sistema. Si habeis seguido los pasos desde
+  el punto 1. no necesitais alterar nada.
+
+15. Utilizar el procedimiento habitual que utiliceis para arrancar
+    Apache. (Debeis de parar y arrancar Apache, no vale recargar
+    (reload) usando una se&ntilde;al HUP &oacute; USR1).
+]]>
+   </screen>
+  </example>
+  
+  <para>
+   Dependiendo de vuestra instalaci&oacute;n de Apache y variante Unix,
+   existen numerosas maneras de parar y arrancar el servidor
+   Apache. M&aacute;s abajo teneis las maneras m&aacute;s t&iacute;picas de parar y
+   arrancar el servidor en diferentes instalaciones de
+   apache/unix. <literal>/path/to/</literal> se tiene que actualizar
+   <informalexample>
+    <screen>
+<![CDATA[
+1. En ciertas variantes de Linux y SysV:
+/etc/rc.d/init.d/httpd restart
+
+2. Usando el script apachectl :
+/path/to/apachectl stop
+/path/to/apachectl start
+
+3. httpdctl y httpsdctl (Usando OpenSSL), similar a apachectl:
+/path/to/httpsdctl stop
+/path/to/httpsdctl start
+
+4. Usando mod_ssl, u otro servidor SSL, quizas querais parar y
+     arrancar manualmente:
+/path/to/apachectl stop
+/path/to/apachectl startssl
+]]>
+    </screen>
+   </informalexample>
+   La localizaci&oacute;n de los binarios apachectl y http(s)dctl suele
+   variar. Si tu sistema tiene los comandos <literal>locate</literal>
+   &oacute; <literal>whereis</literal> &oacute; <literal>which</literal>, podeis
+   utilizarlos para localizar los programas de control de vuestro
+   servidor.
+  </para>
+  
+  <para>
+   Diferentes ejemplos de compilaci&oacute;n de PHP para Apache:
+   <informalexample>
+    <programlisting role="shell">
+<![CDATA[
+./configure --with-apxs --with-pgsql
+]]>
+    </programlisting>
+   </informalexample>
+  </para>
+  <para>
+   Esto crear&aacute; una biblioteca compartida
+   <filename>libphp4.so</filename> que ser&aacute; cargada por Apache usando
+   una linea LoadModule en el fichero de configuraci&oacute;n de Apache
+   &httpd.conf;. Soporte para PostgreSQL es incorporado en la
+   biblioteca <filename>libphp4.so</filename>.
+  </para>
+  <para>
+   <informalexample>
+    <programlisting>
+<![CDATA[
+./configure --with-apxs --with-pgsql=shared
+]]>
+    </programlisting>
+   </informalexample>
+  </para>
+  <para>
+    Esto crear&aacute; una biblioteca compartida
+   <filename>libphp4.so</filename> que ser&aacute; cargada por Apache, pero
+   crear&aacute; tambien una biblioteca compartida
+   <filename>pgsql.so</filename> que se puede cargar por PHP usando &oacute;
+   la directiva de la extensi&oacute;n en el fichero &php.ini; &oacute; cargandola
+   explicitamente en un script usando la funci&oacute;n
+   <function>dl</function>.
+  </para>
+  <para>
+   <informalexample>
+    <programlisting>
+<![CDATA[
+./configure --with-apache=/path/to/apache_source --with-pgsql
+]]>
+    </programlisting>
+   </informalexample>
+  </para>
+  <para>
+   Esto crear&aacute; una biblioteca <filename>libmodphp4.a</filename>, un
+   fichero <filename>mod_php4.c</filename> y algunos otros
+   peque&ntilde;os ficheros y copiara todo al directorio
+   <literal>src/modules/php4</literal> en el directorio fuente de
+   Apache. Apache hay que compilarlo entonces con
+   <literal>--activate-module=src/modules/php4/libphp4.a</literal> y
+   el sistema de generaci&oacute;n de apache se encargar&aacute; de crear el fichero
+   <filename>libphp4.a</filename> y enlazarlo est&aacute;ticamente al binario
+   <filename>httpd</filename>. El soporte para PostgreSQL es incluido
+   directamente en el binario <filename>httpd</filename>, asi que el
+   resultado final en un solo fichero binario
+   <filename>httpd</filename> que incluye todo el Apache y PHP.
+  </para>
+  <para>
+   <informalexample>
+    <programlisting>
+<![CDATA[
+./configure --with-apache=/path/to/apache_source --with-pgsql=shared
+]]>
+    </programlisting>
+   </informalexample>
+  </para>
+  <para>
+   Igual que el ejemplo anterior, excepto que el soporte para
+   PostgreSQL no se incluye directamente en
+   <filename>httpd</filename>, se crea una biblioteca compartida
+   <filename>pgsql.so</filename> que hay que cargar en PHP, bien desde
+   el fichero &php.ini; &oacute; directamente usando la funci&oacute;n
+   <function>dl</function>.
+  </para>
+  <para>
+   Antes de escoger el m&eacute;todo a utilizar para instalar PHP, debeis
+   considerar los pros y los contras de cada m&eacute;todo. Compilarlo como
+   una biblioteca compartida tiene la ventaja de poder compilar Apache
+   por separado y de no tener que recompilar todo si a&ntilde;adimos &oacute;
+   cambiamos PHP. Compilando PHP estaticamente en Apache significa que
+   PHP cargar&aacute; m&aacute;s rapidamente y se ejecutar&aacute; m&aacute;s rapido. Para m&aacute;s
+   informaci&oacute;n, vea la p&aacute;gina de Apache sobre <ulink
+    url="&url.apachedso;">soporte DSO</ulink>.
+  </para>
+  <note>
+   <para>
+    El fichero de configuraci&oacute;n por defecto de Apache, &httpd.conf;,
+    viene con una secci&oacute;n como esta:
+    <informalexample>
+     <programlisting>
+<![CDATA[
+User nobody
+Group "#-1"
+]]>
+     </programlisting>
+    </informalexample>
+    A menos que esto se cambie a "Group nogroup" ("Group daemon"
+    tambien es muy com&uacute;n), PHP no podra abrir ficheros.
+   </para>
+  </note>  
+  <note>
+   <para>
+    Asegurarse que la versi&oacute;n especificada de apxs cuando se usa
+    <option role="configure">--with-apxs=/path/to/apxs</option>, es la
+    version instaladada en tu sistema y no la versi&oacute;n que se encuentra
+    en directorio con las fuentes de Apache.
+   </para>
+  </note>   
+ </sect2>
+ <sect2 id="install.apache.windows">
+  <title>Instalando PHP con apache 1.3.x en Windows</title>
+  
+  <simpara>
+   Existen dos maneras de utilizar PHP con Apache 1.3.x en
+   Windows. Una es usar el binario CGI (php.exe), la otra es usar el
+   m&oacute;dulo Apache DLL. En ambos casos, hay que parar el servidor Apache
+   y editar el fichero de configuraci&oacute;n &httpd.conf; para configurar
+   Apache con PHP.
+  </simpara>
+  <simpara>
+   Hay que decir que el m&oacute;dulo SAPI es m&aacute;s estable ahora bajo windows,
+   recomendamos utilizarlo en vez del binario CGI, ya que es m&aacute;s
+   transparente y seguro.
+  </simpara>
+  <simpara>
+   Aunque existen diferentes maneras de configurar PHP con Apache,
+   estas son lo suficientemente simples como para que un iniciado
+   pueda usarlas. Consultar la documentaci&oacute;n de Apache para m&aacute;s
+   informaci&oacute;n sobre directivas de configuraci&oacute;n.
+  </simpara>
+  
+  <para>
+   Si descomprimimos PHP en <filename>c:\php\</filename>, tal y como
+   se describe en la secci&oacute;n <link
+   linkend="install.windows.manual">Pasos para una instalaci&oacute;n
+   manual</link>, necesitamos introducir estas lineas en el fichero de
+   configuraci&oacute;n de Apache para configurar el binario CGI:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <literal>
+       ScriptAlias /php/ "c:/php/"
+      </literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>
+       AddType application/x-httpd-php .php .phtml
+      </literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>
+       Action application/x-httpd-php "/php/php.exe"
+      </literal>
+     </simpara>
+    </listitem>
+   </itemizedlist>
+   La segunda linea de esta lista, se encuentra en la versi&oacute;n actual
+   de &httpd.conf;, pero esta comentada. Recordar que teneis que
+   cambiar <filename>c:/php/</filename> con el "path" a vuestro
+   directorio PHP.
+  </para>
+  
+  <warning>
+   <para>
+    El uso de la opci&oacute;n CGI abre la posibilidad de posibles ataques a
+    tu servidor. Por favor, leer la secci&oacute;n sobre <link
+    linkend="security.cgi-bin">Seguridad con la versi&oacute;n CGI</link>
+    para aprender como defenderse de estos ataques.
+   </para>
+  </warning>
+  
+  <para>
+   Si vais a utilizar PHP como m&oacute;dulo de Apache, debeis copiar
+   <filename>php4ts.dll</filename> al directorio
+   <filename>windows/system</filename> (para Windows 9x/Me),
+   <filename>winnt/system32</filename> (para Windows NT/2000) &oacute;
+   <filename>windows/system32</filename> (para Windows XP),
+   sobreescribiendo cualquier fichero antiguo. Una vez copiado, debeis
+   modificar el fichero &httpd.conf;:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Editar &httpd.conf; en vuestro editor favorito, localizar la
+      directiva <literal>LoadModule</literal> y a&ntilde;adir la
+      siguiente linea al final de la lista: <literal>LoadModule
+       php4_module c:/php/sapi/php4apache.dll</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Puede ocurrir que despues de usar el instalador de Apache para
+      Windows, tengais que definir la directiva
+      <literal>AddModule</literal> para
+      <filename>mod_php4.c</filename>. Esto es especialmente
+      importante si la directiva <literal>ClearModuleList</literal>
+      est&aacute; definida. A&ntilde;adir <literal>AddModule
+      mod_php4.c</literal> <emphasis>al final de</emphasis> la lista
+      de directivas <literal>AddModule</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Buscar una frase similar a <literal># AddType allows you to
+       tweak mime.types</literal>. Vereis algunas definiciones del
+      tipo <literal>AddType</literal>, a&ntilde;adir <emphasis>al
+       final de</emphasis> la lista: <literal>AddType
+       application/x-httpd-php .php</literal>. Podeis elegir la
+      extensi&oacute;n que querais para los ficheros PHP. .php es nuestra
+      sugerencia. Se puede incluso tener .html y .php3 se puede
+      a&ntilde;adir por asuntos de compatibilidad hacia atras.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  
+  <simpara>
+   Despues de cambiar el fichero de configuraci&oacute;n, recordar que teneis
+   que arrancar de nuevo Apache, por ejemplo, <command>NET STOP
+   APACHE</command> seguido de <command>NET START APACHE</command>, si
+   ejecutais Apache como un Servicio Windows, &oacute; como lo hagais
+   normalmente.
+  </simpara>
+  
+  <simpara>
+   Existen dos maneras para usar la caracter&iacute;stica de destacar el
+   c&oacute;digo fuente, sin embargo, depender&aacute; de nuestra instalaci&oacute;n para
+   que funcionen. Si Apache esta configurado para usar PHP como m&oacute;dulo
+   SAPI, se puede usar esta carcter&iacute;stica a&ntilde;adiendo la linea
+   <literal>AddType application/x-httpd-php-source .phps</literal> al
+   fichero &httpd.conf; en el mismo lugar en donde a&ntilde;adimos
+   <literal>AddType application/x-httpd-php .php</literal>.
+  </simpara>
+  <simpara>
+   Si Apache esta configurado para usar PHP como binario CGI, debereis
+   utilizar la funci&oacute;n <function>show_source</function>. Para ello,
+   crear un script PHP y a&ntilde;adir este c&oacute;digo <literal>&lt;?php
+   show_source ("original_php_script.php"); ?></literal>. Sustituir
+   <literal>original_php_script.php</literal> con el nombre del
+   fichero del que quereis presentar el c&oacute;digo fuente.
+  </simpara>
+  
+  <note>
+   <simpara>
+    En Apache para Windows, todos los "backslashes" en un "path",
+    p.ej. "c:\directory\file.ext", deben de convertirse a "forward
+    slashes" , "c:/directory/file.ext".
+   </simpara>
+  </note>
+ </sect2>
+  </sect1>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
