@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.5 $ -->
-<!-- EN-Revision: 1.11 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.6 $ -->
+<!-- EN-Revision: 1.14 Maintainer: lboshell Status: ready -->
 <!-- splitted from ./en/functions/mysql.xml, last change in rev 1.100 -->
   <refentry id="function.mysql-real-escape-string">
    <refnamediv>
     <refname>mysql_real_escape_string</refname>
     <refpurpose>
      Escapa caracteres especiales de una cadena para su uso en una
-     sentencia SQL, tomando en cuanto el juego de caracteres actual de
-     la conexi&oacute;n.
+     sentencia SQL
     </refpurpose>
    </refnamediv>
    <refsect1>
@@ -41,23 +40,50 @@
      binarios, debe usar &eacute;sta funci&oacute;n.
     </para>
     <para>
-     mysql_real_escape_string llama a la funci&oacute;n de la
-     biblioteca MySQL con el mismo nombre, la cual coloca barras antes
-     de los siguientes caracteres: <literal>NULL</literal>,
-     <literal>\x00</literal>, <literal>\n</literal>,
-     <literal>\r</literal>, <literal>\</literal>,
-     <literal>'</literal>, <literal>"</literal> y
-     <literal>\x1a</literal>.
+     <function>mysql_real_escape_string</function> llama a la
+     funci&oacute;n de la biblioteca MySQL mysql_escape_string, la
+     cual coloca barras invertidas antes de los siguientes caracteres:
+     <literal>NULL</literal>, <literal>\x00</literal>,
+     <literal>\n</literal>, <literal>\r</literal>,
+     <literal>\</literal>, <literal>'</literal>, <literal>"</literal>
+     y <literal>\x1a</literal>.
+    </para>
+    <para>
+     <example>
+      <title>Ejemplo sencillo de
+      <function>mysql_real_escape_string</function></title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+// Conectarse
+$enlace = mysql_connect('mysql_host', 'mysql_usuario', 'mysql_contrasenya')
+    OR die(mysql_error());
+
+// Consulta
+$query = sprintf("SELECT * FROM usuarios WHERE usuario='%s' AND
+     password='%s'",
+            mysql_real_escape_string($usuario),
+            mysql_real_escape_string($password));
+?>
+]]>
+      </programlisting>
+     </example>
     </para>
     <para>
      Es necesario usar siempre (con algunas excepciones) esta
      funci&oacute;n para asegurarse de que los datos sean seguros
-     antes de realizar una inserci&oacute;n. Si tiene habilitada la
+     antes de enviar una consulta a MySQL. Si tiene habilitada la
      directiva <link
-     linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link>, debe usar
-     <function>stripslashes</function> primero sobre sus datos. Si no
-     usa &eacute;ste m&eacute;todo, quedar&aacute; abierto a ataques
-     de inyecci&oacute;n SQL. He aqu&iacute; un ejemplo:
+     linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link>, y
+     est&aacute; trabajando con datos que provienen del usuario, debe
+     usar <function>stripslashes</function> primero sobre sus
+     datos. Si sus datos provienen de otras fuentes y tiene habilitada
+     la directiva <link
+     linkend="ini.magic-quotes-runtime">magic_quotes_runtime</link>,
+     deber&aacute; tambi&eacute;n usar
+     <function>stripslashes</function> con sus datos. De no ser
+     as&iacute;, quedar&aacute; abierto a ataques de inyecci&oacute;n
+     SQL. He aqu&iacute; un ejemplo:
     </para>
     <para>
      <example>
@@ -84,7 +110,7 @@ echo $consulta;
       </para>
       <screen>
 <![CDATA[
-SELECT * FROM usuarios WHERE usuario='fred' AND password='' OR 1=1
+SELECT * FROM usuarios WHERE usuario='aidan' AND password='' OR 1=1
 ]]>
       </screen>
       <para>
@@ -97,25 +123,13 @@ SELECT * FROM usuarios WHERE usuario='fred' AND password='' OR 1=1
 <![CDATA[
 <?php
 /**
- * Aplicar stripslashes recursivamente
- */
-function stripslashes_profundo($valor)
-{
-    $valor = is_array($valor) ?
-                array_map('stripslashes_profundo', $valor) :
-                stripslashes($valor);
-
-    return $valor;
-}
-
-/**
- * Aplicar comillas sobre una variable para hacerla segura para insercion
+ * Aplicar comillas sobre una variable para hacerla segura
  */
 function comillas_inteligentes($valor)
 {
     // Retirar las barras si es necesario
     if (get_magic_quotes_gpc()) {
-        $valor = stripslashes_profundo($valor);
+        $valor = stripslashes($valor);
     }
 
     // Colocar comillas si no es un entero
@@ -126,9 +140,9 @@ function comillas_inteligentes($valor)
     return $valor;
 }
 
-// Conxion
-$enlace = mysql_connect('localhost', 'mysql_usuario', 'mysql_contrasenya')
-    OR die('No pudo conectarse: ' . mysql_error());
+// Conexion
+$enlace = mysql_connect('mysql_host', 'mysql_usuario', 'mysql_contrasenya')
+    OR die(mysql_error());
 
 // Realizar una consulta segura
 $consulta = sprintf("SELECT * FROM usuarios WHERE usuario=%s AND password=%s",
@@ -140,8 +154,8 @@ mysql_query($consulta);
 ]]>
       </programlisting>
       <para>
-       &iexcl;Nuestra consulta es segura ahora, sin importar lo que
-       env&iacute;e el usuario!
+       La consulta ser&aacute; ejecutada correctamente ahora, y los
+       ataques de inyecci&oacute;n no dar&aacute;n resultado.
       </para>
      </example>
     </para>
@@ -149,13 +163,16 @@ mysql_query($consulta);
      <simpara>
       <function>mysql_real_escape_string</function> no escapa
       <literal>%</literal> ni <literal>_</literal>. &Eacute;stos son
-      comodines en MySQL si no est&aacute;n rodeados de comillas.
+      comodines en MySQL si se combianan con <literal>LIKE</literal>,
+      <literal>GRANT</literal>, o <literal>REVOKE</literal>.
      </simpara>
     </note>
     <para>
      Vea tambi&eacute;n <function>mysql_client_encoding</function>,
-     <function>addslashes</function>, y la directiva <link
-     linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link>.
+     <function>addslashes</function>,
+     <function>stripslashes</function>, y las directivas <link
+     linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> y <link
+     linkend="ini.magic-quotes-runtime">magic_quotes_runtime</link>.
     </para>
    </refsect1>
   </refentry>
