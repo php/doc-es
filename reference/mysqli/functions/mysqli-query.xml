@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.6 Maintainer: baoengb Status: ready -->
+  <refentry id="function.mysqli-query">
+   <refnamediv>
+    <refname>mysqli_query</refname>
+    <refname>mysqli->query</refname>
+    <refpurpose>Ejecuta una consulta en la base de datos</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <para>Estilo por procedimientos:</para>
+    <methodsynopsis>
+     <type>mixto</type><methodname>mysqli_query</methodname>
+     <methodparam><type>objeto</type><parameter>identificador_de_enlace</parameter></methodparam>
+     <methodparam><type>cadena</type><parameter>consulta</parameter></methodparam>
+     <methodparam choice='opt'><type>int</type><parameter>resultmode</parameter></methodparam>
+    </methodsynopsis>
+    <para>Estilo orientado a objetos (m&eacute;todo):</para>
+    <classsynopsis>
+     <ooclass><classname>mysqli</classname></ooclass>
+     <methodsynopsis>
+      <type>mixto</type>
+      <methodname>query</methodname>
+      <methodparam><type>cadena</type><parameter>consulta</parameter></methodparam>
+     </methodsynopsis>
+    </classsynopsis>
+    <para>
+     La funci&oacute; <function>mysqli_query</function> es usada para simplificar 
+     la acci&oacute;n de ejecutar una consulta sobre la base de datos representada 
+     por el par&aacute;metro <parameter>identificador_de_enlace</parameter>.
+    </para>
+    <para>
+     Funcionalmente, usar est&aacute; funci&oacute;n es identifo a llamar 
+     <function>mysqli_real_query</function> seguida ya sea de
+     <function>mysqli_use_result</function> o <function>mysqli_store_result</function> 
+     donde <parameter>consulta</parameter> es la cadena de la consulta y
+     <parameter>resultmode</parameter> es una de las constantes 
+     <literal>MYSQLI_USE_RESULT</literal> o <literal>MYSQLI_STORE_RESULT</literal>
+     dependiendo del comportamiento deseado. Por defecto, si no se da   
+     <parameter>resultmode</parameter>, <literal>MYSQLI_STORE_RESULT</literal> 
+     es usado.     
+    </para>
+    <para>
+     Si usted ejecuta <function>mysqli_query</function> con <parameter>resultmode</parameter>
+     <literal>MYSQLI_USE_RESULT</literal> todas las llamadas subsecuentes 
+     regresar&aacute;n el c&oacute;digo de error 
+     <literal>Commands out of sync</literal> a menos que llame <function>mysqli_free_result</function>.
+    </para>
+   </refsect1>
+   <refsect1>
+    <title>Valores regresados</title>
+    <para>
+     &return.success; Para <literal>SELECT, SHOW, DESCRIBE</literal> o 
+     <literal>EXPLAIN</literal> <function>mysqli_query</function> regresar&aacute; 
+     un objeto resultante.
+    </para>
+   </refsect1>
+   <refsect1>
+    <title>Vea tambi&eacute;n</title>
+    <para>
+     <function>mysqli_real_query</function>,
+     <function>mysqli_multi_query</function>,
+     <function>mysqli_free_result</function>
+    </para>
+   </refsect1>
+   <refsect1>
+    <title>Ejemplos</title>
+    <example>
+     <title>Estilo orientado a objetos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
+
+/* check connection */
+if (mysqli_connect_errno()) {
+    printf("Connect failed: %s\n", mysqli_connect_error());
+    exit();
+}
+
+/* Create table doesn't return a resultset */
+if ($mysqli->query("CREATE TEMPORARY TABLE myCity LIKE City") === TRUE) {
+    printf("Table myCity successfully created.\n");
+}
+
+/* Select queries return a resultset */
+if ($result = $mysqli->query("SELECT Name FROM City LIMIT 10")) {
+    printf("Select returned %d rows.\n", $result->num_rows);
+
+    /* free result set */
+    $result->close();
+}
+
+/* If we have to retrieve large amount of data we use MYSQLI_USE_RESULT */
+if ($result = $mysqli->query("SELECT * FROM City", MYSQLI_USE_RESULT)) {
+
+    /* Note, that we can't execute any functions which interact with the
+       server until result set was closed. All calls will return an 
+       'out of sync' error */
+    if (!$mysqli->query("SET @a:='this will not work'")) {
+        printf("Error: %s\n", $mysqli->error);
+    }
+    $result->close();
+}
+
+$mysqli->close();
+?>
+]]>
+    </programlisting>
+    </example>
+    <example>
+     <title>Estilo por procedimientos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
+
+/* check connection */
+if (mysqli_connect_errno()) {
+    printf("Connect failed: %s\n", mysqli_connect_error());
+    exit();
+}
+
+/* Create table doesn't return a resultset */
+if (mysqli_query($link, "CREATE TEMPORARY TABLE myCity LIKE City") === TRUE) {
+    printf("Table myCity successfully created.\n");
+}
+
+/* Select queries return a resultset */
+if ($result = mysqli_query($link, "SELECT Name FROM City LIMIT 10")) {
+    printf("Select returned %d rows.\n", mysqli_num_rows($result));
+
+    /* free result set */
+    mysqli_free_result($result);
+}
+
+/* If we have to retrieve large amount of data we use MYSQLI_USE_RESULT */
+if ($result = mysqli_query($link, "SELECT * FROM City", MYSQLI_USE_RESULT)) {
+
+    /* Note, that we can't execute any functions which interact with the
+       server until result set was closed. All calls will return an 
+       'out of sync' error */
+    if (!mysqli_query($link, "SET @a:='this will not work'")) {
+        printf("Error: %s\n", mysqli_error($link));
+    }
+    mysqli_free_result($result);
+}
+
+mysqli_close($link);
+?>
+]]>
+     </programlisting>
+    </example>
+    <para>
+     Los ejemplos anteriores producir&aacute;n la siguiente salida:
+    </para>
+    <screen>
+<![CDATA[
+Table myCity successfully created.
+Select returned 10 rows.
+Error: Commands out of sync;  You can't run this command now
+]]>
+    </screen>
+   </refsect1>
+  </refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
