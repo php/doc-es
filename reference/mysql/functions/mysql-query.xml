@@ -1,47 +1,102 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- splitted from ./es/functions/mysql.xml, last change in rev 1.1 -->
-<!-- last change to 'mysql-query' in en/ tree in rev 1.62 -->
-<!-- EN-Revision: 1.10 Maintainer: baoengb Status: ready -->
+<!-- $Revision: 1.3 $ -->
+<!-- $Revision: 1.12 Maintainer: baoengb Status: ready -->
+<!-- splitted from ./en/functions/mysql.xml, last change in rev 1.62 -->
   <refentry id="function.mysql-query">
    <refnamediv>
     <refname>mysql_query</refname>
-    <refpurpose>Env&iacute;a una sentencia SQL a MySQL</refpurpose>
+    <refpurpose>Env&iacute;a una consulta de MySQL</refpurpose>
    </refnamediv>
-   <refsect1>
-    <title>Descripci&oacute;n</title>
-     <methodsynopsis>
-     <type>int</type><methodname>mysql_query</methodname>
-     <methodparam><type>cadena</type><parameter>sentencia</parameter></methodparam>
-     <methodparam choice="opt"><type>int</type><parameter>identificador_de_enlace</parameter></methodparam>
-     </methodsynopsis>
+
+   <refsect1 role="description">
+    &reftitle.description;
+    <methodsynopsis>
+     <type>resource</type><methodname>mysql_query</methodname>
+     <methodparam><type>string</type><parameter>query</parameter></methodparam>
+     <methodparam choice="opt"><type>resource</type><parameter>identificador_de_enlace</parameter></methodparam>
+    </methodsynopsis>
     <para>
-     <function>mysql_query</function> env&iacute;a una sentencia a la base activa
-     en el servidor asociado al identificador de enlace. Si no es espec&iacute;ficado
-     un <parameter>identificador_de_enlace</parameter>, se asumir&aacute; el &uacute;ltilmo
-     enlace abierto.  Si no hay ningun enlace abierto, la funci&oacute;n 
-     intenta estalecer un enlace como si se llamara funci&oacute;n 
-     <function>mysql_connect</function> sin argumentos, y lo utiliza.
+     <function>mysql_query</function> env&iacute;a una consulta ( a la base de
+     datos activa en el servidor asociado con el
+     <parameter>identificador_de_enlace</parameter> dado ).
+    </para>
+   </refsect1>
+
+   <refsect1 role="parameters">
+    &reftitle.parameters;
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term><parameter>query</parameter></term>
+       <listitem>
+        <para>
+         Una consulta SQL
+        </para>
+        <para>
+         La consulta no debe terminar con punto y coma.
+        </para>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term><parameter>identificador_de_enlace</parameter></term>
+       <listitem>
+        <para>
+         Un identificador de enlace, como el regresado por
+         <function>mysql_connect</function>.
+        </para>
+        <para>
+         Si <parameter>identificador_de_enlace</parameter> no es espec&iacute;ficado,
+         se asume el &uacute;ltimo enlace abierto. Si no se ha abierto enlace,
+         la funci&oacute;n intenta establecer uno tal y como si se hubiera
+         llamado a <function>mysql_connect</function> sin argumentos, y lo
+         usar&aacute;. El resultado de la consulta es puesto en la memoria 
+         intemedi (buffer).
+        </para>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+   </refsect1>
+
+   <refsect1 role="returnvalues">
+    &reftitle.returnvalues;
+    <para>
+     Para las sentencias SELECT, SHOW, DESCRIBE o EXPLAIN,
+     <function>mysql_query</function> 
+     regresa un <type>resource</type> en caso exitoso, y &false; en error.
     </para>
     <para>
-     La sentencia no puede terminar por punto y coma.
+     Para otro tipo de sentencia SQL, UPDATE, DELETE, DROP, etc,
+     <function>mysql_query</function> regresa &true; en caso exitoso y
+     &false; en error.
     </para>
     <para>
-     Solo para las sentencias SELECT, SHOW, EXPLAIN o DESCRIBE 
-     <function>mysql_query</function> regresa un identificador o &false; 
-     si la consulta no fue ejecutada correctamente. Para otro tipo de 
-     sentencias SQL 
-     <function>mysql_query</function> devuelve &true; (no-cero) o &false;
-     para indicar si la sentencia se ha ejecutado correctamente o no. Un valor
-     &true; significa que la sentencia era correcta y pudo ser ejecutada en el 
-     servidor.  No indica nada sobre el numero de fila devueltas. Es 
-     perfectamente posible que la sentencia se ejecute correctamente pero que
-     no devuelve ninguna fila.
+     El resultado obtenido debe ser pasado a 
+     <function>mysql_fetch_array</function>, y otras funciones para
+     el manejo de las tablas del resultado, para accesar los datos regresados.
     </para>
     <para>
-     La siguiente sentencia es invalida sint&aacute;cticamente, as&iacute; que 
-     <function>mysql_query</function> falla y devuelve &false;:
+     Use <function>mysql_num_rows</function> para encontrar cuantas filas 
+     fueron regresadas para una sentencia SELECT o 
+     <function>mysql_affected_rows</function> para encontrar cuantas filas 
+     fueron afectadas por una sentencia DELETE, INSERT, REPLACE, o UPDATE.
+    </para>
+    <para>
+     <function>mysql_query</function> tambi&eacute;n fallar&aacute; y 
+     regresar&aacute; &false; si el usuario no tiene permiso de accesar la o
+     las tablas referenciadas por la consulta.
+    </para>
+   </refsect1>
+
+   <refsect1 role="examples">
+    &reftitle.examples;
+    <para>
      <example>
-      <title>Ejmeplo mysql_query</title>
+      <title>Consulta inv&aacute;lida</title>
+      <para>
+       La siguiente consulta es sint&aacute;cticamente inv&aacute;lida de 
+       tal manera que <function>mysql_query</function> falla y regresa &false;.
+      </para>
       <programlisting role="php">
 <![CDATA[
 <?php
@@ -49,56 +104,72 @@ $result = mysql_query('SELECT * WHERE 1=1');
 if (!$result) {
     die('Invalid query: ' . mysql_error());
 }
+
 ?>
 ]]>
       </programlisting>
      </example>
     </para>
     <para>
-     La siguiente sentencia es invalida semanticamente si 
-     <literal>my_col</literal> no es una columna de la tabla
-     <literal>my_tbl</literal>, as&iacute; que <function>mysql_query</function>
-     falla y devuelve &false;:
      <example>
-      <title><function>mysql_query</function></title>
+      <title>Consulta V&aacute;lida</title>
+      <para>
+       La siguiente consulta es v&aacute;lida, as&iacute; que 
+       <function>mysql_query</function> regresa un  <type>resource</type>.
+      </para>
       <programlisting role="php">
 <![CDATA[
 <?php
-$result = mysql_query('SELECT my_col FROM my_tbl');
+// This could be supplied by a user, for example
+$firstname = 'fred';
+$lastname  = 'fox';
+
+// Formulate Query
+// This is the best way to perform a SQL query
+// For more examples, see mysql_real_escape_string()
+$query = sprintf("SELECT firstname, lastname, address, age FROM friends WHERE firstname='%s' AND lastname='%s'",
+    mysql_real_escape_string($firstname),
+    mysql_real_escape_string($lastname));
+
+// Perform Query
+$result = mysql_query($query);
+
+// Check result
+// This shows the actual query sent to MySQL, and the error. Useful for debugging.
 if (!$result) {
-    die('Invalid query: ' . mysql_error());
+    $message  = 'Invalid query: ' . mysql_error() . "\n";
+    $message .= 'Whole query: ' . $query;
+    die($message);
 }
+
+// Use result
+// Attempting to print $result won't allow access to information in the resource
+// One of the mysql result functions must be used
+// See also mysql_result(), mysql_fetch_array(), mysql_fetch_row(), etc.
+while ($row = mysql_fetch_assoc($result)) {
+    echo $row['firstname'];
+    echo $row['lastname'];
+    echo $row['address'];
+    echo $row['age'];
+}
+
+// Free the resources associated with the result set
+// This is done automatically at the end of the script
+mysql_free_result($result);
 ?>
 ]]>
       </programlisting>
      </example>
     </para>
+   </refsect1>
+
+   <refsect1 role="seealso">
+    &reftitle.seealso;
     <para>
-     <function>mysql_query</function> fallar&aacute; tambi&eacute;n y devolvera &false;
-     si no se tiene el permiso de acceso a la tabla espec&iacute;ficada en la 
-     sentencia.
-    </para>
-    <para>
-     Asumiendo la sentencia tenga &eacute;xito, se puede llamar a 
-     <function>mysql_affected_rows</function> para saber cuantas filas
-     fueron afectadas (para DELETE, INSERT, REPLACE, o UPDATE )
-     Para las sentencias SELECT, <function>mysql_query</function> devuelve
-     un nuevo identificador de resultado que se puede pasar a 
-     <function>mysql_result</function>.  Cuando se acabe de utilizar el 
-     resultado, se pueden liberar los recursos asociados utilizando
-     <function>mysql_free_result</function>.
-    </para>
-    <para>
-     Ver tambi&eacute;n: 
-     <function>mysql_num_rows</function>,
-     <function>mysql_affected_rows</function>,
      <function>mysql_unbuffered_query</function>,
-     <function>mysql_free_result</function>,
-     <function>mysql_fetch_array</function>,
-     <function>mysql_fetch_row</function>,
      <function>mysql_fetch_assoc</function>,
-     <function>mysql_result</function>,
-     <function>mysql_select_db</function>,
+     <function>mysql_error</function>,
+     <function>mysql_result</function> y
      <function>mysql_connect</function>.
     </para>
    </refsect1>
