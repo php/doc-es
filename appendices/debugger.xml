@@ -1,214 +1,283 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<appendix id="debugger">
- <title>El debugger de PHP</title>
+<!-- $Revision: 1.6 $ -->
+<!-- EN-Revision: 1.26 Maintainer: lboshell Status: ready -->
+ <appendix id="debugger">
+  <title>Depuraci&oacute;n en PHP</title>
 
- <sect1 id="debugger-using">
-  <title>Usando el Debugger</title>
+  <sect1 id="debugger-about">
+   <title>Sobre el depurador</title>
+   <simpara>
+PHP 3 incluye soporte para un depurador basado en red.
+   </simpara>
+   <simpara>
+PHP 4 no cuenta con una herramienta de depuraci&oacute;n interna. Aun
+as&iacute;, puede usar uno de los depuradores externos. El <ulink
+url="&url.zend.ide;">entorno integrado de desarrollo Zend</ulink>
+incluye un depurador, y existen tambi&eacute;n algunas extensiones de
+depuraci&oacute;n gratuitas como DBG en <ulink
+url="&url.dbg;">&url.dbg;</ulink>, el <ulink url="&url.apd;">Depurador
+Avanzado de PHP</ulink> (APD, por sus siglas en Ingl&eacute;s)
+o <ulink url="&url.xdebug;">Xdebug</ulink>, el cual posee incluso una
+interfaz de depuraci&oacute;n compatible con la funcionalidad de
+depuraci&oacute;n de PHP 3, tal y como se describe en esta
+secci&oacute;n.
+   </simpara>
+  </sect1>
 
-  <para>
-   El debugger interno de PHP es &uacute;til para localizar fallos que se
-   resisten. El debugger funciona conectandose a un puerto <acronym>TCP</acronym> 
-   cada vez que PHP comienza. Todos los mensajes de error de esa 
-   petici&oacute;n ser&aacute;n enviados a esta conexi&oacute;n TCP. Esta informaci&oacute;n se
-   entiende que que es para un "servidor de debugger" que puede ejecutarse
-   en un <acronym>IDE</acronym> o en un editor programabler (como Emacs).</para>
+  <sect1 id="debugger-using">
+   <title>Uso del Depurador</title>
 
-  <para>
-   Como poner en marcha el debugger:
-   <orderedlist>
-    <listitem><simpara> Establezca un puerto TCP para el debugger en el <link linkend="configuration.file">archivo de configuraci&oacute;n</link> (<link linkend="ini.debugger.port">debugger.port</link>) y activelo
-      (<link linkend="ini.debugger.enabled">debugger.enabled</link>).</simpara></listitem>
-      
-    <listitem><simpara> Ponga en marcha un m&oacute;dulo de escucha de TCP en algun sitio
-      (por ejemplo <command>socket -l -s 1400</command> en UNIX).</simpara></listitem>
-      
-    <listitem><simpara> En su c&oacute;digo, ejecute
-      "debugger_on(<replaceable>host</replaceable>)", donde
-      <replaceable>host</replaceable> es la direcci&oacute;n IP o el nombre de el
-      host ejecutando un m&oacute;dulo de escucha de <acronym>TCP</acronym>.</simpara></listitem>
-      
-   </orderedlist>
-
-   Ahora, todos los avisos, notificaciones, etc. se mostrar&aacute;n en ese m&oacute;dulo
-   de escucha, <emphasis>incluso si lo ha desactivado con
-    <function>error_reporting</function></emphasis>.</para></sect1>
-
- <sect1 id="debugger-protocol">
-  <title>Protocolo del debugger</title>
-  <para>
-   El protocolo del debugger est&aacute; basado en l&iacute;neas. Cada l&iacute;nea tiene un
-   <emphasis>tipo</emphasis>, y varias l&iacute;nea componen un
-   <emphasis>mensaje</emphasis>. Cada mensaje comienza con una l&iacute;nea del
-   tipo <literal>start</literal> y termina con una l&iacute;nea del 
-   tipo <literal>end</literal>.  PHP puede enviar l&iacute;neas para diferentes
-   mensajes simultaneamente.</para>
-
-  <para>
-   Una l&iacute;nea tiene este formato:
-   <informalexample>
-    <literallayout>
-<replaceable>fecha</replaceable> <replaceable>hora</replaceable> <replaceable>host</replaceable>(<replaceable>pid</replaceable>) <replaceable>tipo</replaceable>: <replaceable>datos del mensaje</replaceable>
-</literallayout>
-   </informalexample>
-   <variablelist>
-    <varlistentry>
-     <term><replaceable>fecha</replaceable></term>
+   <para>
+El depurador interno en PHP 3 es &uacute;til para rastrear fallos
+dif&iacute;ciles de se&ntilde;alar. El depurador funciona creando una
+conexi&oacute;n con un puerto
+<acronym>TCP</acronym> en cada ocasi&oacute;n que PHP 3 arranca. Todos
+los mensajes de error de esa petici&oacute;n ser&aacute;n enviados a
+esta conexi&oacute;n TCP. Esta informaci&oacute;n tiene como
+prop&oacute;sito ser usada por un "servidor de depuraci&oacute;n" que
+puede correr dentro de un <acronym>IDE</acronym> o editor programable
+(como Emacs).
+   </para>
+   <para>
+C&oacute;mo configurar el depurador:
+    <orderedlist>
      <listitem>
-      <simpara>Fecha en formato ISO 8601 (<replaceable>aaaa</replaceable>-<replaceable>mm</replaceable>-<replaceable>dd</replaceable>)
+      <simpara> 
+Configure un puerto TCP para el depurador en el <link
+linkend="configuration.file">archivo de configuraci&oacute;n</link>
+(<link linkend="ini.debugger.port">debugger.port</link>) y
+habil&iacute;telo (<link
+linkend="ini.debugger.enabled">debugger.enabled</link>).
       </simpara>
      </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><replaceable>hora</replaceable></term>
      <listitem>
-      <simpara>Hora incluyendo microsegundos:
-       <replaceable>hh</replaceable>:<replaceable>mm</replaceable>:<replaceable>uuuuuu</replaceable>
+      <simpara> 
+Configure un receptor TCP en ese puerto en alguna parte (por ejemplo,
+<command>socket -l -s 1400</command> en sistemas Unix).
       </simpara>
      </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><replaceable>host</replaceable></term>
      <listitem>
-      <simpara>Nombre DNS o direcci&oacute;n IP del host donde el script de
-      error fue generado.</simpara>
+      <simpara>
+En su c&oacute;digo, ejecute
+"debugger_on(<replaceable>host</replaceable>)", en
+donde <replaceable>host</replaceable> es el n&uacute;mero IP o nombre
+del servidor hu&eacute;sped en donde est&aacute; corriendo el
+receptor <acronym>TCP</acronym>.
+      </simpara>
      </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><replaceable>pid</replaceable></term>
-     <listitem>
-      <simpara>PID (id proceso) en el <replaceable>host</replaceable> 
-       del proceso en que el script de PHP gener&oacute; este error.</simpara>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><replaceable>tipo</replaceable></term>
-     <listitem>
-      <para>Tipo de la l&iacute;nea.  Dice al programa programa que recibe que debe
-      considerar los datos siguientes como:
-       <table>
-	<title>Tipos de l&iacute;nea del debugger</title>
-	<tgroup cols="2">
-	 <thead>
-	  <row>
-	   <entry>Nombre</entry>
-	   <entry>Significado</entry>
-	  </row>
-	 </thead>
-	 <tbody>
-	  <row>
-	   <entry><literal>start</literal></entry> <entry>Informa al
-	    programa que recibe que un mensaje del debugger comienza
-	    aqui. El contenido de <replaceable>data</replaceable> ser&aacute;
-	    el tipo del mensaje de error, listados debajo.
-	   </entry>
-	  </row>
-	  <row>
-	   <entry><literal>message</literal></entry>
-	   <entry>El mensaje de error de PHP.</entry>
-	  </row>
-	  <row>
-	   <entry><literal>location</literal></entry>
-	   <entry>
-	    Nombre del fichero y n&uacute;mero de l&iacute;nea donde ocurri&oacute; el error.
-	    La primera l&iacute;nea con <literal>location</literal> siempre
-	    contendr&aacute; la localizaci&oacute;n de mayor nivel. <replaceable>data</replaceable>
-	    contendr&aacute;
-	    <literal><replaceable>fichero</replaceable>:<replaceable>l&iacute;nea</replaceable></literal>.
-	    Siempre habr&aacute; una l&iacute;nea de tipo <literal>location</literal>
-	    despu&eacute;s de <literal>message</literal> y despu&eacute;s de cada
-	    <literal>function</literal>.
-	   </entry>
-	  </row>
-	  <row>
-	   <entry><literal>frames</literal></entry> <entry>N&uacute;mero de
-	    marcos en la pila. Si hay cuatro marcos, espere informaci&oacute;n
-	    sobre los cuatro niveles de las funciones llamadas. Si
-	    no hay una l&iacute;nea de tipo "frames", la profundidad se
-	    asume que es 0 (el error ocurri&oacute; en el nivel superior).
-	   </entry>
-	  </row>
-	  <row>
-	   <entry><literal>function</literal></entry> <entry>Nombre de la
-	    funci&oacute;n donde ocurri&oacute; el error. Ser&aacute; repetida una vez por
-	    cada nivel en la pila de funciones.</entry>
-	  </row>
-	  <row>
-	   <entry><literal>end</literal></entry> <entry>Informa al 
-	   programa que recibe que el mensaje del debugger termina
-	   aqui.</entry>
-	  </row>
-	 </tbody>
-	</tgroup>
-       </table>
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><replaceable>data</replaceable></term>
-     <listitem>
-      <simpara>L&iacute;nea de datos.</simpara>
-     </listitem>
-    </varlistentry>
-   </variablelist>
+    </orderedlist>
+Ahora, todas las advertencias, noticias etc. aparecer&aacute;n en ese
+socket receptor, <emphasis>incluso si las ha deshabilitado
+con <function>error_reporting</function></emphasis>.
+   </para>
+  </sect1>
 
-   <table>
-    <title>Tipos de error del debugger</title>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>Debugger</entry>
-       <entry>PHP Internal</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry><errortype>warning</errortype></entry>
-       <entry><errortype>E_WARNING</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>error</errortype></entry>
-       <entry><errortype>E_ERROR</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>parse</errortype></entry>
-       <entry><errortype>E_PARSE</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>notice</errortype></entry>
-       <entry><errortype>E_NOTICE</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>core-error</errortype></entry>
-       <entry><errortype>E_CORE_ERROR</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>core-warning</errortype></entry>
-       <entry><errortype>E_CORE_WARNING</errortype></entry>
-      </row>
-      <row>
-       <entry><errortype>unknown</errortype></entry>
-       <entry>(any other)</entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </table>
+  <sect1 id="debugger-protocol">
+   <title>Protocolo del Depurador</title>
+   <para>
+El protocolo del depurador de PHP 3 es basado en l&iacute;neas. Cada
+l&iacute;nea tiene un <emphasis>tipo</emphasis>, y varias
+l&iacute;neas componen un
+<emphasis>mensaje</emphasis>. Cada mensaje comienza con una
+l&iacute;nea del tipo <literal>start</literal> y termina con una
+l&iacute;nea del tipo <literal>end</literal>. PHP 3 puede enviar
+l&iacute;neas para diferentes mensajes simult&aacute;neamente.
+   </para>
+   <para>
+Una l&iacute;nea tiene este formato:
+    <informalexample>
+     <literallayout>
+<![CDATA[
+fecha hora host(pid) tipo: datos-mensaje
+]]>
+     </literallayout>
+    </informalexample>
+   </para>
+   <para>
+    <variablelist>
+     <varlistentry>
+      <term><replaceable>fecha</replaceable></term>
+      <listitem>
+       <simpara>
+        Fecha en formato ISO 8601
+        (<replaceable>aaaa</replaceable>-<replaceable>mm</replaceable>-<replaceable>dd</replaceable>)
+       </simpara>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><replaceable>hora</replaceable></term>
+      <listitem>
+       <simpara>Hora, incluyendo microsegundos:
+        <replaceable>hh</replaceable>:<replaceable>mm</replaceable>:<replaceable>uuuuuu</replaceable>
+       </simpara>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><replaceable>host</replaceable></term>
+      <listitem>
+       <simpara>
+        Nombre DNS o direcci&oacute;n IP del host en donde se
+        gener&oacute; el error de script.
+       </simpara>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><replaceable>pid</replaceable></term>
+      <listitem>
+       <simpara>
+        PID (id de proceso) en <replaceable>host</replaceable> del
+        proceso que conten&iacute;a el script de PHP 3 que
+        gener&oacute; este error.
+       </simpara>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><replaceable>tipo</replaceable></term>
+      <listitem>
+       <para>
+        Tipo de l&iacute;nea. Le dice al programa receptor sobre el
+        modo en que deber&iacute;a tratar los datos a
+        continuaci&oacute;n:
+        <table>
+         <title>Tipos de L&iacute;nea del Depurador</title>
+         <tgroup cols="2">
+          <thead>
+           <row>
+            <entry>Nombre</entry>
+            <entry>Significado</entry>
+           </row>
+          </thead>
+          <tbody>
+           <row>
+            <entry><literal>start</literal></entry> 
+            <entry>
+             Le dice el programa receptor que un mensaje de depurador
+             comienza aqu&iacute;. Los contenidos
+             de <replaceable>datos</replaceable> ser&aacute;n el tipo
+             de mensaje de error, listados m&aacute;s adelante.
+            </entry>
+           </row>
+           <row>
+            <entry><literal>message</literal></entry>
+            <entry>El mensaje de error PHP 3.</entry>
+           </row>
+           <row>
+            <entry><literal>location</literal></entry>
+            <entry>
+             Nombre de archivo y n&uacute;mero de l&iacute;nea en
+             donde ocurri&oacute; el error. La primera
+             l&iacute;nea <literal>location</literal> contendr&aacute;
+             siempre la ubicaci&oacute;n de nivel m&aacute;s
+             alto. <replaceable>datos</replaceable> contendr&aacute;
+             <literal><replaceable>archivo</replaceable>:<replaceable>l&iacute;nea</replaceable></literal>.Siempre
+             habr&aacute; una l&iacute;nea <literal>location</literal>
+             despu&eacute;s de <literal>message</literal> y
+             despu&eacute;s de cada <literal>function</literal>.
+            </entry>
+           </row>
+           <row>
+            <entry>
+             <literal>frames</literal>
+            </entry>
+            <entry>
+             N&uacute;mero de marcos en el siguiente volcado de
+             pila. Si hay cuatro marcos, espere informaci&oacute;n
+             sobre cuatro niveles de llamados a funci&oacute;n. Si no
+             se entrega una l&iacute;nea "frames", se asumir&aacute;
+             que la profundidad es 0 (el error ocurri&oacute; en el
+             contexto de m&aacute;s alto nivel).
+            </entry>
+           </row>
+           <row>
+            <entry>
+             <literal>function</literal></entry> 
+            <entry>
+             Nombre de la funci&oacute;n en donde ocurri&oacute; el
+             error. Ser&aacute; repetido una vez por cada nivel en la
+             pila de llamados a funciones.
+            </entry>
+           </row>
+           <row>
+            <entry><literal>end</literal></entry> 
+            <entry>
+             Le indica al programa receptor que el mensaje de
+             depurador termina aqu&iacute;.
+            </entry>
+           </row>
+          </tbody>
+         </tgroup>
+        </table>
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><replaceable>datos</replaceable></term>
+      <listitem>
+       <simpara>Datos de la l&iacute;nea.</simpara>
+      </listitem>
+     </varlistentry>
+    </variablelist>
 
-   <example>
-    <title>Ejemplo de mensaje del debugger</title>
-    <literallayout>
+    <table>
+     <title>Tipos de Error del Depurador</title>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>Depurador</entry>
+        <entry>Interno de PHP 3</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry><errortype>warning</errortype></entry>
+        <entry><errortype>E_WARNING</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>error</errortype></entry>
+        <entry><errortype>E_ERROR</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>parse</errortype></entry>
+        <entry><errortype>E_PARSE</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>notice</errortype></entry>
+        <entry><errortype>E_NOTICE</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>core-error</errortype></entry>
+        <entry><errortype>E_CORE_ERROR</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>core-warning</errortype></entry>
+        <entry><errortype>E_CORE_WARNING</errortype></entry>
+       </row>
+       <row>
+        <entry><errortype>unknown</errortype></entry>
+        <entry>(cualquier otro)</entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </table>
+    
+    <example>
+     <title>Mensaje de Depurador de Ejemplo</title>
+     <literallayout>
+<![CDATA[
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) start: notice
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) message: Uninitialized variable
-1998-04-05 23:27:400966 lucifer.guardian.no(20481) location: (&null;):7
+1998-04-05 23:27:400966 lucifer.guardian.no(20481) location: (null):7
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) frames: 1
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) function: display
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) location: /home/ssb/public_html/test.php3:10
 1998-04-05 23:27:400966 lucifer.guardian.no(20481) end: notice
-</literallayout></example>
+]]>
+     </literallayout>
+    </example>
+   </para>
+  </sect1>
 
-  </para>
- </sect1>
-
-</appendix>
+ </appendix>
 
 <!-- Keep this comment at the end of the file
 Local variables:
@@ -221,9 +290,12 @@ sgml-indent-step:1
 sgml-indent-data:t
 indent-tabs-mode:nil
 sgml-parent-document:nil
-sgml-default-dtd-file:"../manual.ced"
+sgml-default-dtd-file:"../../manual.ced"
 sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
 End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
 -->

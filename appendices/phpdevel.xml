@@ -1,89 +1,114 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.8 $ -->
+<!-- EN-Revision: 1.24 Maintainer: lboshell Status: ready -->
 <appendix id="phpdevel">
- <title>Desarrollo en PHP</title>
+ <title>Extensi&oacute;n de PHP 3</title>
 
- <simpara></simpara>
+ <simpara>
+Esta secci&oacute;n se encuentra bastante desactualizada y demuestra
+el modo de extender PHP 3. Si est&aacute; interesado en PHP 4, por
+favor lea la secci&oacute;n sobre la <link linkend="zend">interfaz de
+programaci&oacute;n Zend</link>. As&iacute; mismo, usted querr&aacute;
+leer varios archivos encontrados en el c&oacute;digo fuente de PHP,
+archivos como <filename>README.SELF-CONTAINED-EXTENSIONS</filename>
+y <filename>README.EXT_SKEL</filename>.
+ </simpara>
 
  <sect1 id="phpdevel-addfunc">
-  <title>A&ntilde;adiendo funciones al PHP3</title>
+  <title>Adici&oacute;n de funciones a PHP</title>
   <sect2 id="phpdevel-addfunc-prototype">
    <title>Prototipo de Funci&oacute;n</title>
    <para>
-    Todas las funciones son como esta:
-    <programlisting>       
-void php3_algo(INTERNAL_FUNCTION_PARAMETERS) {
-
+Todas las funciones lucen de este modo:
+    <programlisting role="c">       
+<![CDATA[
+void php3_foo(INTERNAL_FUNCTION_PARAMETERS) {
+     
 }
+]]>
     </programlisting>
-    Incluso si su funci&oacute;n no lleva argumentos, es as&iacute; como se le 
-    llama.</para></sect2>
+Incluso si su funci&oacute;n no recibe argumentos, &eacute;sta es la
+forma de llamarla.
+
+   </para>
+  </sect2>
 
   <sect2 id="phpdevel-addfunc-args">
    <title>Argumentos de Funci&oacute;n</title>
    <para>
-    Los argumentos son siempre de tipo pval. Este tipo contiene una
-    uni&oacute;n que es el tipo actual del argumento. As&iacute;, si su funci&oacute;n
-    tiene dos argumentos, deber&aacute; hacer algo como lo que sigue al
-    principio de la misma:</para>
+Los argumentos son siempre de tipo pval. Este tipo posee una
+uni&oacute;n que contiene el tipo real del argumento. As&iacute; que,
+si su funci&oacute;n recibe dos argumentos, usted har&iacute;a algo
+como lo siguiente al comienzo de su funci&oacute;n:
+   </para>
 
    <para>
     <example>
-     <title>Extrayendo argumentos de funci&oacute;n</title>
-     <programlisting>
+     <title>Recuperaci&oacute;n de argumentos de funci&oacute;n</title>
+     <programlisting role="c">
+<![CDATA[
 pval *arg1, *arg2;
-if (ARG_COUNT(ht) != 2 || getParameters(ht,2,&amp;arg1,&amp;arg2)==FAILURE) {
+if (ARG_COUNT(ht) != 2 || getParameters(ht,2,&arg1,&arg2)==FAILURE) {
    WRONG_PARAM_COUNT;
 }
+]]>
      </programlisting>
     </example>
-    
-    NOTA: Los argumentos pueden pasarse tanto por valor como por referencia.
-    En ambos casos, necesitar&aacute; pasar &amp;(pval *) a getParameters. Si
-    desea comprobar si el en&eacute;simo par&aacute;metro le ha sido enviado o no por
-    referencia, puede utilizar la funci&oacute;n
-    ParameterPassedByReference(ht,n). Esta devolver&aacute; 1 &oacute; 0, seg&uacute;n corresponda.</para>
+NOTA: Los argumentos pueden ser pasados ya sea por valor o por
+referencia. En ambos casos necesitar&aacute; pasar &amp;(pval *) a
+getParameters. Si desea chequear si el par&aacute;metra n'&eacute;simo
+le fue enviado por referencia o no, puede usar la funci&oacute;n
+ParameterPassedByReference(ht,n). &Eacute;sta devolver&aacute; 1 o 0.
+   </para>
     
    <simpara>
-    Cuando cambie alguno de los par&aacute;metros pasados, tanto si son enviados
-    por referencia o por valor, puede volver a comenzar con &eacute;ste
-    llamando la funci&oacute;n pval_destructor sobre el mismo, o, si es una ARRAY
-    a la que quiere a&ntilde;adir algo, puede utilizar funciones similares a las
-    inclu&iacute;das en internal_functions.h, que manipulan el valor return_value 
-    como si fuera de tipo ARRAY.</simpara>
+Cuando usted modifica cualquiera de los par&aacute;metros pasados, ya
+sea que hayan sido enviados por referencia o por valor, puede o bien
+comenzar con el par&aacute;metro llamando pval_destructor sobre
+&eacute;l, o si es un ARRAY al que desea agregar valores, puede usar
+funciones similares a aquellas en internal_functions.h que manipulan
+return_value como un ARRAY.
+   </simpara>
 
    <simpara>
-    Adem&aacute;s, si cambia un par&aacute;metro a IS_STRING, aseg&uacute;rese primero de 
-    asignar el valor y el tama&ntilde;o a la cadena creada por estrdup() y s&oacute;lo
-    entonces cambiar su tipo a IS_STRING. Si modifica la cadena de un
-    par&aacute;metro que ya es IS_STRING o IS_ARRAY, deber&aacute; primero aplicarle
-    la funci&oacute;n pval_destructor.</simpara></sect2>
+Tambi&eacute;n, si modifica un par&aacute;metro a IS_STRING
+aseg&uacute;rese de asignar primero la nueva cadena mediante estrdup()
+y la longitud de la cadena, y s&oacute;lo despu&eacute;s modifique el
+tipo a IS_STRING. Si modifica la cadena de un par&aacute;metro que ya
+es IS_STRING o IS_ARRAY, debe ejecutar pval_destructor sobre
+&eacute;ste primero.
+   </simpara>
+  </sect2>
    
   <sect2 id="phpdevel-addfunc-varargs">
    <title>Argumentos de Funci&oacute;n Variables</title>
    <para>
-    Una funci&oacute;n puede tomar un n&uacute;mero variable de argumentos. Si su funci&oacute;n
-    puede tomar tanto 2 como 3 argumentos, utilice el siguiente c&oacute;digo:</para>
+Una funci&oacute;n puede recibir un n&uacute;mero variable de
+argumentos. Si su funci&oacute;n puede recibir ya sea 2 o 3
+argumentos, use lo siguiente:
+   </para>
     
    <para>
     <example>
      <title>Argumentos de funci&oacute;n variables</title>
-     <programlisting>
+     <programlisting role="c">
+<![CDATA[
 pval *arg1, *arg2, *arg3;
 int arg_count = ARG_COUNT(ht);
 
-if (arg_count &lt; 2 || arg_count &gt; 3 ||
-    getParameters(ht,arg_count,&amp;arg1,&amp;arg2,&amp;arg3)==FAILURE) {
+if (arg_count < 2 || arg_count > 3 ||
+    getParameters(ht,arg_count,&arg1,&arg2,&arg3)==FAILURE) {
     WRONG_PARAM_COUNT;
 }
+]]>
     </programlisting>
     </example></para></sect2>
      
   <sect2 id="phpdevel-addfunc-using-args">
-   <title>Usando los Argumentos de Funci&oacute;n</title>
+   <title>Uso de los Argumentos de Funci&oacute;n</title>
    <para>
-    El tipo de cada argumento se guarda en el campo type del pval. Este
-    tipo puede ser:
-    
+El tipo de cada argumento es almacenado en el campo type de pval. Este
+tipo puede ser cualquiera de los siguientes:
     <table>
      <title>Tipos Internos de PHP</title>
      <tgroup cols="2">
@@ -94,7 +119,7 @@ if (arg_count &lt; 2 || arg_count &gt; 3 ||
        </row>
        <row>
         <entry>IS_DOUBLE</entry>
-        <entry>Coma flotante de doble precisi&oacute;n</entry>
+        <entry>Punto flotante de doble precisi&oacute;n</entry>
        </row>
        <row>
         <entry>IS_LONG</entry>
@@ -106,7 +131,7 @@ if (arg_count &lt; 2 || arg_count &gt; 3 ||
        </row>
        <row>
         <entry>IS_EMPTY</entry>
-        <entry>Nada</entry>
+        <entry>Ninguno</entry>
        </row>
        <row>
         <entry>IS_USER_FUNCTION</entry>
@@ -114,7 +139,8 @@ if (arg_count &lt; 2 || arg_count &gt; 3 ||
        </row>
        <row>
         <entry>IS_INTERNAL_FUNCTION</entry>
-        <entry>?? (N.D.: si alguno de estos no se puede pasar a una funci&oacute;n, b&oacute;rrese)</entry>
+        <entry>?? (si alguno de &eacute;stos no puede ser pasado a una
+        funci&oacute;n - eliminar)</entry>
        </row>
        <row>
         <entry>IS_CLASS</entry>
@@ -129,24 +155,28 @@ if (arg_count &lt; 2 || arg_count &gt; 3 ||
     </table></para>
 
    <para>
-    Si obtiene un argumento de un tipo y desea utilizarlo como si
-    fuera de otro, o si quiere forzar a que un argumento sea de un
-    tipo determinado, puede usar una de las siguientes funciones de
-    conversi&oacute;n:
-
-    <programlisting>
+Si recibe un argumento de un tipo y quisiera usarlo como otro, o si
+tan s&oacute;lo desea obligar al argumento a que sea de un cierto
+tipo, puede usar una de las siguientes funciones de conversi&oacute;n:
+    <programlisting role="c">
+<![CDATA[
 convert_to_long(arg1);
 convert_to_double(arg1);
 convert_to_string(arg1); 
-convert_to_boolean_long(arg1); /* Si la cadena es "" o "0" pasa a ser 0; si no, vale 1 */
-convert_string_to_number(arg1);  /* Convierte la cadena a LONG o a DOUBLE, dependiendo de su contenido */
-     </programlisting></para>
+convert_to_boolean_long(arg1); /* Si la cadena es "" o "0" se convierte a 0, 1 de lo contrario */
+convert_string_to_number(arg1);  /* Convierte una cadena a un LONG o DOUBLE, dependiendo de la cadena */
+]]>
+    </programlisting>
+   </para>
     
    <simpara>
-    Estas funciones convierten el valor in-situ. No devuelven nada.</simpara>
+Estas funciones todas realizan conversi&oacute;n en-el-lugar. No
+devuelven nada.
+   </simpara>
 
    <para>
-    El argumento real es almacenado en una uni&oacute;n cuyos miembros son:
+El argumento como tal es almacenado en una uni&oacute;n; los miembros
+son:
     <itemizedlist>
      <listitem><simpara>IS_STRING: arg1-&gt;value.str.val</simpara></listitem>
      <listitem><simpara>IS_LONG: arg1-&gt;value.lval</simpara></listitem>
@@ -154,390 +184,552 @@ convert_string_to_number(arg1);  /* Convierte la cadena a LONG o a DOUBLE, depen
     </itemizedlist></para></sect2>
     
   <sect2 id="phpdevel-addfunc-memmgmt">
-   <title>Manejo de Memoria en las Funciones</title>
+   <title>Administraci&oacute;n de Memoria en las Funciones</title>
    <simpara>
-    La memoria necesitada por una funci&oacute;n deber&aacute; ser asignada usando
-    emalloc() o estrdup(). Estas son funciones abstractas de manejo de
-    memoria que son similares a las funciones normales malloc() y 
-    strdup(). La memoria deber&aacute; liberarse con efree().</simpara>
+Cualquier segmento de memoria necesitado por una funci&oacute;n debe
+ser reservado ya sea con emalloc() o estrdup(). Estas son funciones
+que abstraen la gesti&oacute;n de memoria y lucen y huelen como las
+funciones normales malloc() y strdup(). La memoria debe ser liberada
+con efree().
+   </simpara>
 
    <simpara>
-    Hay dos tipos de memoria en este programa: la memoria que se devuelve
-    al troceador (parser) en una variable, y la memoria que se necesita
-    para almacenamiento temporal de datos en sus funciones. Cuando asigne
-    una cadena a una variable que se devolver&aacute; al troceador deber&aacute; asegurarse
-    previamente de asignar la memoria con emalloc() o con estrdup(). Esta
-    memoria NUNCA debe ser liberada por usted, salvo si m&aacute;s adelante,
-    en la misma funci&oacute;n, sobreescribe la asignaci&oacute;n original (aunque este
-    h&aacute;bito de programaci&oacute;n no es bueno).</simpara>
+Hay dos tipos de memoria en este programa: la memoria que es devuelta
+al int&eacute;rprete en una variable, y la memoria que necesita para
+el almacenamiento temporal en su funci&oacute;n interna. Cuando asigna
+una cadena a una variable que es devuelta al int&eacute;rprete,
+necesita asegurarse de reservar primero la memoria con emalloc() o
+estrdup(). Esta memoria no deber&iacute;a ser liberada por usted
+NUNCA, a menos que m&aacute;s adelante en la misma funci&oacute;n
+sobrescriba su asignaci&oacute;n original (aunque este tipo de
+pr&aacute;ctica no se considera apropiada).
+   </simpara>
 
    <simpara>
-    Para cada trozo de memoria temporal/permanente que precise
-    en sus funciones/librer&iacute;a deber&aacute; utilizar las funciones
-    emalloc(), estrdup(), y efree(). Estas se comportan
-    EXACTAMENTE como sus funciones equivalentes. Cualquier cosa
-    que asigne con emalloc() o estrdup() deber&aacute; liberarla con efree()
-    en uno u otro momento, salvo que se suponga que deba permanecer
-    activa hasta el final del programa; de otro modo, se producir&aacute;
-    una fuga de memoria. El significado de "estas se comportan exactamente
-    como sus funciones equivalentes" es: si llama a efree() sobre algo
-    que no ha sido asignado previamente con emalloc() o con estrdup(), 
-    puede provocar un fallo de segmentaci&oacute;n. Por ello debe tener cuidado y
-    liberar toda la memoria desperdiciada.</simpara> 
+Para cualquier segmento de memoria temporal/permanente que necesite en
+sus funciones/librer&iacute;as, usted deber&iacute;a usar las tres
+funciones emalloc(), estrdup(), y efree(). &Eacute;stas se comportan
+EXACTAMENTE como sus contrapartes. Cualquier cosa que reserve con
+emalloc() o estrdup() debe liberarla con efree() en alguno u otro
+punto, a menos que espere que permanezca hasta el final del programa;
+de otro modo, habr&aacute; una fuga de memoria. El significado de "las
+funciones se comportan exactamente como sus contrapartes" es: si usted
+usa efree() sobre algo que no fue reservado con emalloc() ni
+estrdup(), puede que reciba un fallo de segmentaci&oacute;n. De modo
+que, por favor, tenga cuidado y libere toda su memoria desperdiciada.
+   </simpara> 
 
    <simpara>
-    Si compila con "-DDEBUG", el PHP3 mostrar&aacute; una lista de toda la
-    memoria que fue asignada usando emalloc() y estrdup(), pero que
-    nunca fue liberada con efree(), al terminar de ejecutar el gui&oacute;n
-    especificado.</simpara></sect2>
+Si compila con "-DDEBUG", PHP imprimir&aacute; una lista de toda la
+memoria que fue reservada usando emalloc() y estrdup() y nunca
+liberada con efree() una vez termina la ejecuci&oacute;n el script
+especificado.
+   </simpara>
+  </sect2>
 
   <sect2 id="phpdevel-addfunc-symtab">
-   <title>Asignando Variables en la Tabla de S&iacute;mbolos</title>
+   <title>Definici&oacute;n de Variables en la Tabla de
+   S&iacute;mbolos</title>
    <para>
-    Est&aacute;n disponibles una serie de macros que hacen m&aacute;s f&aacute;cil el 
-    asignar una variale en la tabla de s&iacute;mbolos:
-   
+Un n&uacute;mero de macros se encuentra a su disposici&oacute;n para
+facilitar la definici&oacute;n de una variable en la tabla de
+s&iacute;mbolos:
     <itemizedlist>
-     <listitem><simpara>SET_VAR_STRING(nombre,valor) <footnoteref linkend="symtab-1"/></simpara></listitem>
+     <listitem><simpara>SET_VAR_STRING(nombre,valor)</simpara></listitem>
      <listitem><simpara>SET_VAR_DOUBLE(nombre,valor)</simpara></listitem>
      <listitem><simpara>SET_VAR_LONG(nombre,valor)</simpara></listitem>
-    </itemizedlist></para>
+    </itemizedlist>
+   </para>
 
-   <para>
-    <footnote id="symtab-1">
-     <simpara>
-      Tenga cuidado aqu&iacute;. El valor a usar se debe asignar din&aacute;micamente
-      y de forma manual, pues el c&oacute;digo de manejo de memoria intentar&aacute;
-      liberar este puntero m&aacute;s adelante. Nunca pase memoria asignada
-      de forma est&aacute;tica a SET_VAR_STRING.</simpara>
-    </footnote></para>
+   <warning>
+    <para>
+Tenga cuidado con SET_VAR_STRING. La parte del valor debe ser
+reservada manualmente con malloc, ya que el c&oacute;digo de
+gesti&oacute;n de memoria intentar&aacute; liberar este apuntador
+m&aacute;s adelante. No pase memoria reservada est&aacute;ticamente a
+un llamado a SET_VAR_STRING.
+    </para>
+   </warning>
     
    <simpara>
-    Las tablas de s&iacute;mbolos en PHP 3.0 se implementan como tablas hash
-    (con extracto). En todo momento, &amp;symbol_table es un puntero a
-    la tabla de s&iacute;mbolos 'principal', mientras que active_symbol_table 
-    apunta a la tabla de s&iacute;mbolos activa (pueden ser id&eacute;nticas, al 
-    principio de todo, o diferentes, si se est&aacute; dentro de una funci&oacute;n).</simpara>
+Las tablas de s&iacute;mbolos en PHP se encuentran implementadas como
+tablas asociativas. En cualquier momento dado, &amp;symbol_table es un
+apuntador a la tabla de s&iacute;mbolos 'principal', y
+active_symbol_table apunta a la tabla de s&iacute;mbolos activa
+actualmente (&eacute;stas pueden ser id&eacute;nticas, como al
+arranque, o diferentes, si se encuentra en el interior de una
+funci&oacute;n).
+   </simpara>
   
    <para>
-    Los ejemplos siguientes utilizan 'active_symbol_table'. Deber&aacute;
-    reemplazarla por &amp;symbol_table si desea trabajar espec&iacute;ficamente
-    con la tabla de s&iacute;mbolos 'principal'. Tambi&eacute;n se pueden aplicar las
-    mismas funciones a matrices, como se explica m&aacute;s abajo.</para>
+Los siguientes ejemplos usan 'active_symbol_table'. Debe reemplazar
+este valor con &amp;symbol_table si desea trabajar
+espec&iacute;ficamente con la tabla de s&iacute;mbolos
+'principal'. Asi mismo, las mismas funciones pueden ser aplicadas
+sobre matrices, como se explica m&aacute;s adelante.
+   </para>
   
    <para>
     <example>
-     <title>Comprobando si $algo existe en una tabla de s&iacute;mbolos</title>
-     <programlisting>
-if (hash_exists(active_symbol_table,"algo",sizeof("algo"))) { existe... }
+     <title>Chequear si $foo existe en la tabla de
+     s&iacute;mbolos</title>
+     <programlisting role="c">
+<![CDATA[
+if (hash_exists(active_symbol_table,"foo",sizeof("foo"))) { existe... }
 else { no existe }
+]]>
      </programlisting>
     </example>
 
     <example>
-     <title>Hallando el tama&ntilde;o de una variable en una tabla de s&iacute;mbolos</title>
-     <programlisting>
-hash_find(active_symbol_table,"algo",sizeof("algo"),&amp;valptr);
-check(valptr.type);
+     <title>Encontrar el tama&ntilde;o de una variable en una tabla de
+     s&iacute;mbolos</title>
+     <programlisting role="c">
+<![CDATA[
+hash_find(active_symbol_table,"foo",sizeof("foo"),&pvalue);
+check(pvalue.type);
+]]>
      </programlisting>
     </example>
-    
-    Las matrices en PHP 3.0 se implementan utilizando las mismas tablas
-    hash que para las tablas de s&iacute;mbolos. Ello quiere decir que las dos
-    funciones anteriores se pueden usar tambi&eacute;n para comprobar variables
-    dentro de matrices.</para>
+Las matrices en PHP son implementadas usando las mismas tablas
+asociativas como tablas de s&iacute;mbolos. Esto quiere decir que las
+dos funciones anteriores pueden ser usadas tambi&eacute;n para
+chequear variables al interior de matrices.
+   </para>
     
    <simpara>
-    Si desea definir un nuevo s&iacute;mbolo de matriz en una tabla de s&iacute;mbolos,
-    deber&aacute; hacer lo que sigue.</simpara>
+Si desea definir una nueva matriz en una tabla de s&iacute;mbolos,
+debe hacer lo siguiente.
+   </simpara>
 
    <simpara>
-    Primero, deber&aacute; comprobar si ya existe usando hash_exists() o hash_find()
-    y abortar la ejecuci&oacute;n de forma apropiada.</simpara>
+Primero, puede que desee chequear si existe, y abortar la
+ejecuci&oacute;n apropiadamente, usando hash_exists() o hash_find().
+   </simpara>
 
    <simpara>
-    Luego inicialice la matriz:</simpara>
+A continuaci&oacute;n, inicialice la matriz:
+   </simpara>
     
    <para>
     <example>
-     <title>Inicializando una nueva matriz</title>
-     <programlisting>
-pval matriz;
+     <title>Inicializaci&oacute;n de una nueva matriz</title>
+     <programlisting role="c">
+<![CDATA[
+pval arr;
   
-if (array_init(&amp;matriz) == FAILURE) { fall&oacute;... };
-hash_update(active_symbol_table,"algo",sizeof("algo"),&amp;matriz,sizeof(pval),NULL);
+if (array_init(&arr) == FAILURE) { fallo... };
+hash_update(active_symbol_table,"foo",sizeof("foo"),&arr,sizeof(pval),NULL);
+]]>
      </programlisting>
     </example>
-    
-    Este c&oacute;digo declara una nueva matriz, llamada $algo, en la tabla de s&iacute;mbolos
-    activa. Esta matriz est&aacute; vac&iacute;a.</para>
+
+Este c&oacute;digo declara una nueva matriz, llamada $foo, en la tabla
+de s&iacute;mbolos actual. Esta matriz se encuentra vac&iacute;a.
+   </para>
     
    <simpara>
-    Ahora se muestra c&oacute;mo a&ntilde;adirle elementos:</simpara>
+Este es el modo de agregar entradas en ella:
+   </simpara>
   
    <para>
     <example>
-     <title>A&ntilde;adir entradas a una nueva matriz</title>
-     <programlisting>
-pval elemento;
+     <title>Adici&oacute;n de nuevas entradas en una matriz nueva</title>
+     <programlisting role="c">
+<![CDATA[
+pval entrada;
   
-elemento.type = IS_LONG;
-elemento.value.lval = 5;
+entrada.type = IS_LONG;
+entrada.value.lval = 5;
   
-/* define $algo["bar"] = 5 */
-hash_update(matriz.value.ht,"bar",sizeof("bar"),&amp;elemento,sizeof(pval),NULL); 
+/* define $foo["bar"] = 5 */
+hash_update(arr.value.ht,"bar",sizeof("bar"),&entrada,sizeof(pval),NULL); 
 
-/* define $algo[7] = 5 */
-hash_index_update(matriz.value.ht,7,&amp;elemento,sizeof(pval),NULL); 
+/* define $foo[7] = 5 */
+hash_index_update(arr.value.ht,7,&entrada,sizeof(pval),NULL); 
 
-/* define el siguiente puesto libre en $algo[],
- * $algo[8], como 5 (funciona como en php2)
+/* define el siguiente lugar libre en $foo[],
+ * $foo[8], como 5 (funciona como en php2)
  */
-hash_next_index_insert(matriz.value.ht,&amp;elemento,sizeof(pval),NULL); 
+hash_next_index_insert(arr.value.ht,&entrada,sizeof(pval),NULL); 
+]]>
      </programlisting>
     </example>
-    
-    Si desea modificar un valor que ha insertado en una matriz asociativa,
-    deber&aacute; primero extraerlo de ella. Para evitar esa sobrecarga, puede
-    pasarle un puntero pval ** a la funci&oacute;n para insertar en una matriz
-    asociativa, y ser&aacute; actualizada con la direcci&oacute;n pval * del elemento
-    insertado dentro de la matriz. Si dicho valor es &null; (como en todos
-    los ejemplos anteriores), el par&aacute;metro se ignora.</para>
+Si desea modificar un valor que ha insertado a una matriz asociativa,
+primero debe recuperarlo desde la matriz. Para prevenir ineficiencias,
+puede ofrecer un pval ** a la funci&oacute;n de adici&oacute;n de la
+matriz asociativa, y &eacute;ste ser&aacute; actualizado con la
+direcci&oacute;n pval * del elemento insertado en la matriz. Si tal
+valor es &null; (como en todos los ejemplos anteriores) - el
+par&aacute;metro es ignorado.
+   </para>
 
    <simpara>
-    hash_next_index_insert() usa m&aacute;s o menos la misma l&oacute;gica que
-    "$algo[] = bar;" en el PHP 2.0.</simpara>
+hash_next_index_insert() usa m&aacute;s o menos la misma l&oacute;gica
+que "$foo[] = bar;" en PHP 2.0.
+   </simpara>
 
    <simpara>
-    Si est&aacute; preparando una matriz como valor devuelto por una funci&oacute;n,
-    puede inicializar la misma como antes, haciendo:</simpara>
+Si est&aacute; construyendo una matriz para devolverla desde una
+funci&oacute;n, puede inicializar la matriz tal y como se ha indicado,
+haciendo:
+   </simpara>
 
-   <programlisting>
-if (array_init(return_value) == FAILURE) { fall&oacute;...; }
+   <programlisting role="c">
+<![CDATA[
+if (array_init(return_value) == FAILURE) { fallo...; }
+]]>
    </programlisting>
 
    <simpara>
-    ... y luego a&ntilde;adi&eacute;ndole valores con las funciones auxiliares:</simpara>
+...y luego agregar valores con las funciones de ayuda:
+   </simpara>
 
-   <programlisting>
-add_next_index_long(return_value,val_long);
-add_next_index_double(return_value,val_double);
-add_next_index_string(return_value,estrdup(val_cadena));
+   <programlisting role="c">
+<![CDATA[
+add_next_index_long(valor_retorno,valor_long);
+add_next_index_double(valor_retorno,valor_double);
+add_next_index_string(valor_retorno,estrdup(valor_string));
+]]>
    </programlisting>
   
    <para>
-    Por supuesto, si la adici&oacute;n no se realiza justo despu&eacute;s de
-    inicializar la matriz, probablemente tenga que buscarla antes:
+Por supuesto, si la adici&oacute;n no es realizada correctamente luego
+de la inicializaci&oacute;n de la matriz, probablemente tenga que
+verificar la existencia de la matriz primero:
       
-    <programlisting>
-pval *matriz;
+    <programlisting role="c">
+<![CDATA[
+pval *arr;
   
-if (hash_find(active_symbol_table,"algo",sizeof("algo"),(void **)&amp;matriz)==FAILURE) { no se hay&oacute;... }
-else { usar matriz-&gt;value.ht... }
+if (hash_find(active_symbol_table,"foo",sizeof("foo"),(void **)&arr)==FAILURE) { no se pudo encontrar... }
+else { use arr->value.ht... }
+]]>
     </programlisting></para>
 
    <simpara>
-    N&oacute;tese que hash_find recibe un puntero a un puntero a pval, y no
-    un puntero a pval.</simpara>
+Note que hash_find recibe un apuntador a un apuntador pval, y no un
+apuntador pval.
+   </simpara>
   
    <simpara>
-    Casi cualquier funci&oacute;n de matrices asociativas devuelve SUCCESS o
-    FAILURE (excepto por hash_exists(), que devuelve un valor l&oacute;gico de
-    certeza).</simpara></sect2>
+Pr&aacute;cticamente toda funci&oacute;n de matriz asociativa devuelve
+SUCCESS o FAILURE (excepto por hash_exists(), que devuelve un valor
+booleano de verdad).
+   </simpara>
+  </sect2>
       
   <sect2 id="phpdevel-addfunc-retsimple">
-   <title>Devolviendo valores simples</title>
+   <title>Devoluci&oacute;n de valores simples</title>
    <simpara>
-    Est&aacute;n disponibles varias macros para facilitar la devoluci&oacute;n
-    de valores de una funci&oacute;n.</simpara> 
+Un n&uacute;mero de macros se encuentra a su disposici&oacute;n para
+facilitar la devoluci&oacute;n de valores desde una funci&oacute;n.
+   </simpara> 
 
    <para>
-    Todas las macros RETURN_* fijan el valor y retornan de la funci&oacute;n:
+Las macros RETURN_* todas establecen el valor de retorno y generan una
+devoluci&oacute;n desde la funci&oacute;n:
     <itemizedlist>
      <listitem><simpara>RETURN</simpara></listitem>
      <listitem><simpara>RETURN_FALSE</simpara></listitem>
      <listitem><simpara>RETURN_TRUE</simpara></listitem>
      <listitem><simpara>RETURN_LONG(l)</simpara></listitem>
-     <listitem><simpara>RETURN_STRING(s,dup)   Si dup es &true;, duplica la cadena</simpara></listitem>
-     <listitem><simpara>RETURN_STRINGL(s,l,dup)   Devuelve la cadena (s) especificando el largo (l).</simpara></listitem>
+     <listitem><simpara>RETURN_STRING(s,dup)   Si dup es &true;,
+     duplica la cadena</simpara></listitem>
+     <listitem><simpara>RETURN_STRINGL(s,l,dup)   Devuelve una cadena
+     (s) especificando la longitud (l).</simpara></listitem>
      <listitem><simpara>RETURN_DOUBLE(d)</simpara></listitem>
     </itemizedlist></para>
     
    <para>
-    Las macros RETVAL_* fijan el valor, pero no retornan.
+Las macros RETVAL_* establecen el valor de retorno, pero no devuelven.
     <itemizedlist>
      <listitem><simpara>RETVAL_FALSE</simpara></listitem>
      <listitem><simpara>RETVAL_TRUE</simpara></listitem>
      <listitem><simpara>RETVAL_LONG(l)</simpara></listitem>
-     <listitem><simpara>RETVAL_STRING(s,dup)   Si dup es &true;, duplica la cadena</simpara></listitem>
-     <listitem><simpara>RETVAL_STRINGL(s,l,dup)   Devuelve la cadena (s) especificando el largo (l).</simpara></listitem>
+     <listitem><simpara>RETVAL_STRING(s,dup)   Si dup es &true;,
+     duplica la cadena</simpara></listitem>
+     <listitem><simpara>RETVAL_STRINGL(s,l,dup)   Devuelve una cadena
+         (s) especificando la longitud (l).</simpara></listitem>
      <listitem><simpara>RETVAL_DOUBLE(d)</simpara></listitem>
     </itemizedlist></para>
 
    <simpara>
-    Las macros anteriores har&aacute;n un estrdup() del argumento 's',
-    de modo que puede liberar con seguridad el argumento despu&eacute;s
-    de llamar a la macro, o, alternativamente, utilizar memoria
-    asignada est&aacute;ticamente.</simpara>
+Todas las macros de cadena anteriores aplicar&aacute;n estrdup() sobre
+el argumento 's' pasado, de modo que puede liberar de forma segura el
+argumento despu&eacute;s de llamar la macro, o alternativamente puede
+usar memoria reservada est&aacute;ticamente.
+   </simpara>
 
    <simpara>
-    Si su funci&oacute;n devuelve respuestas l&oacute;gicas de &eacute;xito/error, use
-    siempre RETURN_TRUE y RETURN_FALSE respectivamente.</simpara></sect2>
+Si su funci&oacute;n devuelve repuesteas booleanas de
+&eacute;xito/error, use siempre RETURN_TRUE y RETURN_FALSE
+respectivamente.
+   </simpara>
+  </sect2>
     
   <sect2 id="phpdevel-addfunc-retcomplex">
-   <title>Devolviendo valores complejos</title>
+   <title>Devoluci&oacute;n de valores complejos</title>
    <simpara>
-    Su funci&oacute;n tambi&eacute;n puede devolver un tipo de datos complejo, tal
-    como un objeto o una matriz.</simpara>
+Su funci&oacute;n tambi&eacute;n puede devolver un tipo de datos
+complejo como un objeto o una matriz.
+   </simpara>
 
    <para>
-    Devolviendo un objeto:
-
+Devoluci&oacute;n de un objeto:
     <orderedlist numeration="arabic">
-     <listitem><simpara>Llame a object_init(return_value).</simpara></listitem>
-     <listitem><para>Rell&eacute;nela con valores. Las funciones disponibles para
-      ello son listadas m&aacute;s abajo.</para></listitem>
-     <listitem><para> Posilemente registre funciones para este objeto.
-       Para obtener valores del objeto, la funci&oacute;n deber&aacute; de obtener
-       "this" desde la active_symbol_table. Su tipo deber&aacute; ser IS_OBJECT,
-       y b&aacute;sicamente se trata de una matriz asociativa est&aacute;ndar (es decir,
-       que podr&aacute; usar funciones de matriz asociativa sobre .value.ht). El
-       registro en s&iacute; de la funci&oacute;n se puede hacer utilizando:
-       <programlisting>
-add_method( return_value, nombre_func, puntero_func );
-       </programlisting></para></listitem>
+     <listitem>
+      <simpara>
+       Llame object_init(valor_retorno).
+      </simpara>
+     </listitem>
+     <listitem>
+      <para>
+       Ll&eacute;nelo con valores. Las funciones disponibles para este
+       prop&oacute;sito se listan m&aacute;s adelante.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Posiblemente, registre funciones para este objeto. Para obtener
+       valores del objeto, la funci&oacute;n tendr&iacute;a que
+       recuperar "this" desde active_symbol_table. Su tipo debe ser
+       IS_OBJECT, y es b&aacute;sicamente una tabla asociativa regular
+       (esto quiere decir, puede usar las funciones de matrices
+       asociativas regulares sobre .value.ht). El registro
+       como tal de la funci&oacute;n puede realizarse usando:
+       <programlisting role="c">
+<![CDATA[
+add_method( valor_retorno, nombre_funcion, apuntador_funcion );
+]]>
+       </programlisting>
+	  </para>
+     </listitem>
     </orderedlist></para>
 
    <para>
-    Las funciones utilizadas para rellenar un objeto son:
+Las funciones usadas para poblar el objeto son:
     <itemizedlist>
-     <listitem><simpara>add_property_long( return_value,
-       nombre_propiedad, l ) - A&ntilde;ade una propiedad llamada 'nombre_propiedad', de
-       tipo long, y con valor 'l'</simpara></listitem> 
-     <listitem><simpara>add_property_double( return_value,
-       nombre_propiedad, d ) - Igual, pero a&ntilde;adiendo un double</simpara></listitem>
-     <listitem><simpara>add_property_string( return_value,
-       nombre_propiedad, cad ) - Igual, pero a&ntilde;adiendo una cadena</simpara></listitem>
-     <listitem><simpara>add_property_stringl( return_value,
-       nombre_propiedad, cad, l ) - Igual, pero a&ntilde;adiendo una cadena de longitud 'l'</simpara></listitem>
+     <listitem>
+      <simpara>
+       add_property_long( valor_retorno, nombre_propiedad, l ) -
+       Agregar una propiedad llamada 'nombre_propiedad', de tipo long,
+       igual a 'l'
+      </simpara>
+     </listitem> 
+     <listitem>
+      <simpara>
+       add_property_double( valor_retorno, nombre_propiedad, d ) -
+       Igual, s&oacute;lo agrega un double
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_property_string( valor_retorno, nombre_propiedad, str ) -
+       Igual, s&oacute;lo agrega una cadena
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_property_stringl( valor_retorno, nombre_propiedad, str, l )
+       - Igual, s&oacute;lo agrega una cadena de longitud 'l'
+      </simpara>
+     </listitem>
     </itemizedlist></para>
 
    <para>
-    Devolviendo una matriz:
-    
+Devoluci&oacute;n de una matriz:
     <orderedlist numeration="arabic">
-     <listitem><simpara>Llame a array_init(return_value).</simpara></listitem>
-     <listitem><simpara>Rell&eacute;nela con valores. Las funciones disponibles para
-      ello son listadas m&aacute;s abajo.</simpara></listitem>
+     <listitem>
+      <simpara>
+       Llame array_init(valor_retorno).
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       Ll&eacute;nela con valores. Las funciones disponibles para este
+       prop&oacute;sito se listan m&aacute;s adelante.
+      </simpara>
+     </listitem>
     </orderedlist></para>
 
    <para>
-    Las funciones utilizadas para rellanar una matriz son:
+Las funciones usadas para poblar una matriz son:
     <itemizedlist>
-     <listitem><simpara>add_assoc_long(return_value,clave,l) - a&ntilde;ade un
-     elemento asociativo con clave 'clave' y valor long 'l'</simpara></listitem>
-     <listitem><simpara>add_assoc_double(return_value,clave,d)</simpara></listitem>
-     <listitem><simpara>add_assoc_string(return_value,clave,cad,duplicar)</simpara></listitem>
-     <listitem><simpara>add_assoc_stringl(return_value,clave,cad,largo,duplicar)
-     - especifica el largo de la cadena</simpara></listitem>
-     <listitem><simpara>add_index_long(return_value,indice,l) - a&ntilde;ade un 
-     elemento en la posici&oacute;n 'indice' con valor long 'l'</simpara></listitem>
-     <listitem><simpara>add_index_double(return_value,indice,d)</simpara></listitem>
-     <listitem><simpara>add_index_string(return_value,indice,cad)</simpara></listitem>
-     <listitem><simpara>add_index_stringl(return_value,indice,cad,largo)
-     - especifica el largo de la cadena</simpara></listitem>
-     <listitem><simpara>add_next_index_long(return_value,l) - a&ntilde;ade un 
-     elemento a la matriz en la pr&oacute;xima posici&oacute;n libre con valor long 'l'</simpara></listitem>
-     <listitem><simpara>add_next_index_double(return_value,d)</simpara></listitem>
-     <listitem><simpara>add_next_index_string(return_value,cad)</simpara></listitem>
-     <listitem><simpara>add_next_index_stringl(return_value,cad,largo)
-     - especifica el largo de la cadena</simpara></listitem>
-    </itemizedlist></para></sect2>
+     <listitem>
+      <simpara>
+       add_assoc_long(valor_retorno,clave,l) - agregar una matriz
+       asociativa con la clave 'clave' y el valor largo 'l'
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_assoc_double(valor_retorno,clave,d)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_assoc_string(valor_retorno,clave,cadena,duplicar)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_assoc_stringl(valor_retorno,clave,cadena,longitud,duplicar)
+       especifica la longitud de la cadena
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_index_long(valor_retorno,indice,l) - agregar una entrada en
+       el indice 'indice' con el valor long 'l'
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_index_double(valor_retorno,indice,d)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_index_string(valor_retorno,indice,cadena)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_index_stringl(valor_retorno,indice,cadena,length) -
+       especificar la longitud de la cadena
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_next_index_long(valor_retorno,l) - agregar una entrada de
+       la matriz en la siguiente ubicaci&oacute;n libre con el valor long 'l'
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_next_index_double(valor_retorno,d)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_next_index_string(valor_retorno,cadena)
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       add_next_index_stringl(valor_retorno,cadena,length) -
+       especificar la longitud de la cadena
+      </simpara>
+     </listitem>
+    </itemizedlist>
+   </para>
+  </sect2>
 
   <sect2 id="phpdevel-addfunc-reslist">
-   <title>Usando la lista de recursos</title>
+   <title>Uso de la lista de recursos</title>
    <simpara>
-    El PHP 3.0 tiene una forma estandarizada de tratar con distintos
-    tipos de recursos. Esto sustituye a las listas enlazadas locales
-    del PHP 2.0.</simpara>
+PHP posee una forma est&aacute;ndar de tratar con los varios tipos de
+recursos. Esto reemplaza todas las listas enlazadas locales usadas en
+PHP 2.0.
+   </simpara>
 
    <para>
-    Funciones disponibles:
-
+Funciones disponibles:
     <itemizedlist>
-     <listitem><simpara>php3_list_insert(ptr, tipo) - devuelve el 'id'
-       del recurso reci&eacute;n insertado</simpara></listitem>
-     <listitem><simpara>php3_list_delete(id) - borra el recurso con el
-       id especificado</simpara></listitem> 
-     <listitem><simpara>php3_list_find(id,*tipo)
-       - devuelve el puntero al recurso con el id especificado, y
-       actualiza 'tipo' al tipo del mismo</simpara></listitem>
+     <listitem>
+      <simpara>
+       php3_list_insert(apuntador, tipo) - devuelve el 'id' del
+       recurso reci&eacute;n insertado
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       php3_list_delete(id) - eliminar el recurso con el id especificado
+      </simpara>
+     </listitem> 
+     <listitem>
+      <simpara>
+       php3_list_find(id,*tipo) - devuelve el apuntador del recurso
+       con el id especificado, actualiza 'tipo' al tipo del recurso
+      </simpara>
+     </listitem>
     </itemizedlist>
-
-    Estas funciones se utilizan t&iacute;picamente para controladores SQL, pero
-    pueden utilizarse para cualquier otra cosa, como, por ejemplo, para
-    mantener descriptores de archivo.</para>
+T&iacute;picamente, estas funciones son usadas para gestores de SQL,
+pero pueden ser usadas para cualquier otra cosa; por ejemplo, mantener
+descriptores de archivo.
+   </para>
 
    <simpara>
-    El c&oacute;digo t&iacute;pico de un lista ser&iacute;a como este:</simpara>
+Un listado de c&oacute;digo t&iacute;pico lucir&iacute;a de la
+siguiente forma:
+   </simpara>
     
    <para>
     <example>
-     <title>A&ntilde;adiendo un nuevo recurso</title>
-     <programlisting>
+     <title>Adici&oacute;n de un nuevo recurso</title>
+     <programlisting role="c">
+<![CDATA[
 RESOURCE *recurso;
 
-/* ...asignar memoria para el recurso y adquirirlo... */
-/* a&ntilde;adir un recurso a la lista */
-return_value-&gt;value.lval = php3_list_insert((void *) recurso, LE_RESOURCE_TYPE);
-return_value-&gt;type = IS_LONG;
+/* ...reservar memoria para el recurso y adquirirlo... */
+/* agregar un nuevo recurso a la lista */
+valor_retorno->value.lval = php3_list_insert((void *) recurso, LE_RESOURCE_TYPE);
+valor_retorno->type = IS_LONG;
+]]>
      </programlisting>
     </example>
 
     <example>
-     <title>Utilizando un recurso existente</title>
-     <programlisting>
+     <title>Uso de un recurso existente</title>
+     <programlisting role="c">
+<![CDATA[
 pval *id_recurso;
 RESOURCE *recurso;
 int tipo;
 
 convert_to_long(id_recurso);
-recurso = php3_list_find(id_recurso-&gt;value.lval, &amp;tipo);
+recurso = php3_list_find(id_recurso->value.lval, &tipo);
 if (tipo != LE_RESOURCE_TYPE) {
-	php3_error(E_WARNING,"el recurso n&uacute;mero %d tiene el tipo equivocado",id_recurso-&gt;value.lval);
+	php3_error(E_WARNING,"el indice de recurso %d tiene el tipo equivocado",id_recurso->value.lval);
 	RETURN_FALSE;
 }
-/* ...usar recurso... */
+/* ...usar el recurso... */
+]]>
      </programlisting>
     </example>
 
     <example>
-     <title>Borrando un recurso</title>
-     <programlisting>
+     <title>Eliminar un recurso existente</title>
+     <programlisting role="c">
+<![CDATA[
 pval *id_recurso;
 RESOURCE *recurso;
 int tipo;
 
 convert_to_long(id_recurso);
-php3_list_delete(id_recurso-&gt;value.lval);
+php3_list_delete(id_recurso->value.lval);
+]]>
      </programlisting>
     </example>
-   
-    Los tipos de recursos deben registrarse en php3_list.h, en la 
-    enumeraci&oacute;n list_entry_type. Adem&aacute;s, hay que a&ntilde;adir c&oacute;digo de
-    desconexi&oacute;n para cada tipo de recurso definido en la funci&oacute;n
-    list_entry_destructor() de list.c (incluso si no hay nada que
-    hacer para la desconexi&oacute;n, deber&aacute; a&ntilde;adir un caso vac&iacute;o).</para></sect2>
+Los tipos de recurso deber&iacute;an estar registrados en php3_list.h,
+en enum list_entry_type. Adicionalmente, debe procurarse la
+implementaci&oacute;n de c&oacute;digo de finalizaci&oacute;n para
+cada nuevo tipo de recurso definido, en list_entry_destructor()
+ubicado en list.c (incluso si no tiene nada que hacer en la
+finalizaci&oacute;n, debe agregar un caso vac&iacute;o).
+   </para>
+  </sect2>
 
   <sect2 id="phpdevel-addfunc-prestable">
-   <title>Utilizando la tabla de recursos persistentes</title>
+   <title>Uso de la tabla de recursos persistentes</title>
    <para>
-    El PHP 3.0 tiene una forma est&aacute;ndar de almacenar recursos persistentes
-    (es decir, recursos que se mantienen entre accesos). El primer m&oacute;dulo
-    que utiliz&oacute; esta caracter&iacute;stica fue el MySQL y tras &eacute;l fue el mSQL,
-    as&iacute; que uno puede hacerse una buena idea de c&oacute;mo utilizar un recurso
-    persistente leyendo mysql.c. Las funciones a revisar son:
-
+PHP posee una forma est&aacute;ndar de almacenar recursos persistentes
+(es decir, recursos que son conservados entre peticiones). El primer
+m&oacute;dulo en usar esta caracter&iacute;stica fue el m&oacute;dulo
+MySQL, y mSQL a continuaci&oacute;n, de modo que puede obtener una
+idea general de c&oacute;mo debe ser usado un recurso persistente
+leyendo mysql.c. Las funciones que debe consultar son:
     <simplelist>
      <member>php3_mysql_do_connect</member>
      <member>php3_mysql_connect()</member>
@@ -545,282 +737,415 @@ php3_list_delete(id_recurso-&gt;value.lval);
     </simplelist></para>
 
    <para>
-    La idea general de los m&oacute;dulos persistentes es:
+La idea general de los m&oacute;dulos de persistencia es la siguiente:
     <orderedlist numeration="arabic">
-     <listitem><simpara>Codifique todos sus m&oacute;dulos para que funcionen con
-       la lista regulares de recursos mencionadas en la secci&oacute;n (9).</simpara></listitem>
-     <listitem><simpara>Codifique funciones extra de conexi&oacute;n que comprueben
-       si el recurso ya est&aacute; en la lista de recursos persistentes. Si ya
-       est&aacute;, reg&iacute;strelo en la lista regular como un puntero a la lista
-       de recursos persistentes (debido a 1., el resto del c&oacute;digo deber&aacute;
-       funcionar de inmediato). Si no est&aacute; en la lista, cr&eacute;elo, a&ntilde;&aacute;dalo
-       a la lista de recursos persistentes Y a&ntilde;ada un puntero al mismo
-       desde la lista regular de recursos. As&iacute; todo el c&oacute;digo funcionar&aacute;
-       porque est&aacute; en la lista regular, pero en la siguiente conexi&oacute;n el
-       recurso ya estar&aacute; en la lista persistente y podr&aacute; ser usado sin
-       re-crearlo. Deber&aacute; registrar estos recursos con un tipo diferente
-       (por ejemplo, LE_MYSQL_LINK para el enlace no persistente y 
-       LE_MYSQL_PLINK para un enlace persistente).</simpara></listitem>
-    </orderedlist></para>
+     <listitem>
+      <simpara>
+Escriba todo el c&oacute;digo de su m&oacute;dulo para que trabaje con
+la lista de recursos normales mencionada en la secci&oacute;n (9).
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+Escriba el c&oacute;digo de funciones de conexi&oacute;n extra que
+revisen si el recurso ya existe en la lista de recursos
+persistentes. Si es as&iacute;, reg&iacute;strelo en la lista de
+recursos normal como un apuntador a la lista de recursos persistentes
+(debido a 1., el resto del c&oacute;digo debe funcionar
+inmediatamente). Si no existe, entonces cr&eacute;elo,
+agr&eacute;guelo a la lista de recursos persistentes Y agregue un
+apuntador hacia &eacute;l desde la lista normal de recursos, de modo
+que todo el c&oacute;digo pueda funcionar; esto ya que se encuentra en
+la lista de recursos regulares, pero, en la siguiente conexi&oacute;n,
+el recurso ser&iacute;a encontrado en la lista de recursos
+persistentes y usado sin tener que crearlo de nuevo. Debe registrar
+&eacute;stos recursos con un tipo diferente (p.ej. LE_MYSQL_LINK para
+un enlace no-persistente y LE_MYSQL_PLINK para un enlace persistente).
+      </simpara>
+     </listitem>
+    </orderedlist>
+   </para>
 
    <simpara>
-    Si se leyera mysql.c, notar&iacute;a que, salvo por que hay una funci&oacute;n de
-    conexi&oacute;n m&aacute;s compleja, no hay que cambiar nada m&aacute;s del resto del
-    m&oacute;dulo.</simpara>
+Si lee mysql.c, notar&aacute; que, con la excepci&oacute;n de la
+funci&oacute;n de conexi&oacute;n m&aacute;s compleja, nada del resto
+del m&oacute;dulo tiene que ser modificado.
+   </simpara>
    
    <simpara>
-    Existe exactamente la misma interfaz para la lista de recursos 
-    regular y para la lista de recursos persistente, pero cambiando
-    &uacute;nicamente 'lista' por 'listap':</simpara>
+La misma interfaz existe para la lista de recursos regulares y la
+lista de recursos persistentes, tan s&oacute;lo 'list' se reemplaza
+por 'plist':
+   </simpara>
 
     <itemizedlist>
-     <listitem><simpara>php3_plist_insert(ptr, tipo) - devuelve el 'id'
-       del recurso reci&eacute;n insertado</simpara></listitem>
-     <listitem><simpara>php3_plist_delete(id)- borra el recurso con el
-       id especificado</simpara></listitem> 
-     <listitem><simpara>php3_plist_find(id,*tipo)
-       - devuelve el puntero al recurso con el id especificado, y
-       actualiza 'tipo' al tipo del mismo</simpara></listitem>
+     <listitem>
+      <simpara>
+       php3_plist_insert(apuntador, tipo) - devuelve el 'id' del
+       recurso reci&eacute;n insertado
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       php3_plist_delete(id) - eliminar el recurso con el id
+       especificado
+      </simpara>
+     </listitem> 
+     <listitem>
+      <simpara>
+       php3_plist_find(id,*tipo) - devuelve el apuntador del recurso
+       con el id especificado, actualiza 'tipo' al tipo del recurso
+      </simpara>
+     </listitem>
     </itemizedlist>
 
    <simpara>
-    Sin embargo, es m&aacute;s que probable que estas funciones se muestren
-    in&uacute;tiles cuando intente implementar un m&oacute;dulo persistente. T&iacute;picamente
-    usted querr&aacute; usar el hecho de que la tabla de recursos persistentes
-    es en realidad una matriz asociativa. Por ejemplo, en los m&oacute;dulos
-    MySQL/mSQL, cuando hay una llamada a pconnect() (conexi&oacute;n 
-    persistente), la funci&oacute;n combina en una cadena el servidor/usuario/clave
-    que se pasaron a la funci&oacute;n y codifica el enlace SQL con esta
-    cadena como clave. La siguiente vez que alguien llame a pconnect()
-    con el mismo servidor/usuario/clave, se generar&aacute; la misma clave,
-    y la funci&oacute;n hayar&aacute; el enlace SQL en la lista persistente.</simpara>
+Sin embargo, es m&aacute;s que probable que estas funciones le
+resulten in&uacute;tiles cuando intente implementar un m&oacute;dulo
+persistente. T&iacute;picamente, es deseable aprovechar el hecho de
+que la lista de recursos persistentes es realmente una tabla
+asociativa. Por ejemplo, en los m&oacute;dulos MySQL/mSQL, cuando hay
+un llamado a pconnect() (conexi&oacute;n persistente), la
+funci&oacute;n crea una cadena a partir de los valores de
+host/usuario/contrase&ntilde;a que fueron pasados a la funci&oacute;n,
+y asocia el enlace SQL con &eacute;sta cadena como clave. La siguiente
+vez que alguien haga un llamado a pconnect() con la misma
+informaci&oacute;n de host/usuario/contrase&ntilde;a, se
+generar&aacute; la misma clave, y la funci&oacute;n encontrar&aacute;
+el enlace SQL en la lista persistente.
+   </simpara>
 
    <simpara>
-    Hasta que se documente mejor, deber&aacute; mirar en mysql.c o en msql.c 
-    para ver como utilizar las capacidades de matriz asociativa de la 
-    listap.</simpara>
+Hasta que sea documentado m&aacute;s a fondo, deber&iacute;a echarle
+un vistazo a mysql.c o msql.c para ver c&oacute;mo pueden usarse las
+capacidades de tabla asociativa de una lista plist.
+   </simpara>
 
    <simpara>
-    Una cosa importante: a los recursos que van a parar a la lista de
-    recursos persistentes *NO* se les debe asignar memoria usando el
-    gestor de memoria del PHP, es decir, que NO deben ser creados
-    utilizando emalloc() o estrdup(), etc. En este caso se debe usar
-    las funciones habituales malloc(), strdup(), etc. La raz&oacute;n para
-    esto es simple: al final de la petici&oacute;n (final del acceso), se
-    borran todos los trozos de memoria asignados con el gestor de 
-    memoria del PHP. Como la lista persistente se supone que no se
-    debe borrar al final de una petici&oacute;n, no se debe utilizar el gestor
-    de memoria del PHP para asignar memoria a los recursos de la misma.</simpara>
+Una cosa importante a notar: los recursos que van a la lista de
+recursos persistentes *NO* debe ser reservada con el gestor de memoria
+de PHP, es decir, NO debe ser creada con emalloc(), estrdup(), etc. En
+su lugar, deben ser usadas las funciones normales malloc(), strdup(),
+etc. La raz&oacute;n de esto es simple - al final de la
+petici&oacute;n (final de cada visita), cada trozo de memoria que fue
+ubicado usando el gestor de memoria de PHP es eliminado. Ya que la
+lista persistente no se supone que deba ser eliminada el final de cada
+petici&oacute;n, no debe utilizarse el gestor de memoria de PHP para
+reservar recursos que vayan a la lista.
+   </simpara>
 
    <simpara>
-    Cuando registre un recuros que vaya a estar en la lista persistente,
-    deber&aacute; a&ntilde;adir destructores tanto a la lista persistente como a la
-    no persistente. El destructor de la lista no persistente no deber&aacute;
-    hacer nada. El de la lista persistente deber&aacute; liberar adecuadamente
-    los recursos obtenidos por dicho tipo (por ejemplo, memoria, enlaces
-    SQL, etc.). Tal y como pasa para los recursos no persistentes, 
-    DEBER&Aacute; a&ntilde;adir destructores para cada recurso aunque no sean necesarios
-    y est&eacute;n vac&iacute;os. Recuerde que como no se pueden usar emalloc() y 
-    similares en conjunci&oacute;n con la lista persistente, tampoco podr&aacute;
-    utilizar efree() aqu&iacute;.</simpara></sect2>
-
+Cuando registra un recurso que va a ser usado en la lista persistente,
+debe agregar destructores para &eacute;sta tanto en la lista
+no-persistente como en la persistente. El destructor en la lista
+no-persistente no deber&iacute;a hacer nada. Aquel en la lista
+persistente deber&iacute;a liberar apropiadamente cualquier recurso
+obtenido por ese tipo (p.ej. memoria, enlaces SQL, etc). Tal como con
+los recursos no-persistentes, usted *DEBE* agregar destructores para
+cada recurso, incluso si no requieren ser destruidos y el destructor
+puede estar vac&iacute;o. Recuerde, ya que emalloc() y amigos no deben
+ser usados junto con la lista persistente, tampoco debe usar efree()
+aqu&iacute;.
+   </simpara>
+  </sect2>
 
   <sect2 id="phpdevel-addfunc-addcfg">
-   <title>A&ntilde;adiendo directivas de configuraci&oacute;n en tiempo de ejecuci&oacute;n</title>
+   <title>A&ntilde;adir directivas de configuraci&oacute;n de tiempo
+   de ejecuci&oacute;n</title>
    <para>
-    Muchas de las caracter&iacute;sticas del PHP3 pueden ser configuradas en
-    tiempo de ejecuci&oacute;n. Estas directivas de configuraci&oacute;n pueden aparecer
-    tanto en el fichero php3.ini o, en el caso de la versi&oacute;n de m&oacute;dulo
-    del Apache, en los archivos .conf del propio Apache. La ventaja de
-    tenerlos en los archivos .conf del Apache es que se puden configurar
-    directorio por directorio. Esto quiere decir que cada uno puede tener
-    un cierto safemodeexecdir, por ejemplo, mientras otro directorio
-    puede tener otro. Esta granularidad en la configuraci&oacute;n es especialmente
-    &uacute;til cuando un servidor soporta m&uacute;ltiples servidores virtuales.</para>
+Muchas de las caracter&iacute;sticas de PHP pueden ser configuradas en
+tiempo de ejecuci&oacute;n. Estas directivas de configuraci&oacute;n
+pueden aparecer en el archivo php3.ini designado, o, en el caso de la
+versi&oacute;n m&oacute;dulo de Apache, en los archivos .conf de
+Apache. La ventaja de tenerlas en los archivos .conf de Apache es que
+pueden ser configuradas por cada directorio. Esto quiere decir que un
+directorio puede tener cierto valor para safemodeexecdir, por ejemplo,
+mientras que otro directorio puede tener otro. Esta especificidad en
+la configuraci&oacute;n es especialmente &uacute;til cuando un
+servidor soporta m&uacute;ltiples hosts virtuales.
+   </para>
 
    <para>
-    Los pasos necesarios para a&ntilde;adir una nueva directiva:
-
+Los pasos requeridos para agregar una nueva directiva:
     <orderedlist>
-     <listitem><simpara>A&ntilde;ada la directiva a la estructura php3_ini_structure en mod_php3.h.</simpara></listitem> 
+     <listitem>
+      <simpara>
+       Agregar la directiva a la estructura php3_ini_structure en
+       mod_php3.h.
+      </simpara>
+     </listitem> 
     
-     <listitem><simpara>En main.c, edite la funci&oacute;n php3_module_startup
-       y a&ntilde;ada la llamada a cfg_get_string() o a cfg_get_long() 
-       seg&uacute;n se requiera.</simpara></listitem>
+     <listitem>
+      <simpara>
+       En main.c, editar la funci&oacute;n php3_module_startup y
+       agregar la llamada apropiada a cfg_get_string() o
+       cfg_get_long().
+      </simpara>
+     </listitem>
 
-     <listitem><simpara>A&ntilde;ada la directiva, las restricciones y un
-       comentario a la estructura php3_commands en mod_php3.c. Cuidado con
-       la parte de restricciones. Las de tipo RSRC_CONF s&oacute;lo puede aparecer
-       en los archivos .conf del Apache. Las directivas de tipo OR_OPTIONS
-       pueden aparecer en cualquier parte, incluso en los habituales
-       archivos .htaccess.</simpara></listitem>
+     <listitem>
+      <simpara>
+       Agregar la directiva, restricciones y un comentario a la
+       estructura php3_commands en mod_php3.c. F&iacute;jese en la
+       parte de restricciones. RSRC_CONF son directivas que pueden
+       estar presentes s&oacute;lo en las archivos .conf de Apache,
+       Cualquier directiva OR_OPTIONS puede estar presente en
+       cualquier parte, incluyendo archivos &htaccess; normales.
+      </simpara>
+     </listitem>
 
-     <listitem><simpara>A&ntilde;ada el elemento apropiado para su directiva,
-       bien en php3take1handler(), bien en php3flaghandler().</simpara></listitem>
+     <listitem>
+      <simpara>
+       Agregue la entrada apropiada para su directiva en
+       php3take1handler() o en php3flaghandler().
+      </simpara>
+     </listitem>
 
-     <listitem><simpara>Necesita a&ntilde;adir su nueva directiva a la
-       secci&oacute;n de configuraci&oacute;n de la funci&oacute;n _php3_info() en
-       functions/info.c.</simpara></listitem>
+     <listitem>
+      <simpara>
+       En la secci&oacute;n de configuraci&oacute;n de la
+       funci&oacute;n _php3_info() en functions/info.c necesita
+       agregar su nueva directiva.
+      </simpara>
+     </listitem>
 
-     <listitem><simpara>Y finalmente, por supuesto, deber&aacute; utilizar
-       su nueva directiva en alg&uacute;n sitio. Estar&aacute; accesible como
-       php3_ini.directiva.</simpara></listitem>
-    </orderedlist></para></sect2></sect1>
+     <listitem>
+      <simpara>
+       Y, por &uacute;ltimo, debe por supuesto usar su directiva en
+       alguna parte. Esta ser&aacute; asequible como
+       php3_ini.directiva.
+      </simpara>
+     </listitem>
+    </orderedlist>
+   </para>
+  </sect2>
+ </sect1>
 
 
  <sect1 id="calling-user-functions">
-  <title>Llamando a Funciones del Usuario</title>
+  <title>Llamados a Funciones de Usuario</title>
 
   <simpara>
-   Para llamar a funciones del usuario desde una funci&oacute;n interna,
-   deber&aacute; usar la funci&oacute;n <function>call_user_function</function>.
+Para llamar funciones de usuario desde una funci&oacute;n interna,
+debe usar la funci&oacute;n <function>call_user_function</function>.
   </simpara>
 
   <simpara>
-   <function>call_user_function</function> devuelve SUCCESS si tiene
-   &eacute;xito y FAILURE en caso de que la funci&oacute;n no sea hallada. ¡Deber&aacute;
-   comprobar ese valor de retorno! Si devuelve SUCCESS, debe usted
-   ocuparse de destruir el pval devuelto (o devolverlo como el valor
-   de retorno de su funci&oacute;n). Si devuelve FAILURE, el valor de valret
-   no est&aacute; definido y no debe tocarlo.
+<function>call_user_function</function> devuelve SUCCESS en caso de
+&eacute;xito, y FAILURE si la funci&oacute;n no pudo ser
+encontrada. &iexcl;Debe chequear ese valor de retorno! Si devuelve
+SUCCESS, usted es responsable por la destrucci&oacute;n del valor tipo
+pval retval (o devolverlo como el valor de retorno de su
+funci&oacute;n). Si devuelve FAILURE, el valor de retval ser&aacute;
+indefinido, y no debe tocarlo.
   </simpara>
 
   <simpara>
-   Todas las funciones internas que llaman a funciones de
-   usuario <emphasis>deben</emphasis> ser reentrantes. Entre
-   otras cosas, esto quiere decir que no se utilicen variables
-   globales ni est&aacute;ticas.
+Todas las funciones internas que hacen llamados a funciones de
+usuario <emphasis>deben</emphasis> ser reentrantes. Entre otras cosas,
+esto quiere decir que no debe usar variables globales o
+est&aacute;ticas.
   </simpara>
 
   <simpara>
-   <function>call_user_function</function> lleva 6 argumentos:
+<function>call_user_function</function> recibe seis argumentos:
   </simpara>
 
   <sect2 id="calling-user-functions.function-table">
-   <title>HashTable *tabla_funciones</title>
+   <title>HashTable *tabla_de_funciones</title>
    <simpara>
-    Esta es la matriz asociativa en la que se buscar&aacute; la funci&oacute;n.
-   </simpara></sect2>
+Esta es la tabla asociativa en la que ser&aacute; buscada la
+funci&oacute;n.
+   </simpara>
+  </sect2>
 
   <sect2 id="calling-user-functions.object">
    <title>pval *objeto</title>
    <simpara>
-    Este es un puntero a un objeto sobre el que se invoca la funci&oacute;n.
-    Deber&aacute; valer &null; si se llama a una funci&oacute;n global. Si no es &null;
-    (es decir, si apunta a un objeto), el argumento tabla_funciones se
-    ignora y se toma su valor a partir de la codificaci&oacute;n del objeto.
-    El objeto *puede* ser modificado por dicha funci&oacute;n (&eacute;sta accede
-    a &eacute;l a trav&eacute;s de $this). Si por alguna raz&oacute;n no desea que eso
-    ocurra, env&iacute;e entonces una copia del objeto.
-   </simpara></sect2>
+Este es un apuntador a un objeto sobre el que es invocada la
+funci&oacute;n. Debe ser &null; si es llamada una funci&oacute;n
+global. Si no es &null; (es decir, apunta hacia un objeto), el
+argumento tabla_de_funciones es ignorado, y en su lugar se toma de la
+matriz asociativa del objeto. El objeto *puede* ser modificado por la
+funci&oacute;n que es invocada sobre &eacute;l (la funci&oacute;n
+tendr&aacute; acceso sobre el objeto mediante $this). Si por alguna
+raz&oacute;n no desea que eso ocurra, env&iacute;e en su lugar una
+copia del objeto.
+   </simpara>
+  </sect2>
 
   <sect2 id="calling-user-functions.function-name">
-   <title>pval *nombre_func</title>
+   <title>pval *nombre_funcion</title>
    <simpara>
-    El nombre de la funci&oacute;n a llamar. Debe ser un pval de tipo
-    IS_STRING, con nombre_func.str.val y nombre_func.str.len
-    fijados a los valores apropiados. El nombre_func es modificado
-    por call_user_function(), que lo convierte a min&uacute;sculas. Si 
-    necesita preservar el nombre, env&iacute;e una copia del mismo.
-   </simpara></sect2>
+El nombre de la funci&oacute;n a llamar. Debe ser un pval de tipo
+IS_STRING cuyos miembros function_name.str.val y function_name.str.len
+se encuentren definidos con valores apropiados. El nombre_funcion es
+modificado por call_user_function() - es convertido a
+min&uacute;sculas. Si necesita conservar los caracteres originales,
+env&iacute;e una copia del nombre de funci&oacute;n en su lugar.
+   </simpara>
+  </sect2>
 
   <sect2 id="calling-user-functions.retval">
-   <title>pval *valret</title>
+   <title>pval *retval</title>
    <simpara>
-    Un puntero a una estructura pval, en la que se guarda el valor
-    de returno de la funci&oacute;n. Hay que asignar espacio a la estructura
-    previamente, porque la funci&oacute;n <function>call_user_function</function>
-    NO lo asigna por s&iacute; misma.
-   </simpara></sect2>
+Un apuntador a una estructura pval, en la cual es guardado el valor de
+retorno de la funci&oacute;n invocada. La estructura debe ser
+reservada previamente - <function>call_user_function</function> NO
+reserva memoria por s&iacute; sola.
+   </simpara>
+  </sect2>
 
   <sect2 id="calling-user-functions.param-count">
-   <title>int num_params</title>
+   <title>int conteo_param</title>
    <simpara>
-    El n&uacute;mero de par&aacute;metros que se pasan a la funci&oacute;n.
-   </simpara></sect2>
+El n&uacute;mero de par&aacute;metros que son pasados a la
+funci&oacute;n.
+   </simpara>
+  </sect2>
 
   <sect2 id="calling-user-functions.params">
    <title>pval *params[]</title>
    <simpara>
-    Una matriz de punteros a los valores que se pasar&aacute;n como argumentos
-    a la funci&oacute;n. El primer argumento est&aacute; en el elemento 0, el segundo
-    en el elemento 1, etc. La matriz es una matriz de punteros a pval. Los
-    punteros se env&iacute;an tal cual a la funci&oacute;n, lo que quiere decir que si
-    la funci&oacute;n modifica sus argumentos, se modifican los valores originales
-    (paso por referencia). Si no desea ese comportamiento, pase una copia.
-   </simpara></sect2></sect1>
+Una matriz de apuntadores a valores que ser&aacute;n pasados como
+argumentos a la funci&oacute;n, el primer argumento ubicado en la
+posici&oacute;n 0, el segundo en la posici&oacute;n 1, etc. La matriz
+es una matriz de apuntadores a valores pval; Los apuntadores son
+enviados tal cual a la funci&oacute;n, lo que quiere decir que si la
+funci&oacute;n modifica sus argumentos, los valores originales son
+modificados (pasados por referencia). Si no desea esta clase de
+comportamiento, pase una copia en su lugar.
+   </simpara>
+  </sect2>
+ </sect1>
 
  <sect1 id="phpdevel-errors">
-  <title>Informando de errores</title>
+  <title>Reporte de Errores</title>
 
   <simpara>
-   Para informar de errores desde una funci&oacute;n interna, deber&aacute; llamar
-   la funci&oacute;n <function>php3_error</function>. Esta lleva al menos
-   dos par&aacute;metros: el primero el es nivel del error, y el segundo es
-   la cadena de formato para el mensaje de error (como en una llamada
-   est&aacute;ndar a <function>printf</function>). Cualquiera de los argumentos
-   siguientes son para la cadena de formato. Los niveles de error son:
+Para reportar errores desde una funci&oacute;n interna, debe llamar a
+la funci&oacute;n
+<function>php3_error</function>. &Eacute;sta recibe por lo menos dos
+par&aacute;metros -- el primero es el nivel del error, el segundo es
+la cadena con formato para el mensaje de error (como en un llamado
+est&aacute;ndar a <function>printf</function>), y cualquier argumento
+subsiguiente ser&aacute; usado como par&aacute;metro para la cadena de
+formato. Los niveles de error son:
   </simpara>
 
   <sect2 id="internal.e-notice">
    <title>E_NOTICE</title>
    <simpara>
-    Por defecto se visualizan las noticas, e indican que el gui&oacute;n encontr&oacute;
-    algo que podr&iacute;a indicar un error, pero que tambi&eacute;n podr&iacute;a ocurrir
-    durante el curso normal de la ejecuci&oacute;n del mismo. Por ejemplo,
-    al intentar acceder al valor de una variable que no ha sido fijado,
-    o llamar a <function>stat</function> sobre un fichero que no existe.
+Las noticias no son desplegadas por defecto, e indican que el script
+encontr&oacute; algo que puede indicar un error, pero podr&iacute;a
+ocurrir tambi&eacute;n en el curso normal de un script en
+ejecuci&oacute;n. Por ejemplo, al tratar de acceder al valor de una
+variable que no ha sido definida, o al
+llamar <function>stat</function> sobre un archivo que no existe.
    </simpara>
   </sect2>
 
   <sect2 id="internal.e-warning">
    <title>E_WARNING</title>
    <simpara>
-    Por defecto se visualizan los avisos, pero no se interrumpe la
-    ejecuci&oacute;n del gui&oacute;n. Estos indican un problema que debiera haberse
-    interceptado en el gui&oacute;n antes de la llamada. Por ejemplo, llamar
-	<function>ereg</function> con una expresi&oacute;n regular no v&aacute;lida.
+Las advertencias son desplegadas por defecto, pero no interrumpen la
+ejecuci&oacute;n del script. &Eacute;stas indican un problema que
+deb&iacute;a ser atrapado por el script antes de que el llamado fuera
+hecho. Por ejemplo, llamar <function>ereg</function> con una
+expresi&oacute;n regular inv&aacute;lida.
    </simpara>
   </sect2>
 
   <sect2 id="internal.e-error">
    <title>E_ERROR</title>
    <simpara>
-    Por defecto se visualizan los errores y la ejecuci&oacute;n del gui&oacute;n se 
-    detiene cuando la funci&oacute;n retorna. Estos indican errores irrecuperables,
-    como un problema de asignaci&oacute;n de memoria.
+Los errores son desplegados por defecto tambi&eacute;n, y la
+ejecuci&oacute;n del script es detenida despu&eacute;s de que la
+funci&oacute;n retorna. &Eacute;stos indican errores de los que no
+puede realizarse una recuperaci&oacute;n, tales como problemas de
+reserva de memoria.
    </simpara>
   </sect2>
 
   <sect2 id="internal.e-parse">
    <title>E_PARSE</title>
    <simpara>
-    Los errores de troceo s&oacute;lo debe generarlos el troceador. El c&oacute;digo
-    se lista aqu&iacute; con objeto de ser exhaustivos.
+Los errores de an&aacute;lisis sint&aacute;ctico deben ser generados
+&uacute;nicamente por el analizador sint&aacute;ctico. El
+c&oacute;digo es listado aqu&iacute; s&oacute;lo con el
+prop&oacute;sito de crear una referencia completa.
    </simpara>
   </sect2>
 
   <sect2 id="internal.e-core-error">
    <title>E_CORE_ERROR</title>
    <simpara>
-    Este es similar al E_ERROR, pero generado por el n&uacute;cleo del
-    PHP. Las funciones no deben generar este tipo de error.
+Este es como un E_ERROR, excepto que es generado por el n&uacute;cleo
+de PHP. Las funciones no deben generar este tipo de error.
    </simpara>
   </sect2>
 
   <sect2 id="internal.e-core-warning">
    <title>E_CORE_WARNING</title>
    <simpara>
-    Este es similar al E_WARNING, pero generado por el n&uacute;cleo del
-    PHP. Las funciones no deben generar este tipo de error.
+Este es como un E_WARNING, excepto que es generado por el
+n&uacute;cleo de PHP. Las funciones no deben generar este tipo de
+error.
    </simpara>
-   <note>
-   	<para>
-	&quot;N.D.:&quot; significa Nota del Documentador y es un texto interno
-	</para>
-   </note>
   </sect2>
-  </sect1>
+
+  <sect2 id="internal.e-compile-error">
+   <title>E_COMPILE_ERROR</title>
+   <simpara>
+Este es como un E_ERROR, excepto que es generado por el Motor de
+Scripting de Zend. Las funciones no deben generar este tipo de error.
+   </simpara>
+  </sect2>
+
+  <sect2 id="internal.e-compile-warning">
+   <title>E_COMPILE_WARNING</title>
+   <simpara>
+Este es como un E_WARNING, excepto que es generado por el Motor de
+Scripting de Zend. Las funciones no deben generar este tipo de error.
+   </simpara>
+  </sect2>
+
+  <sect2 id="internal.e-user-error">
+   <title>E_USER_ERROR</title>
+   <simpara>
+Este es como un E_ERROR, excepto que es generado en c&oacute;digo PHP
+usando la funci&oacute;n <function>trigger_error</function>. Las
+funciones no deben generar este tipo de error.
+   </simpara>
+  </sect2>
+
+  <sect2 id="internal.e-user-warning">
+   <title>E_USER_WARNING</title>
+   <simpara>
+Este es como un E_WARNING, excepto que es generado en c&oacute;digo
+PHP usando la funci&oacute;n <function>trigger_error</function>. Las
+funciones no deben generar este tipo de error.
+   </simpara>
+  </sect2>
+
+  <sect2 id="internal.e-user-notice">
+   <title>E_USER_NOTICE</title>
+   <simpara>
+Este es como un E_NOTICE, excepto que es generado en c&oacute;digo PHP
+usando la funci&oacute;n <function>trigger_error</function>. Las
+funciones no deben generar este tipo de error.
+   </simpara>
+  </sect2>
+  
+  <sect2 id="internal.e-all">
+   <title>E_ALL</title>
+   <simpara>
+Todos los anteriores. Usando este nivel de error_reporting le
+mostrar&aacute; todos los tipos de error.
+   </simpara>
+  </sect2>
+
+ </sect1>
 </appendix>
 <!-- Keep this comment at the end of the file
 Local variables:
@@ -833,9 +1158,12 @@ sgml-indent-step:1
 sgml-indent-data:t
 indent-tabs-mode:nil
 sgml-parent-document:nil
-sgml-default-dtd-file:"../manual.ced"
+sgml-default-dtd-file:"../../manual.ced"
 sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
 End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
 -->
