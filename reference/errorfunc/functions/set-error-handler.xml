@@ -5,46 +5,36 @@
    <refnamediv>
     <refname>set_error_handler</refname>
     <refpurpose>
-     Sets a user-defined error handler function.  
+     Establece una funci&oacute;n espec&iacute;fica para el manejo de errores.  
     </refpurpose>
    </refnamediv>
    <refsect1>
-    <title>Description</title>
+    <title>Descripci&oacute;n</title>
      <methodsynopsis>
       <type>string</type><methodname>set_error_handler</methodname>
       <methodparam><type>string</type><parameter>error_handler</parameter></methodparam>
      </methodsynopsis>
     <para>
-     Sets a user function (<parameter>error_handler</parameter>) to handle
-     errors in a script.  Returns the previously defined error handler (if
-     any), or &false; on error.  This function can be used for defining your own
-     way of handling errors during runtime, for example in applications in
-     which you need to do cleanup of data/files when a critical error happens,
-     or when you need to trigger an error under certain conditions (using
-     <function>trigger_error</function>)
+     Establece una funci&oacute;n definida por el usuario (<parameter>error_handler</parameter>) para el manejo de los errores dentro de un script.  Devuelve el anterior manejador de errores (si es que existe alguno) o &false; si se produce un error. Esta funci&oacute;n se utiliza para definir un m&eacute;todo espec&iacute;fico de manejo de los errores que se producen en tiempo de ejecuci&oacute;n. Por ejemplo, se puede utilizar en aplicaciones que requieran un tratamiento especial de algunos datos/archivos cuando se produce un error cr&iacute;tico o cuando se lanza un determinado error (utilizando la funci&oacute;n <function>trigger_error</function>)
     </para>
     <para>
-     The user function needs to accept 2 parameters: the error code, and a
-     string describing the error. The example below shows the handling of 
-     internal execptions by triggering errors and handling them with a user
-     defined function:
+     La funci&oacute;n que se quiere utilizar para el manejo de errores debe aceptar 2 par&aacute;metros: el c&oacute;digo de error y una cadena de texto que describe el error producido. A continuaci&oacute;n se muestra un ejemplo de uso de excepciones mediante el lanzamiento de errores y su manejo con una funci&oacute;n definida por el usuario:
      <example>
       <title>
-       Error handling with <function>set_error_handler</function> and
-       <function>trigger_error</function>
+       Manejo de errores con las funciones <function>set_error_handler</function> y <function>trigger_error</function>
       </title>
       <programlisting role="php">
 &lt;?php
 
-// redefine the user error constants - PHP4 only
+// Definici&oacute;n de las constantes de error del usuario - solo PHP4
 define (FATAL,E_USER_ERROR);
 define (ERROR,E_USER_WARNING);
 define (WARNING,E_USER_NOTICE);
 
-// set the error reporting level for this script
+// Establecer el nivel de errores notificado en este script
 error_reporting  (FATAL + ERROR + WARNING);
 
-// error handler function
+// Funci&oacute;n de manejo de errores
 function myErrorHandler ($errno, $errstr) {
     switch ($errno) {
     case FATAL:
@@ -66,7 +56,7 @@ function myErrorHandler ($errno, $errstr) {
     }
 }
 
-// function to test the error handling
+// Funci&oacute;n par probar el manejo de errores
 function scale_by_log ($vect, $scale) {
     if ( !is_numeric($scale) || $scale &lt;= 0 )
     trigger_error(&quot;log(x) for x &lt;= 0 is undefined, you used: scale = $scale&quot;, 
@@ -84,72 +74,94 @@ function scale_by_log ($vect, $scale) {
     return $temp;
 }
 
-// set to the user defined error handler
+// Establecer la funci&oacute;n de manejo de errores
 $old_error_handler = set_error_handler(&quot;myErrorHandler&quot;);
 
-// trigger some errors, first define a mixed array with a non-numeric item
+// Lanzamiento de algunos errores. En primer lugar se define un array mixto con un elemento no num&eacute;rico
 echo &quot;vector a\n&quot;;
 $a = array(2,3,&quot;foo&quot;,5.5,43.3,21.11);
 print_r($a);
 
-// now generate second array, generating a warning
+// Crear un nuevo array, generando un aviso
 echo &quot;----\nvector b - a warning (b = log(PI) * a)\n&quot;;
 $b = scale_by_log($a, M_PI);
 print_r($b);
 
-// this is trouble, we pass a string instead of an array
+// Lo siguiente produce un error, ya que se pasa una cadena de texto en lugar de un array
 echo &quot;----\nvector c - an error\n&quot;;
 $c = scale_by_log(&quot;not array&quot;,2.3);
 var_dump($c);
 
-// this is a critical error, log of zero or negative number is undefined
+// A continuaci&oacute;n se produce un error cr&iacute;tico, ya que no est&aacute; definido el logaritmo
+// de un n&uacute;mero negativo o igual a cero
 echo &quot;----\nvector d - fatal error\n&quot;;
 $d = scale_by_log($a, -2.5);
 
 ?&gt;
       </programlisting>
-     </example>
-     And when you run this sample script, the output will be
-     <informalexample>
-      <programlisting>
+     <para>Cuando se ejecuta el anterior ejemplo, el resultado ser&aacute; similar al siguiente:</para>
+     <screen>
+<![CDATA[
 vector a
 Array
 (
-    [0] =&gt; 2
-    [1] =&gt; 3
-    [2] =&gt; foo
-    [3] =&gt; 5.5
-    [4] =&gt; 43.3
-    [5] =&gt; 21.11
+    [0] => 2
+    [1] => 3
+    [2] => foo
+    [3] => 5.5
+    [4] => 43.3
+    [5] => 21.11
 )
 ----
 vector b - a warning (b = log(PI) * a)
-&lt;b&gt;WARNING&lt;/b&gt; [1024] Value at position 2 is not a number, using 0 (zero)&lt;br&gt;
+<b>WARNING</b> [1024] Value at position 2 is not a number, using 0 (zero)<br />
 Array
 (
-    [0] =&gt; 2.2894597716988
-    [1] =&gt; 3.4341896575482
-    [2] =&gt; 0
-    [3] =&gt; 6.2960143721717
-    [4] =&gt; 49.566804057279
-    [5] =&gt; 24.165247890281
+    [0] => 2.2894597716988
+    [1] => 3.4341896575482
+    [2] => 0
+    [3] => 6.2960143721717
+    [4] => 49.566804057279
+    [5] => 24.165247890281
 )
 ----
 vector c - an error
-&lt;b&gt;ERROR&lt;/b&gt; [512] Incorrect input vector, array of values expected&lt;br&gt;
+<b>ERROR</b> [512] Incorrect input vector, array of values expected<br />
 NULL
 ----
 vector d - fatal error
-&lt;b&gt;FATAL&lt;/b&gt; [256] log(x) for x &lt;= 0 is undefined, you used: scale = -2.5&lt;br&gt;
-  Fatal error in line 16 of file trigger_error.php, PHP 4.0.1pl2 (Linux)&lt;br&gt;
-Aborting...&lt;br&gt;
-      </programlisting>
-     </informalexample>
+<b>FATAL</b> [256] log(x) for x <= 0 is undefined, you used: scale = -2.5<br />
+  Fatal error in line 36 of file trigger_error.php, PHP 4.0.2 (Linux)<br />
+Aborting...<br />
+]]>
+      </screen>
+	</example>
+    </para>
+	<para>
+     Un aspecto importante a tener en cuenta cuando se utiliza un manejador propio es que el 
+	 manejador de errores de PHP se deshabilita por completo (de forma temporal). De esta forma,
+	 los cambios efectuados con la funci&oacute;n <function>error_reporting</function> no tienen
+	 ning&uacute;n efecto, ya que se utilizar&aacute; exclusivamente la funci&oacute;n manejadora
+	 de errores definida por el usuario. No obstante, se puede consultar el valor almacenado en
+	 <link linkend="ini.error-reporting">error_reporting</link> y actuar en consecuencia. Adem&aacute;s, es necesario tener presente que el valor almacenado en <link linkend="ini.error-reporting">error_reporting</link> ser&aacute; igual a 0 si la sentencia que origin&oacute; el error tiene como prefijo el <link linkend="language.operators.errorcontrol"> operador @ </link>.
     </para>
     <para>
-     See also <function>error_reporting</function>,
+     Adem&aacute;s, la funci&oacute;n manejadora de errores deber&aacute; hacer uso de la funci&oacute;n <function>die</function> si es necesario. Si la funci&oacute;n manejadora de errores deuelve un valor, la ejecución del script continuar&aacute; en la sentencia siguiente a la que origin&oacute; el error.
+    </para>
+    <note>
+     <para>
+     Si se produce un error antes de que se ejecute el script (por ejemplo cuando se sube un archivo), no se puede utilizar un manejador creado por el usuario, ya que en ese momento a&uacute;n no ha sido registrado.
+     </para>
+    </note>
+    <note>
+     <para>
+      El segundo par&aacute;metro <parameter>error_types</parameter> se introdujo a partir de PHP 5.
+     </para>
+    </note>
+    <para>
+     Puede consultar tambi&eacute; las funciones <function>error_reporting</function>,
      <function>restore_error_handler</function>,
-     <function>trigger_error</function>, <function>user_error</function>
+     <function>trigger_error</function> y <function>user_error</function>
     </para>
    </refsect1>
   </refentry>
