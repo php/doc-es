@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.2 $ -->
-<!-- EN-Revision: 1.4 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.3 $ -->
+<!-- EN-Revision: 1.9 Maintainer: lboshell Status: ready -->
 <!-- splitted from ./en/functions/filesystem.xml, last change in rev 1.2 -->
   <refentry id="function.fileperms">
    <refnamediv>
@@ -16,11 +16,91 @@
     <para>
      Devuelve los permisos del archivo, o &false; en caso de fallo.
     </para>
-    
     &note.clearstatcache;
-    
     &tip.fopen-wrapper.stat;
-    
+    <example>
+        <title>Desplegar los permisos como un valor octal</title>
+        <programlisting role="php">
+<![CDATA[
+<?php
+echo substr(sprintf('%o', fileperms('/tmp')), -4);
+echo substr(sprintf('%o', fileperms('/etc/passwd')), -4);
+?>
+]]>
+        </programlisting>
+        <para>Esto producir&iacute;a la salida:</para>
+        <screen>
+<![CDATA[
+1777
+0644
+]]>
+        </screen>
+    </example>
+    <example>
+        <title>Mostrar los permisos completos</title>
+        <programlisting role="php">
+<![CDATA[
+<?php
+$perms = fileperms('/etc/passwd');
+
+if (($perms & 0xC000) == 0xC000) {
+    // Socket
+    $info = 's';
+} elseif (($perms & 0xA000) == 0xA000) {
+    // Enlace Simbolico
+    $info = 'l';
+} elseif (($perms & 0x8000) == 0x8000) {
+    // Regular
+    $info = '-';
+} elseif (($perms & 0x6000) == 0x6000) {
+    // Bloque especial
+    $info = 'b';
+} elseif (($perms & 0x4000) == 0x4000) {
+    // Directorio
+    $info = 'd';
+} elseif (($perms & 0x2000) == 0x2000) {
+    // Caracter especial
+    $info = 'c';
+} elseif (($perms & 0x1000) == 0x1000) {
+    // Pipe FIFO
+    $info = 'p';
+} else {
+    // Desconocido
+    $info = 'u';
+}
+
+// Duenyo
+$info .= (($perms & 0x0100) ? 'r' : '-');
+$info .= (($perms & 0x0080) ? 'w' : '-');
+$info .= (($perms & 0x0040) ?
+            (($perms & 0x0800) ? 's' : 'x' ) :
+            (($perms & 0x0800) ? 'S' : '-'));
+
+// Group
+$info .= (($perms & 0x0020) ? 'r' : '-');
+$info .= (($perms & 0x0010) ? 'w' : '-');
+$info .= (($perms & 0x0008) ?
+            (($perms & 0x0400) ? 's' : 'x' ) :
+            (($perms & 0x0400) ? 'S' : '-'));
+
+// World
+$info .= (($perms & 0x0004) ? 'r' : '-');
+$info .= (($perms & 0x0002) ? 'w' : '-');
+$info .= (($perms & 0x0001) ?
+            (($perms & 0x0200) ? 't' : 'x' ) :
+            (($perms & 0x0200) ? 'T' : '-'));
+
+echo $info;
+?>
+]]>
+        </programlisting>
+        <para>Esto producir&iacute;a la salida:</para>
+        <screen>
+<![CDATA[
+-r--r--r--
+]]>
+        </screen>
+    </example>    
     <simpara>
      Vea tambi&eacute;n <function>is_readable</function>, y
      <function>stat</function>
