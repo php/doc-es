@@ -1,0 +1,985 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- splitted from ./es/functions/pcre.xml, last change in rev 1.1 -->
+<!-- last change to 'pcre.pattern.syntax' in en/ tree in rev 1.2 -->
+  <refentry id="pcre.pattern.syntax">
+   <refnamediv>
+    <refname>Sintaxis de los Patrones</refname>
+    <refpurpose>describe la sintaxis de PCRE regex</refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+    <literallayout>
+     La librer&iacute;a PCRE es un conjunto de funciones que implementan emparejamientos
+     dados patrones de expresiones regulares usando la misma sintaxis y sem&aacute;ntica que
+     Perl 5, con unas pocas diferencias (ver m&aacute;s adelante). La actual versi&oacute;n
+     corresponde a Perl 5.005.
+   </literallayout></refsect1>
+
+   <refsect1>
+    <title>Diferencias frente a Perl</title>
+    <literallayout>
+     Las diferencias descritas aqu&iacute; son con respecto a Perl 5.005.
+
+     1. Por defecto, un car&aacute;cter de espacio en blanco es cualquier car&aacute;cter
+     que la funci&oacute;n isspace() de la librer&iacute;a C reconozca, as&iacute; es posible
+     compilar PCRE con tablas alternativas de tipos de caracteres. Normalmente
+     isspace() casa con el espacio, salto de pagina, nueva l&iacute;nea, retorno de carro,
+     tabulador horizontal y vertical. Perl 5 ya no incluye el tabulador vertical
+     en su conjunto de caracteres de espacio en blanco. La secuencia de
+     escape \n que estuvo durante mucho tiempo en la documentaci&oacute;n de Perl nunca
+     fue reconocida. Sin embargo, el car&aacute;cter fue tratado como espacio en blanco
+     hasta la 5.002. En 5.004 y 5.005 no casa \s.
+
+     2. PCRE no permite repetir cuantificadores sobre sentencias hacia adelante.
+     Perl las permite, pero no de la forma que puedas pensar.
+     Por ejemplo, (?!a){3} no dice que los pr&oacute;ximos tres caracteres no son "a".
+     En realidad significa que los siguientes caracteres no son "a" tres veces.
+
+     3. Los subpatrones encontrados dentro de sentencias de m&aacute;s adelante
+     negativas son contados, pero sus entradas en el vector de desplazamientos
+     no son definidas. Perl define sus variables num&eacute;ricas desde cualquiera de
+     tales patrones que son casados antes de que la sentencia falle emparejar
+     algo, pero solo si las sentencies de m&aacute;s adelante negativas contienen una
+     opci&oacute;n sola.
+
+     4. Aunque los caracteres de cero binario son soportados en la cadena de
+     entrada, no son permitidos en un patr&oacute;n porque son pasados como un cadena
+     t&iacute;pica de C, terminada por cero. La secuencia de escape "\0" puede ser
+     usada en el patr&oacute;n para representar el cero binario.
+
+     5. Las siguientes secuencias de Perl no son soportadas:
+     \l,  \u,  \L,  \U,  \E, \Q. En efecto, estas son implementadas por
+     manipuladores de cadenas t&iacute;picos de Perl y no son parte de los patrones del
+     motor de b&uacute;squeda.
+
+     6. La secuencia \G de Perl no es soportada ya que no es relevante para
+     emparejamientos de patrones sencillos.
+
+     7. Obviamente, PCRE no soporta el constructor (?{code})
+
+     8. Hay algunas diferencias en Perl 5.005_02 respecto a las definiciones
+     de las cadenas de captura cuando parte de un patr&oacute;n es repetido. Por
+     ejemplo, casando "aba" con el patr&oacute;n /^(a(b)?)+$/ define $2 al valor "b",
+     pero emparejando "aabbaa" con /^(aa(bb)?)+$/ deja $2 sin definir. Sin
+     embargo, si el patr&oacute;n es cambiado a /^(aa(b(b))?)+$/ entones $2 (y $3) son
+     definidos.
+
+     En Perl 5.004 $2 es definido en ambos casos, y tambi&eacute;n es cierto en PCRE.
+     Si en el futuro Perl cambia a una regla diferente, PCRE puede cambiar para
+     seguirla.
+
+     9. Otra discrepancia a&uacute;n no resuelta es que en Perl 5.005_02 el patr&oacute;n
+     /^(a)?(?(1)a|b)+$/ casa la cadena "a", pero en PCRE eso no es as&iacute;. Sin
+     embargo, en ambos Perl y PCRE /^(a)?a/ empareja "a" dejando $1 sin definir.
+
+     10. PCRE da algunas extensiones para facilitar las expresiones de PERL:
+
+     (a) Aunque las sentencias de m&aacute;s adelante deben emparejar cadenas de longitud fija,
+     cada opci&oacute;n de una sentencia de punto actual puede casar con una cadena de
+     longitud diferente. Perl 5.005 requiere que todas ellas tengan la misma
+     longitud.
+
+     (b) Si es definido PCRE_DOLLAR_ENDONLY  y PCRE_MULTILINE no lo es, el
+     car&aacute;cter especial $ s&oacute;lo casa con el final de la cadena.
+
+     (c) Si se define PCRE_EXTRA, una barra invertida seguida de una letra sin
+     un significado especial provoca un error.
+
+     (d) Si defines PCRE_UNGREEDY, la voracidad de los cuantificadores de
+     repetici&oacute;n es invertida, esto es, por defecto son no codiciosos, pero
+     seguidos por una interrogaci&oacute;n si lo son.
+
+    </literallayout>
+   </refsect1>
+
+   <refsect1>
+    <title>Detalles de las expresiones</title>
+    <literallayout>
+     La sintaxis y la sem&aacute;ntica de las expresiones soportadas por PCRE es
+     descrita a continuaci&oacute;n. Las expresiones son descritas en la documentaci&oacute;n
+     del Perl y en numerosos libros, algunos de los cuales tienen mucho
+     ejemplares, Jeffrey Friedl's  "Mastering  Regular  Expressions",  publicado
+     por O'Reilly  (ISBN 1-56592-257-3), las cubre con gran detalle. La presente
+     descripci&oacute;n es propuesta como documentaci&oacute;n de referencia.
+
+     Una expresi&oacute;n es un patr&oacute;n que es emparejada repetidamente, dada una cadena
+     de entrada, de izquierda a derecha. Muchos caracteres se representan a ellos
+     mismos en el patr&oacute;n. Como un ejemplo trivial, el patr&oacute;n
+
+       The quick brown fox
+
+     casa una parte de una cadena de entrada que es id&eacute;ntica a ella. El poder
+     de las expresiones proviene de la posibilidad de incluir alternativas y
+     repeticiones en el patr&oacute;n. &Eacute;stos son codificados en el patr&oacute;n usando
+     <emphasis>meta</emphasis>-<emphasis>characters</emphasis> (caracteres
+     especiales tambi&eacute;n llamados meta caracteres), los cuales no se representan
+     a ellos mismos, en vez de eso, son interpretados de una manera especial.
+
+     Hay dos diferentes conjuntos de caracteres especiales: aquellos que son
+     reconocidos en cualquier parte en el patr&oacute;n excepto dentro corchetes ('[' y ']'),
+     y aquellos que son reconocidos dentro. Fuera de los corchetes, los caracteres
+     especiales son:
+
+       \      car&aacute;cter de escape gen&eacute;rico con diferentes usos
+       ^      secuencia de inicio de la cadena de entrada (o l&iacute;nea, en modo multil&iacute;nea)
+       $      secuencia de fin de la cadena de entrada (o l&iacute;nea, en modo multil&iacute;nea)
+       .      empareja cualquier car&aacute;cter excepto el de nueva l&iacute;nea (por defecto)
+       [      inicia definici&oacute;n de clase de caracteres
+       |      inicio de opci&oacute;n alternativa
+       (      inicio de subpatr&oacute;n
+       )      fin de subpatr&oacute;n
+       ?      amplia el significado de (
+              tambi&eacute;n es el cuantificador 0 &oacute; 1
+              tambi&eacute;n es el cuantificador minimizado
+       *      cero o m&aacute;s cuantificadores
+       +      uno o m&aacute;s cuantificadores
+       {      inicia el cuantificador min/max
+
+     Parte de un patr&oacute;n dentro de corchetes ([]) es llamado un "character  class"
+     (clase de caracteres). En una clase de caracteres los &uacute;nicos caracteres
+     especiales son:
+
+       \      car&aacute;cter de escape gen&eacute;rico
+       ^      niega la clase, pero s&oacute;lo si el primer car&aacute;cter
+       -      indica un rango de caracteres
+       ]      finaliza la clase de caracteres
+
+     Las secciones siguientes describen el uso de cada uno de los caracteres
+     especiales (meta caracteres).
+
+BARRA INVERTIDA
+
+     El car&aacute;cter de barra invertida tiene varios usos. Primero, si es seguido
+     por un car&aacute;cter que no sea alfanum&eacute;rico, toma el significado que el
+     car&aacute;cter pueda tener. Este uso de la barra invertida, como un car&aacute;cter de
+     escape, se aplica tanto dentro como fuera de las clases de caracteres.
+
+     Por ejemplo, si quieres casar un car&aacute;cter "*", debes escribir "\*" en el patr&oacute;n.
+     Esto es aplicable ya sea o no el car&aacute;cter siguiente interpretado como un
+     car&aacute;cter especial, por eso siempre es aconsejable preceder un car&aacute;cter
+     no alfanum&eacute;rico con "\" para especificar que se representa a &eacute;l mismo. En
+     particular, si quieres casar una barra invertida, escribe "\\".
+
+     Si el patr&oacute;n es compilado con la opci&oacute;n PCRE_EXTENDED , los espacios en
+     blanco en el patr&oacute;n (fuera de una clase de caracteres) y los caracteres entre
+     un "#" fuera de una clase de caracteres y el car&aacute;cter de nueva l&iacute;nea
+     son ignorado. Una barra invertida de escape puede usarse para
+     incluir un espacio en blanco o el car&aacute;cter "#" como parte del patr&oacute;n.
+
+     Un segundo uso de la barra invertida sirve para codificar caracteres no
+     imprimibles en los patrones de una manera visible. No hay restricciones
+     sobre la apariencia de los caracteres no imprimibles, quitando el cero
+     binario de terminaci&oacute;n de un patr&oacute;n, pero cuando un patr&oacute;n es preparado
+     con un editor de texto, normalmente es f&aacute;cil utilizar una de las siguientes
+     secuencias de escape que representan sus caracteres binarios:
+
+       \a     alarma, esto es, el car&aacute;cter BEL (07 en hexadecimal)
+       \cx    "control-x", donde x es cualquier car&aacute;cter
+       \e     escape (1B en hexadecimal)
+       \f     nueva p&aacute;gina (0C en hexadecimal)
+       \n     nueva l&iacute;nea (0A en hexadecimal)
+       \r     retorno de carro (0D en hexadecimal)
+       \t     tabulador (09 en hexadecimal)
+       \xhh   car&aacute;cter con c&oacute;digo hh en hexadecimal
+       \ddd   car&aacute;cter con c&oacute;digo ddd en octal
+
+     El efecto de "\cx" es como sigue: si "x" es  una letra min&uacute;scula,
+     es convertida a may&uacute;scula. Entonces el sexto bit del car&aacute;cter (40 en
+     hexadecimal) es invertido. Esto es, "\cz" es 1A en hexadecimal, pero "\c{"
+     es 3B en hexadecimal, mientras "\c;" es 7B en hexadecimal.
+
+     Despu&eacute;s de "\x", hasta dos d&iacute;gitos hexadecimales son le&iacute;dos (las letras
+     pueden ser may&uacute;sculas o min&uacute;sculas).
+
+     Despu&eacute;s de "\0" son le&iacute;dos dos d&iacute;gitos octales m&aacute;s. En ambos casos, si hay
+     menos de dos d&iacute;gitos, se usrar&aacute; lo que haya. Esto es, la secuencia "\0\x\07"
+     indica dos ceros binarios seguidos por un car&aacute;cter BEL. Aseg&uacute;rate dar dos
+     d&iacute;gitos despu&eacute;s del inicial cero si el car&aacute;cter que sigue es un d&iacute;gito octal.
+
+     El uso de una barra invertida seguido por otro d&iacute;gito que no sea el cero
+     es complejo. Fuera de una clase car&aacute;cter, PCRE interpreta cualquier d&iacute;gito
+     como un n&uacute;mero decimal. Si el n&uacute;mero es menor que diez, o si ha habido
+     al menos tantos par&eacute;ntesis capturados a la izquierda en la expresi&oacute;n,
+     entonces la secuencia entera es tomada como una <emphasis>back</emphasis>
+     <emphasis>reference</emphasis> (referencia atr&aacute;s). Una descripci&oacute;n
+     de como trabaja esto es dada despu&eacute;s, siguiendo la discusi&oacute;n de subpatrones
+     con par&eacute;ntesis.
+
+     Dentro de una clase car&aacute;cter, o si el n&uacute;mero decimal es mayor que nueve y
+     no ha habido tantos subpatrones capturados PCRE relee los tres d&iacute;gitos
+     octales siguientes a la barra invertida y genera un byte desde los ocho
+     bits menos significativos del valor. Cualquier d&iacute;gito a continuaci&oacute;n se
+     representa a  &eacute;l mismo. Por ejemplo:
+
+       \040   es otro modo de escribir un espacio
+       \40    es lo mismo, siempre que haya menos de cuarenta subpatrones abiertos
+       \7     siempre es una referencia atr&aacute;s
+       \11    puede ser una referencia atr&aacute;s o un tabulador
+       \011   siempre es un tabulador
+       \0113  es el car&aacute;cter con c&oacute;digo octal 113 (ya que no puede haber m&aacute;s de
+              noventa y nueve referencias atr&aacute;s)
+       \377   es un byte con todos sus bits a uno
+       \81    puede ser una referencia atr&aacute;s o un cero binario seguido por
+              dos caracteres "8" y "1"
+
+     Ten en cuenta que el valor octal de un n&uacute;mero mayor o igual a cien no debe
+     ser precedido por un cero ya que no son le&iacute;dos m&aacute;s de tres d&iacute;gitos octales.
+
+     Todas las secuencias que definen el valor de un byte pueden ser usadas
+     tanto dentro como fuera de la clase car&aacute;cter. Adem&aacute;s, la secuencia
+     "\b" es interpretada como el car&aacute;cter backspace (hex 08) dentro. Fuera es
+     definido de otra manera (ver m&aacute;s adelante).
+
+     El tercer uso de la barra invertida es para especificar los tipos de
+     caracteres gen&eacute;ricos:
+
+       \d     cualquier un d&iacute;gito decimal
+       \D     cualquier car&aacute;cter que no sea un d&iacute;gito decimal
+       \s     cualquier car&aacute;cter de espacio en blanco (whitespace)
+       \S     cualquier car&aacute;cter que no sea un espacio en blanco
+       \w     cualquier car&aacute;cter de "palabra"
+       \W     cualquier car&aacute;cter que no se de "palabra"
+
+     Cada pareja de secuencia de escape divide el conjunto global de caracteres
+     en dos. Cualquier car&aacute;cter dado empareja en uno y s&oacute;lo uno de cada pareja.
+
+     Un car&aacute;cter de "palabra" es cualquier letra o d&iacute;gito o el car&aacute;cter subrayado,
+     esto es, cualquier car&aacute;cter puede ser parte de una "palabra" en Perl. La
+     definici&oacute;n de letras y d&iacute;gitos es controlada por la tabla de caracteres de
+     PERL, y puede ser variada si las especificaciones regionales son tomadas en
+     cuenta (ver "Soporte regional m&aacute;s adelante"). Por ejemplo, en Francia algunos
+     caracteres tienen un c&oacute;digo superior a 128, para representar las letras
+     acentuadas, y son emparejados por \w.
+
+     Estas secuencias de tipos de caracteres pueden aparecer tanto dentro como
+     fuera de las clases car&aacute;cter. Cada una casa un car&aacute;cter del tipo apropiado.
+     Si el punto de casamiento actual es el final de la cadena, todo ello falla,
+     ya que no hay m&aacute;s caracteres que casar.
+
+     El cuarto uso de la barra invertida es para ciertas sentencias (assertions).
+     Una sentencia especifica una condici&oacute;n que tiene que ser encontrada en
+     un punto particular de un emparejamiento, sin utilizar ning&uacute;n car&aacute;cter de la
+     cadena de entrada. El uso de subpatrones para sentencias m&aacute;s complicadas
+     es descrito despu&eacute;s. Las sentencias de barra invertida son
+
+       \b     limites de palabra
+       \B     no sean limites de palabra
+       \A     inicio de la cadena de entrada (independiente del modo multil&iacute;nea)
+       \Z     fin de la cadena de entrada o de una nueva l&iacute;nea delante del final
+              (independiente del modo multil&iacute;nea)
+       \z     fin de la cadena de entrada (independiente de modo multil&iacute;nea)
+
+     Estas sentencias no pueden aparecer dentro de una clase car&aacute;cter (pero ten
+     en cuenta que "\b" tiene un significado diferente, quiere decir el car&aacute;cter
+     backspace dentro de una clase car&aacute;cter)
+
+     Un l&iacute;mite de palabra es una posici&oacute;n en la cadena de entrada donde un
+     car&aacute;cter y el anterior no emparejan con \w o \W (por ejemplo, uno casa con
+     \w y el otro con \W), o el principio o el final de la cadena si el primero
+     o el &uacute;ltimo car&aacute;cter emparejan con \w, respectivamente.
+
+     Las sentencias \A, \Z y \z se diferencian de los tradicionales circunflejo
+     y d&oacute;lar (ver m&aacute;s adelante) en que s&oacute;lo emparejan el inicio y fin de la
+     cadena de entrada sin tener en cuenta las opciones definidas. No les afectan
+     las opciones PCRE_NOTBOL o PCRE_NOTEOL. La diferencia entre \Z y \z es que
+     \Z casa antes una nueva l&iacute;nea que es el &uacute;ltimo car&aacute;cter de la cadena como
+     tambi&eacute;n el final de la cadena, sin embargo \z s&oacute;lo casa el final.
+
+CIRCUNFLEJO Y DOLAR
+
+     Fuera de una clase car&aacute;cter, en el modo de emparejamiento por defecto, el
+     car&aacute;cter circunflejo es una sentencia la cual es verdadera s&oacute;lo si el punto
+     de casamiento actual es el inicio de la cadena de entrada. Dentro de una
+     clase car&aacute;cter, el circunflejo tiene significado completamente distinto
+     (ver m&aacute;s adelante).
+
+     El circunflejo no necesita ser el primer car&aacute;cter del patr&oacute;n si son posibles
+     un n&uacute;mero de alternativas, pero ser&aacute; la primera cosa en cada alternativa
+     en la cual aparezca si el patr&oacute;n casa esa opci&oacute;n.
+     Si todas las alternativas posibles empiezan con un circunflejo, esto es,
+     si el patr&oacute;n es obligado a casar s&oacute;lo con en el inicio de la cadena de entrada,
+     se dice que es un patr&oacute;n "anclado". Tambi&eacute;n hay otros constructores que
+     pueden hacer que un patr&oacute;n sea anclado.
+
+     Un car&aacute;cter de d&oacute;lar es una sentencia que es verdadera s&oacute;lo si el
+     punto de emparejamiento actual es el final de la cadena de entrada, o
+     inmediatamente antes de un car&aacute;cter de nueva l&iacute;nea, el cual es el &uacute;ltimo
+     car&aacute;cter en la cadena, por defecto. El d&oacute;lar no necesita ser el &uacute;ltimo
+     car&aacute;cter del patr&oacute;n si hay varias alternativas, pero ser&aacute; el &uacute;ltimo elemento
+     en cualquier alternativa en el que aparezca. El d&oacute;lar no tiene
+     un significado especial en una clase car&aacute;cter.
+
+     El significado del d&oacute;lar puede ser cambiado para que s&oacute;lo empareje el
+     final de la cadena de entrada definiendo la opci&oacute;n PCRE_DOLLAR_ENDONLY a la
+     hora de compilar o tiempo de ejecuci&oacute;n. Esto no afecta a la sentencia \Z.
+
+     El significado de los caracteres circunflejo y d&oacute;lar cambia si la opci&oacute;n
+     PCRE_MULTILINE es definida. Cuando &eacute;ste es el caso, casan, respectivamente,
+     inmediatamente antes y despu&eacute;s de un car&aacute;cter "\n" interno,
+     adem&aacute;s de emparejar con el inicio y el final de la cadena. Por ejemplo, el
+     patr&oacute;n  /^abc$/ casa con la cadena de entrada "def\nabc" en modo multil&iacute;nea,
+     pero en otro modo no. Consecuentemente, los patrones anclados son en modo
+     l&iacute;nea ya que todas las opciones que empiezan con "^" no son ancladas en modo
+     multil&iacute;nea. La opci&oacute;n PCRE_DOLLAR_ENDONLY es ignorada si PCRE_MULTILINE es
+     definido.
+
+     Ten en cuenta que las secuencias \A, \Z y \z pueden ser usadas para casar
+     el inicio y el final de la cadena en ambos modos, y si todas las opciones
+     de un patr&oacute;n empiezan con \A siempre es anclado, independientemente de si
+     PCRE_MULTILINE es definido o no.
+
+FINAL (PUNTO)
+     Fuera de una clase car&aacute;cter, un punto en el patr&oacute;n casa con un car&aacute;cter
+     cualquiera en la cadena de entrada, incluyendo un car&aacute;cter no imprimible,
+     exceptuando el de nueva l&iacute;nea (por defecto). Si la opci&oacute;n PCRE_DOTALL es
+     definida, entonces los puntos casan con los de nueva l&iacute;nea tambi&eacute;n. El
+     manejo de puntos es completamente independiente del uso del circunflejo y el
+     d&oacute;lar, la &uacute;nica relaci&oacute;n entre ellos son los caracteres de nueva l&iacute;nea. Los
+     puntos no tienen un significado especial dentro de una clase car&aacute;cter.
+
+CORCHETES
+
+     Un corchete de apertura crea una clase car&aacute;cter, terminada por uno de cierre.
+     Un corchete de cierre no tiene un significado especial. Si un corchete de
+     cierre es necesitado como un miembro de la clase, ser&aacute; el primer car&aacute;cter
+     de datos en la clase (despu&eacute;s de un circunflejo inicial, si est&aacute; presente)
+     o con una barra invertida antes.
+
+     Si una clase car&aacute;cter casa con un car&aacute;cter &uacute;nico en la cadena; el car&aacute;cter
+     debe estar en el conjunto de los caracteres definidos por la clase, a menos
+     que el primero sea un circunflejo, en cuyo caso el car&aacute;cter de la cadena de
+     entrada no debe estar en el conjunto definido por la clase. Si un circunflejo
+     es necesitado como un miembro de la clase, aseg&uacute;rate que no es el primero o
+     es precedido por una barra invertida.
+
+     Por ejemplo, la clase car&aacute;cter [aeiou] empareja cualquier vocal min&uacute;scula,
+     mientras [^aeiou] casa cualquier car&aacute;cter que no sea una vocal min&uacute;scula.
+     Ten en cuenta que un circunflejo es una notaci&oacute;n convenida para especificar
+     los caracteres que est&aacute;n en la clase enumerando los que no lo est&aacute;n. No es
+     una sentencia: consume un car&aacute;cter de la cadena de entrada y falla si
+     el punto actual es final.
+
+     Cuando se define el emparejamiento sin tener en cuenta may&uacute;sculas y min&uacute;sculas
+     (caseless), cualquier letra en una clase representa ambas, por ejemplo,
+     un patr&oacute;n caseless [aeiou] empareja tanto "A" como "a" y un caseless
+     [^aeiou] no casa con "A"
+
+     El car&aacute;cter de nueva l&iacute;nea nunca es tratado de un modo especial en una
+     clase car&aacute;cter, aunque se hallan definido cualquiera de las opciones
+     PCRE_DOTALL o PCRE_MULTILINE. Una clase como [^a] siempre casa con una
+     nueva l&iacute;nea.
+
+     El car&aacute;cter de menos puede ser usado para especificar un rango de caracteres
+     en una clase miembro. Por ejemplo, [d-m] casa con cualquier letra entre d
+     y m ambas incluidas. Si un car&aacute;cter de menos es necesitado en una clase,
+     debe ser precedido por una barra invertida o aparecer en una posici&oacute;n donde
+     no pueda ser interpretado como indicador de una rango, normalmente al inicio
+     o al final de la clase.
+
+     No es posible tener el car&aacute;cter literal "]" como el de final de un rango.
+     Un patr&oacute;n como [W-]46] es interpretado como una clase de dos caracteres
+     ("W" y "-") seguido por la cadena literal "46]", por lo que emparejar&iacute;a con
+     "W46]" o "-46]". Sin embargo, si el car&aacute;cter "]" es precedido con una barra
+     invertida es tomado por el final del rango, as&iacute; [W-\]46] es interpretado
+     como una clase conteniendo un rango seguido por dos caracteres. La
+     representaci&oacute;n octal o hexadecimal de "]" puede ser usada para finalizar
+     un rango.
+
+     Los rangos trabajan en la secuencia ASCII. Se pueden especificar mediante
+     la representaci&oacute;n num&eacute;rica de los mismos, por ejemplo [\000-\037]. Si
+     un rango que incluye letras es usado cuando es definida la opci&oacute;n de no
+     tener en cuenta may&uacute;sculas y min&uacute;sculas casan ambas. Por ejemplo, [W-c]
+     es equivalente a [][\^_`wxyzabc], teniendo en cuenta may&uacute;sculas y
+     min&uacute;sculas, y si la tabla de caracteres para la regi&oacute;n "fr" es usada,
+     entonces [\xc8-\xcb] empareja los caracteres E acentuados en ambos casos.
+
+     Los tipos de caracteres \d, \D, \s, \S,  \w,  y  \W tambi&eacute;n pueden aparecer
+     en una clase car&aacute;cter y a&ntilde;aden los caracteres que ellos casen para la clase.
+     Por ejemplo, [\dABCDEF] casa cualquier d&iacute;gito hexadecimal. Un circunflejo
+     puede ser usado convenientemente con el tipo de car&aacute;cter may&uacute;sculo para
+     especificar un conjunto m&aacute;s restrictivo de caracteres que el de un casamiento
+     con tipo de car&aacute;cter min&uacute;sculo. Por ejemplo, la clase [^\W_] empareja
+     cualquier letra o digito pero no el subrayado.
+
+     Todos los caracteres no alfanum&eacute;ricos y los diferentes a \, -, ^ (al
+     principio) y ] no tienen un significado especial en una clase, y &eacute;stos
+     tampoco si son definidos convenientemente.
+
+BARRA VERTICAL
+
+     Los caracteres de barra vertical son usados para separar patrones
+     alternativos. Por ejemplo, el patr&oacute;n
+
+       gilbert|sullivan
+
+     casa con "gilbert" o "sullivan". Cualquier cantidad de opciones pueden ser
+     implementadas, y una alternativa vac&iacute;a se permite (emparejando la
+     cadena vac&iacute;a). El proceso de casamiento intenta cada una de izquierda a
+     derecha, y la primera que valga es usada. Si las alternativas est&aacute;n dentro
+     de un subpatr&oacute;n, "valga" significa que casa el resto del patr&oacute;n principal
+     como tambi&eacute;n la alternativa en el subpatr&oacute;n.
+
+DEFINIENDO LAS OPCIONES INTERNAS
+
+     Las definiciones de PCRE_CASELESS, PCRE_MULTILINE,  PCRE_DOTALL,
+     y PCRE_EXTENDED pueden ser cambiadas desde dentro del patr&oacute;n mediante
+     una secuencia de letras de opciones de Perl encerradas entre "(?" y ")".
+     Las letras de opciones son
+
+       i  para PCRE_CASELESS
+       m  para PCRE_MULTILINE
+       s  para PCRE_DOTALL
+       x  para PCRE_EXTENDED
+
+     Por ejemplo, (?im) define sin tener en cuenta may&uacute;sculas y min&uacute;sculas y modo
+     multil&iacute;nea. Tambi&eacute;n es posible eliminar estas opciones precediendo las
+     letras con un menos y una combinaci&oacute;n de definiciones y eliminaciones tal
+     como (?im-sx), la cual define PCRE_CASELESS y PCRE_MULTILINE mientras
+     elimina PCRE_DOTALL y PCRE_EXTENDED, tambi&eacute;n se permite. Si una letra
+     aparece antes y despu&eacute;s del menos, la opci&oacute;n es eliminada.
+
+     El &aacute;mbito de estas opciones cambia dependiendo d&oacute;nde ocurra la definici&oacute;n.
+     Las definiciones que son hechas fuera de subpatrones (como antes), el efecto es
+     el mismo que si la opci&oacute;n se define o elimina al inicio del casamiento. Los
+     siguientes patrones se comportan todos de la misma manera:
+
+       (?i)abc
+       a(?i)bc
+       ab(?i)c
+       abc(?i)
+
+     el cual tiene el mismo efecto que compilar el patr&oacute;n abc con la opci&oacute;n
+     PCRE_CASELESS. En otras palabras, tales definiciones de "nivel superior"
+     se aplican a todo el patr&oacute;n (a menos que haya otro cambio dentro del
+     subpatr&oacute;n). Si hay m&aacute;s de una definici&oacute;n de la misma opci&oacute;n en el mismo
+     nivel superior, la definici&oacute;n m&aacute;s a la derecha se usa.
+
+     Si un cambio de opci&oacute;n sucede dentro de un subpatr&oacute;n, el efecto es diferente.
+     Esto es un cambio respecto de la conducta de Perl 5.005. Un cambio de opci&oacute;n
+     dentro de un subpatr&oacute;n afecta s&oacute;lo a la parte del subpatr&oacute;n que lo sigue,
+     por eso
+
+       (a(?i)b)c
+
+     empareja abc y aBc y ninguna otra cadena (asumiendo que no es usado
+     PCRE_CASELESS). De este modo, las opciones pueden ser hechas para
+     tener diferente significado en diferente partes del patr&oacute;n. Cualquier
+     cambio realizado en una alternativa provoca que todo el subpatr&oacute;n la use.
+     Por ejemplo,
+
+       (a(?i)b|c)
+
+     empareja "ab", "aB", "c", y "C", siempre y cuando case "C" la primera
+     opci&oacute;n es abandonada antes de definir la opci&oacute;n. Esto es porque los efectos
+     de definiciones de opci&oacute;n ocurren en tiempo de compilaci&oacute;n. De otro modo,
+     &eacute;stos ser&iacute;a una conducta muy rara.
+
+     Las opciones espec&iacute;ficas PCRE PCRE_UNGREEDY y PCRE_EXTRA pueden ser
+     cambiadas del mismo modo que las opciones compatibles con Perl usando
+     los caracteres U y X respectivamente. La bandera (?X) es especial ya que
+     siempre debe aparecer antes que cualquier otra en el patr&oacute;n, incluso cuando
+     es definida a nivel superior. Es mejor ponerla en el inicio.
+
+SUBPATRONES
+
+     Los subpatrones son delimitados por par&eacute;ntesis y pueden estar anidados.
+     Marcando parte de un patr&oacute;n como un subpatr&oacute;n permite dos cosas:
+
+     1. Define un conjunto de opciones. Por ejemplo, el patr&oacute;n
+
+       cat(aract|erpillar|)
+
+     empareja con "cat",  "cataract",  or  "caterpillar". Sin los par&eacute;ntesis,
+     casar&iacute;a "cataract", "erpillar" o la cadena vac&iacute;a.
+
+     2. Define el subpatr&oacute;n como un subpatr&oacute;n capturado. Cuando el patr&oacute;n sea
+     emparejado por completo, esa porci&oacute;n de la cadena de entrada que casa con
+     el subpatr&oacute;n es devuelta mediante el argumento <emphasis>ovector</emphasis>
+     de <function>pcre_exec</function>. Los par&eacute;ntesis abiertos son contados de
+     izquierda a derecha (empezando por uno) para definir los n&uacute;meros de
+     subpatrones capturados.
+
+     Por ejemplo, si la cadena "the red king" es casada con el patr&oacute;n
+
+       the ((red|white) (king|queen))
+
+     las subcadenas capturadas son "red king", "red",  y  "king" y los n&uacute;meros
+     son 1,2 y 3
+
+     El hecho de que los par&eacute;ntesis realicen dos funciones no siempre es &uacute;til.
+     A menudo, hay veces que un subpatr&oacute;n agrupado es necesitado sin una
+     querer una captura. Si un par&eacute;ntesis abierto le sigue "?:", el
+     subpatr&oacute;n  no hace ninguna captura, y no es contado cuando compute el
+     n&uacute;mero de subpatrones capturados. Por ejemplo, si la cadena "the white
+     queen" es casada con el patr&oacute;n
+
+       the ((?:red|white) (king|queen))
+
+     las subcadenas capturadas son "white queen" y "queen" y son numeradas como
+     1 y 2. El n&uacute;mero m&aacute;ximo de subcadenas es de 99 y el n&uacute;mero m&aacute;ximo de
+     subpatrones, capturados o no, es de 200.
+
+     Como un atajo, si cualquier definici&oacute;n de opci&oacute;n es necesitada al inicio
+     de un subpatr&oacute;n no capturado, las letras de opciones pueden aparecer entre
+     "?" y ":". As&iacute; los dos patrones
+
+       (?i:saturday|sunday)
+       (?:(?i)saturday|sunday)
+
+     emparejan como el mismo conjunto de cadena de entrada exactamente. Ya que
+     las alternativas son intentadas de izquierda a derecha, y las opciones
+     no son dejadas de tener en cuenta hasta que el final de subpatr&oacute;n se
+     alcanza, una definici&oacute;n de opci&oacute;n en una alternativa afecta al resto, por
+     eso el patr&oacute;n anterior empareja tanto con "SUNDAY" como con "Saturday".
+
+REPETICION
+
+     La repetici&oacute;n es especificada por cuantificadores, la cual puede utilizarla
+     cualquiera de los siguientes elementos:
+
+       un car&aacute;cter, posiblemente precedido por el meta car&aacute;cter .
+       una clase car&aacute;cter
+       una referencia atr&aacute;s (ver la pr&oacute;xima secci&oacute;n)
+       un subpatr&oacute;n con par&eacute;ntesis (a menos que sea una sentencia, ver m&aacute;s adelante)
+
+     El cuantificador de repetici&oacute;n general indica un n&uacute;mero m&iacute;nimo y un m&aacute;ximo
+     de casamientos permitidos, dando los dos n&uacute;meros entre llaves, separados
+     por coma. El n&uacute;mero debe ser menor que 65536, y el primero debe ser menor
+     o igual que el segundo. Por ejemplo:
+
+       z{2,4}
+
+     casa con "zz", "zzz", o "zzzz". Una llave de cierre por si misma no es un
+     car&aacute;cter especial. Si el segundo n&uacute;mero es omitido, pero aparece la coma,
+     entonces no hay l&iacute;mite superior; si el segundo n&uacute;mero y la coma son
+     omitidos, el cuantificador indica el n&uacute;mero exacto de repeticiones. As&iacute;
+
+       [aeiou]{3,}
+
+     empareja al menos tres vocales seguidas, pero pueden ser muchas m&aacute;s, mientras
+
+       \d{8}
+
+     casa exactamente ocho d&iacute;gitos. Una llave abierta en una posici&oacute;n donde un
+     cuantificador no es permitido o una que no empareje con la sintaxis de un
+     cuantificador es tomada como un car&aacute;cter literal. Por ejemplo, {,6} no es
+     un cuantificador, pero s&iacute; una cadena literal de cuatro caracteres.
+
+     Se permite el cuantificado {0}, provocando que la expresi&oacute;n se comporte
+     como si el elemento anterior y el cuantificador no estuvieran presentes.
+
+     Por conveniencia (y compatibilidad hist&oacute;rica) los cuantificadores m&aacute;s comunes
+     tienen abreviaciones de un solo car&aacute;cter.
+
+       *    es equivalente a {0,}
+       +    es equivalente a {1,}
+       ?    es equivalente a {0,1}
+
+     Es posible construir bucles infinitos mediante un subpatr&oacute;n que pueda
+     casar ning&uacute;n car&aacute;cter con un cuantificador que no tenga l&iacute;mite superior,
+     por ejemplo:
+
+       (a?)*
+
+     Las primeras versiones de Perl y PCRE dan un error en tiempo de compilaci&oacute;n
+     para tales patrones. Sin embargo, ya que existen casos donde esto puede ser
+     &uacute;til, esto patrones son aceptados ahora, pero si cualquier repetici&oacute;n del
+     subpatr&oacute;n no casa ning&uacute;n car&aacute;cter, el bucle es roto.
+
+     Por defecto, los cuantificadores son "codiciosos", esto es, casan tantas
+     veces como les es posible (hasta el n&uacute;mero m&aacute;ximo de veces permitido), sin
+     provocar que el resto del patr&oacute;n falle. El ejemplo cl&aacute;sico de donde viene
+     este problema es en intentar casar comentarios en los programas en C.
+     Estos aparecen entre las secuencias /* y */ y dentro de la secuencia los
+     caracteres * y / pueden aparecer individualmente. Un modo de casar
+     comentarios en C es aplicando el patr&oacute;n
+
+       /\*.*\*/
+
+     para la cadena
+
+       /* first command */  not comment  /* second comment */
+
+     falla, porque casa la cadena entera debido a la voracidad del elemento .*
+
+     Sin embargo, si un cuantificador le siguw un signo de interrogaci&oacute;n
+     entonces cesa la voracidad y empareja el m&iacute;nimo n&uacute;mero de veces posibles,
+     as&iacute; el patr&oacute;n
+
+       /\*.*?\*/
+
+     hace las cosas correctamente con los comentarios en C. El significado de
+     los cuantificadores variables no es cambiado en otro modo, justo el n&uacute;mero
+     preferido de casamientos. No confundas el uso de las interrogaciones con
+     su uso como un cuantificador mas. Ya que tiene dos usos, a veces puede
+     parecer doble, como en
+
+       \d??\d
+
+     el cual empareja un d&iacute;gito normalmente, pero puede casar dos si ese el
+     &uacute;nico modo de casar el resto del patr&oacute;n.
+
+     Si se define la opci&oacute;n PCRE_UNGREEDY (la cual no es posible en Perl)
+     entonces los cuantificadores no son voraces por defecto, pero uno puede
+     serlo seguido por una interrogaci&oacute;n. En otras palabras, invierte la conducta
+     por defecto.
+
+     Cuando un subpatr&oacute;n entre par&eacute;ntesis es cuantificado con un n&uacute;mero m&iacute;nimo
+     de repeticiones superior a uno o con un l&iacute;mite m&aacute;ximo, se necesita m&aacute;s
+     almacenamiento para compilar el patr&oacute;n, en proporci&oacute;n al tama&ntilde;o del m&iacute;nimo
+     o del m&aacute;ximo.
+
+     Si un patr&oacute;n empieza con .* o .{0,}  y la opci&oacute;n PCRE_DOTALL (equivalente
+     a /s del Perl) es definida, esta permitiendo el . para casar nuevas l&iacute;neas,
+     entonces el patr&oacute;n es anclado impl&iacute;citamente. PCRE trata tales patrones
+     como si estuvieran precedidos por \A. En los casos donde se conoce que la
+     cadena de entrada no contiene nuevas l&iacute;neas, es conveniente definir
+     PCRE_DOTALL cuando el patr&oacute;n empieza con .* para obtener esta optimizaci&oacute;n
+     o usar ^ para indicar expl&iacute;citamente anclamiento.
+
+     Cuando un subpatr&oacute;n capturado es repetido, el valor capturado es la
+     subcadena que empareja la iteraci&oacute;n final. Por ejemplo, el patr&oacute;n
+
+       (tweedle[dume]{3}\s*)+
+
+     con la cadena de entrada "tweedledum tweedledee" el valor de la subcadena
+     capturada es "tweedledee". Sin embargo, si hay subpatrones capturados
+     anidadamente, los valores capturados correspondientes pueden haber sido
+     definidos en las iteraciones anteriores. Por ejemplo, despu&eacute;s de casar
+     "aba" con
+
+       /(a|(b))+/
+
+     el valor de la segunda subcadena capturada es "b".
+
+REFERENCIAS ATRAS
+
+     Fuera de una clase car&aacute;cter, una barra invertida seguida por un digito
+     mayor que cero (y posiblemente m&aacute;s d&iacute;gitos) es una referencia atr&aacute;s a un
+     subpatr&oacute;n capturado antes (a su izquierda) en el patr&oacute;n, siempre que haya
+     habido tantos par&eacute;ntesis a la izquierda capturados.
+
+     Sin embargo, si el n&uacute;mero decimal seguido por la barra invertida es menor
+     que diez, siempre es tomado como una referencia atr&aacute;s, y da error s&oacute;lo si
+     no hay los suficientes subpatrones capturados en todo el patr&oacute;n. En otras
+     palabras, los par&eacute;ntesis que son referidos no necesitan estar a la
+     izquierda de la referencia para un n&uacute;mero menor de diez.  Examina la secci&oacute;n
+     anterior titulada "Barra invertida" para m&aacute;s detalles del manejo de los
+     d&iacute;gitos con la barra invertida.
+
+     Una referencia atr&aacute;s empareja si casa el subpatr&oacute;n capturado en el actual
+     punto de la cadena de entrada, mejor que casar cualquier subpatr&oacute;n de la
+     misma. As&iacute; el patr&oacute;n
+
+       (sens|respons)e and \1ibility
+
+     casa con "sense and sensibility" y "response and  responsi bility",  pero
+     no "sense  and  responsibility". Si el casamiento con la distinci&oacute;n entre
+     min&uacute;sculas y may&uacute;sculas est&aacute; activado en el momento de la referencia atr&aacute;s,
+     entonces la distinci&oacute;n de las letras es relevante. Por ejemplo,
+
+       ((?i)rah)\s+\1
+
+     casa con "rah rah" y "RAH RAH", pero no "RAH  rah", pero el subpatr&oacute;n
+     capturado originalmente es emparejado sin la distinci&oacute;n.
+
+     Puede haber m&aacute;s de una referencia atr&aacute;s en el mismo subpatr&oacute;n. Si un
+     subpatr&oacute;n no ha sido usado en un emparejamiento particular, entonces
+     cualquier referencia atr&aacute;s siempre fallara. Por ejemplo, el patr&oacute;n
+
+       (a|(bc))\2
+
+     fallar&aacute; siempre si inicia a casar con "a" mejor que con "bc". Ya que puede
+     haber hasta 99 referencias atr&aacute;s, todos los d&iacute;gitos seguidos por una barra
+     invertida son tomados como parte de n&uacute;mero potencial de referencias atr&aacute;s.
+     Si el patr&oacute;n continua con un car&aacute;cter de d&iacute;gito, entonces alg&uacute;n delimitador
+     debe ser usado para terminar la referencia atr&aacute;s. Si la opci&oacute;n PCRE_EXTENDED
+     es definida, este puede ser el espacio en blanco. De otro modo un comentario
+     vaci&oacute; puede ser usado.
+
+     Una referencia atr&aacute;s ocurre dentro del par&eacute;ntesis al cual refiere, falla
+     cuando el subpatr&oacute;n es usado por primera vez, as&iacute; por ejemplo, (a\1) nunca
+     emparejar&aacute;. Sin embargo, tal referencia puede ser &uacute;til dentro de los
+     subpatrones repetidos. Por ejemplo, el patr&oacute;n
+
+       (a|b\1)+
+
+     casa con cualquier n&uacute;mero de "a"s y tambi&eacute;n con "aba", "ababaa" etc. Para
+     cada iteraci&oacute;n del subpatr&oacute;n, la referencia atr&aacute;s casa la cadena de
+     caracteres correspondiente a la iteraci&oacute;n anterior. Para que esto trabaje,
+     el patr&oacute;n debe ser tal que la primera iteraci&oacute;n no necesite casar la referencia
+     atr&aacute;s. Esto puede hacerse usando alternativas, como en el ejemplo anterior,
+     o por medio de cuantificadores con un n&uacute;mero m&iacute;nimo de cero.
+
+SENTENCIAS
+
+     Una sentencia es un test sobre los caracteres siguiendo o precediendo el
+     punto actual de emparejamiento que no consume caracteres. Las sentencias
+     codificadas como \b, \B,  \A,  \Z,  \z, ^ y $ son descritas despu&eacute;s. Las
+     sentencias m&aacute;s complejas son codificadas como subpatrones. Hay dos clases:
+     aquellas que condicionan m&aacute;s adelante de la posici&oacute;n actual en la cadena
+     de entrada (lookahead)y las que lo hacen en este punto (lookbehind).
+
+     Un subpatr&oacute;n de sentencia es emparejado del modo t&iacute;pico, excepto que no
+     hace que el punto actual de emparejamiento cambie. Sentencias que condicionan
+     m&aacute;s adelante empiezan con (?= para sentencias afirmativas y (?! para las
+     negativas
+
+       \w+(?=;)
+
+     empareja una palabra seguida por un punto y coma. pero no incluye el
+     punto y coma en el casamiento, y
+
+       foo(?!bar)
+
+     casa cualquier ocurrencia de "foo" que no es seguida por "bar". Ten en cuenta
+     que el patr&oacute;n similar
+
+       (?!foo)bar
+
+     no encuentra una ocurrencia de "bar" que es precedida por algo que no sea "foo";
+     encuentra cualquier ocurrencia de "bar", ya que la sentencia (?!foo) es siempre
+     verdadera cuando los tres primeros caracteres son "bar". Una sentencia en el
+     punto actual es necesaria para realizar este efecto. Las sentencias de punto
+     actual empiezan con (?&lt;= para sentencias afirmativas y (?&lt;! para las
+     negativas. Por ejemplo,
+
+       (?&lt;!foo)bar
+
+     encuentra una ocurrencia de "bar" que no es precedida por "foo".
+     Los contenidos de un sentencia de punto actual est&aacute;n limitados para que todas
+     las cadenas que emparejen deban tener una longitud fijada. Sin embargo, si
+     hay varias alternativas, no todas tienen que tener la misma longitud. As&iacute;
+
+       (?&lt;=bullock|donkey)
+
+     es permitido, pero
+
+       (?&lt;!dogs?|cats?)
+
+     da error en tiempo de compilaci&oacute;n. Opciones que emparejen diferentes
+     longitudes de cadenas son permitidas s&oacute;lo a nivel superior de la sentencia
+     de punto actual. &Eacute;sta es una extensi&oacute;n comparada con Perl 5.005, la cual
+     requiere que todas las opciones a casar tengan la misma longitud. Una
+     sentencia como
+
+       (?&lt;=ab(c|de))
+
+     no es permitida, ya que sus opciones a nivel superior pueden casar dos
+     longitudes diferentes, pero es aceptable si se rescribe para usar dos
+     opciones a nivel superior:
+
+       (?&lt;=abc|abde)
+
+     La implementaci&oacute;n de sentencias de punto actual es, para cada alternativa,
+     mover temporalmente la posici&oacute;n actual hacia atr&aacute;s por la longitud fijada
+     e intentar casar. Si no hay suficientes caracteres antes de la posici&oacute;n
+     actual, fallar&aacute;. Las sentencias de punto actual en uni&oacute;n con subpatrones de
+     s&oacute;lo una vez pueden ser particularmente &uacute;tiles para emparejamientos de finales
+     de cadenas; un ejemplo es dado al final de la secci&oacute;n sobre subpatrones
+     de una sola vez.
+
+     Varias sentencias (de cualquier tipo) pueden suceder consecutivamente.
+     Por ejemplo,
+
+       (?&lt;=\d{3})(?&lt;!999)foo
+
+     empareja "foo" precedido por tres d&iacute;gitos que no sean "999".
+     Adem&aacute;s, las sentencias puede ser anidadas en cualquier combinaci&oacute;n. Por
+     ejemplo,
+
+       (?&lt;=(?&lt;!foo)bar)baz
+
+     empareja una ocurrencia de "baz" que es precedida por "bar" la cual no sea
+     precedida por "foo".
+
+     Los subpatrones de sentencias no son subpatrones capturados, y no pueden
+     ser repetidos, ya que no tiene sentido la misma cosa varias veces. Si una
+     sentencia contiene subpatrones capturados dentro de ella, &eacute;stos son siempre
+     contados para el prop&oacute;sito de la numeraci&oacute;n de los subpatrones capturados
+     en todo el patr&oacute;n. Las subcadenas capturadas son tenidas en cuenta para
+     las sentencias afirmativas, pero no para las negativas (no tiene sentido).
+
+     El contador de sentencias llega hasta un m&aacute;ximo de doscientos subpatrones
+     con par&eacute;ntesis.
+
+SUBPATRONES DE UNA SOLA VEZ
+
+     Maximizando y minimizando las repeticiones para ver si un n&uacute;mero diferente
+     de &eacute;stas permite al resto del patr&oacute;n emparejar, causa m&uacute;ltiples evaluaciones
+     de la cadena de entrada. A veces es &uacute;til prevenir esto, cambiando el patr&oacute;n
+     o provocando que la repetici&oacute;n falle pronto, cuando el creador del patr&oacute;n
+     conoce que no hay puntos en com&uacute;n.
+
+     Considera, por ejemplo, el patr&oacute;n \d+foo cuando se aplica a esta cadena de
+     entrada
+
+       123456bar
+
+     Despu&eacute;s de emparejar los seis d&iacute;gitos falla al emparejar "foo", la acci&oacute;n
+     normal del casamiento es intentar otra vez con s&oacute;lo cinco d&iacute;gitos que
+     emparejen con el elemento \d+, y entonces con cuatro, y as&iacute;, antes de fallar.
+     Subpatrones de una sola vez dan el modo de especificar que una parte del
+     patr&oacute;n tiene que emparejar, no es re-evaluado de esta manera, as&iacute; el
+     casamiento fallar&aacute; al emparejar "foo" la primera vez. La notaci&oacute;n es otra
+     clase de par&eacute;ntesis especial, iniciado con (?gt; como en este ejemplo:
+
+       (?&gt;\d+)bar
+
+     Esta clase de par&eacute;ntesis "bloquean" la parte del patr&oacute;n que tiene que
+     ser emparejada una vez y un fallo impide que la re-evalue.
+
+     Una descripci&oacute;n alternativa es que un subpatr&oacute;n de este tipo case los
+     caracteres de la cadena que un patr&oacute;n fijo emparejar&iacute;a, si estuviera anclado
+     en el punto actual de la cadena de entrada.
+
+     Subpatrones de una sola vez no son subpatrones capturados. Estos casos tal
+     como el ejemplo anterior pueden ser interpretado como de una repetici&oacute;n
+     maximizada que debe tragar todo lo que pueda.
+     Por esto, mientras ambos \d+ y \d? est&aacute;n preparados para ajustar el n&uacute;mero
+     de d&iacute;gitos que emparejan para hacer que el resto del patr&oacute;n case, (?&gt;\d+)
+     s&oacute;lo puede emparejar un secuencia de d&iacute;gitos entera.
+
+     Esta construcci&oacute;n, por supuesto, puede contener subpatrones arbitriamente
+     complicados y pueden estar anidados.
+
+     Subpatrones de una sola vez pueden usarse con sentencias de punto actual
+     para especificar eficientes emparejamientos al final de la cadena de entrada.
+     Consideremos un patr&oacute;n sencillo como este
+
+       abcd$
+
+     cuando se aplica a una cadena larga con la cual no empareja. Ya que el
+     casamiento va de izquierda a derecha, PCRE buscar&aacute; cada "a" en la cadena
+     y entonces ver&aacute; si lo que sigue casa con el resto del patr&oacute;n. Si el patr&oacute;n
+     se escribe as&iacute;
+
+       ^.*abcd$
+
+     entonces el .* inicial casar&aacute; primero la cadena entera, pero cuando esto
+     falle, volver&aacute; atr&aacute;s para emparejar todo menos el &uacute;ltimo car&aacute;cter, entonces
+     los dos &uacute;ltimos y as&iacute; sucesivamente. Otra vez la b&uacute;squeda de "a" cubre la
+     cadena completa, de derecha a izquierda, de esta manera no se mejora. Sin
+     embargo, si el patr&oacute;n fuese este
+
+       ^(?&gt;.*)(?&lt;=abcd)
+
+     entonces no hay vuelta atr&aacute;s para el elemento .*; s&oacute;lo puede casar la cadena
+     entera. La sentencia de punto actual subsiguiente hace un test sencillo
+     sobre los &uacute;ltimos cuatro caracteres. Si falla, el casamiento inmediatamente
+     da un resultado negativo. Para cadena largas, este acercamiento da una
+     diferencia significativa en tiempo de ejecuci&oacute;n.
+
+SUBPATRONES CONDICIONALES
+
+     Es posible hacer que el casamiento procese un subpatr&oacute;n condicionalmente
+     o elegir entre dos subpatrones alternativos, dependiendo del resultado
+     de una sentencia o si un subpatr&oacute;n capturado previamente cas&oacute; o no.
+
+     Las dos formas posibles de subpatrones condicionales son
+
+       (?(condition)yes-pattern)
+       (?(condition)yes-pattern|no-pattern)
+
+     Si la condici&oacute;n es satisfecha, el yes-pattern es usado; sino el no-pattern
+     es utilizado si existe. Si hay m&aacute;s de dos alternativas en el subpatr&oacute;n, se
+     produce un error en tiempo de compilaci&oacute;n.
+
+     Hay dos clases de condiciones. Si el texto entre los par&eacute;ntesis consiste
+     de una secuencia de d&iacute;gitos, entonces la condici&oacute;n es verdadera si el
+     subpatr&oacute;n capturado de ese n&uacute;mero ha sido casado previamente. Consideremos
+     el siguiente patr&oacute;n, contiene espacios en blanco para hacerlo m&aacute;s le&iacute;ble
+     (asumimos la opci&oacute;n PCRE_EXTENDED) y lo dividimos en tres partes para
+     facilitar la discusi&oacute;n:
+
+       ( \( )?    [^()]+    (?(1) \) )
+
+     La primera parte empareja un par&eacute;ntesis opcional abierto, y si el car&aacute;cter
+     esta presente, lo define como la primera subcadena capturada. La segunda
+     parte casa uno o m&aacute;s caracteres que no est&aacute;n entre par&eacute;ntesis. La tercera
+     parte es un subpatr&oacute;n condicional que examina si el primer conjunto de
+     par&eacute;ntesis casa o no. Si fuera as&iacute;, esto es, si la cadena de entrada
+     empieza por un par&eacute;ntesis abierto, la condici&oacute;n es cierta, y el yes-pattern
+     es ejecutado y un par&eacute;ntesis de cierre es requerido. De otro modo, ya que
+     no-pattern no esta presente, el subpatr&oacute;n no casa con nada. En otras
+     palabras, este patr&oacute;n casa una secuencia de datos sin par&eacute;ntesis
+     opcionalmente limitada por ellos.
+
+     Si la condici&oacute;n no es una secuencia de d&iacute;gitos, debe ser una sentencia.
+     Esto puede ser una sentencia de m&aacute;s adelante positiva o negativa o una
+     de punto actual. Consideremos este patr&oacute;n, otra vez conteniendo espacios
+     en blanco sin significado y con la segunda alternativa en la siguiente l&iacute;nea:
+
+       (?(?=[^a-z]*[a-z])
+       \d{2}[a-z]{3}-\d{2}  |  \d{2}-\d{2}-\d{2} )
+
+     La condici&oacute;n es una sentencia de m&aacute;s adelante positiva que empareja una
+     secuencia opcional de cualquier cosas menos letras seguido por una letra.
+     En otras palabras, examina la presencia de al menos una letra en la cadena
+     de entrada. Si una letra es encontrada, la cadena es casada con la primera
+     alternativa; sino lo es con la segunda. Este patr&oacute;n casa cadenas de una de
+     estas dos formas dd-aaa-dd o dd-dd-dd, donde aaa son letra y dd son d&iacute;gitos.
+
+COMENTARIOS
+
+     La secuencia (?# marca el inicio de un comentario el cual continua hasta
+     el primer par&eacute;ntesis. Los par&eacute;ntesis anidados no son permitidos. Los
+     caracteres que forman un comentario no forman parte del patr&oacute;n de
+     emparejamiento.
+
+     Si la opci&oacute;n PCRE_EXTENDED es definida, un car&aacute;cter # fuera de una clase
+     car&aacute;cter crea un comentario que continua hasta la pr&oacute;xima l&iacute;nea del patr&oacute;n.
+
+RENDIMIENTO
+
+     Ciertos elementos que pueden aparecer en los patrones son m&aacute;s eficientes
+     que otros. Es m&aacute;s eficiente usar una clase car&aacute;cter como [aeiou] que un
+     conjunto de alternativas tal como (a|e|i|o|u). En general, los constructores
+     m&aacute;s sencillos que dan la conducta requerida son, normalmente, m&aacute;s eficientes.
+     El libro de Jeffrey Friedl contiene un mont&oacute;n de discusiones sobre la
+     optimizaci&oacute;n de expresiones regulares para un rendimiento eficiente.
+
+     Cuando un patr&oacute;n empieza con .* y la opci&oacute;n PCRE_DOTALL est&aacute; definida, el
+     patr&oacute;n es anclado impl&iacute;citamente por PCRE, ya que s&oacute;lo puede casar el inicio
+     de la cadena de entrada. Sin embargo, si PCRE_DOTALL no es definido, PCRE
+     no puede hacer esta optimizaci&oacute;n, ya que el meta car&aacute;cter . no tiene porque
+     casar con una nueva l&iacute;nea y si la cadena de entrada contiene varias nuevas
+     l&iacute;neas, el patr&oacute;n puede emparejar desde el car&aacute;cter inmediatamente siguiente
+     a uno de ellos en vez del inicio. Por ejemplo, el patr&oacute;n
+
+        (.*) second
+
+     casa la cadena de entrada "first\nand second" (donde \n representa un car&aacute;cter
+     de nueva l&iacute;nea) con la primera subcadena capturada empezando con "and".
+     En otras palabras, PCRE tiene que intentar los casamientos inici&aacute;ndolos
+     despu&eacute;s de cada nueva l&iacute;nea en la cadena de entrada.
+
+     Si estas usando un patr&oacute;n con cadenas de entrada que no contienen nuevas
+     l&iacute;neas, el mejor rendimiento se obtiene definiendo PCRE_DOTALL o iniciando
+     el patr&oacute;n con ^.* para indicar anclamiento expl&iacute;cito. Esto previene a PCRE
+     tener que examinar toda la cadena de entrada buscando nuevas l&iacute;neas para
+     empezar de nuevo.
+    </literallayout>
+   </refsect1>
+  </refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+ <reference id="ref.ifx">
+  <title>Funciones para Informix</title>
+  <titleabbrev>Informix</titleabbrev>
+
+  <partintro>
+   <para>
+    El conector para Informix Online (ODS) 7.x, SE 7.x y Universal
+    Server (IUS) 9.x se encuentra implementado en "functions/ifx.ec" y
+    "functions/php3_ifx.h". Para ODS 7.x est&aacute; completado, con total
+    soporte para columnas de tipo BYTE y TEXT. Para IUS 9.x est&aacute;
+    parcialmente finalizado: los tipos de datos nuevos est&aacute;n all&iacute; (en el IUS 9.x),
+    pero la funcionalidad para SLOB y CLOB se encuentra bajo construcci&oacute;n todav&iacute;a.
+   </para>
+   <note>
+   <title>Notas de configuraci&oacute;n</title>
+   <para></para><para>
+    Antes de ejecutar el gui&oacute;n (script) "configure", aseg&uacute;rate que la variable
+    "INFORMIXDIR" ha sido definida.
+   </para><para>
+    Si ejecutas "configure --with_informix=yes" entonces el gui&oacute;n de
+    configuraci&oacute;n detectar&aacute; autom&aacute;ticamente las librer&iacute;as y los directorios
+    include. Puedes obviar esta detecci&oacute;n definiendo las variables de entorno
+    "IFX_LIBDIR", "IFX_LIBS" y "IFX_INCDIR". Definir&aacute;s la variable de
+    compilaci&oacute;n condicional "HAVE_IFX_IUS" si la versi&oacute;n de Informix es 9.00 o
+    superior.
+   </para>
+   </note>
+   <note>
+  <title>Algunas notas sobre el uso de BLOBs (columnas de tipo TEXT y BYTE)</title>
+   <para></para><para>
+    BLOBs son normalmente manipulados por enteros, los cuales representan
+    identificadores de BLOB.
+    Las consultas de selecci&oacute;n devuelven un "blob id" para columnas de tipo BYTE y TEXT.
+    Si eliges trabajar con los BLOBs en memoria (con: "ifx_blobinfile(0);") entonces
+    puedes obtener el contenido con "string_var = ifx_get_blob($blob_id);".
+    Si prefieres manipularlos en ficheros usa "ifx_blobinfile(1);" y
+    "ifx_get_blob($blob_id);" devolver&aacute; el nombre del archivo. En este caso, utiliza
+    las funciones habituales de entrada y salida de ficheros para obtener el
+    contenido de los blob.
+  </para><para>
+    Para consultas de inserci&oacute;n y actualizaci&oacute;n debes crear estos identificadores de blob
+    con "ifx_create_blob(..);". Entonces pondr&aacute;s los identificadores de blob en un
+    array y sustituir&aacute;s en la cadena de la consulta las columnas de tipo blob por
+    una interrogaci&oacute;n (?).
+    Para inserciones y actualizaciones eres responsable de definir el contenido
+    de los blob con ifx_update_blob(...).
+  </para><para>
+    La conducta de columnas BLOB puede ser modificada mediante variables de
+    configuraci&oacute;n, las cuales pueden ser definidas en tiempo de ejecuci&oacute;n
+    mediante funciones.
+  </para><para>
+  </para><para>
+       variable de configuraci&oacute;n: ifx.textasvarchar
+  </para><para>
+       variable de configuraci&oacute;n: ifx.byteasvarchar
+  </para><para>
+  </para><para>
+    funciones en tiempo de ejecuci&oacute;n:
+  </para><para>
+      ifx_textasvarchar(0): usa identificadores de blob para columnas de tipo TEXT
+                            en las consultas de selecci&oacute;n
+  </para><para>
+      ifx_byteasvarchar(0): usa identificadores de blob para columnas de tipo BYTE
+                            en las consultas de selecci&oacute;n
+  </para><para>
+      ifx_textasvarchar(1): devuelve columnas de tipo TEXT como si fueran de tipo
+                            VARCHAR, sin tener que usar identificadores de blob en
+                            las consultas de selecci&oacute;n
+  </para><para>
+      ifx_byteasvarchar(1): devuelve columnas de tipo BYTE como si fueran de tipo
+                            VARCHAR, sin tener que usar identificadores de blob en
+                            las consultas de selecci&oacute;n.
+  </para><para>
+  </para><para>
+    variable de configuraci&oacute;n: ifx.blobinfile
+  </para><para>
+    funci&oacute;n en tiempo de ejecuci&oacute;n:
+  </para><para>
+     ifx_blobinfile_mode(0): devuelve columnas de tipo BYTE en memoria, el
+                             identificador de blob te permite obtener el contenido.
+  </para><para>
+     ifx_blobinfile_mode(1): devuelve columnas de tipo BYTE en un fichero, el
+                             identificador te permite saber el nombre de dicho archivo.
+  </para><para>
+    Si defines ifx_text/byteasvarchar a 1 entonces puedes usar columnas de tipo
+    TEXT y BYTE en las consultas de selecci&oacute;n como campos de tipo VARCHAR, pero
+    teniendo en cuenta que tendr&aacute;n un mayor tama&ntilde;o que el habitual.
+    Ya que en PHP todas las cadenas son posibles, esto permite datos
+    binarios. De esta forma, se pueden manejar correctamente. La informaci&oacute;n devuelta
+    puede contener cualquier cosa, t&uacute; eres responsable del contenido.
+  </para><para>
+    Si defines ifx_blobinfile a 1, utiliza el nombre del archivo devuelto por
+    ifx_get_blob(..) para acceder a los contenidos del blobs.
+    En este caso, ERES REPONSABLE DE ELIMINAR EL ARCHIVO TEMPORAL GENERADO POR
+    INFORMIX cuando accedas a los registros.
+    Cada nueva fila obtenida crear&aacute; un nuevo archivo temporal para cada columna
+    de tipo BYTE.
+  </para><para>
+    El directorio donde se guardan los archivos temporales puede ser definido por
+    la variable de entorno blobdir, por defecto es ".", es decir, el directorio actual.
+    As&iacute;, putenv(blobdir=tmpblob"); definir&aacute; un directorio donde se localizar&aacute;n todos
+    los ficheros temporales y facilitar&aacute; su borrado. Todos los nombres de
+    los archivos comienzan por "blb".
+   </para>
+  </note>
+  <note>
+   <title>Recortado (trimming) autom&aacute;tico de datos de tipo "char" (SQLCHAR y SQLNCHAR)</title>
+    <para></para><para>
+    Puede ser definido con la variable de configuraci&oacute;n
+    </para><para>
+    ifx.charasvarchar: si se define a 1 eliminar&aacute; autom&aacute;ticamente los espacios
+                       en blanco al final de la cadena.
+    </para>
+   </note>
+    <para></para>
+   <note>
+   <title>Valores &null;</title>
+    <para></para><para>
+     La variable de configuraci&oacute;n ifx.nullformat (y en tiempo de ejecuci&oacute;n
+     <function>ifx_nullformat</function>) cuando sea definida a &true; devolver&aacute;
+     columnas &null; como la cadena "&null;", si es definida a &false; entonces la
+     cadena vac&iacute;a. Esto permite distinguir entre columnas &null; y vac&iacute;as.
+    </para>
+   </note>
+  </partintro>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+&reference.ifx.functions;
+
+ </reference>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
+
