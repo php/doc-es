@@ -1,67 +1,135 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- splitted from ./es/functions/filesystem.xml, last change in rev 1.1 -->
-<!-- last change to 'flock' in en/ tree in rev 1.2 -->
+<!-- $Revision: 1.2 $ -->
+<!-- EN-Revision: 1.9 Maintainer: lboshell Status: ready -->
+<!-- splitted from ./en/functions/filesystem.xml, last change in rev 1.2 -->
   <refentry id="function.flock">
    <refnamediv>
     <refname>flock</refname>
-    <refpurpose>Bloqueo de ficheros portable y asesorado</refpurpose>
+    <refpurpose>Aviso de bloqueo de archivos portable</refpurpose>
    </refnamediv>
    <refsect1>
-    <title>Description</title>
+    <title>Descripci&oacute;n</title>
      <methodsynopsis>
-     <type>bool</type><methodname>flock</methodname>
-     <methodparam><type>int</type><parameter>fp</parameter></methodparam>
-     <methodparam><type>int</type><parameter>operation</parameter></methodparam>
+      <type>bool</type><methodname>flock</methodname>
+      <methodparam><type>resource</type><parameter>gestor</parameter></methodparam>
+      <methodparam><type>int</type><parameter>operacion</parameter></methodparam>
+      <methodparam choice="opt"><type>int</type><parameter>&amp;bloquearia</parameter></methodparam>
      </methodsynopsis>
     <simpara>
-     PHP soporta un m&eacute;todo portable de bloquear ficheros completos de
-     manera asesorada (lo que significa que todos los programas que acceden
-     tienen que usar el mismo modo de bloqueo o &eacute;ste no funcionar&aacute;).
+     PHP soporta una manera portable de bloquear archivos enteros de
+     por medio de avisos (lo que quiere decir que todos los programas
+     que acceden al archivo deben usar el mismo mecanismo de bloqueo,
+     o no funcionar&aacute;).
     </simpara>
+    <note>
+     <para>
+      <function>flock</function> es obligatorio bajo Windows.
+     </para>
+    </note>
     <simpara>
-     <function>flock</function> opera sobre <parameter>fp</parameter>
-     el cual debe ser un apuntador a un fichero
-     abierto. <parameter>operation</parameter> toma uno de los siguientes
-     valores:
+     <function>flock</function> opera sobre
+     <parameter>gestor</parameter>, que debe ser un apuntador a un
+     archivo abierto. <parameter>operacion</parameter> es uno de los
+     siguientes valores:
     </simpara>
     <para>
      <itemizedlist>
       <listitem>
        <simpara>
-        Para que adquiera un bloqueo compartido (lectura),
-	fija <parameter>operation</parameter> a 1.
+        Para adquirir un bloqueo compartido (de lectura), defina
+        <parameter>operacion</parameter> a
+        <constant>LOCK_SH</constant> (o use 1 antes de PHP 4.0.1).
        </simpara>
       </listitem>
       <listitem>
        <simpara>
-        Para adquirir un bloqueo exclusivo (escritura),
-	fija <parameter>operation</parameter> a 2.
+        Para adquirir un bloqueo exclusizo (de escritura), defina
+        <parameter>operacion</parameter> a
+        <constant>LOCK_EX</constant> (o use 2 antes de PHP 4.0.1).
        </simpara>
       </listitem>
       <listitem>
        <simpara>
-        Para liberar un bloqueo (compartido o exclusivo),
-	fija <parameter>operation</parameter> a 3.
+        Para liberar un bloqueo (compartido o exclusivo), defina
+        <parameter>operacion</parameter> a
+        <constant>LOCK_UN</constant> (o use 3 antes de PHP 4.0.1).
        </simpara>
       </listitem>
       <listitem>
        <simpara>
-	Si no quieres que <function>flock</function> bloquee mientras
-	est&aacute; activado, suma 4 al valor de <parameter>operation</parameter>.
+        Si no desea que <function>flock</function> bloquee mientras
+        opera, agregue <constant>LOCK_NB</constant> (4 antes de PHP
+        4.0.1) a <parameter>operacion</parameter>.
        </simpara>
       </listitem>
      </itemizedlist>
     </para>
     <simpara>
-     <function>flock</function> permite establece un modelo simple
-     de lectura/escritura el cual puede usarse en pr&aacute;cticamente
-     cualquier plataforma (incluyendo la mayoria de sistemas Unix e
-     incluso Windows).
+     <function>flock</function> le permite ejecutar un modelo de
+     lectura/escritura simple que puede ser usado en
+     pr&aacute;cticamente cualquier plataforma (incluyendo la
+     mayor&iacute;a de derivaciones de Unix e incluso Windows). El
+     tercer argumento opcional recibe el valor &true; si el aviso
+     producir&iacute;a un bloqueo (la condici&oacute;n EWOULDBLOCK)
     </simpara>
     <simpara>
-     <function>flock</function> devuelve &true; en caso de &eacute;xito y &false;
-     en caso de error (ej. cuando no se puede establecer un bloqueo).
+      &return.success;
     </simpara>
+    <para>
+     <example>
+      <title>Ejemplo de <function>flock</function></title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+
+$aa = fopen("/tmp/bloqueo.txt", "w+");
+
+if (flock($aa, LOCK_EX)) { // realizar un bloqueo exclusivo
+    fwrite($aa, "Escribir algo aqui\n");
+    flock($aa, LOCK_UN); // liberar el aviso
+} else {
+    echo "&iexcl;No se pudo bloquear el archivo!";
+}
+
+fclose($aa);
+
+?>
+]]>
+      </programlisting>
+     </example>
+    </para>
+    <note>
+     <para>
+      Dado que <function>flock</function> requiere un apuntador de
+      archivo, puede que necesite usar un archivo especial de bloqueo
+      para proteger el acceso a un archivo que pretende truncar
+      abri&eacute;ndolo en modo de escritura (con un argumento "w" o
+      "w+" a <function>fopen</function>).
+     </para>
+    </note>
+    <warning>
+     <para>
+      <function>flock</function> no trabajar&aacute; sobre NFS y
+      muchos otros sistemas de archivos en red. Revise la
+      documentaci&oacute;n de su sistema operativo para m&aacute;s
+      detalles.
+     </para>
+     <para>
+      En algunos sistemas operativos <function>flock</function> se
+      implementa al nivel de proceso. Cuando usa una API de servidor
+      multi-hilos como ISAPI, &iexcl;es posible que no pueda depender
+      en <function>flock</function> para proteger archivos contra
+      otros scripts PHP corriendo en hilos paralelos en la misma
+      instancia de servidor!
+     </para>
+     <para>
+      <function>flock</function> no es soportado en sistemas de
+      archivos anticuados como <literal>FAT</literal> y sus derivados,
+      y por lo tanto siempre devolver&aacute; &false; bajo tales
+      entornos (esto es especialmente cierto para usuarios de Windows
+      98).
+     </para>
+    </warning>
    </refsect1>
   </refentry>
 
