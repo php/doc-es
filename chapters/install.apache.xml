@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.2 $ -->
-<!-- EN-Revision: 1.18 Maintainer: rafael Status: ready -->
+<!-- $Revision: 1.3 $ -->
+<!-- EN-Revision: 1.20 Maintainer: rafael Status: ready -->
 
   <sect1 id="install.apache">
  <title>Servidores-Apache</title>
@@ -28,7 +28,7 @@
   
   <example id="install.apache.unix.longer">
    <title>
-    Instrucciones de instalaci&oacute;n para PHP 4 (Versi&oacute;n m&oacute;dulo compartido
+    Instrucciones de instalaci&oacute;n para PHP (Versi&oacute;n m&oacute;dulo compartido
     de Apache)</title>
    <screen>
 <![CDATA[
@@ -41,37 +41,78 @@
 7.  make
 8.  make install
 9.  cd ../php-xxx
-10. ./configure --with-mysql --with-apxs=/www/bin/apxs
+
+10. Ahora, configurar vuestro PHP. En este paso podeis configurar PHP
+    con diferentes opciones, como por ejemplo que extensiones estaran
+    dispobibles. Podeis ejecutar ./configure --help para obtener una
+    lista con las opciones que podeis usar. En nuestro ejemplo,
+    configuramos con Apache y soporte MySQL. Vuestro path a apxs puede
+    diferir del nuestro, dependiendo donde lo tengais instalado. 
+
+      ./configure --with-mysql --with-apxs=/www/bin/apxs
+
 11. make
 12. make install
 
-  Si decides cambiar las opciones de configuraci&oacute;n despues de la
-  instalaci&oacute;n, solamente se necesita repetir los tres &uacute;ltimos
-  pasos. Solamente se necesita arrancar de nuevo Apache para que
-  cargue el nuevo m&oacute;dulo. No es necesario recompilar Apache.
+    Si decides cambiar las opciones de configuraci&oacute;n despues de la
+    instalaci&oacute;n, solamente se necesita repetir los tres ultimos
+    pasos. Solamente se necesita arrancar de nuevo Apache para que
+    cargue el nuevo modulo. No es necesario recompilar Apache.
 
-13. cp php.ini-dist /usr/local/lib/php.ini
+    Tener en cuenta que si no se especifica lo contrario, 'make install'
+    tambien instala PEAR, diferentes herramientas PHP tal como phpsize,
+    PHP CLI y mas.
 
-  Se puede editar el fichero php.ini para configurar como PHP
-  funciona. Si quereis tener este fichero en otra localizaci&oacute;n, podeis
-  usar --with-config-file-path=/path en el paso 10.
+13. Configurar vuestro fichero php.ini  
 
-14. Editar el fichero  httpd.conf &oacute; srm.conf y comprobar que estas
-    lineas existen y no est&aacute;n comentadas:
-  
-   AddType application/x-httpd-php .php
+     cp php.ini-dist /usr/local/lib/php.ini
 
-   LoadModule php4_module        libexec/libphp4.so
- 
-  Podeis elegir la extension que querais aqui, .php es simplemente una
-  sugerencia. Se puede incluso tener .html y .php3 se puede
-  a&ntilde;adir por asuntos de compatibilidad hacia atras.
+    Se puede editar el fichero php.ini para configurar como PHP
+    funciona. Si quereis tener este fichero en otra localizacion, podeis
+    usar --with-config-file-path=/path en el paso 10.
 
-  El "path" a la derecha de LoadModule debe de coincidir con el "path"
-  del m&oacute;dulo PHP en vuestro sistema. Si habeis seguido los pasos desde
-  el punto 1. no necesitais alterar nada.
+    Si usais el fichero php.ini-recommended, asegurarse de leer la
+    lista de cambios en este fichero, ya que afectan al modo de
+    funcionamiento de PHP.
 
-15. Utilizar el procedimiento habitual que utiliceis para arrancar
+14. Editar httpd.conf para cargar el modulo PHP. El path a la derecha
+    de 'LoadModule' debe de coincidir con el path donde el modulo PHP
+    se encuentre en vuestro sistema. El comando que habeis ajecutado
+    anteriormente 'make install' puede que haya anadido esto, pero
+    asegurarse de comprobar que el cambio ha sido hecho.
+
+    Para PHP 4:
+            
+      LoadModule php4_module libexec/libphp4.so
+
+    Para PHP 5:
+                      
+      LoadModule php5_module libexec/libphp5.so
+      
+15. Y en la seccion 'AddModule' en httpd.conf, anadir:
+
+    Para PHP 4:
+    
+      AddModule mod_php4.c
+      
+    Para PHP 5:
+    
+      AddModule mod_php5.c
+
+16. Tenemos que decirle a Apache que extension vamos a utilizar en
+    nuestros scripts PHP. Podemos utilizar la extension
+    .php para PHP aunque podemos anadir la extension que queramos
+    separadas con un espacio. En nuestro ejemplo utilizaremos por
+    ejemplo .php y .phtml 
+
+      AddType application/x-httpd-php .php .phtml
+
+    Tambien se sulele utilizar la extension .phps para mostrar el
+    codigo PHP coloreado. Para ello tenemos que anadir la siguiente linea:
+
+      AddType application/x-httpd-php-source .phps
+
+17. Utilizar el procedimiento habitual que utiliceis para arrancar
     Apache. (Debeis de parar y arrancar Apache, no vale recargar
     (reload) usando una se&ntilde;al HUP &oacute; USR1).
 ]]>
@@ -84,8 +125,11 @@
    Apache. M&aacute;s abajo teneis las maneras m&aacute;s t&iacute;picas de parar y
    arrancar el servidor en diferentes instalaciones de
    apache/unix. <literal>/path/to/</literal> se tiene que actualizar
-   <informalexample>
-    <screen>
+    </para>
+     <para>
+      <example>
+       <title>Ejemplos de comandos para rearrancar Apache</title>
+       <programlisting role="shell">
 <![CDATA[
 1. En ciertas variantes de Linux y SysV:
 /etc/rc.d/init.d/httpd restart
@@ -103,13 +147,15 @@
 /path/to/apachectl stop
 /path/to/apachectl startssl
 ]]>
-    </screen>
-   </informalexample>
-   La localizaci&oacute;n de los binarios apachectl y http(s)dctl suele
-   variar. Si tu sistema tiene los comandos <literal>locate</literal>
-   &oacute; <literal>whereis</literal> &oacute; <literal>which</literal>, podeis
-   utilizarlos para localizar los programas de control de vuestro
-   servidor.
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   La localizaci&oacute;n de los binarios apachectl y http(s)dctl
+   suele variar. Si tu sistema tiene los comandos
+   <literal>locate</literal> &oacute; <literal>whereis</literal>
+   &oacute; <literal>which</literal>, podeis utilizarlos para
+   localizar los programas de control de vuestro servidor.
   </para>
   
   <para>
@@ -301,8 +347,11 @@ Group "#-1"
      <simpara>
       Editar &httpd.conf; en vuestro editor favorito, localizar la
       directiva <literal>LoadModule</literal> y a&ntilde;adir la
-      siguiente linea al final de la lista: <literal>LoadModule
-       php4_module c:/php/sapi/php4apache.dll</literal>
+      siguiente linea al final de la lista para PHP 4:
+      <literal>LoadModule php4_module
+      c:/php/sapi/php4apache.dll</literal>, o para PHP 5
+      <literal>LoadModule php5_module
+      "c:/php/sapi/php5apache.dll"</literal>
      </simpara>
     </listitem>
     <listitem>
@@ -314,7 +363,8 @@ Group "#-1"
       importante si la directiva <literal>ClearModuleList</literal>
       est&aacute; definida. A&ntilde;adir <literal>AddModule
       mod_php4.c</literal> <emphasis>al final de</emphasis> la lista
-      de directivas <literal>AddModule</literal>.
+      de directivas <literal>AddModule</literal>. Para PHP 5, usar
+      <literal>AddModule mod_php5.c</literal>
      </simpara>
     </listitem>
     <listitem>
