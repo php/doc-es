@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.1 Maintainer: lboshell Status: ready -->
+<!-- splitted from ./index.xml, last change in rev 1.66 -->
+  <sect1 id="security.database">
+   <title>Seguridad de Bases de Datos</title>
+
+   <simpara>
+    Hoy en d&iacute;a, las bases de datos son componentes cardinales
+    de cualquier aplicaci&oacute;n basada en web, permitiendo que los
+    sitios web provean contenido din&aacute;mico. Debido a que
+    informaci&oacute;n considerablemente sensible o secreta puede ser
+    almacenada en una base de datos, usted debe considerar seriamente
+    la protecci&oacute;n de sus bases de datos.
+   </simpara>
+   <simpara>
+    Para recuperar o almacenar cualquier informaci&oacute;n necesita
+    conectarse a la base de datos, enviar una consulta v&aacute;lida,
+    recoger el resultado y cerrar la conexi&oacute;n. Hoy en
+    d&iacute;a, el lenguaje de consultas usado com&uacute;nmente en
+    estas interacciones es el Lenguaje de Consultas Estructurado (SQL
+    por sus siglas en Ingl&eacute;s). Puede apreciar c&oacute;mo un
+    atacante puede
+    <link linkend="security.database.sql-injection">intentar
+    acometidas con una consulta SQL</link>.
+   </simpara>
+   <simpara>
+    Como puede suponer, PHP no puede proteger su base de datos por
+    s&iacute; solo. Las siguientes secciones est&aacute;n dirigidas a
+    servir de introducci&oacute;n a los conceptos b&aacute;sicos de
+    c&oacute;mo acceder y manipular bases de datos desde scripts PHP.
+   </simpara>
+   <simpara>
+    Mantenga en mente esta simple regla: protecci&oacute;n en
+    profundidad. Entre m&aacute;s acciones tome para incrementar la
+    protecci&oacute;n de su base de datos, menor ser&aacute; la
+    probabilidad de que un atacante tenga &eacute;xito exponiendo o
+    abusando de cualquier informaci&oacute;n almacenada. Un buen
+    dise&ntilde;o del esquema de la base de datos y de la
+    aplicaci&oacute;n basta para lidiar con sus mayores temores.
+   </simpara>
+
+   <sect2 id="security.database.design">
+    <title>Dise&ntilde;o de Bases de Datos</title>
+     <simpara>
+      El primer paso siempre es crear la base de datos, a menos que
+      desee usar una creada por alguien m&aacute;s. Cuando una base de
+      datos es creada, &eacute;sta es asignada a un due&ntilde;o,
+      quien ejecut&oacute; la sentencia de
+      creaci&oacute;n. Usualmente, &uacute;nicamente el due&ntilde;o
+      (o un super-usuario) puede hacer cualquier cosa con los objetos
+      de esa base de datos, y para que otros usuarios puedan usarla,
+      deben otorgarse privilegios.
+     </simpara>
+     <simpara>
+      Las aplicaciones nunca deber&iacute;an conectarse a la base de
+      datos bajo el usuario correspondiente a su due&ntilde;o, o como
+      un super-usuario, ya que &eacute;stos usuarios pueden, por
+      ejemplo, ejecutar cualquier consulta a su antojo, modificando el
+      esquema (p. ej. eliminando tablas) o borrando su contenido
+      completo.
+     </simpara>
+     <simpara>
+      Usted puede crear diferentes usuarios de la base de datos para
+      cada aspecto de su aplicaci&oacute;n con derechos muy limitados
+      sobre los objetos de la base de datos. Tan solo deben otorgarse
+      los privilegios estrictamente necesarios, y evitar que el mismo
+      usuario pueda interactuar con la base de datos en diferentes
+      casos de uso. Esto quiere decir que si un intruso gana acceso a
+      su base de datos usando las credenciales de sus aplicaciones,
+      &eacute;l solo puede efectuar tantos cambios como su
+      aplicaci&oacute;n se lo permita.
+     </simpara>
+     <simpara>
+      Es buena idea que no implemente toda la l&oacute;gica del asunto
+      en la aplicaci&oacute;n web (es decir, en su script); en su
+      lugar, h&aacute;galo en el esquema de la base de datos usando
+      vistas, disparadores o reglas. Si el sistema evoluciona, se
+      espera que nuevos puertos sean abiertos a la aplicaci&oacute;n,
+      y tendr&aacute; que re-implementar la l&oacute;gica para cada
+      cliente de la base de datos. Por sobre todo, los disparadores
+      pueden ser usados para gestionar de forma transparente todos los
+      campos autom&aacute;ticamente, lo cual con frecuencia provee
+      informaci&oacute;n &uacute;til cuando se depuren problemas de su
+      aplicaci&oacute;n, o se realicen rastreos sobre transacciones
+      particulares.
+     </simpara>
+   </sect2>
+
+   <sect2 id="security.database.connection">
+    <title>Conexi&oacute;n con la Base de Datos</title>
+    <simpara>
+     Puede que desee establecer las conexiones sobre SSL para
+     encriptar las comunicaciones cliente/servidor, incrementando el
+     nivel de seguridad, o puede hacer uso de ssh para encriptar la
+     conexi&oacute;n de red entre los clientes y el servidor de la
+     base de datos. Si cualquiera de estos recursos es usado, entonces
+     monitorear su tr&aacute;fico y adquirir informaci&oacute;n sobre
+     su base de datos ser&aacute; dif&iacute;cil para un atacante
+     potencial.
+    </simpara>
+    <!--simpara>
+Si su servidor de base de datos tiene soporte SSL nativo, considere el
+uso de <link linkend="ref.openssl">funciones OpenSSL</link> en la
+comunicaci&oacute;n entre PHP y la base de datos v&iacute;a SSL.
+    </simpara-->
+   </sect2>
+
+   <sect2 id="security.database.storage">
+    <title>Modelo de Almacenamiento Encriptado</title>
+    <simpara>
+     SSL/SSH protege los datos que viajan desde el cliente al
+     servidor, SSL/SSH no protege los datos persistentes almacenados
+     en la base de datos. SSL es un protocolo sobre-el-cable.
+    </simpara>
+    <simpara>
+     Una vez el atacante adquiere acceso directo a su base de datos
+     (evitando el paso por el servidor web), los datos cr&iacute;ticos
+     almacenados pueden estar expuestos o malutilizados, a menos que
+     la informaci&oacute;n est&eacute; protegida en la base de datos
+     misma. La encriptaci&oacute;n de datos es una buena forma de
+     mitigar esta amenaza, pero muy pocas bases de datos ofrecen este
+     tipo de mecanismo de encriptaci&oacute;n de datos.
+    </simpara>
+    <simpara>
+     La forma m&aacute;s sencilla de evitar este problema es crear
+     primero su propio paquete de encriptaci&oacute;n, y luego
+     utilizarlo desde sus scripts de PHP. PHP puede ayudarle en este
+     sentido con varias extensiones, como <link
+     linkend="ref.mcrypt">Mcrypt</link> y <link
+     linkend="ref.mhash">Mhash</link>, las cuales cubren una amplia
+     variedad de algoritmos de encriptaci&oacute;n. El script encripta
+     los datos antes de insertarlos en la base de datos, y los
+     decripta cuando los recupera. Vea las referencias para consultar
+     m&aacute;s ejemplos de c&oacute;mo opera la encriptaci&oacute;n.
+    </simpara>
+    <simpara>
+     En el caso de datos realmente escondidos, si su
+     representaci&oacute;n original no se necesita (es decir, no debe
+     ser desplegada), los res&uacute;menes criptogr&aacute;ficos
+     pueden llegar a considerarse tambi&eacute;n. El ejemplo
+     cl&aacute;sico de gesti&oacute;n de res&uacute;menes
+     criptogr&aacute;ficos es el almacenamiento de secuencias MD5 de
+     una contrase&ntilde;a en una base de datos, en lugar de la
+     contrase&ntilde;a misma. Vea
+     tambi&eacute;n <function>crypt</function>
+     y <function>md5</function>.
+    </simpara>
+    <example>
+     <title>Uso de un campo de contrase&ntilde;as encriptado</title>
+     <programlisting role="php">
+<![CDATA[
+// almacenamiento de resumen criptografico de la contrasenya
+
+$consulta  = sprintf("INSERT INTO usuarios(nombre,contr) VALUES('%s','%s');",
+                     addslashes($nombre_usuario), md5($contrasenya));
+$resultado = pg_exec($conexion, $consulta);
+
+
+// consulta de verificacion de la contrasenya enviada
+
+$consulta  = sprintf("SELECT 1 FROM usuarios WHERE nombre='%s' AND contr='%s';",
+                     addslashes($nombre_usuario), md5($contrasenya));
+$resultado = pg_exec($conexion, $consulta);
+
+if (pg_numrows($resultado) > 0) {
+    echo "&iexcl;Bienvenido, $nombre_usuario!";
+}
+else {
+    echo "No pudo autenticarse a $nombre_usuario.";
+}
+]]>
+     </programlisting>
+    </example>
+   </sect2>
+
+   <sect2 id="security.database.sql-injection">
+    <title>Inyecci&oacute;n de SQL</title>
+    <simpara>
+     Muchos desarrolladores web no son conscientes de c&oacute;mo
+     pueden manipularse las consultas SQL, y asumen que una consulta
+     SQL es un comando confiable. Esto representa que las consultas
+     SQL pueden burlar los controles de acceso, y de este modo evitar
+     los chequeos est&aacute;ndares de autenticaci&oacute;n y
+     autorizaci&oacute;n, y a veces las consultas SQL pueden incluso
+     permitir acceso a comandos al nivel del sistema operativo de la
+     m&aacute;quina hu&eacute;sped.
+    </simpara>
+    <simpara>
+     La Inyecci&oacute;n Directa de Comandos SQL es una t&eacute;cnica
+     en la cual un atacante crea o altera comandos SQL existentes para
+     exponer datos escondidos, o sobrescribir datos cr&iacute;ticos, o
+     incluso ejecutar comandos del sistema peligrosos en la
+     m&aacute;quina en donde se encuentra la base de datos. Esto se
+     consigue cuando la aplicaci&oacute;n toma informaci&oacute;n de
+     entrada del usuario y la combina con par&aacute;metros
+     est&aacute;ticos para construir una consulta SQL. Los siguientes
+     ejemplos, desafortunadamente, est&aacute;n basados en historias
+     reales.
+    </simpara>
+    <para>
+     Debido a la falta de validaci&oacute;n de la informaci&oacute;n
+     de entrada y el establecimiento de conexiones con la base de
+     datos desde un super-usuario o aquel que puede crear usuarios, el
+     atacante podr&iacute;a crear un super-usuario en su base de
+     datos.
+     <example>
+      <title>
+       Paginaci&oacute;n del conjunto de resultados ... y
+       creaci&oacute;n de super-usuarios (PostgreSQL y MySQL)
+      </title>
+      <programlisting role="php">
+<![CDATA[
+$offset   = argv[0]; // atencion, no se valida la entrada!
+$consulta = "SELECT id, nombre FROM productos ORDER BY nombre LIMIT 20 " .
+            "OFFSET $offset;";
+
+// con PostgreSQL 
+$resultado = pg_exec($conexion, $consulta);
+
+// con MySQL
+$resultado = mysql_query($consulta);
+]]>
+      </programlisting>
+     </example>
+     Los usuarios normales pulsan sobre los enlaces 'siguiente' y
+     'anterior', en donde el desplazamiento
+     (<varname>$offset</varname>) se encuentra codificado en la
+     URL. El script espera que el valor
+     entrante <varname>$offset</varname> sea un n&uacute;mero decimal.
+     Sin embargo, qu&eacute; sucede si alguien intenta un ataque
+     a&ntilde;adiendo una forma codificada
+     (<function>urlencode</function>) de lo siguiente en la URL
+      <informalexample>
+       <programlisting>
+<![CDATA[
+// en el caso de PostgreSQL
+0;
+insert into pg_shadow(usename,usesysid,usesuper,usecatupd,passwd)
+    select 'crack', usesysid, 't','t','crack'
+    from pg_shadow where usename='postgres';
+--
+
+// en el caso de MySQL
+0;
+UPDATE user SET Password=PASSWORD('crack') WHERE user='root';
+FLUSH PRIVILEGES;
+]]>
+       </programlisting>
+      </informalexample>
+     Si esto ocurriera, entonces el script le presentar&iacute;a un
+     acceso de superusuario al atacante. Note
+     que <literal>0;</literal> es usado para ofrecer un desplazamiento
+     v&aacute;lido a la consulta original y finalizarla.
+    </para>
+    <note>
+     <para>
+      Es una t&eacute;cnica com&uacute;n obligar al analizador
+      sint&aacute;ctico de SQL a que ignore el resto de la consulta
+      escrita por el desarrollador mediante
+      <literal>--</literal>, el cual es el signo de comentarios en
+      SQL.
+     </para>
+    </note>
+    <para>
+     Una forma viable de adquirir contrase&ntilde;as es jugar con las
+     p&aacute;ginas de resultados de b&uacute;squedas. Lo &uacute;nico
+     que necesita el atacante es ver si existen variables enviadas por
+     el usuario que sean usadas en sentencias SQL, y que no sean
+     tratadas apropiadamente. Estos filtros pueden ubicarse por lo
+     general previos a cl&aacute;usulas <literal>WHERE, ORDER BY,
+     LIMIT</literal> y <literal>OFFSET</literal> en sentencias
+     <literal>SELECT</literal> para personalizar la
+     instrucci&oacute;n. Si su base de datos soporta la
+     construcci&oacute;n <literal>UNION</literal>, el atacante puede
+     intentar a&ntilde;adir una consulta completa a la consulta
+     original para generar una lista de contrase&ntilde;as desde una
+     tabla cualquiera. El uso de campos encriptados de
+     contrase&ntilde;as es altamente recomendable.
+     <example>
+      <title>
+       Listado de art&iacute;culos ... y algunas contrase&ntilde;as
+       (en cualquier base de datos)
+      </title>
+      <programlisting role="php">
+<![CDATA[
+$consulta  = "SELECT id, nombre, insertado, tam FROM productos
+                  WHERE tam = '$tam'
+                  ORDER BY $orden LIMIT $limite, $offset;";
+$resultado = odbc_exec($conexion, $consulta);
+]]>
+      </programlisting>
+     </example>
+     La parte est&aacute;tica de la consulta puede combinarse con otra
+     sentencia <literal>SELECT</literal> la cual revela todas las
+     contrase&ntilde;as:
+     <informalexample>
+      <programlisting>
+<![CDATA[
+'
+union select '1', concat(uname||'-'||passwd) as name, '1971-01-01', '0' from usertable;
+--
+]]>
+      </programlisting>
+     </informalexample>
+     Si esta consulta (la cual juega con <literal>'</literal> y
+     <literal>--</literal>) fuera asignada a una de las variables
+     usadas en <varname>$consulta</varname>, la bestia de la consulta
+     habr&aacute; despertado.
+    </para>
+    <para>
+     Las sentencias UPDATE de SQL son tambi&eacute;n susceptibles a
+     ataque. &Eacute;stas consultas tambi&eacute;n se encuentran
+     amenazadas por un posible acotamiento y adici&oacute;n de una
+     consulta completamente nueva. Pero en este caso el atacante puede
+     ama&ntilde;ar la informaci&oacute;n de una
+     cl&aacute;usula <literal>SET</literal>. En este caso se requiere
+     contar con cierta informaci&oacute;n sobre el esquema de la base
+     de datos para poder manipular la consulta
+     satisfactoriamente. Esta informaci&oacute;n puede ser adquirida
+     mediante el estudio de los nombres de variables de los
+     formularios, o simplemente por fuerza bruta. No existen
+     demasiadas convenciones para nombrar campos de contrase&ntilde;as
+     o nombres de usuario.
+     <example>
+     <title>
+      De restablecer una contrase&ntilde;a ... a adquirir m&aacute;s
+      privilegios (con cualquier servidor de base de datos)
+     </title>
+      <programlisting role="php">
+<![CDATA[
+$consulta = "UPDATE usertable SET pwd='$pwd' WHERE uid='$uid';";
+]]>
+      </programlisting>
+     </example>
+     Pero un usuario malicioso env&iacute;a el valor <literal>' or uid
+     like'%admin%'; --</literal> como <varname>$uid</varname> para
+     cambiar la contrase&ntilde;a del administrador, o simplemente
+     establece
+     <varname>$pwd</varname> a <literal>"hehehe', admin='yes',
+     trusted=100 "</literal> (con un espacio al inicio) para adquirir
+     m&aacute;s privilegios. En tal caso, la consulta ser&iacute;a
+     manipulada:
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+// $uid == ' or uid like'%admin%'; --
+$consulta = "UPDATE usertable SET pwd='...' WHERE uid='' or uid like '%admin%'; --";
+
+// $pwd == "hehehe', admin='yes', trusted=100 "
+$consulta = "UPDATE usertable SET pwd='hehehe', admin='yes', trusted=100 WHERE ...;"
+]]>
+      </programlisting>
+     </informalexample>
+    </para>
+    <para>
+     Un horrible ejemplo de c&oacute;mo puede accederse a comandos del
+     nivel del sistema operativo en algunas m&aacute;quinas
+     anfitrionas de bases de datos.
+     <example>
+     <title>Ataque al sistema operativo de la m&aacute;quina
+     anfitriona de la base de datos (MSSQL Server)</title>
+      <programlisting role="php">
+<![CDATA[
+$consulta  = "SELECT * FROM productos WHERE id LIKE '%$prod%'";
+$resultado = mssql_query($consulta);
+]]>
+      </programlisting>
+     </example>
+     Si el atacante env&iacute;a el valor <literal>a%' exec
+     master..xp_cmdshell 'net user test testpass /ADD' --</literal> a
+     <varname>$prod</varname>, entones la <varname>$consulta</varname>
+     ser&aacute;:
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+$consulta  = "SELECT * FROM productos
+                    WHERE id LIKE '%a%'
+                    exec master..xp_cmdshell 'net user test testpass /ADD'--";
+$resultado = mssql_query($consulta);
+]]>
+      </programlisting>
+     </informalexample>
+     MSSQL Server ejecuta sentencias SQL en el lote, incluyendo un
+     comando para agregar un nuevo usuario a la base de datos de
+     cuentas locales. Si esta aplicaci&oacute;n estuviera corriendo
+     como
+     <literal>sa</literal> y el servicio MSSQLSERVER est&aacute;
+     corriendo con los privilegios suficientes, el atacante
+     tendr&iacute;a ahora una cuenta con la que puede acceder a esta
+     m&aacute;quina.
+    </para>
+    <note>
+     <para>
+      Algunos de los ejemplos anteriores est&aacute;n atados a un
+      servidor de base de datos espec&iacute;fico. Esto no quiere
+      decir que un ataque similar sea imposible con otros
+      productos. Su base de datos puede ser vulnerable de forma
+      semejante, en alguna otra manera.
+     </para>
+    </note>
+
+    <sect3 id="security.database.avoiding">
+     <title>T&eacute;cnicas de protecci&oacute;n</title>
+     <simpara>
+      Usted puede argumentar con justa raz&oacute;n que el atacante
+      debe poseer cierta cantidad de informaci&oacute;n sobre el
+      esquema de la base de datos en la mayor&iacute;a de ejemplos que
+      hemos visto. Tiene raz&oacute;n, pero usted nunca sabe
+      cu&aacute;ndo y c&oacute;mo puede filtrarse esta
+      informaci&oacute;n, y si ocurre, su base de datos estar&aacute;
+      expuesta. Si est&aacute; usando un paquete de gesti&oacute;n de
+      bases de datos de c&oacute;digo abierto, o cuyo c&oacute;digo
+      fuente est&aacute; disponible p&uacute;blicamente, el cual puede
+      pertenecer a alg&uacute;n sistema de administraci&oacute;n de
+      contenido o foro, los intrusos pueden producir f&aacute;cilmente
+      una copia de un trozo de su c&oacute;digo. Tambi&eacute;n puede
+      ser un riesgo de seguridad si es un segmento de c&oacute;digo
+      pobremente dise&ntilde;ado.
+     </simpara>
+     <simpara>
+      Estos ataques se basan principalmente en la explotaci&oacute;n
+      del c&oacute;digo que no ha sido escrito pensando en la
+      seguridad. Nunca conf&iacute;e en ning&uacute;n tipo de
+      informaci&oacute;n de entrada, especialmente aquella que
+      proviene del lado del cliente, aun si lo hace desde una caja de
+      selecci&oacute;n, un campo de entrada hidden o una cookie. El
+      primer ejemplo le muestra que una consulta as&iacute; de
+      descuidada puede causar desastres.
+     </simpara>
+
+     <itemizedlist>
+      <listitem>
+       <simpara>
+        Nunca se conecte a la base de datos como un super-usuario o
+        como el due&ntilde;o de la base de datos. Use siempre usuarios
+        personalizados con privilegios muy limitados.
+       </simpara>
+      </listitem>
+      <listitem>
+       <simpara>
+        Revise si la entrada recibida es del tipo apropiado. PHP posee
+        un amplio rango de funciones de validaci&oacute;n de datos,
+        desde los m&aacute;s simples encontrados en <link
+        linkend="ref.variables">Funciones sobre variables</link> y
+        en <link linkend="ref.ctype">Funciones de tipo de
+        caracter</link> (p. ej. <function>is_numeric</function>,
+        <function>ctype_digit</function> respectivamente) hasta el
+        soporte para <link linkend="ref.pcre">Expresiones Regulares
+        compatibles con Perl</link>.
+       </simpara>
+      </listitem>
+      <listitem>
+       <para>
+        Si la aplicaci&oacute;n espera alguna entrada num&eacute;rica,
+        considere la verificaci&oacute;n de informaci&oacute;n
+        con <function>is_numeric</function>, o modifique
+        silenciosamente su tipo usando <function>settype</function>, o
+        utilice su representaci&oacute;n num&eacute;rica, dada por
+        <function>sprintf</function>.
+        <example>
+         <title>
+          Una forma m&aacute;s segura de generar una consulta para
+          paginado
+         </title>
+         <programlisting role="php">
+<![CDATA[
+settype($offset, 'integer');
+$consulta = "SELECT id, nombre FROM productos ORDER BY nombre " .
+            "LIMIT 20 OFFSET $offset;";
+
+// note el simbolo %d en la cadena de formato, usar %s no tendria sentido
+$consulta = sprintf("SELECT id, nombre FROM productos ORDER BY nombre" .
+                    "LIMIT 20 OFFSET %d;", $offset);
+]]>
+         </programlisting>
+        </example>
+       </para>
+      </listitem>
+      <listitem>
+       <simpara>
+        Ubique cada entrada del usuario no-num&eacute;rica que sea
+        pasada a la base de datos entre comillas
+        con <function>addslashes</function> o
+        <function>addcslashes</function>. Vea <link
+        linkend="security.database.storage">el primer
+        ejemplo</link>. Como se ve all&iacute;, las comillas colocadas
+        en la parte est&aacute;tica de la consulta no son suficientes,
+        y pueden ser manipuladas f&aacute;cilmente.
+       </simpara>
+      </listitem>
+      <listitem>
+       <simpara>
+        No imprima ninguna informaci&oacute;n espec&iacute;fica sobre
+        la base de datos, especialmente sobre su esquema, ya sea por
+        razones justas o por equivocaciones. Vea tambi&eacute;n <link
+        linkend="security.errors">Reporte de Errores</link> y <link
+        linkend="ref.errorfunc">Gesti&oacute;n de Errores y Funciones
+        de Registro</link>.
+       </simpara>
+      </listitem>
+      <listitem>
+       <simpara>
+        Puede usar procedimientos almacenados y cursores previamente
+        definidos para abstraer el acceso a las bases de datos, de
+        modo que los usuarios no tengan acceso directo a las tablas o
+        vistas, aunque esta soluci&oacute;n tiene otros impactos.
+       </simpara>
+      </listitem>
+     </itemizedlist>
+
+     <simpara>
+      Adem&aacute;s de estas acciones, usted puede beneficiarse del
+      registro expl&iacute;cito de las consultas realizadas, ya sea
+      desde su script o por la base de datos misma, si &eacute;sta
+      soporta la gesti&oacute;n de registros. Por supuesto, el
+      registro de acciones no puede prevenir cualquier intento
+      peligroso, pero puede ser &uacute;til para rastrear
+      cu&aacute;les aplicaciones han sido usadas para violar la
+      seguridad. El registro en s&iacute; no es &uacute;til; lo es la
+      informaci&oacute;n que contiene. Por lo general, es mejor contar
+      con m&aacute;s detalles que con menos.
+     </simpara>
+    </sect3>
+   </sect2>
+  </sect1>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.1 Maintainer: lboshell Status: ready -->
+<!-- splitted from ./index.xml, last change in rev 1.66 -->
+  <sect1 id="security.registerglobals">
+   <title>Uso de Register Globals</title>
+   <para>
+    Quiz&aacute;s el cambio m&aacute;s controversial en la historia de
+    PHP se ha dado cuando la directiva <link
+    linkend="ini.register-globals">register_globals</link> pas&oacute;
+    de tener como valor por defecto ON al valor OFF en PHP <ulink
+    url="&url.php.release4.2.0;">4.2.0</ulink>. La dependencia sobre
+    esta directiva era bastante com&uacute;n y muchas personas
+    nisiquiera estaban enteradas de que exist&iacute;a y
+    asum&iacute;an que ese era el modo en que PHP trabajaba. Esta
+    p&aacute;gina explicar&aacute; c&oacute;mo puede llegar a
+    escribirse c&oacute;digo inseguro con esta directiva pero tenga en
+    mente que no es la directiva misma la que es insegura sino el uso
+    inapropiado de ella.
+   </para>
+   <para>
+    Cuando se encuentra activa, la directiva register_globals
+    inyectar&aacute; (o envenenar&aacute;) sus scripts con todo tipo
+    de variables, como variables de peticiones provenientes de
+    formularios HTML. Esto junto con el hecho de que PHP no requiere
+    la inicializaci&oacute;n de variables significa que es muy
+    f&aacute;cil escribir c&oacute;digo inseguro. Fue una
+    decisi&oacute;n dif&iacute;cil, pero la comunidad de PHP
+    decidi&oacute; desahibilar esta directiva por defecto. Cuando
+    est&aacute; habilitada, las personas usan variables sin saber con
+    seguridad de d&oacute;nde provienen y solo queda asumir. Las
+    variables internas que son definidas en el script mismo son
+    mezcladas con los datos enviados por los usuarios y al
+    deshabilitar register_globals se modifica este
+    comportamiento. Demostremos este caso con un ejemplo del uso
+    incorrecto de register_globals:
+   </para>
+   <para>
+    <example>
+     <title>Ejemplo del uso inapropiado de register_globals =
+     on</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+// definir $autorizado = true solo si el usuario ha sido autenticado
+
+if (usuario_autenticado()) {
+    $autorizado = true;
+}
+
+// Ya que no inicializamos $autorizado como false, esta podria estar
+// definida a traves de register_globals, como en el caso de GET
+// auth.php?autorizado=1
+
+// De modo que cualquier persona podria verse como autenticada!
+
+if ($autorizado) {
+    include "/datos/muy/importantes.php";
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Cuando register_globals = on, nuestra l&oacute;gica anterior
+    podr&iacute;a verse comprometida. Cuando la directiva est&aacute;
+    deshabilitada, <varname>$autorizado</varname> no puede definirse a
+    trav&eacute;s de peticiones, as&iacute; que no habr&aacute;
+    ning&uacute;n problema, aunque es cierto que siempre es una buena
+    pr&aacute;ctica de programaci&oacute;n inicializar las variables
+    primero. Por ejemplo, en nuestro ejemplo anterior pudimos haber
+    realizado primero algo como <literal>$authorized =
+    false</literal>. Hacer esto representa que el c&oacute;digo
+    anterior podr&iacute;a funcionar con register_globals establecido
+    a on u off ya que los usuarios no ser&iacute;an autorizados por
+    defecto.
+   </para>
+   <para>
+    Otro ejemplo es aquel de las <link
+    linkend="ref.session">sesiones</link>. Cuando register_globals =
+    on, podr&iacute;amos usar
+    tambi&eacute;n <varname>$nombre_usuario</varname> en nuestro
+    siguiente ejemplo, pero nuevamente usted debe notar que
+    <varname>$nombre_usuario</varname> puede provenir de otros medios,
+    como GET (a trav&eacute;s de la URL).
+   </para>
+   <para>
+    <example>
+     <title>Ejemplo del uso de sesiones con register_globals on u
+     off</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+// No sabriamos de donde proviene $nombre_usuario, pero sabemos que
+// $_SESSION es para datos de sesion
+
+if (isset($_SESSION['nombre_usuario'])) {
+    
+    echo "Hola <b>{$_SESSION['nombre_usuario']}</b>";
+
+} else {
+    
+    echo "Hola <b>Invitado</b><br />";
+    echo "&iquest;Quisiera iniciar su sesi&oacute;n?";
+
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Incluso es posible tomar medidas preventivas para advertir cuando
+    se intente falsificar la informaci&oacute;n. Si usted sabe
+    previamente con exactitud el lugar de donde deber&iacute;a
+    provenir una variable, usted puede chequear si los datos enviados
+    provienen de una fuente inadecuada. Aunque esto no garantiza que
+    la informaci&oacute;n no haya sido falsificada, esto requiere que
+    un atacante adivine el medio apropiado para falsificar la
+    informaci&oacute;n. Si no le importa de d&oacute;nde proviene la
+    informaci&oacute;n, puede usar <varname>$_REQUEST</varname> ya que
+    all&iacute; se incluye una mezcla de variables que provienen de
+    datos GET, POST y COOKIE. Consulte tambi&eacute;n la
+    secci&oacute;n del manual sobre el uso de <link
+    linkend="language.variables.external">variables desde fuera de
+    PHP</link>.
+   </para>
+   <para>
+    <example>
+     <title>Detecci&oacute;n de envenenamiento simple de
+     variables</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+if (isset($_COOKIE['COOKIE_MAGICA'])) {
+    
+    // COOKIE_MAGICA proviene de una cookie.
+    // Asegurese de validar los datos de la cookie!
+
+} elseif (isset($_GET['COOKIE_MAGICA']) || isset($_POST['COOKIE_MAGICA'])) {
+   
+   mail("admin@ejemplo.com", "Posible intento de intromision",
+        $_SERVER['REMOTE_ADDR']);
+   echo "Violaci&oacute;n de seguridad, el administrador ha sido alertado.";
+   exit;
+
+} else {
+   
+   // COOKIE_MAGICA no fue definida en este REQUEST
+
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Por supuesto, deshabilitar register_globals no quiere decir que su
+    c&oacute;digo vaya a ser seguro. Por cada trozo de datos que sea
+    enviado por el usuario, &eacute;ste debe ser chequeado en otras
+    formas. &iexcl;Siempre valide los datos de los usuarios e
+    inicialice sus variables! Para chequear por variables no
+    inicializadas, usted puede usar
+    <function>error_reporting</function> para mostrar errores del
+    nivel
+    <constant>E_NOTICE</constant>.
+   </para>
+   
+   &note.superglobals;
+
+  </sect1>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

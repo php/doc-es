@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.1 Maintainer: lboshell Status: ready -->
+<!-- splitted from ./index.xml, last change in rev 1.66 -->
+  <sect1 id="security.errors">
+   <title>Reporte de Errores</title>
+   <para>
+    Hablando de la seguridad en PHP, hay dos caras en lo que se
+    concierne al reporte de errores. Una es ben&eacute;fica al
+    incremento de la seguridad, la otra va en direcci&oacute;n de su
+    detrimento.
+   </para>
+   <para>
+    Una t&aacute;ctica de ataque t&iacute;pica involucra la
+    acumulaci&oacute;n de un perfil de datos del sistema
+    aliment&aacute;ndolo con datos inapropiados, y luego chequear los
+    tipos de errores que son devueltos, y sus contextos. Esto permite
+    que el cracker del sistema pueda adquirir informaci&oacute;n del
+    servidor, para as&iacute; determinar posibles debilidades. Por
+    ejemplo, si un atacante ha recogido informaci&oacute;n sobre una
+    p&aacute;gina creada a partir de los datos de un formulario,
+    &eacute;l podr&iacute;a intentar sobrescribir las variables, o
+    modificarlas:
+    <example>
+     <title>Ataque a Variables con una p&aacute;gina HTML
+     personalizada</title>
+     <programlisting role="php">
+<![CDATA[
+<form method="post" action="destino_del_ataque?username=badfoo&password=badfoo">
+<input type="hidden" name="username" value="badfoo" />
+<input type="hidden" name="password" value="badfoo" />
+</form>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Los errores de PHP que son devueltos normalmente pueden ser
+    bastante &uacute;tiles para un desarrollador que est&eacute;
+    tratando de depurar un script, indicando cosas como la
+    funci&oacute;n o archivo que fall&oacute;, el archivo PHP y el
+    n&uacute;mero de l&iacute;nea en donde ocurren los fallos. Toda
+    esta es informaci&oacute;n de la que puede sacarse provecho. No es
+    extra&ntilde;o que un desarrollador php
+    use <function>show_source</function>,
+    <function>highlight_string</function>, o
+    <function>highlight_file</function> como medida de
+    depuraci&oacute;n, pero en un sitio en producci&oacute;n, esta
+    acci&oacute;n puede exponer variables ocultas, sintaxis sin
+    chequear, y otra informaci&oacute;n peligrosa. Algo especialmente
+    peligroso es ejecutar c&oacute;digo que proviene de fuentes bien
+    conocidas con gestores de depuraci&oacute;n incorporados, o que
+    usan t&eacute;cnicas de depuraci&oacute;n comunes. Si el atacante
+    puede determinar qu&eacute; t&eacute;cnica general est&aacute;
+    usando, puede intentar un ataque de fuerza bruta sobre una
+    p&aacute;gina, enviando varias cadenas comunes de
+    depuraci&oacute;n:
+    <example>
+     <title>Explotaci&oacute;n de variables comunes de
+     depuraci&oacute;n</title>
+     <programlisting role="php">
+<![CDATA[
+<form method="post" action="destino_del_ataque?errors=Y&amp;showerrors=1&amp;debug=1">
+<input type="hidden" name="errors" value="Y" />
+<input type="hidden" name="showerrors" value="1" />
+<input type="hidden" name="debug" value="1" />
+</form>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Independientemente del m&eacute;todo de gesti&oacute;n de errores,
+    la capacidad de conseguir que un sistema revele sus posibles
+    estados de error representa un camino para darle
+    informaci&oacute;n al atacante.
+   </para>
+   <para>
+    Por ejemplo, el estilo mismo de un error de PHP gen&eacute;rico
+    indica que el sistema est&aacute; ejecutando PHP. Si el atacante
+    estuviera viendo una p&aacute;gina .html, y quisiera consultar
+    qu&eacute; est&aacute; siendo usado para la generaci&oacute;n de
+    ella por detr&aacute;s (en busca de debilidades conocidas en el
+    sistema), podr&iacute;a determinar que el sistema fue creado
+    usando PHP aliment&aacute;ndolo con informaci&oacute;n equivocada.
+   </para>
+   <para>
+    Un error de funci&oacute;n puede indicar si el sistema est&aacute;
+    ejecutando un tipo particular de motor de base de datos, o dar
+    pistas sobre c&oacute;mo fue programada o dise&ntilde;ada una
+    p&aacute;gina web. Esto facilita posteriores investigaciones en
+    determinados puertos abiertos de bases de datos, o en busca de
+    fallos espec&iacute;ficos o debilidades en una p&aacute;gina
+    web. Al entregar diferentes trozos de datos inv&aacute;lidos al
+    sistema, por ejemplo, un atacante puede determinar el orden de
+    autenticaci&oacute;n en un script, (a partir de los n&uacute;meros
+    de l&iacute;nea de los errores) as&iacute; como averiguar sobre
+    vulnerabilidades que pueden aprovecharse en diferentes puntos del
+    script.
+   </para>
+   <para>
+    Un error del sistema de archivos o en general de PHP puede indicar
+    qu&eacute; permisos tiene el servidor web, as&iacute; como la
+    estructura y organizaci&oacute;n de los archivos en el servidor
+    web. Alg&uacute;n c&oacute;digo de gesti&oacute;n de errores
+    escrito por el desarrollador puede agravar este problema, llevando
+    a la f&aacute;cil explotaci&oacute;n de informaci&oacute;n hasta
+    entonces "escondida".
+   </para>
+   <para>
+    Existen tres soluciones principales a este problema. La primera es
+    revisar cuidadosamente todas las funciones, y tratar de compensar
+    por la mayor&iacute;a de errores encontrados. La segunda es
+    deshabilitar el reporte de errores completamente del c&oacute;digo
+    que est&aacute; siendo ejecutado. La tercera es usar las funciones
+    de gesti&oacute;n de errores personalizables de PHP para crear su
+    propio gestor de errores. Dependiendo de su pol&iacute;tica de
+    seguridad, puede encontrar que todas ellas pueden ser aplicables a
+    su situaci&oacute;n.
+   </para>
+   <para>
+    Una forma de detectar este problema por adelantado es hacer uso
+    del reporte de errores propio de PHP
+    (<function>error_reporting</function>), para ayudarle a asegurar
+    su c&oacute;digo y encontrar uso de variables que pueda ser
+    peligroso. Al probar su c&oacute;digo, previamente a su entrega
+    final, con E_ALL, puede encontrar r&aacute;pidamente &aacute;reas
+    en donde sus variables pueden estar abiertas a la
+    manipulaci&oacute;n y explotaci&oacute;n en distintas formas. Una
+    vez est&eacute; listo para liberar su c&oacute;digo, usando E_NONE
+    puede aislarlo de posibles intentos por adquirir
+    informaci&oacute;n &uacute;til para un atacante.
+    <example>
+     <title>Detecci&oacute;n de variables peligrosas con E_ALL</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+if ($nombre_usuario) {  // Variable no inicializada o chequeada antes de su uso
+    $login_correcto = 1;
+}
+if ($login_correcto == 1) { // Si la condicion anterior falla, esta variable
+                            // no se encuentra inicializada ni validada
+                            // antes de su uso
+
+    readfile ("/informacion/altamente/confidencial/index.html");
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+  </sect1>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
