@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.6 $ -->
+<!-- EN-Revision: 1.38 Maintainer: pablof Status: ready -->
+
  <chapter id="features.file-upload">
-  <title>El env&iacute;o de archivos</title>
+  <title>Manejo de env&iacute;o de ficheros</title>
 
   <sect1 id="features.file-upload.post-method">
    <title>Env&iacute;o de archivos con el m&eacute;todo POST</title>
@@ -19,7 +22,10 @@
    <para>
     Es importante destacar que PHP tambi&eacute;n soporta el m&eacute;todo PUT
     para env&iacute;o de archivos tal y como lo utiliza Netscape Composer
-    y el cliente Amaya de W3C. Consulte <link linkend="features.file-upload.put-method">Soporte del m&eacute;todo PUT</link> para m&aacute;s detalles.</para>
+    y el cliente Amaya de W3C. Consulte <link linkend="features.file-upload.put-method">
+    Soporte del m&eacute;todo PUT</link> para m&aacute;s detalles.
+   </para>
+
 
    <para>
     Una p&aacute;gina de env&iacute;o de archivos se puede crear mediante un formulario
@@ -28,146 +34,325 @@
     <example>
      <title>Formulario de env&iacute;o de archivo</title>
      <programlisting>
-&amp;lt;FORM ENCTYPE=&amp;quot;multipart/form-data&amp;quot; ACTION=&amp;quot;_URL_&amp;quot; METHOD=POST&amp;gt;
-&amp;lt;INPUT TYPE=&amp;quot;hidden&amp;quot; name=&amp;quot;MAX_FILE_SIZE&amp;quot; value=&amp;quot;1000&amp;quot;&amp;gt;
-Enviar este archivo: &amp;lt;INPUT NAME=&amp;quot;userfile&amp;quot; TYPE=&amp;quot;file&amp;quot;&amp;gt;
-&amp;lt;INPUT TYPE=&amp;quot;submit&amp;quot; VALUE=&amp;quot;Enviar&amp;quot;&amp;gt;
-&amp;lt;/FORM&amp;gt;
-    </programlisting>
+<![CDATA[
+<form enctype="multipart/form-data" action="_URL_" method="post">
+<input type="hidden" name="MAX_FILE_SIZE" value="1000">
+Send this file: <input name="userfile" type="file">
+<input type="submit" value="Send File">
+</form>
+]]>
+     </programlisting>
     </example>
     
-    La _URL_ debe tener como destino un script PHP. El campo MAX_FILE_SIZE
-    debe encontrarse antes del campo INPUT y su valor determina el tama&ntilde;o
-    m&aacute;ximo de archivo que se puede enviar en bytes. Tras la recepci&oacute;n del
-    archivo se definir&aacute;n en el script PHP destino las siguientes variables:
-    </para>
+    La _URL_ debe tener como destino un script PHP. El input oculto MAX_FILE_SIZE 
+    debe encontrarse antes del input de tipo "file" para indicar  
+    el tama&ntilde;o m&aacute;ximo de archivo que se puede enviar en bytes
+
+    <warning>
+     <para>	
+	MAX_FILE_SIZE debe ser consultado por el navegador; aun as&iacute; es
+	sencillo saltarse este m&aacute;ximo por lo tanto no se debe presuponer
+	que el navegador siempre lo respetar&aacute;. En contrapartida,
+	la configuracion de PHP relativa al tama&ntilde;o maximo no puede 
+	ser obviada.
+     </para>
+    </warning>
+   </para>
 
    <para>
+	Las variables definidas para los archivos enviados varian
+	en funci&oacute;n de la versi&oacute;n y configuraci&oacute;n de PHP que se utilice.
+	Las variables de las que hablamos a continuaci&oacute;n ser&aacute;n 
+	definidas en la p&aacute;gina destino despues de una recepci&oacute;n de fichero correcta.
+	Cuando  <link linkend="ini.track-vars">track_vars</link> este activado,
+	el array $HTTP_POST_FILES/$_FILES se inicializar&aacute;. Por ultimo, las
+	variables relacionadas seran inicializadas como globales cuando
+	<link linkend="ini.register-globals">register_globals</link> est&eacute;
+	habilitado. Cabe se&ntilde;alar que el uso de las variables globales
+	no esta recomendado en ning&uacute;n caso.
+   </para>
+   <note>
+    <para>
+     <link linkend="ini.track-vars">track_vars</link> esta activado siempre 
+	desde PHP 4.0.3. A partir de PHP 4.1.0 , $_FILES puede ser utilizado
+	alternativamente a <varname>$HTTP_POST_FILES</varname>. 
+	<varname>$_FILES</varname> es siempre global asi que <literal>global</literal> 
+	no debe ser usado con $_FILES en el &aacute;mbito de funci&oacute;n.
+    </para>
+   </note>
+   <para>
+    	<varname>$HTTP_POST_FILES</varname>/<varname>$_FILES</varname> contienen
+	la informaci&oacute;n sobre el fichero recibido.
+   </para>
+
+   <para>
+ 	 A continuaci&oacute;n se describe el contenido de 
+	<varname>$HTTP_POST_FILES</varname>.
+	Se ha tomado el nombre 'userfile' para el fichero recibido tal y
+	como se usaba en el script de ejemplo anterior:
+    <variablelist>
+     <varlistentry>
+      <term><varname>$HTTP_POST_FILES['userfile']['name']</varname></term>
+      <listitem>
+       <para>
+        El nombre original del fichero en la m&aacute;quina cliente.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><varname>$HTTP_POST_FILES['userfile']['type']</varname></term>
+      <listitem>
+       <para>
+        El tipo mime del fichero (si el navegador lo proporciona). Un ejemplo
+	podr&iacute;a ser <literal>"image/gif"</literal>.
+        </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><varname>$HTTP_POST_FILES['userfile']['size']</varname></term>
+      <listitem>
+       <para>
+        El tama&ntilde;o en bytes del fichero recibido.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><varname>$HTTP_POST_FILES['userfile']['tmp_name']</varname></term>
+      <listitem>
+       <para>
+	El nombre del fichero temporal que se utiliza para almacenar en el
+	servidor el archivo recibido.
+       </para>
+      </listitem>
+     </varlistentry>
+    </variablelist>
+   </para>
+   <note>
+    <para>
+     A partir de PHP 4.1.0 se puede utilizar el variable corta 
+     <varname>$_FILES</varname>. PHP 3 no soporta
+     <varname>$HTTP_POST_FILES</varname>.
+    </para>
+   </note>
+
+   <para>
+    Cuando <link linkend="ini.register-globals">register_globals</link>
+    se activa en el &php.ini; las siguientes variables son accesibles.
+    Se ha tomado el nombre 'userfile' para el fichero recibido tal y
+    como se usaba en el script de ejemplo del principio:
+
     <itemizedlist>
      <listitem>
       <simpara>
-       $userfile - El archivo temporal que se ha guardado en el servidor.
+       <varname>$userfile</varname> - El nombre del fichero temporal que 
+	se utiliza para almacenar en el servidor el archivo recibido.
       </simpara>
      </listitem>
      <listitem>
       <simpara>
-       $userfile_name - El nombre original del archivo enviado.
+       <varname>$userfile_name</varname> - El nombre original del fichero 
+	en la m&aacute;quina cliente.
       </simpara>
      </listitem>
      <listitem>
       <simpara>
-       $userfile_size - El tama&ntilde;o del archivo recibido.
+       <varname>$userfile_size</varname> - El tama&ntilde;o en bytes del fichero recibido.
       </simpara>
      </listitem>
      <listitem>
       <simpara>
-       $userfile_type - El tipo mime del archivo si el navigador
-       envio esta informaci&oacute;n. Por ejemplo:
-       &amp;quot;image/gif&amp;quot;.
+       <varname>$userfile_type</varname> - El tipo mime del fichero 
+	(si el navegador lo proporciona). Un ejemplo podr&iacute;a ser "image/gif".
       </simpara>
      </listitem>
     </itemizedlist>
-    
-    Es importante recordar que la primera palabra &amp;quot;$userfile&amp;quot;
-    de &eacute;stas variables corresponde al nombre ("NAME=") del campo 
-    "INPUT TYPE=file" del formulario. En el ejemplo anterior usamos
-    &amp;quot;userfile&amp;quot;.</para>
+	Se puede ver que "<varname>$userfile</varname>" (en las
+	variables anteriores) toma el valor del atributo "name"
+	que contenga el campo &lt;input&gt; de tipo "file" del 
+	formulario de envio. En el ejemplo anterior, elegimos 
+	llamarlo "userfile".
+   </para>
+   <note>
+    <para>
+     <literal>register_globals = On</literal> se desaconseja por
+	razones de seguridad y rendimiento.
+    </para>
+   </note>
+   <para>
+	Por defecto, los ficheros ser&aacute;n almacenados en el directorio
+	temporal por defecto del servidor a no ser que se especifique
+	otra localizacion con la directiva <link 
+	linkend="ini.upload-tmp-dir">upload_tmp_dir</link> en &php.ini;.
+	El directorio temporal por defecto del servidor puede ser
+	modificado cambiando el valor de la variable de entorno
+	<envar>TMPDIR</envar> en el contexto en que se ejecuta PHP
+	La configuraci&oacute;n de las variables de entorno no se puede
+	realizar en PHP a trav&eacute;s de la funci&oacute;n <function>putenv</function>.
+	Esta variable de entorio puede ser utilizada tambi&eacute;n para 
+	asegurarnos que otras operaciones con archivos recibidos est&aacute;n
+	funcionando correctamente.
 
+    <example>
+     <title>Verificando los archivos recibidos</title>
+     <para>
+	Los siguientes ejemplos son validos para versiones de PHP 4 
+	superiores a la 4.0.2. Veanse las funciones
+      	<function>is_uploaded_file</function> y
+      	<function>move_uploaded_file</function>.
+     </para>
+     <programlisting role="php">
+<![CDATA[
+<?php 
+// In PHP 4.1.0 or later, $_FILES should be used instead of $HTTP_POST_FILES.
+if (is_uploaded_file($HTTP_POST_FILES['userfile']['tmp_name'])) {
+    copy($HTTP_POST_FILES['userfile']['tmp_name'], "/place/to/put/uploaded/file");
+} else {
+    echo "Possible file upload attack. Filename: " . $HTTP_POST_FILES['userfile']['name'];
+}
+/* ...or... */
+move_uploaded_file($HTTP_POST_FILES['userfile']['tmp_name'], "/place/to/put/uploaded/file");
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
    <simpara>
-    Los archivos enviados ser&aacute;n guardados en el directorio temporal por
-    defecto del servidor. Podemos variar este directorio mediante la
-    variable de entorno <envar>TMPDIR</envar> en el entorno donde
-    corre PHP. No se puede establecer este valor usando <function>putenv</function>
-    desde un script PHP.
+	El script PHP que recibe el fichero, debe implementar la l&oacute;gica
+	necesaria para determinar que debe ser realizado con el fichero.
+	Se puede utilizar, por ejemplo, la variable
+	<varname>$HTTP_POST_FILES['userfile']['size']</varname> 
+	para descartar los ficheros demasiado chicos o demasiado grandes;
+	por otro lado, se puede usar la variable
+	<varname>$HTTP_POST_FILES['userfile']['type']</varname>
+	 para descartar los que no se ajusten a algun criterio de tipo.
+	Cualquiera que sea la logica que utilicemos, se debe borrar
+	o mover el archivo del directorio temporal.
    </simpara>
    <simpara>
-    El script PHP que recibe el archivo enviado debe implementar
-    las acciones que se deben llevar a cabo con el archivo acabado
-    de recibir. Por ejemplo se podria utilizar $file_size para 
-    decidir descartar los archivos que sean demadiado peque&ntilde;os o
-    demasiado grandes. Sean cual sean las acciones a tomar se debe
-    borrar el archivo temporal o moverlo a alg&uacute;n otro directorio.
-    </simpara>
-
-   <simpara>
-    El archivo recibido ser&aacute; eliminado inmediatamente del directorio
-    temporal al finalizar el script PHP que lo recibi&oacute; si no ha sido
-    movido o renombrado.
+	El archivo ser&aacute; borrado del directorio temporal al final de la petici&oacute;n
+	si no se ha movido o renombrado.
    </simpara>
   </sect1>
  
   <sect1 id="features.file-upload.common-pitfalls">
    <title>Errores comunes</title>
    <simpara>
-    El valor de MAX_FILE_SIZE no puede ser mayor que el tama&ntilde;o del archivo
-    que se especifica en la variable upload_max_filesize del archivo
-    PHP3.ini o la correspondiente directiva php3_upload_max_filesize de
-    Apache. Por defecto es 2 Megabytes.</simpara>
+    	A <literal>MAX_FILE_SIZE</literal> no se le puede dar un valor mayor que
+	el valor que se haya especificado en la directiva<link
+    	linkend="ini.upload-max-filesize">upload_max_filesize</link>.
+    	Por defecto se tiene un l&iacute;mite de 2 MegaBytes.
+   </simpara>
    <simpara>
-    El servidor CERN parece que elimina cualquier cosa antes del primer
-    espacio en blanco en la cabecera mime content-type que recibe de los
-    clientes. Mientras esto no varie, CERN httpd no podr&aacute; soportar el 
-    env&iacute;o de archivos.</simpara>
+	Si se ha activado el l&iacute;mite de memoria, se deben especificar un
+	valor alto para <link linkend="ini.memory-limit">memory_limit</link>.
+	En cualquier caso, se debe asegurar un valor suficientemente grande para 
+	<link linkend="ini.memory-limit">memory_limit</link>.
+   </simpara>
+<!-- FIXME: max_execution_time INI -->
+   <simpara>
+   	Si <link linkend="ini.max-execution-time">max_execution_time</link>
+    	tiene un valor muy peque&ntilde;o, la ejecuci&oacute;n del script puede exceder este valor.
+	De esta forma, se debe asegurar un valor suficientemente grande para
+    	<literal>max_execution_time</literal>.
+   </simpara>
+   <simpara>
+        Si <link linkend="ini.post-max-size">post_max_size<</link>
+        tiene un valor muy peque&ntilde;o, los ficheros mas grandes a este valor, no podr&aacute;n
+	ser enviados. Por ello, se debe asegurar un valor suficientemente grande para
+        <literal>post_max_size</literal>.
+    </simpara>
+   <simpara>
+	No verificar que ficheros se estan manipulando puede tener como consecuencia
+	que los usuarios puedan acceder a informaci&oacute;n sensible en otros directorios.
+   </simpara>
+   <simpara>
+	Cabe se&ntilde;alar que el httpd de CERN parece cortar todo a partir
+	del primer espacio en blanco en el "content-type" de la cabecera mime que
+	obtiene del cliente. Si este es el caso, con el httpd de CERN no se soporta
+	la funcionalidad de env&iacute;o de ficheros.
+   </simpara>
   </sect1>
 
-  <sect1 id="feature-fileupload.multiple">
-   <title>Env&iacute;o de m&aacute;s de un archivo</title>
+  <sect1 id="features.file-upload.multiple">
+   <title>Env&iacute;o de multiples ficheros</title>
    <simpara>
-    Es posible el envio de varios archivos simult&aacute;neamente y poder
-    clasificar la informaci&oacute;n autom&aacute;ticamente por arrays.  Esto de
-    hace de la misma manera en que se organizan por arrays los
-    SELECT o CHECKBOX:</simpara>
+	Se pueden enviar multiples ficheros usando diferentes
+	nombres (<literal>name</literal>) para los <literal>input</literal>.
+   </simpara>
+   <simpara>
+	As&iacute; mismo, es posible enviar varios archivos simultaneamente y tener
+	organizada en arrays la informaci&oacute;n. Para hacer esto, se utiliza la
+	misma sint&aacute;xis que cuando tenemos multiples "selects" o "checkboxes"
+	en el formulario HTML:
+   </simpara>
    <note>
     <para>
-     El soporte para m&uacute;ltiple envios de archivos se a&ntilde;adi&oacute; en la versi&oacute;n 3.0.10</para>
-    </note>
-
+	El soporte para env&iacute;o multiple de ficheros fue a&ntilde;adido en
+	la versi&oacute;n 3.0.10.
+    </para>
+   </note>
    <para>
     <example>
-     <title>Formulario de env&iacute;o multiple de archivos</title>
-     <programlisting>
-&amp;lt;form action=&amp;quot;file-upload.html&amp;quot; method=&amp;quot;post&amp;quot; enctype=&amp;quot;multipart/form-data&amp;quot;&amp;gt;
-  Enviar estos archivos:&amp;lt;br&amp;gt;
-  &amp;lt;input name=&amp;quot;userfile[]&amp;quot; type=&amp;quot;file&amp;quot;&amp;gt;&amp;lt;br&amp;gt;
-  &amp;lt;input name=&amp;quot;userfile[]&amp;quot; type=&amp;quot;file&amp;quot;&amp;gt;&amp;lt;br&amp;gt;
-  &amp;lt;input type=&amp;quot;submit&amp;quot; value=&amp;quot;Enviar&amp;quot;&amp;gt;
-&amp;lt;/form&amp;gt;
+     <title>Env&iacute;o de multiples ficheros</title>
+     <programlisting role="html">
+<![CDATA[
+<form action="file-upload.php" method="post" enctype="multipart/form-data">
+  Send these files:<br>
+  <input name="userfile[]" type="file"><br>
+  <input name="userfile[]" type="file"><br>
+  <input type="submit" value="Send files">
+</form>
+]]>
      </programlisting>
-    </example></para>
-
+    </example>
+   </para>
    <simpara>
-    Cuando el formulario es procesado, los arrays <computeroutput>$userfile</computeroutput>,
-    <computeroutput>$userfile_name</computeroutput>, y
-    <computeroutput>$userfile_size</computeroutput> se crear&aacute;n de alcance
-    global (igual que $HTTP_POST_VARS). Cada uno ser&aacute; un array con
-    &iacute;ndice num&eacute;rico con los valores apropiados para los archivos
-    enviados.</simpara> 
- 
+	
+	Cuando el formulario del ejemplo es enviado, los arrays
+    	<varname>$HTTP_POST_FILES['userfile']</varname>,
+    	<varname>$HTTP_POST_FILES['userfile']['name']</varname> y 
+    	<varname>$HTTP_POST_FILES['userfile']['size']</varname> 
+	son inicializados. As&iacute; mismo pasa con $_FILES en PHP 4.1.0
+	o superiores y $HTTP_POST_VARS en PHP 3. Cuando
+    	<literal>register_globals</literal> esta activa, las 
+	variables globales para los archivos recibidos tambi&eacute;n son inicializadas.
+	Cada uno de estos arrays tendr&aacute; en los &iacute;ndices numericos correspondientes
+	los valores para cada fichero recibido.
+   </simpara>
    <simpara>
-    Por ejemplo, supongamos que los siguientes archivos
-    <filename>/home/test/review.html</filename> y
-    <filename>/home/test/xwp.out</filename> son enviados. En este
-    caso, <computeroutput>$userfile_name[0]</computeroutput> almacenar&iacute;a
-    el valor <computeroutput>review.html</computeroutput>, y
-    <computeroutput>$userfile_name[1]</computeroutput> almacenar&iacute;a el
-    valor <computeroutput>xwp.out</computeroutput>. As&iacute;,
-    <computeroutput>$userfile_size[0]</computeroutput> almacenar&iacute;a el
-    tama&ntilde;o de <filename>review.html</filename> y as&iacute; con los valores
-    siguientes.</simpara></sect1>
+	Por ejemplo, si tomamos como nombres de archivo enviados
+   	<filename>/home/test/review.html</filename> y
+    	<filename>/home/test/xwp.out</filename>. Tendr&iacute;amos en
+    	<varname>$HTTP_POST_FILES['userfile']['name'][0]</varname>
+    	el valor de <filename>review.html</filename>, y en
+    <varname>$HTTP_POST_FILES['userfile']['name'][1]</varname> tendr&iacute;amos
+     <filename>xwp.out</filename>; analogamente, 
+    <varname>$HTTP_POST_FILES['userfile']['size'][0]</varname> contendr&iacute;a
+    el tama&ntilde;o del fichero <filename>review.html</filename>, y asi sucesivamente...
+   </simpara>
+   <simpara>
+    <varname>$HTTP_POST_FILES['userfile']['name'][0]</varname>,
+    <varname>$HTTP_POST_FILES['userfile']['tmp_name'][0]</varname>,
+    <varname>$HTTP_POST_FILES['userfile']['size'][0]</varname> y
+    <varname>$HTTP_POST_FILES['userfile']['type'][0]</varname> tambien
+	son asignadas.
+   </simpara>
+  </sect1>
 
   <sect1 id="features.file-upload.put-method">
    <title>Soporte del m&eacute;todo PUT</title>
 
    <para>
     PHP soporta el metodo HTTP PUT que usan aplicaciones como Netscape
-    Composer y Amaya de W3C. Las peticiones PUT son m&aacute;s sencillas que
+    Composer y Amaya del W3C. Las peticiones PUT son m&aacute;s sencillas que
     el m&eacute;todo POST. Un ejemplo:
 
-    <informalexample><programlisting>
+    <informalexample>
+     <programlisting>
 PUT /path/filename.html HTTP/1.1
-    </programlisting></informalexample>
+     </programlisting>
+    </informalexample>
    </para>
-
    <para>
     Esto normalmente significar&iacute;a que el cliente remoto quiere salvar
     el contenido como: /path/filename.html en tu &aacute;rbol web. L&oacute;gicamente
@@ -180,26 +365,29 @@ PUT /path/filename.html HTTP/1.1
     bloque &amp;lt;Virtualhost&amp;gt;. Una linia as&iacute; deberia hacer &eacute;sta
     funci&oacute;n:
 
-    <informalexample><programlisting>
-Script PUT /put.php3
-    </programlisting></informalexample>
+    <informalexample>
+     <programlisting>
+Script PUT /put.php
+     </programlisting>
+    </informalexample>
    </para>
-
    <simpara>
-    &Eacute;sto le dice a Apache que envie todas peticiones PUT para URIs que
-    contengan esta linia al script put.php3. Se asume que PHP se
-    encuentra activo y con la extension php3 enlazada a &eacute;l.
+    &Eacute;sto le dice a Apache que env&iacute;e todas peticiones PUT para URIs que
+    contengan esta linia al script put.php. Se asume que PHP se
+    encuentra activo y con la extensi&oacute;n .php enlazada a &eacute;l.
    </simpara>
    <simpara>
     Dentro del script put.php3 se podr&iacute;a implementar algo as&iacute;:
    </simpara>
    <para>
-    <informalexample><programlisting>
-&amp;lt;? copy($PHP_UPLOADED_FILE_NAME,$DOCUMENT_ROOT.$REQUEST_URI); ?&amp;gt;
+    <informalexample><programlisting role="php">
+<![CDATA[
+<?php copy($PHP_UPLOADED_FILE_NAME,$DOCUMENT_ROOT.$REQUEST_URI); ?>
+]]>
     </programlisting></informalexample>
    </para>
    <simpara>
-    Esto copiaria el archivo a la localizaci&oacute;n requerida por el cliente
+    Esto copiar&iacute;a el archivo a la localizaci&oacute;n requerida por el cliente
     remoto. Aqui se pueden ejecutar funciones de autentificaci&oacute;n de
     usuario o cualquier otro tipo de chequeo. El archivo se guarda en
     el archivo temporal del sistema servidor de la misma manera que el
@@ -208,10 +396,12 @@ Script PUT /put.php3
     consequencia el script dede proceder al trato de &eacute;ste inmediatamente,
     ya sea para copiarlo, renombrarlo, etc. El archivo se encuentra en
     la variable $PHP_PUT_FILENAME, y el destino sugerido por el cliente
-    en la variable $REQUEST_URI (puede variar en servidores diferentes de
+    en la variable $REQUEST_URI (puede variar en servidores web que no sean
     Apache). No es necesario hacer caso al destino sugerido por el cliente.
     Por ejemplo se podr&iacute;an copiar los archivos enviados a directorios
-    especialmente designados para esta tarea.</simpara></sect1>
+    especialmente designados para esta tarea.
+   </simpara>
+  </sect1>
 
  </chapter>
 
@@ -226,9 +416,12 @@ sgml-indent-step:1
 sgml-indent-data:t
 indent-tabs-mode:nil
 sgml-parent-document:nil
-sgml-default-dtd-file:"../manual.ced"
+sgml-default-dtd-file:"../../manual.ced"
 sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
 End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
 -->
