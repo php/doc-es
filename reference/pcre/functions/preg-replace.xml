@@ -10,64 +10,154 @@
     <title>Descripci&oacute;n</title>
      <methodsynopsis>
      <type>mixed</type><methodname>preg_replace</methodname>
-     <methodparam><type>mixed</type><parameter>pattern</parameter></methodparam>
-     <methodparam><type>mixed</type><parameter>replacement</parameter></methodparam>
-     <methodparam><type>mixed</type><parameter>subject</parameter></methodparam>
+     <methodparam><type>mixed</type><parameter>patron</parameter></methodparam>
+     <methodparam><type>mixed</type><parameter>reemplazo</parameter></methodparam>
+     <methodparam><type>mixed</type><parameter>entrada</parameter></methodparam>
+     <methodparam choice="opt"><type>int</type><parameter>limite</parameter></methodparam>
      </methodsynopsis>
     <para>
-     Busca en <parameter>subject</parameter> los emparejamientos con
-     <parameter>pattern</parameter> y los sustituye por
-     <parameter>replacement</parameter>.</para>
+     Busca en <parameter>entrada</parameter> los emparejamientos con
+     <parameter>patron</parameter> y los sustituye por
+     <parameter>reemplazo</parameter>. Si se especifica el par&aacute;metro <parameter>limite</parameter>,
+     solo <parameter>limite</parameter> ser&aacute;n reemplazados; si <parameter>limite</parameter>
+     se omite o es igual a -1 todas las coincidencias ser&aacute;n reemplazadas.</para>
     <para>
-     <parameter>replacement</parameter> puede contener referencias de la forma
+     <parameter>reemplazo</parameter> puede contener referencias de la forma
      <literal>\\<replaceable>n</replaceable></literal>. &Eacute;stas ser&aacute;n
      sustituidas por el texto obtenido por el patr&oacute;n del par&eacute;ntesis
      <replaceable>n</replaceable>&eacute;simo. <replaceable>n</replaceable> puede tener
      un valor de cero a noventa y nueve, y <literal>\\0</literal> se refiere al
      texto casado por el patr&oacute;n completo. Para obtener el n&uacute;mero del subpatr&oacute;n
      de b&uacute;squeda, los par&eacute;ntesis abiertos son contados de izquierda derecha
-     tomando el primero como uno.</para>
+     tomando el primero como uno.</para> 
     <para>
-     Si el patr&oacute;n no es encontrado en <parameter>subject</parameter>, entonces
+    Cuando trabajes con patrones de reemplazo donde una referencia hacia atr&aacute;s est&eacute; inmediatamente
+    seguida por otro n&uacute;mero (por ejemplo: poniendo un n&uacute;mero literal despu&eacute;s de un patr&oacute;n
+    coincidente), no puedes usar el m&eacute;todo normal \\1 para la referencia hacia atr&aacute;s. \\11,
+    por ejemplo, confundir&aacute; a <function>preg_replace()</function> ya que no sabe si quieres usar
+    la referencia hacia atr&aacute;s \\1 seguida de un 1 literal, o la referencia \\11 seguida de nada. En
+    este caso la soluci&oacute;n es usar \${1}1. Esto usa la referencia \\1, dejando el 1 literal tras el.</para>
+    <para>
+     <example>
+      <title>Usando referencias hacia atr&aacute;s seguidas de n&uacute;meros literales</title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+$cadena = "Abril 15, 2003";
+$patron = "/(\w+) (\d+), (\d+)/i";
+$reemplazo = "\${1}1,\$3";
+echo preg_replace($patron, $reemplazo, $cadena);
+?>
+]]>
+      </programlisting>
+      <para>
+       Salida:
+      </para>
+      <screen>
+<![CDATA[
+Abril1,2003
+]]>
+      </screen>
+     </example>
+    </para>
+    <para>
+     Si el patr&oacute;n no es encontrado en <parameter>entrada</parameter>, entonces
      no se realizar&aacute;n cambios.</para>
     <para>
-     Todos los par&aacute;metros de la funci&oacute;n <function>preg_replace</function> pueden
-     ser un array.</para>
+     Todos los par&aacute;metros de la funci&oacute;n <function>preg_replace</function> (excepto
+     <parameter>limite</parameter>) pueden ser un array unidimensional. Cuando se usan arrays como
+     <parameter>patron</parameter> o <parameter>reemplazo</parameter>, las claves son procesadas
+     en el orden en que aparecen en el array. Este <emphasis>no es necesariamente</emphasis> el orden
+     num&eacute;rico del mismo. Si usas indices num&eacute;ricos para identificar que <parameter>patron</parameter>
+     corresponde a cada <parameter>reemplazo</parameter> deber&aacute;s aplicar un <function>ksort</function>
+     a cada uno de los arrays antes de aplicar <function>preg_replace</function>.</para>
     <para>
-     Si <parameter>subject</parameter> es un array, entonces la b&uacute;squeda y sustituci&oacute;n
-     es realizada para todos los elementos de <parameter>subject</parameter>,
+    <para>
+     <example>
+      <title>Usando arrays con claves num&eacute;ricas con <function>preg_replace</function></title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+$cadena = "El veloz murciélago hindú comía feliz cardillo y kiwi.";
+
+$patrones[0] = "/veloz/";
+$patrones[1] = "/hind&uacute;/";
+$patrones[2] = "/murci&eacute;lago/";
+
+$reemplazos[2] = "oso";
+$reemplazos[1] = "negro";
+$reemplazos[0] = "lento";
+
+echo preg_replace($patrones, $reemplazos, $cadena);
+?>
+]]>
+      </programlisting>
+      <para>
+       Salida:
+      </para>
+      <screen>
+<![CDATA[
+El oso lento negro com&iacute;a feliz cardillo y kiwi.
+]]>
+      </screen>
+      <para>
+       Aplicando <function>ksort</function> sobre los patrones y los reemplazos podemos obtener el comportamiento esperado.
+      </para>
+      <programlisting role="php">
+<![CDATA[
+<?php
+
+ksort($patrones);
+ksort($reemplazos);
+
+echo preg_replace($patrones, $reemplazos, $cadena);
+
+?>
+]]>
+      </programlisting>
+      <para>
+       Salida:
+      </para>
+      <screen>
+<![CDATA[
+El lento oso negro comía feliz cardillo y kiwi.
+]]>
+      </screen>
+     </example>
+    </para>
+     Si <parameter>entrada</parameter> es un array, entonces la b&uacute;squeda y sustituci&oacute;n
+     es realizada para todos los elementos de <parameter>entrada</parameter>,
      y el valor devuelto es tambi&eacute;n un array.</para>
     <para>
-     Si <parameter>pattern</parameter> y <parameter>replacement</parameter>
+     Si <parameter>patron</parameter> y <parameter>reemplazo</parameter>
      son arrays, entonces <function>preg_replace</function> toma un valor desde
      cada array y los usas para buscar y sustituir sobre
-     <parameter>subject</parameter>.  Si <parameter>replacement</parameter>
-     tiene menos valores que <parameter>pattern</parameter>, entonces la cadena
-     vac&iacute;a es usada como valor para el resto de sustituciones. Si <parameter>pattern</parameter>
-     es una array y <parameter>replacement</parameter> es una cadena,
+     <parameter>entrada</parameter>.  Si <parameter>reemplazo</parameter>
+     tiene menos valores que <parameter>patron</parameter>, entonces la cadena
+     vac&iacute;a es usada como valor para el resto de sustituciones. Si <parameter>patron</parameter>
+     es una array y <parameter>reemplazo</parameter> es una cadena,
      entonces esta cadena de sustituci&oacute;n es usada para todos los valores de
-     <parameter>pattern</parameter>. Sin embargo, lo contrario no tiene sentido.
+     <parameter>patron</parameter>. Sin embargo, lo contrario no tiene sentido.
      </para>
     <para>
      El modificador <literal>/e</literal> hace que la funci&oacute;n <function>preg_replace</function>
-     trate el par&aacute;metro <parameter>replacement</parameter> como c&oacute;digo PHP despu&eacute;s
-     de que la apropiada sustituci&oacute;n sea hecha. Atenci&oacute;n, aseg&uacute;rate que <parameter>replacement</parameter>
+     trate el par&aacute;metro <parameter>reemplazo</parameter> como c&oacute;digo PHP despu&eacute;s
+     de que la apropiada sustituci&oacute;n sea hecha. Atenci&oacute;n, aseg&uacute;rate que <parameter>reemplazo</parameter>
      es un c&oacute;digo PHP correcto, de otro modo PHP dar&aacute; un error de parse en la
      l&iacute;nea que contenga <function>preg_replace</function>.
      <note>
       <para>
        Este modificador fue a&ntilde;adido en PHP 4.0.</para>
      </note></para>
-
     <para>
      <example>
       <title>Sustituir varios valores</title>
       <programlisting>
 <![CDATA[
 <?php
-$patterns = array("/(19|20\d{2})-(\d{1,2})-(\d{1,2})/", "/^\s*{(\w+)}\s*=/");
+$patrones = array("/(19|20\d{2})-(\d{1,2})-(\d{1,2})/", "/^\s*{(\w+)}\s*=/");
 $replace = array("\\3/\\4/\\1", "$\\1 =");
-print preg_replace($patterns, $replace, "{startDate} = 1999-5-27");
+print preg_replace($patrones, $replace, "{startDate} = 1999-5-27");
 ?>
 ]]>
       </programlisting>
