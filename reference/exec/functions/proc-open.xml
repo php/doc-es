@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.3 $ -->
-<!-- EN-Revision: 1.7 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.4 $ -->
+<!-- EN-Revision: 1.8 Maintainer: lboshell Status: ready -->
 <!-- splitted from ./en/functions/exec.xml, last change in rev 1.28 -->
   <refentry id='function.proc-open'>
    <refnamediv>
@@ -19,19 +19,20 @@
       <methodparam><type>array</type><parameter>pipes</parameter></methodparam>
      </methodsynopsis>
     <para>
-<function>proc_open</function> es similar a <function>popen</function>
-pero provee un grado de control mucho mayor sobre la ejecuci&oacute;n
-del programa. <parameter>cmd</parameter> es el comando a ser ejecutado
-por el int&eacute;rprete de
-comandos. <parameter>espec_descriptor</parameter> es una matriz
-indexada en donde la clave representa el n&uacute;mero de descriptor y
-el valor representa el modo como PHP pasar&aacute; ese descriptor al
-proceso hijo. <parameter>pipes</parameter> ser&aacute; definido como
-una matriz indexada de apuntadores a archivo que corresponden a los
-puntos de comunicaci&oacute;n con PHP de todo pipe que sea creado. El
-valor de retorno es un recurso que representa el proceso; usted debe
-liberarlo usando <function>proc_close</function> una vez haya
-terminado de usarlo.
+     <function>proc_open</function> es similar a
+     <function>popen</function> pero provee un grado de control mucho
+     mayor sobre la ejecuci&oacute;n del
+     programa. <parameter>cmd</parameter> es el comando a ser
+     ejecutado por el int&eacute;rprete de
+     comandos. <parameter>espec_descriptor</parameter> es una matriz
+     indexada en donde la clave representa el n&uacute;mero de
+     descriptor y el valor representa el modo como PHP pasar&aacute;
+     ese descriptor al proceso hijo. <parameter>pipes</parameter>
+     ser&aacute; definido como una matriz indexada de apuntadores a
+     archivo que corresponden a los puntos de comunicaci&oacute;n con
+     PHP de todo pipe que sea creado. El valor de retorno es un
+     recurso que representa el proceso; usted debe liberarlo usando
+     <function>proc_close</function> una vez haya terminado de usarlo.
     </para>
     <para>
      <informalexample>
@@ -69,33 +70,66 @@ if (is_resource($proceso)) {
      </informalexample>
     </para>
     <para>
-Los n&uacute;meros de descriptor de archivo
-en <parameter>espec_descriptor</parameter> no est&aacute;n limitados a
-0, 1 y 2 - usted puede especificar cualquier n&uacute;mero de
-descriptor de archivo v&aacute;lido y &eacute;ste ser&aacute; pasado
-al proceso hijo. Esto le permite a su script interoperar con otros
-scripts que corran como "co-procesos". En particular, esto es
-&uacute;til para pasar contrase&ntilde;as a programas como PGP, GPG y
-openssl en un modo m&aacute;s seguro. Tambi&eacute;n es &uacute;til
-para la lectura de informaci&oacute;n de status entregada por aquellos
-programas en descriptores de archivo auxiliares.
+     PHP 5RC2 introduce soporte pty para sistemas con ptys
+     Unix98. Esto le permite a su script interactuar con aplicaciones
+     que esperan estar hablando con una terminal. Una pty trabaja como
+     un pipe, pero es bi-direccional, as&iacute; que no hay necesidad
+     de especificar un modo de lectura/escritura. El siguiente ejemplo
+     muestra c&oacute;mo usar una pty; note que no necesita tener
+     todos los descriptores hablando con una pty. Note tambi&eacute;n
+     que solo una pty es creada, incluso cuando pty se especifica 3
+     veces. En una versi&oacute;n futura de PHP, puede que sea posible
+     hacer m&aacute;s que simplemente leer y escribir a la pty.
+    </para>
+    <para>
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+<?php
+// Crear una pseudo terminal para el proceso hijo
+$espec_descriptor = array(
+   0 => array("pty"),
+   1 => array("pty"),
+   2 => array("pty")
+);
+$proceso = proc_open("cvs -d:pserver:cvsread@cvs.php.net:/repository login", $espec_descriptor, $pipes);
+if (is_resource($proceso)) {
+   // trabaje con el recurso aqui
+}
+?>
+]]>
+      </programlisting>
+     </informalexample>
+    </para>
+    <para>
+     Los n&uacute;meros de descriptor de archivo en
+     <parameter>espec_descriptor</parameter> no est&aacute;n limitados
+     a 0, 1 y 2 - usted puede especificar cualquier n&uacute;mero de
+     descriptor de archivo v&aacute;lido y &eacute;ste ser&aacute;
+     pasado al proceso hijo. Esto le permite a su script interoperar
+     con otros scripts que corran como "co-procesos". En particular,
+     esto es &uacute;til para pasar contrase&ntilde;as a programas
+     como PGP, GPG y openssl en un modo m&aacute;s
+     seguro. Tambi&eacute;n es &uacute;til para la lectura de
+     informaci&oacute;n de status entregada por aquellos programas en
+     descriptores de archivo auxiliares.
     </para>
     <note>
      <para>
-Compatibilidad con windows: Los descriptores m&aacute;s all&aacute; de
-2 (stderr) son entregados al proceso hijo como gestores heredables,
-pero ya que la arquitectura windows no asocia n&uacute;meros de
-descriptor de archivo con gestores de bajo nivel, el proceso hijo no
-dispone (aun) de un medio para acceder a esos gestores. Stdin, stdout
-y stderr funcionan como es de esperar.
+      Compatibilidad con windows: Los descriptores m&aacute;s
+      all&aacute; de 2 (stderr) son entregados al proceso hijo como
+      gestores heredables, pero ya que la arquitectura windows no
+      asocia n&uacute;meros de descriptor de archivo con gestores de
+      bajo nivel, el proceso hijo no dispone (aun) de un medio para
+      acceder a esos gestores. Stdin, stdout y stderr funcionan como
+      es de esperar.
      </para>
     </note>
     <note>
      <para>
-Si s&oacute;lo necesita un pipe de proceso uni-direccional
-(una-v&iacute;a), use
-<function>popen</function> en su lugar, ya que es mucho m&aacute;s
-f&aacute;cil de usar.
+      Si s&oacute;lo necesita un pipe de proceso uni-direccional
+      (una-v&iacute;a), use <function>popen</function> en su lugar, ya
+      que es mucho m&aacute;s f&aacute;cil de usar.
      </para>
     </note>
 
