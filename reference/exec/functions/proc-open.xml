@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.7 $ -->
-<!-- EN-Revision: 1.11 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.8 $ -->
+<!-- EN-Revision: 1.14 Maintainer: lboshell Status: ready -->
 <!-- splitted from ./en/functions/exec.xml, last change in rev 1.28 -->
   <refentry id='function.proc-open'>
    <refnamediv>
@@ -10,13 +10,13 @@
      entrada/salida
     </refpurpose>
    </refnamediv>
-   <refsect1>
-    <title>Descripci&oacute;n</title>
+   <refsect1 role="description">
+    &reftitle.description;
      <methodsynopsis>
       <type>resource</type><methodname>proc_open</methodname>
       <methodparam><type>string</type><parameter>cmd</parameter></methodparam>
       <methodparam><type>array</type><parameter>espec_descriptor</parameter></methodparam>
-      <methodparam><type>array</type><parameter>&amp;pipes</parameter></methodparam>
+      <methodparam><type>array</type><parameter role="reference">pipes</parameter></methodparam>
       <methodparam choice="opt"><type>string</type><parameter>cwd</parameter></methodparam>
       <methodparam choice="opt"><type>array</type><parameter>env</parameter></methodparam>
       <methodparam choice="opt"><type>array</type><parameter>otras_opciones</parameter></methodparam>
@@ -24,23 +24,151 @@
     <para>
      <function>proc_open</function> es similar a
      <function>popen</function> pero provee un grado de control mucho
-     mayor sobre la ejecuci&oacute;n del
-     programa. <parameter>cmd</parameter> es el comando a ser
-     ejecutado por el int&eacute;rprete de
-     comandos. <parameter>espec_descriptor</parameter> es una matriz
-     indexada en donde la clave representa el n&uacute;mero de
-     descriptor y el valor representa el modo como PHP pasar&aacute;
-     ese descriptor al proceso hijo. <parameter>pipes</parameter>
-     ser&aacute; definido como una matriz indexada de apuntadores a
-     archivo que corresponden a los puntos de comunicaci&oacute;n con
-     PHP de todo pipe que sea creado. El valor de retorno es un
-     recurso que representa el proceso; usted debe liberarlo usando
-     <function>proc_close</function> una vez haya terminado de usarlo.
+     mayor sobre la ejecuci&oacute;n del programa.
     </para>
-    <!-- TODO: Document cwd, env, other_options and when they appeared. -->
     <para>
-     <informalexample>
-      <programlisting role="php">
+     PHP 5 introduce soporte pty para sistemas con ptys Unix98. Esto
+     le permite a su script interactuar con aplicaciones que esperan
+     hablar con una terminal. Un pty trabaja como un pipe, pero es
+     bi-direccional, as&iacute; que no hay necesidad de especificar un
+     modo de lectura/escritura. El ejemplo presentado m&aacute;s
+     adelante muestra c&oacute;mo usar un pty, note que no tiene que
+     tener todos los descriptores hablando con un pty. Tambi&eacute;n
+     note que solo un pty es creado, aun cuando se especifica pty 3
+     veces. En una futura versi&oacute;n de PHP, puede que sea posible
+     hacer m&aacute;s que solo leer y escribir en el pty.
+    </para>
+   </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>cmd</parameter></term>
+     <listitem>
+      <para>
+       El comando a ejecutar
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>espec_descriptor</parameter></term>
+     <listitem>
+      <para>
+       Una matriz indexada en donde las llaves representan el
+       n&uacute;mero del descriptor y el valor representa el modo en
+       que PHP pasar&aacute; el descriptor al proceso hijo. 0 es
+       stdin, 1 es stdout, y 2 es stderr.
+      </para>
+      <para>
+       Los &uacute;nicos tipos de pipe soportados son
+       <literal>file</literal>, <literal>pipe</literal> y
+       <literal>pty</literal>.
+      </para>
+      <para>
+       Los n&uacute;meros de descriptor de archivo no se limitan a 0,
+       1 y 2 - es posible que especifique cualquier n&uacute;mero de
+       descriptor de archivo v&aacute;lido y &eacute;ste ser&aacute;
+       pasado al proceso hijo. Esto le permite a su script interoperar
+       con otros scripts que corren como "co-procesos". En particular,
+       esto es &uacute;til para pasar frases secretas a programas como
+       PGP, GPG y openssl de una forma m&aacute;s
+       segura. Tambi&eacute;n es &uacute;til para leer
+       informaci&oacute;n de status ofrecida por esos programas en
+       descriptores de archivo auxiliares.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>pipes</parameter></term>
+     <listitem>
+      <para>
+       Recibir&aacute; como valor una matriz indexada de apuntadores
+       de archivo que corresponden a los valores en PHP de los pipes
+       creados.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>cwd</parameter></term>
+     <listitem>
+      <para>
+       El directorio de trabajo inicial para el comando. Este debe ser
+       una ruta de directorio <emphasis
+       role="strong">absoluta</emphasis>, o &null; si desea usar el
+       valor predeterminado (el directorio de trabajo del proceso PHP
+       actual)
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>env</parameter></term>
+     <listitem>
+      <para>
+       Una matriz con las variables de entorno para el comando que
+       ser&aacute; ejecutado, o &null; para usar el mismo entorno que
+       el proceso PHP actual
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>otras_opciones</parameter></term>
+     <listitem>
+      <para>
+       Le permite especificar opciones adicionales. En la actualidad
+       solo se reconoce <literal>suppress_errors</literal>,
+       opci&oacute;n que elimina los errores generados por esta
+       funci&oacute;n cuando su valor es &true;
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un recurso que representa el proceso, el cual debe ser
+   liberado usando <function>proc_close</function> cuando haya
+   terminado de usarlo. En caso de error, devuelve &false;.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>5.0.0.</entry>
+       <entry>
+        Se a&ntilde;adieron los par&aacute;metros
+        <parameter>cwd</parameter>, <parameter>env</parameter> y
+        <parameter>otras_opciones</parameter>. Se agreg&oacute;
+        soporte para ptys Unix98.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Un ejemplo de <function>proc_open</function></title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 $espec_descriptor = array(
@@ -48,20 +176,24 @@ $espec_descriptor = array(
    1 => array("pipe", "w"),  // stdout es un pipe usado por el hijo para escritura
    2 => array("file", "/tmp/error-output.txt", "a") // stderr es un archivo para escritura
 );
-$proceso = proc_open("php", $espec_descriptor, $pipes);
+
+$cwd = '/tmp';
+$env = array('una_opcion' => 'aeiou');
+
+$proceso = proc_open('php', $espec_descriptor, $pipes, $cwd, $env);
+
 if (is_resource($proceso)) {
     // $pipes ahora luce de esta forma:
     // 0 => gestor de escritura conectado con la entrada estandar del hijo
     // 1 => gestor de lectura conectado con la salida estandar del hijo
     // Cualquier mensaje de salida de error sera adicionado a /tmp/error-output.txt
 
-    fwrite($pipes[0], "<?php echo \"&iexcl;Hola mundo!\"; ?>");
+    fwrite($pipes[0], '<?php print_r($_ENV); ?>');
     fclose($pipes[0]);
 
-    while (!feof($pipes[1])) {
-        echo fgets($pipes[1], 1024);
-    }
+    echo stream_get_contents($pipes[1]);
     fclose($pipes[1]);
+
     // Es importante que cierre todos los pipes antes de llamar
     // proc_close para evitar un bloqueo muerto
     $retval = proc_close($proceso);
@@ -71,23 +203,25 @@ if (is_resource($proceso)) {
 ?>
 ]]>
       </programlisting>
-     </informalexample>
-    </para>
-    <para>
-     PHP 5RC2 introduce soporte pty para sistemas con ptys
-     Unix98. Esto le permite a su script interactuar con aplicaciones
-     que esperan estar hablando con una terminal. Una pty trabaja como
-     un pipe, pero es bi-direccional, as&iacute; que no hay necesidad
-     de especificar un modo de lectura/escritura. El siguiente ejemplo
-     muestra c&oacute;mo usar una pty; note que no necesita tener
-     todos los descriptores hablando con una pty. Note tambi&eacute;n
-     que solo una pty es creada, incluso cuando pty se especifica 3
-     veces. En una versi&oacute;n futura de PHP, puede que sea posible
-     hacer m&aacute;s que simplemente leer y escribir a la pty.
-    </para>
-    <para>
-     <informalexample>
-      <programlisting role="php">
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Array
+(
+    [some_option] => aeiou
+    [PWD] => /tmp
+    [SHLVL] => 1
+    [_] => /usr/local/bin/php
+)
+el comando ha devuelto 0
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Uso de ptys</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 // Crear una pseudo terminal para el proceso hijo
@@ -102,53 +236,48 @@ if (is_resource($proceso)) {
 }
 ?>
 ]]>
-      </programlisting>
-     </informalexample>
-    </para>
-    <para>
-     Los n&uacute;meros de descriptor de archivo en
-     <parameter>espec_descriptor</parameter> no est&aacute;n limitados
-     a 0, 1 y 2 - usted puede especificar cualquier n&uacute;mero de
-     descriptor de archivo v&aacute;lido y &eacute;ste ser&aacute;
-     pasado al proceso hijo. Esto le permite a su script interoperar
-     con otros scripts que corran como "co-procesos". En particular,
-     esto es &uacute;til para pasar contrase&ntilde;as a programas
-     como PGP, GPG y openssl en un modo m&aacute;s
-     seguro. Tambi&eacute;n es &uacute;til para la lectura de
-     informaci&oacute;n de status entregada por aquellos programas en
-     descriptores de archivo auxiliares.
-    </para>
-    <note>
-     <para>
-      Compatibilidad con windows: Los descriptores m&aacute;s
-      all&aacute; de 2 (stderr) son entregados al proceso hijo como
-      gestores heredables, pero ya que la arquitectura windows no
-      asocia n&uacute;meros de descriptor de archivo con gestores de
-      bajo nivel, el proceso hijo no dispone (aun) de un medio para
-      acceder a esos gestores. Stdin, stdout y stderr funcionan como
-      es de esperar.
-     </para>
-    </note>
-    <note>
-     <para>
-      Si s&oacute;lo necesita un pipe de proceso uni-direccional
-      (una-v&iacute;a), use <function>popen</function> en su lugar, ya
-      que es mucho m&aacute;s f&aacute;cil de usar.
-     </para>
-    </note>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
 
-    <para>
-     Vea tambi&eacute;n <function>stream_select</function>,
-     <function>exec</function>,
-     <function>system</function>,
-     <function>passthru</function>, <function>popen</function>,
-     <function>escapeshellcmd</function>, y el <link
-     linkend="language.operators.execution">operador de comilla
-     invertida</link>.
-    </para>
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Compatibilidad con Windows: Los descriptores m&aacute;s
+    all&aacute; de 2 (stderr) se ponen a disposici&oacute;n del
+    proceso hijo como gestores heredables, pero ya que la arquitectura
+    de Windows no asocia n&uacute;meros de descriptores de archivo con
+    gestores de bajo nivel, el proceso hijo no tiene (aun) una forma
+    de acceder a esos gestores. Stdin, stdout y stderr funcionan como
+    es de esperarse.
+   </para>
+  </note>
+  <note>
+   <para>
+    Si solo necesita un pipe de proceso uni-direccional (de una
+    v&iacute;a), use <function>popen</function> en su lugar, ya que es
+    mucho m&aacute;s f&aacute;cil de usar.
+   </para>
+  </note>
+ </refsect1>
 
-   </refsect1>
-  </refentry>
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>popen</function></member>
+    <member><function>exec</function></member>
+    <member><function>system</function></member>
+    <member><function>passthru</function></member>
+    <member><function>stream_select</function></member>
+    <member>El <link linkend="language.operators.execution">operador
+    de comilla invertida</link></member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
 
 <!-- Keep this comment at the end of the file
 Local variables:
