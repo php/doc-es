@@ -1,33 +1,43 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.8 $ -->
-<!-- EN-Revision: 1.17 Maintainer: rafael Status: ready -->
+<!-- $Revision: 1.9 $ -->
+<!-- EN-Revision: 1.22 Maintainer: rafael Status: ready -->
 
  <chapter id="features.remote-files">
   <title>Usando archivos remotos</title>
 
   <para>
-   Siempre que el soporte para la &quot;envoltura URL fopen&quot; est&eacute;
-   habilitado cuando se configura PHP (lo cual ocurre a menos que se
-   pasa expl&iacute;citamente la opci&oacute;n
-   <option>--disable-url-fopen-wrapper</option> a configure (para versiones
-   hasta la 4.0.3), &oacute; configurar como &quot;off&quot; el par&aacute;metro 
-   <parameter>allow_url_fopen</parameter> en &php.ini; (para las nuevas versiones))
-   se pueden usar URLs HTTP y FTP con la mayor&iacute;a de las funciones
-   que toman un archivo como par&aacute;metro, incluyendo las sentencias
-   <function>require</function> e <function>include</function>.
-  </para>
-  <para>
-   <note>
-    <para>
-     La versi&oacute;n actual de <literal>PHP</literal> para Windows no soporta
-     el acceso remoto a ficheros en las siguientes funciones: 
-     <function>include</function>, <function>include_once</function>,
-     <function>require</function> y <function>require_once</function>.
-    </para>
-   </note>
-  </para>
-  <para>
-   Por ejemplo, se puede usar este para abrir un archivo en un servidor
+   Siempre que <parameter>allow_url_fopen</parameter> est&eacute;
+   habilitado en &php.ini;, se pueden usar URLs HTTP y FTP con la
+   mayor&iacute;a de las funciones que toman un archivo como
+   par&aacute;metro. Adem&aacute;s URLs pueden ser usadas con
+   <function>include</function>, <function>include_once</function>,
+   <function>require</function> y
+   <function>require_once</function>. Consultar <xref
+   linkend="wrappers"/> para m&aacute;s informaci&oacute;n sobre los
+   protocolos soportados por &php;.
+ </para>
+ <note>
+   <para>
+   En PHP 4.0.3 y versiones anteriores, para usar envolturas URL,
+   habia que configurar PHP usando la opci&oacute;n de
+   configuraci&oacute;n <option>--enable-url-fopen-wrapper</option>.
+   </para>
+  </note>
+ <para>
+  <note>
+   <para>
+    Las versiones para windows de <literal>PHP</literal>, anteriores a
+    PHP 4.3 no soportaban acceso remoto a ficheros en las funciones
+    siguientes: <function>include</function>,
+    <function>include_once</function>, <function>require</function>,
+    <function>require_once</function>, y las funciones
+    imagecreatefromXXX de la extensi&oacute;n <xref
+    linkend="ref.image"/>.
+   </para>
+  </note>
+ </para>
+ <para>
+  Por ejemplo, se puede usar este para abrir un archivo en un servidor
    web remoto, analizar en la salida la informaci&oacute;n que se quiera, 
    y entonces, usar la informaci&oacute;n en una consulta a base de
    datos, o simplemente para sacarlas en un estilo que coincida con el
@@ -60,21 +70,26 @@ fclose($file);
    </example>
   </para>
   <para>
-   Tambi&eacute;n se puede escribir a archivos en un FTP siempre que
-   se conecte como un usuario con los correctos derechos de acceso,
-   y el archivo no exista ya.Para conectar como un usuario distinto
-   de 'anonymous', se necesita especificar el nombre de usuario
-   (y posiblemente contrase&ntilde;a) dentro de la URL, tales como
-   'ftp://usuario:clave@ftp.ejemplo.com/camino/a/archivo'. (Se puede
-   usar la misma clase de sintaxis para acceder a archivos via HTTP 
-   cuando se requer&iacute;a una autenticaci&oacute; de
-   same sort of syntax to access files via HTTP when they require Basic
-   authentication.)
-  </para>
+   Tambi&eacute;n se puede escribir a archivos en un servidor FTP
+   (siempre que se conecte como un usuario con los correctos derechos
+   de acceso).  Solamente se pueden crear nuevos ficheros usando este
+   m&eacute;todo; si se intenta sobreescribir un fichero ya existente,
+   la funci&oacute;n <function>fopen</function> fallar&aacute;
+ </para>
  <para>
-   <example>
-    <title>Almacenando datos en un servidor remoto</title>
-    <programlisting role="php">
+  Para conectar como un usuario distinto de 'anonymous', se necesita
+  especificar el nombre de usuario (y posiblemente contrase&ntilde;a)
+  dentro de la URL, tales como
+  'ftp://usuario:clave@ftp.ejemplo.com/camino/a/archivo'. (Se puede
+  usar la misma clase de sintaxis para acceder a archivos via HTTP
+  cuando se requer&iacute;a una autenticaci&oacute; de same sort of
+  syntax to access files via HTTP when they require Basic
+  authentication.)
+ </para>
+ <para>
+  <example>
+   <title>Almacenando datos en un servidor remoto</title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 $file = fopen ("ftp://ftp.example.com/incoming/outputfile", "w");
@@ -83,24 +98,25 @@ if (!$file) {
     exit;
 }
 /* Write the data here. */
-fputs ($file, $HTTP_SERVER_VARS['HTTP_USER_AGENT'] . "\n");
+fputs ($file, $_SERVER['HTTP_USER_AGENT'] . "\n");
 fclose ($file);
 ?>
 ]]>  
-    </programlisting>
-   </example>
-  </para>
-  <para>
-   <note>
-    <para>
-     Podeis captar la idea en el ejemplo anterior de como escribir en
-     un registro remoto, pero como ya hemos comentado antes, solamente se 
-     puede escribir a un fichero nuevo usando la &quot;envoltura URL fopen&quot;  
-     Para registros distribuidos, consultar la funci&oacute;n <function>syslog</function>.
-    </para> 
-   </note>
-  </para>
-
+   </programlisting>
+  </example>
+ </para>
+ <para>
+  <note>
+   <para>
+    Podeis creer por el ejemplo anterior, que podeis usar esta tecnica
+    para escribir en un fichero de registro remoto. Desgraciadamente
+    no funcionaria porque la llamada <function>fopen</function>
+    fallaria si el fichero remoto existe. Para usar registros
+    distribuidos de esa manera podeis consultar la funcion
+    <function>syslog</function>.  </para>
+  </note>
+ </para>
+ 
  </chapter>
 
 <!-- Keep this comment at the end of the file
