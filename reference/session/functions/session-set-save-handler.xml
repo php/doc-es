@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision: 1.1 $ -->
+<!-- EN-Revision: 1.3 Maintainer: victorf Status: ready -->
+  <refentry id="function.session-set-save-handler">
+   <refnamediv>
+    <refname>session_set_save_handler</refname>
+    <refpurpose>
+     Establece unas funciones para el almacenamiento de los datos de la sesi&oacute;n a nivel de usuario
+    </refpurpose>
+   </refnamediv>
+   <refsect1>
+    <title>Descripci&oacute;n</title>
+     <methodsynopsis>
+      <type>bool</type><methodname>session_set_save_handler</methodname>
+      <methodparam><type>string</type><parameter>abrir</parameter></methodparam><methodparam><type>string</type><parameter>cerrar</parameter></methodparam><methodparam><type>string</type><parameter>leer</parameter></methodparam><methodparam><type>string</type><parameter>escribir</parameter></methodparam><methodparam><type>string</type><parameter>destruir</parameter></methodparam><methodparam><type>string</type><parameter>gc</parameter></methodparam>
+     </methodsynopsis>
+    <para>
+     <function>session_set_save_handler</function> establece las
+	 funciones que se utilizan a nivel de usuario para el
+	 almacenamiento y recuperaci&oacute;n de los datos asociados a
+	 una sesi&oacute;n. Es lo m&aacute;s &uacute;til cuando se
+	 prefiere utilizar otro m&eacute;todo de almacenamiento distinto
+	 del proporcionaddo por las sesiones de PHP. p.ej. Almacenar
+	 los datos de la sesi&oacute;n en una base de datos local.
+     &return.success;
+    </para>
+    <note>
+     <para>
+      Debe cambiar la opci&oacute;n
+      <parameter>session.save_handler</parameter> en la
+	  configuraci&oacute;n a <parameter>user</parameter> en su
+	  archivo &php.ini; para que
+	  <function>session_set_save_handler</function> tenga efecto.
+     </para>
+    </note>
+    <note>
+     <para>
+      El manejador "escribir" no se ejecuta hasta que se cierra la
+	  salida. Por ello, la salida de las sentencias que coloquemos
+	  en el manejador "escribir" para el depurado nunca ser&aacute;
+	  enviadas al navegador. Si se necesita producir una salida para
+	  el depurado, se sugiere que la salida se produzca en un archivo.
+     </para>
+    </note>
+    <para>
+     El siguiente ejemplo proporciona almacenamiento de las sesiones
+	 basado en archivos de forma similar al manejador de sesiones
+	 por defecto de PHP <parameter>files</parameter>. Este ejemplo
+	 puede ser extendido f&aacute;cilmente para cubrir el almacenamiento
+	 en bases de datos usando su motor de soporte de bases de datos
+	 de PHP favorito.
+    </para>
+    <para>
+     La funci&oacute;n de lectura debe devolver siempre una cadena
+	 para que el manejador de escritura funcione como se espera.
+     Devuelva una cadena vac&iacute;a si no hay ning&uacute;n dato
+	 a leer. Los valores devueltos de otros manejadores son
+	 convertidos a una expresi&oacute;n booleana. TRUE si todo ha
+	 ido correctamente, FALSE si ha habido alg&uacute;n problema.
+    </para>
+    <para>
+     <example>
+      <title>
+       Ejemplo de <function>session_set_save_handler</function>
+      </title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+function abrir ($save_path, $session_name) {
+  global $sess_save_path, $sess_session_name;
+       
+  $sess_save_path = $save_path;
+  $sess_session_name = $session_name;
+  return(true);
+}
+
+function cerrar() {
+  return(true);
+}
+
+function leer ($id) {
+  global $sess_save_path, $sess_session_name;
+
+  $sess_file = "$sess_save_path/sess_$id";
+  if ($fp = @fopen($sess_file, "r")) {
+    $sess_data = fread($fp, filesize($sess_file));
+    return($sess_data);
+  } else {
+    return(""); // Debe devolver "" aqu&iacute;.
+  }
+
+}
+
+function escribir ($id, $sess_data) {
+  global $sess_save_path, $sess_session_name;
+
+  $sess_file = "$sess_save_path/sess_$id";
+  if ($fp = @fopen($sess_file, "w")) {
+    return(fwrite($fp, $sess_data));
+  } else {
+    return(false);
+  }
+
+}
+
+function destruir ($id) {
+  global $sess_save_path, $sess_session_name;
+       
+  $sess_file = "$sess_save_path/sess_$id";
+  return(@unlink($sess_file));
+}
+
+/***********************************************
+ * ATENCI&Oacute;N - Necesitar&aacute; implementar alg&uacute;n     *
+ * tipo de rutinas recolectoras de basura aqu&iacute; *
+ ***********************************************/
+function rb ($maxlifetime) {
+  return true;
+}
+
+session_set_save_handler ("abrir", "cerrar", "leer", "escribir", "destruir", "rb");
+
+session_start();
+
+// proceed to use sessions normally
+
+?>
+]]>
+      </programlisting>
+     </example>
+    </para>
+   </refsect1>
+  </refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
