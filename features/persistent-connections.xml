@@ -11,12 +11,18 @@
    Si no existe, crea un enlace. Una conexi&oacute;n 'id&eacute;ntica'
    es una conexi&oacute;n que se abri&oacute; hacia el mismo "host", con
    el mismo nombre de usuario y la misma contrase&ntilde;a (donde sea
-   aplicable).</simpara>
-
+   aplicable).
+  </simpara>
+  <note>
+   <para>
+    Existen otras extensiones que proporcionan conexiones persistentes, 
+    tal como la <link linkend="ref.imap">extensi&oacute;n IMAP</link>
+   </para>
+  </note>
   <simpara>
    La gente que no est&aacute; familiarizada con el modo como trabajan
    y distribuyen la carga los servidores "web" puede confundir que 
-   persistente significa lo que no es.  En particular, ellas 
+   significa conexiones persistentes.  En particular, 
    <emphasis>no</emphasis> te dan la habilidad de abrir 
    'sesiones de usuario' en el mismo enlace SQL, 
    <emphasis>no</emphasis> dan la habilidad de construir una 
@@ -24,15 +30,18 @@
    otras cosas. De hecho, para ser extremadamente claros sobre el tema
    las conexiones persistentes no te dan <emphasis>ninguna</emphasis>
    functionalidad que no fuera posible con sus hermanas 
-   no-persistentes.</simpara>
+   no-persistentes.
+  </simpara>
 
   <simpara>
-   &iquest;Por qu&eacute;?</simpara> 
+   &iquest;Por qu&eacute;?
+  </simpara> 
 
   <simpara>
    Esto tiene que ver con el modo como funcionan los servidores "web".
    Hay tres modos en que un servidor "web" puede utilizar PHP para generar
-   p&aacute;ginas web.</simpara>
+   p&aacute;ginas web.
+  </simpara>
 
   <simpara>
    El primer m&eacute;todo es usar PHP como una capa CGI. Cuando corre
@@ -41,7 +50,8 @@
    a tu servidor. Debido a que se destruye despu&eacute;s de cada
    petici&oacute;n, cualquier recurso que adquiera (como un enlace a un
    servidor de base de datos SQL) se cierra cuando es destruido. En
-   este caso, no se gana nada si se intentan usar conexiones persistentes.
+   este caso, no se gana nada si se intentan usar conexiones persistentes,
+   ya que simplemente no persisten.
    </simpara>
 
   <simpara>
@@ -53,7 +63,7 @@
    p&aacute;ginas web. Cuando entra cada petici&oacute;n de un cliente,
    es entregada a uno de los hijos que no est&eacute; ya sirviendo a
    otro cliente. Esto significa que cuando el mismo cliente hace una
-   segunda petci&oacute;n al servidor, puede ser atendidp por un proceso
+   segunda petci&oacute;n al servidor, puede ser atendido por un proceso
    hijo distinto del de la primera vez. Lo que una conexi&oacute;n persistente
    hace por ti en este caso es hacerlo de tal modo que cada proceso hijo
    s&oacute;lo necesita conectar a tu SQL server la primera vez que sirve
@@ -66,12 +76,13 @@
    El &uacute;ltimo m&eacute;todo es usar PHP como un "plug-in" para un
    servidor web multihilo. En la actualidad es solamente te&oacute;rico --
    PHP no funciona a&uacute;n como "plug-in" para ning&uacute;n servidor
-   web multihilo. Hay trabajo en progreso para soportar ISAPI, WSAPI y
-   NSAPI (en Windows), lo cual permitir&aacute; a PHP ser utilizado como
+   web multihilo. Actualmente PHP 4 soporta ISAPI, WSAPI y
+   NSAPI (en Windows), lo cual permite a PHP ser utilizado como
    "plug-in" para servidores web multihilo como Netscape FastTrack,
    Internet Information Server (IIS) de Microsoft, y O'Reilly's WebSite Pro.
-   Cuando esto ocurra, el comportamiento ser&aacute; exactamente el mismo
-   que para el modelo de multiprocesador descrito anteriormente.</simpara>
+   El comportamiento es exactamente el mismo que para el modelo de 
+   multiprocesador descrito anteriormente. Tener en cuanta que el soporte
+   para SAPI no est&aacute; disponible en PHP 3.</simpara>
 
   <simpara>
    Si las conexiones persistentes no aportan ninguna funcionalidad
@@ -94,12 +105,45 @@
    Por ejemplo, si tienes 20 procesos hijos distintos que corran un
    archivo de comandos que cree una conexi&oacute;n persistente a tu
    servidor SQL, tendr&iacute;as 20 conexiones diferentes a ti servidor
-   SQL, una por cada hijo.</simpara>
+   SQL, una por cada hijo.
+  </simpara>
+
+   <simpara>
+   No obstante, hay que tener en cuenta que esto puede tener desventajas
+   si estais utilizando una base de datos con l&iacute;mites de conexi&oacute;n, por debajo
+   del numero de procesos hijo con conexiones persistentes. Si
+   tu base de datos tiene un l&iacute;mite de 16 conexiones simultaneas y en
+   el curso de una sesi&oacute;n de servidor, 17 procesos hijo intentan conectarse, 
+   uno de ellos no podr&aacute; hacerlo. Si existen errores en los scripts, que
+   no permitan terminar la conexion (p.ej.bucles infinitos), una base
+   de datos con solo 32 conexiones puede ser r&aacute;pidamente hundida. Comprobar
+   la documentacion de vuestra base de datos para obtener informaci&oacute;n sobre 
+   que hacer con conexiones abandonadas &oacute; libres.
+  </simpara>
+  <warning>
+   <simpara>
+    Un par de advertencias m&aacute;s a tener en cuenta cuando utiliceis
+    conexiones persistentes. La primera, si utilizais bloqueos
+    en una tabla desde una conexi&oacute;n persistente y  por cualquier
+    causa el script no puede desbloquear la tabla, todos los scripts
+    posteriores que usen esta conexi&oacute;n, quedar&aacute;n bloqueados indefin&iacute;damente
+    y se requerir&aacute; que, &oacute; bien el servidor httpd &oacute; la base de datos sean
+    arrancados de nuevo.
+    La segunda, cuando utiliceis transacciones. Un bloqueo por transacci&oacute;n
+    ser&aacute; heredado por el pr&oacute;ximo script usando la conecci&oacute;n, si la ejecuci&oacute;n del
+    primer script termina antes que el bloqueo. en anbos caso podeis
+    utilizar <function>register_shutdown_function</function> para registrar
+    una funcion simple de limpieza que desbloquee las tablas &oacute; deshaga
+    la transacci&oacute;n. Lo mejor para evitar problemas es no usar 
+    conexiones persistentes en scripts que usen bloqueos de tablas &oacute;
+    transacciones (para todolo dem&aacute;s pueden ser usadas sin problemas)
+   </simpara>
+  </warning>
 
   <simpara>
    Un resumen importante. Las conexiones persistentes fueron dise&ntilde;adas
    para tener una equivalencia uno-a-uno con las conexiones normales.
-   Eso significa que deber&iacute;s <emphasis>siempre</emphasis> ser capaz
+   Eso significa que deber&iacute;ais <emphasis>siempre</emphasis> ser capaz
    de reemplazar las conexiones persistentes por conexiones no persistentes
    y no cambiar&aacute, el modo como se comporta el archivo de comandos.
    <emphasis>Puede</emphasis> cambiar la eficiencia del archivo de comandos
@@ -124,4 +168,7 @@ sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
 End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
 -->
