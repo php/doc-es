@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.3 $ -->
-<!-- EN-Revision: 1.15 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.4 $ -->
+<!-- EN-Revision: 1.22 Maintainer: lboshell Status: ready -->
  <chapter id="faq.misc">
   <title>Preguntas Varias</title>
   <titleabbrev>Preguntas Varias</titleabbrev>
@@ -111,6 +111,90 @@
     </answer>
    </qandaentry>
 
+   <qandaentry id="faq.misc.registerglobals">
+    <question>
+     <para>
+      &iquest;C&oacute;mo manejo el par&aacute;metro
+      <literal>register_globals</literal>?
+     </para>
+    </question>
+    <answer>
+     <para>
+      Para informaci&oacute;n sobre las implicaciones de seguridad de
+      <literal>register_globals</literal>, lea el cap&iacute;tulo de
+      seguridad sobre el <link linkend="security.globals">Uso de
+      register_globals</link>.
+     </para>
+     <para>
+      Es recomendable usar <link
+      linkend="language.variables.superglobals">superglobales</link>,
+      en lugar de depender en la activaci&oacute;n de
+      <literal>register_globals</literal>.
+     </para>
+     <para>
+      Si se encuentra en un servidor compartido con
+      <literal>register_globals</literal> desactivado y necesita usar
+      aplicaciones antiguas, que requieren que esta opci&oacute;n
+      est&eacute; activada, o se encuentra en alg&uacute;n servidor de
+      hospedaje en donde esta caracter&iacute;stica est&aacute;
+      habilitada, pero quisiera eliminar los riesgos de seguridad,
+      puede que necesite emular el valor opuesto en PHP. Siempre es
+      buena idea preguntar primero si es posible cambiar la
+      opci&oacute;n de alguna forma en la configuraci&oacute;n de PHP,
+      pero si no es posible, entonces puede usar estos segmentos de
+      compatibilidad.
+     </para>
+     <para>
+      <example>
+       <title>Emulaci&oacute;n de Register Globals</title>
+        <para>
+         Esto emula el comportamiento de register_globals On.
+        </para>
+       <programlisting role="php">
+<![CDATA[
+<?php
+// Emular register_globals on
+if (!ini_get('register_globals')) {
+    $superglobales = array($_SERVER, $_ENV,
+        $_FILES, $_COOKIE, $_POST, $_GET);
+    if (isset($_SESSION)) {
+        array_unshift($superglobales, $_SESSION);
+    }
+    foreach ($superglobales as $superglobal) {
+        extract($superglobal, EXTR_SKIP);
+    }
+    ini_set('register_globals', true);
+}
+?>
+]]>
+       </programlisting>
+       <para>
+        Esto emula register_globals Off.
+       </para>
+       <programlisting role="php">
+<![CDATA[
+<?php
+// Emular register_globals off
+if (ini_get('register_globals')) {
+    $superglobales = array($_SERVER, $_ENV,
+        $_FILES, $_COOKIE, $_POST, $_GET);
+    if (isset($_SESSION)) {
+        array_unshift($superglobales, $_SESSION);
+    }
+    foreach ($superglobales as $superglobal) {
+        foreach ($superglobal as $global => $valor) {
+            unset($GLOBALS[$global]);
+        }
+    }
+    ini_set('register_globals', false);
+}
+?>
+]]>
+       </programlisting>
+      </example>
+     </para>
+    </answer>
+   </qandaentry>
   </qandaset>
  </chapter>
 

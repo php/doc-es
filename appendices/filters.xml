@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.2 $ -->
-<!-- EN-Revision: 1.13 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.3 $ -->
+<!-- EN-Revision: 1.14 Maintainer: lboshell Status: ready -->
 <appendix id="filters">
  <title>Lista de Filtros Disponibles</title>
  <para>
@@ -248,13 +248,14 @@ fwrite($da, "Esto es una prueba.\n");
   <title>Filtros de Compresi&oacute;n</title>
 
   <simpara>
-   Mientras que <xref linkend="wrappers.compression"/> ofrece una
-   forma de crear archivos compatibles con gzip y bz2 en el sistema de
-   archivos local, no ofrece un m&eacute;todo de compresi&oacute;n
-   generalizado sobre secuencias de red, ni ofrece la forma de
-   comenzar con una secuencia no-comprimida y trasladarse a una
-   comprimida. Para esto, un filtro de compresi&oacute;n puede ser
-   aplicado sobre cualquier recurso de secuencia en cualquier momento.
+   Aunque las <link linkend="wrappers.compression">Envolturas de
+   Compresi&oacute;n</link> ofrecen una forma de crear archivos
+   compatibles con gzip y bz2 en el sistema de archivos local, no
+   ofrecen un m&eacute;todo de compresi&oacute;n generalizado sobre
+   secuencias de red, ni ofrecen la forma de comenzar con una
+   secuencia no-comprimida y trasladarse a una comprimida. Para esto,
+   un filtro de compresi&oacute;n puede ser aplicado sobre cualquier
+   recurso de secuencia en cualquier momento.
   </simpara>
 
   <note>
@@ -312,7 +313,7 @@ fwrite($da, "Esto es una prueba.\n");
   <simpara>
     Los filtros de compresi&oacute;n zlib.* est&aacute;n disponibles
     con PHP desde la versi&oacute;n <literal>5.1.0</literal> si el
-    soporte <xref linkend="ref.zlib"/> se encuentra
+    soporte de <link linkend="ref.zlib">zlib</link> se encuentra
     habilitado. Tambi&eacute;n est&aacute;n disponibles como una
     caracter&iacute;stica portada de vuelta en la versi&oacute;n
     <literal>5.0.x</literal>, instalando el paquete <ulink
@@ -421,7 +422,7 @@ El archivo comprimido tiene 56 bytes.
   <simpara>
     Las filtros de compresi&oacute;n bzip2.* se encuentran disponibles
     con PHP desde la versi&oacute;n <literal>5.1.0</literal> si el
-    soporte <xref linkend="ref.bzip2"/> se encuentra
+    soporte de <link linkend="ref.bzip2">bz2</link> se encuentra
     habilitado. Tambi&eacute;n se encuentran disponibles como una
     caracter&iacute;stica portada hacia atr&aacute;s en la
     versi&oacute;n <literal>5.0.x</literal>, instalando el paquete
@@ -459,6 +460,124 @@ El archivo comprimido tiene 1488 bytes.
 ]]>
    </programlisting>
   </example>
+ </section>
+
+ <section id="filters.encryption">
+  <title>Filtros de Encripci&oacute;n</title>
+
+  <simpara>
+   <literal>mcrypt.*</literal> y <literal>mdecrypt.*</literal> ofrecen
+   encripci&oacute;n y desencripci&oacute;n sim&eacute;trica usando
+   libmcrypt. Ambos conjuntos de filtros soportan los mismos
+   algoritmos disponibles a la <link
+   linkend="ref.mcrypt">extensi&oacute;n mcrypt</link> en la forma de
+   <literal>mcrypt.ciphername</literal>, en donde
+   <parameter>ciphername</parameter> es el nombre del cifrado que debe
+   ser pasado a <function>mcrypt_module_open</function>. Los
+   siguientes cinco par&aacute;metros se encuentran disponibles
+   tambi&eacute;n:
+  </simpara>
+
+  <para>
+   <table>
+    <title>par&aacute;metros del filtro mcrypt</title>
+    <tgroup cols="4">
+     <thead>
+      <row>
+       <entry>Par&aacute;metro</entry>
+       <entry>&iquest;Requerido?</entry>
+       <entry>Predeterminado</entry>
+       <entry>Ejemplos</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>mode</entry>
+       <entry>Opcional</entry>
+       <entry>cbc</entry>
+       <entry>cbc, cfb, ecb, nofb, ofb, stream</entry>
+      </row>
+      <row>
+       <entry>algorithms_dir</entry>
+       <entry>Opcional</entry>
+       <entry>ini_get('mcrypt.algorithms_dir')</entry>
+       <entry>Ubicaci&oacute;n de los m&oacute;dulos de los
+       algoritmos</entry>
+      </row>
+      <row>
+       <entry>modes_dir</entry>
+       <entry>Opcional</entry>
+       <entry>ini_get('mcrypt.modes_dir')</entry>
+        <entry>Ubicaci&oacute;n de los m&oacute;dulos de los
+       modos</entry>
+      </row>
+      <row>
+       <entry>iv</entry>
+       <entry>Requerido</entry>
+       <entry>N/A</entry>
+       <entry>Usualmente 8, 16, o 32 bytes de datos binarios. Depende
+       del cifrado</entry>
+      </row>
+      <row>
+       <entry>key</entry>
+       <entry>Requerido</entry>
+       <entry>N/A</entry>
+       <entry>Usualmente 8, 16, o 32 bytes de datos binarios. Depende
+       del cifrado</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+  </para>
+
+  <example>
+   <title>Encripci&oacute;n de la salida usando 3DES</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$frase_secreta = 'Mi secreto';
+
+/* Convertir una frase legible en una pareja iv/llave reproducible
+ */
+$iv = substr(md5('iv'.$frase_secreta, true), 0, 8);
+$llave = substr(md5('contrasenya1'.$frase_secreta, true) .
+               md5('contrasenya2'.$frase_secreta, true), 0, 24);
+$opciones = array('iv'=>$iv, 'key'=>$key);
+
+$da = fopen('archivo-secreto.enc', 'wb');
+stream_filter_append($da, 'mcrypt.tripledes', STREAM_FILTER_WRITE, $opciones);
+fwrite($da, 'Datos muy muy muy secretos');
+fclose($da);
+?>
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Lectura de un archivo encriptado</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$frase_secreta = 'Mi secreto';
+
+/* Convertir una frase legible en una pareja iv/llave reproducible
+ */
+$iv = substr(md5('iv'.$frase_secreta, true), 0, 8);
+$llave = substr(md5('contrasenya1'.$frase_secreta, true) .
+               md5('contrasenya2'.$frase_secreta, true), 0, 24);
+$opciones = array('iv'=>$iv, 'key'=>$llave);
+
+$da = fopen('archivo-secreto.enc', 'rb');
+stream_filter_append($da, 'mdecrypt.tripledes', STREAM_FILTER_WRITE, $opciones);
+$datos = rtrim(stream_get_contents($da));
+fclose($da);
+
+echo $datos;
+?>
+]]>
+   </programlisting>
+  </example>
+
  </section>
 
 </appendix>

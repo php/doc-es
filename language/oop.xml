@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.6 $ -->
-<!-- EN-Revision: 1.53 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.7 $ -->
+<!-- EN-Revision: 1.60 Maintainer: lboshell Status: ready -->
  <chapter id="language.oop">
   <title>Clases y Objetos (PHP 4)</title>
 
@@ -18,22 +18,25 @@
 <?php
 class Carrito {
     var $items;  // Items en nuestro carrito de compras
-   
+
     // Agregar $num articulos de $artnr al carrito
- 
+
     function agregar_item($artnr, $num) {
         $this->items[$artnr] += $num;
     }
-   
+
     // Tomar $num articulos de $artnr del carrito
- 
+
     function retirar_item($artnr, $num) {
         if ($this->items[$artnr] > $num) {
             $this->items[$artnr] -= $num;
             return true;
+        } elseif ($this->items[$artnr] == $num) {
+            unset($this->items[$artnr]);
+            return true;
         } else {
             return false;
-        }   
+        }
     }
 }
 ?>
@@ -41,7 +44,7 @@ class Carrito {
      </programlisting>
     </informalexample>
    </para>
- 
+
    <para>
     Esto define una clase llamada Carrito que consiste de una matriz
     asociativa de art&iacute;culos en el carrito y dos funciones para
@@ -51,8 +54,11 @@ class Carrito {
    <warning>
     <simpara>
      <emphasis>NO</emphasis> es posible separar la definici&oacute;n
-     de una clase en varios archivos, o bloques PHP diferentes. Lo
-     siguiente no funciona:
+     de una clase en varios archivos. Asimismo <emphasis>NO</emphasis>
+     es posible separar la definici&oacute;n de una clase en bloques
+     PHP diferentes, a menos que la separaci&oacute;n sea al interior
+     de una declaraci&oacute;n de m&eacute;todo. Lo siguiente no
+     funciona:
     </simpara>
     <para>
      <informalexample>
@@ -71,13 +77,33 @@ class prueba {
       </programlisting>
      </informalexample>
     </para>
+    <simpara>
+     Sin embargo, lo siguiente es permitido:
+    </simpara>
+    <para>
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+<?php
+class prueba {
+    function prueba() {
+        ?>
+        <?php
+        print 'Bien';
+    }
+}
+?>
+]]>
+      </programlisting>
+     </informalexample>
+    </para>
    </warning>
 
    <simpara>
     Las siguientes notas de precauci&oacute;n son v&aacute;lidas para
     PHP 4.
    </simpara>
-    
+
    <caution>
     <simpara>
      El nombre <literal>stdClass</literal> es usado internamente por
@@ -85,7 +111,7 @@ class prueba {
      <literal>stdClass</literal> en PHP.
     </simpara>
    </caution>
-    
+
    <caution>
     <simpara>
      Los nombres de funci&oacute;n <literal>__sleep</literal> y
@@ -96,7 +122,7 @@ class prueba {
      informaci&oacute;n a continuaci&oacute;n.
     </simpara>
    </caution>
-    
+
    <caution>
     <simpara>
      PHP reserva todos los nombres de funci&oacute;n que comienzan con
@@ -214,7 +240,7 @@ $carrito->$items = array("10" => 1);
 // correcto, pero puede o no ser lo que se busca:
 // $carrito->$mivar se convierte en $carrito->items
 $mivar = 'items';
-$carrito->$mivar = array("10" => 1);  
+$carrito->$mivar = array("10" => 1);
 ?>
 ]]>
     </programlisting>
@@ -242,13 +268,71 @@ $carrito->$mivar = array("10" => 1);
 
    <note>
     <para>
+     Usualmente, la pseudo-variable <varname>$this</varname> no es
+     definida si el m&eacute;todo en el que se encuentra es llamado
+     est&aacute;ticamente. Sin embargo, esta no es una regla estricta:
+     <varname>$this</varname> se define si un m&eacute;todo es llamado
+     est&aacute;ticamente desde el interior de otro objeto. En este
+     caso, el valor de <varname>$this</varname> es aqu&eacute;l del
+     objeto que hace la llamada. Esto se ilustra en el siguiente
+     ejemplo:
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+<?php
+class A
+{
+    function foo()
+    {
+        if (isset($this)) {
+            echo '$this se define (';
+            echo get_class($this);
+            echo ")\n";
+        } else {
+            echo "\$this no se define.\n";
+        }
+    }
+}
+
+class B
+{
+    function bar()
+    {
+        A::foo();
+    }
+}
+
+$a = new A();
+$a->foo();
+A::foo();
+$b = new B();
+$b->bar();
+B::bar();
+?>
+]]>
+      </programlisting>
+      &example.outputs;
+      <screen>
+<![CDATA[
+$this se define (a)
+$this no se define.
+$this se define (b)
+$this no se define.
+]]>
+      </screen>
+     </informalexample>
+    </para>
+   </note>
+
+   <note>
+    <para>
      Existen algunas funciones interesantes que manejan clases y
      objetos. Puede que quiera echar un vistazo a las <link
      linkend="ref.classobj">Funciones de Clase/Objeto</link>.
     </para>
    </note>
   </sect1>
-  
+
   <sect1 id="keyword.extends">
    <title><literal>extends</literal></title>
 
@@ -295,7 +379,7 @@ class Carrito_Con_Nombre extends Carrito {
     del carrito. Aun es posible usar las funciones normales de un
     carrito sobre los carritos con nombre:
    </para>
- 
+
    <informalexample>
     <programlisting role="php">
 <![CDATA[
@@ -333,7 +417,7 @@ $carrito_n->agregar_item("10", 1);    // (funcionalidad heredada de carrito)
   </sect1>
 
   <sect1 id="language.oop.constructor">
-   <title><literal>Constructores</literal></title>
+   <title>Constructores</title>
 
    <caution>
     <simpara>
@@ -352,7 +436,7 @@ $carrito_n->agregar_item("10", 1);    // (funcionalidad heredada de carrito)
     el mismo nombre que la clase en donde es definida - la diferencia
     es sutil, pero crucial (vea m&aacute;s adelante).
    </para>
- 
+
    <informalexample>
     <programlisting role="php">
 <![CDATA[
@@ -495,7 +579,7 @@ $b = new B;
     le importa si la funci&oacute;n est&aacute; siendo definida en la
     clase B, o si ha sido heredada.
    </para>
-   
+
    <para>
     Esto se corrige en PHP 4 modificando la regla a: 'Un constructor
     es una funci&oacute;n del mismo nombre de la clase en la que se
@@ -504,7 +588,7 @@ $b = new B;
     base hubiera sido llamado, imprimiendo 'Soy el constructor de
     A.&lt;br /&gt;'.
    </para>
-   
+
    <caution>
     <simpara>
      Ni PHP 3 o PHP 4 llaman constructores de la clase base
@@ -514,7 +598,7 @@ $b = new B;
      apropiado.
     </simpara>
    </caution>
-   
+
    <note>
     <simpara>
      No hay destructores en PHP 3 o PHP 4. Puede usar
@@ -522,7 +606,7 @@ $b = new B;
      emular la mayor&iacute;a de efectos de los destructores.
     </simpara>
    </note>
-   
+
    <para>
     Los destructores son funciones que son llamadas
     autom&aacute;ticamente cuando un objeto es destruido, ya sea con
@@ -532,7 +616,9 @@ $b = new B;
   </sect1>
 
  <sect1 id="keyword.paamayim-nekudotayim"><!-- :-) -->
-   <title><literal>::</literal></title>
+   <title>Operador de Resoluci&oacute;n de Contexto
+   (<literal>::</literal>)</title>
+
 
    <caution>
     <simpara>
@@ -943,8 +1029,8 @@ definido desde afuera */
 ?>
 ]]>
      </programlisting>
-    </informalexample>   
-   </para>   
+    </informalexample>
+   </para>
    <para>
    Otro ejemplo final, intente entenderlo.
     <informalexample>
@@ -996,9 +1082,7 @@ $a->c->echoValor();
 ?>
 ]]>
      </programlisting>
-     <para>
-      Este ejemplo producir&aacute; la salida:
-     </para>
+     &example.outputs;
      <screen>
 <![CDATA[
 clase A: 10
@@ -1080,9 +1164,9 @@ compararObjetos($o, $r);
 ?>
 ]]>
     </programlisting>
-   </example>
-   Veremos:
+    &example.outputs;
    <screen>
+<![CDATA[
 Comparar instancias creadas con los mismos par&aacute;metros
 o1 == o2 : TRUE
 o1 != o2 : FALSE
@@ -1100,7 +1184,9 @@ o1 == o2 : FALSE
 o1 != o2 : TRUE
 o1 === o2 : FALSE
 o1 !== o2 : TRUE
-   </screen>
+]]>
+    </screen>
+   </example>
    Que es la salida que podemos esperar dadas las reglas de
    comparaci&oacute;n descritas anteriormente. Solo las instancias con
    los mismos valores para sus atributos y de la misma clase son
@@ -1149,9 +1235,9 @@ compararObjetos($u, $w);
 ?>     
 ]]>
     </programlisting>
-   </example>
-   Cosa que entrega la salida esperada:
+    &example.outputs;
    <screen>
+<![CDATA[
 Objetos compuestos u(o,p) y v(q,p)
 o1 == o2 : TRUE
 o1 != o2 : FALSE
@@ -1163,11 +1249,13 @@ o1 == o2 : FALSE
 o1 != o2 : TRUE
 o1 === o2 : FALSE
 o1 !== o2 : TRUE
-   </screen>
+]]>
+    </screen>
+   </example>
   </para>
  </sect1>
  </chapter>
- 
+
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
