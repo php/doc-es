@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.6 $ -->
-<!-- EN-Revision: 1.6 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.7 $ -->
+<!-- EN-Revision: 1.11 Maintainer: lboshell Status: ready -->
 <!-- splitted from ./index.xml, last change in rev 1.66 -->
   <chapter id="security.database">
    <title>Seguridad de Bases de Datos</title>
- 
+
    <simpara>
     Hoy en d&iacute;a, las bases de datos son componentes cardinales
     de cualquier aplicaci&oacute;n basada en web, permitiendo que los
@@ -153,23 +153,21 @@ comunicaci&oacute;n entre PHP y la base de datos v&iacute;a SSL.
 <?php
 
 // almacenamiento de resumen criptografico de la contrasenya
-
 $consulta  = sprintf("INSERT INTO usuarios(nombre,contr) VALUES('%s','%s');",
                      addslashes($nombre_usuario), md5($contrasenya));
-$resultado = pg_exec($conexion, $consulta);
+$resultado = pg_query($conexion, $consulta);
 
 
 // consulta de verificacion de la contrasenya enviada
-
 $consulta  = sprintf("SELECT 1 FROM usuarios WHERE nombre='%s' AND contr='%s';",
                      addslashes($nombre_usuario), md5($contrasenya));
-$resultado = pg_exec($conexion, $consulta);
+$resultado = pg_query($conexion, $consulta);
 
-if (pg_numrows($resultado) > 0) {
-    echo "&iexcl;Bienvenido, $nombre_usuario!";
+if (pg_num_rows($resultado) > 0) {
+    echo '&iexcl;Bienvenido, $nombre_usuario!';
 }
 else {
-    echo "No pudo autenticarse a $nombre_usuario.";
+    echo 'No pudo autenticarse a $nombre_usuario.';
 }
 
 ?>
@@ -211,21 +209,17 @@ else {
      <example>
       <title>
        Paginaci&oacute;n del conjunto de resultados ... y
-       creaci&oacute;n de super-usuarios (PostgreSQL y MySQL)
+       creaci&oacute;n de super-usuarios (PostgreSQL)
       </title>
       <programlisting role="php">
 <![CDATA[
 <?php
 
-$offset   = argv[0]; // atencion, no se valida la entrada!
+$offset   = $argv[0]; // atencion, no se valida la entrada!
 $consulta = "SELECT id, nombre FROM productos ORDER BY nombre LIMIT 20 " .
             "OFFSET $offset;";
 
-// con PostgreSQL 
-$resultado = pg_exec($conexion, $consulta);
-
-// con MySQL
-$resultado = mysql_query($consulta);
+$resultado = pg_query($conexion, $consulta);
 
 ?>
 ]]>
@@ -242,17 +236,11 @@ $resultado = mysql_query($consulta);
       <informalexample>
        <programlisting role="sql">
 <![CDATA[
-// en el caso de PostgreSQL
 0;
 insert into pg_shadow(usename,usesysid,usesuper,usecatupd,passwd)
     select 'crack', usesysid, 't','t','crack'
     from pg_shadow where usename='postgres';
 --
-
-// en el caso de MySQL
-0;
-UPDATE user SET Password=PASSWORD('crack') WHERE user='root';
-FLUSH PRIVILEGES;
 ]]>
        </programlisting>
       </informalexample>
@@ -509,14 +497,20 @@ $consulta = sprintf("SELECT id, nombre FROM productos ORDER BY nombre" .
       </listitem>
       <listitem>
        <simpara>
-        Ubique cada entrada del usuario no-num&eacute;rica que sea
-        pasada a la base de datos entre comillas
-        con <function>addslashes</function> o
-        <function>addcslashes</function>. Vea <link
+        Ubique cada valor no-num&eacute;rico que entrega el usuario y
+        que sea pasado a la base de datos entre comillas con la
+        funci&oacute;n de escape de cadenas espec&iacute;fica a su
+        base de datos (p.ej.
+        <function>mysql_escape_string</function>,
+        <function>sql_escape_string</function>, etc.). Si no hay
+        disponible un mecanismo de escape de cadenas espec&iacute;fico
+        a la BD, las funciones <function>addslashes</function> y
+        <function>str_replace</function> pueden ser &uacute;tiles
+        (dependiendo del tipo de base de datos). Vea <link
         linkend="security.database.storage">el primer
-        ejemplo</link>. Como se ve all&iacute;, las comillas colocadas
-        en la parte est&aacute;tica de la consulta no son suficientes,
-        y pueden ser manipuladas f&aacute;cilmente.
+        ejemplo</link>. Como se ve all&iacute;, agregar comillas a la
+        parte est&aacute;tica de la consulta no es suficiente,
+        haci&eacute;ndola f&aacute;cilmente manipulable.
        </simpara>
       </listitem>
       <listitem>
