@@ -1,55 +1,250 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- splitted from ./es/functions/dba.xml, last change in rev 1.1 -->
-<!-- last change to 'dba-open' in en/ tree in rev 1.2 -->
-  <refentry id="function.dba-open">
-   <refnamediv>
-    <refname>dba_open</refname>
-    <refpurpose>Abrir una base de datos</refpurpose>
-   </refnamediv>
-   <refsect1>
-    <title>Descripcion</title>
-     <methodsynopsis>
-     <type>int</type><methodname>dba_open</methodname>
-     <methodparam><type>string</type><parameter>path</parameter></methodparam>
-     <methodparam><type>string</type><parameter>mode</parameter></methodparam>
-     <methodparam><type>string</type><parameter>handler</parameter></methodparam>
-     <methodparam choice="opt"><parameter>...</parameter></methodparam>
-     </methodsynopsis>
-
-    <para>
-     <function>dba_open</function> establece una instancia para
-     <parameter>path</parameter> con <parameter>mode</parameter> usando
-     <parameter>handler</parameter>.</para>
-
-    <para>
-     <parameter>path</parameter> normalmente es el "path" en el sistema de 
-     ficheros.</para>
-
-    <para>
-     <parameter>mode</parameter> es "r" para acceso de lectura, "w" para 
-     lectura/escritura de una base de datos ya existente, "c" para lectura/escritura
-     y creacion de una base datos si esta no existe, y "n" para crear,
-     truncar y lectura/escritura.</para>
-
-    <para>
-     <parameter>handler</parameter> es el nombre de el manejador (handler)
-     que sera usado para el acceso al <parameter>path</parameter>. Es pasado
-     como un parametro opcional a <function>dba_open</function> y puede 
-     usarse en lugar de ella.</para>
-
-    <para>
-     <function>dba_open</function> devuelve un valor positivo de handler 
-      o &false;, en el caso de que la apertura de la base de datos se
-      realice o si falla, respectivamente.</para>
-
-    <para>
-     Ver tambien:
-     <function>dba_popen</function>
-     <function>dba_close</function>
-	</para>
-     
-   </refsect1>
-  </refentry>
+<!-- $Revision: 1.2 $ -->
+<!-- EN-Revision: 1.16 Maintainer: lboshell Status: ready -->
+<refentry id="function.dba-open">
+ <refnamediv>
+  <refname>dba_open</refname>
+  <refpurpose>Abrir una base de datos</refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>resource</type><methodname>dba_open</methodname>
+   <methodparam><type>string</type><parameter>ruta</parameter></methodparam>
+   <methodparam><type>string</type><parameter>modo</parameter></methodparam>
+   <methodparam><type>string</type><parameter>gestor</parameter></methodparam>
+   <methodparam choice="opt"><parameter>...</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   <function>dba_open</function> establece una instancia de base de
+   datos para el archivo en <parameter>ruta</parameter> con el
+   <parameter>modo</parameter> dado usando
+   <parameter>gestor</parameter>.
+  </para>
+ </refsect1>
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>ruta</parameter></term>
+     <listitem>
+      <para>
+       Usualmente una ruta normal en su sistema de archivos.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>modo</parameter></term>
+     <listitem>
+      <para>
+       Es <literal>r</literal> para acceso de lectura,
+       <literal>w</literal> para acceso de lectura/escritura a una
+       base de datos existente, <literal>c</literal> para acceso de
+       lectura/escritura y creaci&oacute;n de base de datos si no
+       existe actualmente, y <literal>n</literal> para crear, truncar
+       y tener acceso de lectura/escritura.
+      </para>
+      <para>
+       Adicionalmente es posible definir el m&eacute;todo de bloqueo
+       de la base de datos con el siguiente caracter. Use
+       <literal>l</literal> para bloquear la base de datos con un
+       archivo <filename>.lck</filename> o <literal>d</literal> para
+       bloquear el archivo de base de datos mismo. Es importante que
+       todas sus aplicaciones hagan esto de forma consistente.
+      </para>
+      <para>
+       Si desea probar el acceso y no desea esperar al bloqueo puede
+       a&ntilde;adir <literal>t</literal> como el tercer
+       caracter. Cuando est&eacute; absulatemente seguro de que no
+       necesita bloquear la base de datos puede hacerlo usando
+       <literal>-</literal> en lugar de <literal>l</literal> o
+       <literal>d</literal>. Cuando ninguna de las opciones
+       <literal>d</literal>, <literal>l</literal> o
+       <literal>-</literal> es usada, dba bloquear&aacute; el archivo
+       de base de datos como si usara <literal>d</literal>.
+      </para>
+      <note>
+       <para>
+        Solo puede haber un escritor para un archivo de base de
+        datos. Cuando use dba en un servidor web y m&aacute;s de una
+        petici&oacute;n requiera operaciones de escritura, ellas
+        s&oacute;lo pueden hacerse una despu&eacute;s de la
+        otra. Asimismo, no es posible tener acceso de lectura durante
+        un proceso de escritura. La extensi&oacute;n dba usa bloqueos
+        para prevenir estas situaciones. Vea la siguiente tabla:
+        <table>
+         <title>Bloqueo DBA</title>
+         <tgroup cols="9">
+          <thead>
+           <row>
+            <entry>ya abierto</entry>
+            <entry><parameter>modo</parameter> = "rl"</entry>
+            <entry><parameter>modo</parameter> = "rlt"</entry>
+            <entry><parameter>modo</parameter> = "wl"</entry>
+            <entry><parameter>modo</parameter> = "wlt"</entry>
+            <entry><parameter>modo</parameter> = "rd"</entry>
+            <entry><parameter>modo</parameter> = "rdt"</entry>
+            <entry><parameter>modo</parameter> = "wd"</entry>
+            <entry><parameter>modo</parameter> = "wdt"</entry>
+           </row>
+          </thead>
+          <tbody>
+           <row>
+            <entry>no abierto</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+           </row>
+           <row>
+            <entry><parameter>modo</parameter> = "rl"</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+           </row>
+           <row>
+            <entry><parameter>modo</parameter> = "wl"</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+           </row>
+           <row>
+            <entry><parameter>modo</parameter> = "rd"</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>ok</entry>
+            <entry>ok</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+           </row>
+           <row>
+            <entry><parameter>modo</parameter> = "wd"</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>inv&aacute;lido</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+            <entry>espera</entry>
+            <entry>falso</entry>
+           </row>
+          </tbody>
+         </tgroup>
+        </table>
+        <simplelist>
+         <member>ok: la segunda llamada ser&aacute; exitosa.</member>
+         <member>espera: la segunda llamada espera hasta que
+         <function>dba_close</function> sea llamado para el
+         primero.</member>
+         <member>falso: la segunda llamada devuelve falso.</member>
+         <member>inv&aacute;lido: no debe mezclar los modificadores
+         "l" y "d" para el par&aacute;metro
+          <parameter>modo</parameter>.</member>
+        </simplelist>
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>gestor</parameter></term>
+     <listitem>
+      <para>
+       El nombre del <link linkend="dba.requirements">gestor</link>
+       que ser&aacute; usado para acceder a
+       <parameter>ruta</parameter>. A &eacute;l se le pasan todos los
+       par&aacute;metros opcionales dados a
+       <function>dba_open</function> y puede actuar sobre ellos.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un gestor positivo en caso de &eacute;xito, o &false; si
+   ocurre un error.
+  </para>
+ </refsect1>
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>4.3.0</entry>
+       <entry>
+        Es posible abrir archivos de base de datos sobre una
+        conexi&oacute;n de red. Sin embargo en casos en los que se usa
+        una conexi&oacute;n de socket (como http o ftp) la
+        conexi&oacute;n ser&aacute; bloqueada en lugar del recurso
+        mismo. Esto es importante ya que en tales casos el bloqueo es
+        simplemente ignorado sobre el recurso y deben encontrarse
+        otras soluciones.
+       </entry>
+      </row>
+      <row>
+       <entry>4.3.0</entry>
+       <entry>
+        El bloqueo y los modificadores de <parameter>modo</parameter>
+        "l", "d", "-" y "t" fueron agregados. En versiones anteriores
+        de PHP, es necesario usar sem&aacute;foros para prevenir el
+        acceso simult&aacute;neo a bases de datos para cualquier
+        gestor de bases de datos con excepci&oacute;n de GDBM. Vea el
+        <link linkend="ref.sem">soporte de sem&aacute;foros tipo
+        Sistema V</link>.
+       </entry>
+      </row>
+      <row>
+       <entry>antes de 4.3.5</entry>
+       <entry>
+        El modo de apertura 'c' est&aacute; da&ntilde;ado para varios
+        gestores internos y trunca la base de datos en lugar de
+        a&ntilde;adir los datos a una base de datos
+        existente. Asimismo, dm y ndbm fallan en modo 'c' para
+        configuraciones t&iacute;picas (esto no puede arreglarse).
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>dba_popen</function></member>
+    <member><function>dba_close</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
 
 <!-- Keep this comment at the end of the file
 Local variables:
