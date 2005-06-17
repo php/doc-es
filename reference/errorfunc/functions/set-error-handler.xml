@@ -1,106 +1,324 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- splitted from ./es/functions/errorfunc.xml, last change in rev 1.1 -->
-<!-- last change to 'set-error-handler' in en/ tree in rev 1.1 -->
-  <refentry id="function.set-error-handler">
-   <refnamediv>
-    <refname>set_error_handler</refname>
-    <refpurpose>
-     Establece una funci&oacute;n espec&iacute;fica para el manejo de errores.  
-    </refpurpose>
-   </refnamediv>
-   <refsect1>
-    <title>Descripci&oacute;n</title>
-     <methodsynopsis>
-      <type>string</type><methodname>set_error_handler</methodname>
-      <methodparam><type>string</type><parameter>error_handler</parameter></methodparam>
-     </methodsynopsis>
+<!-- $Revision: 1.3 $ -->
+<!-- EN-Revision: 1.30 Maintainer: lboshell Status: ready -->
+<!-- splitted from ./en/functions/errorfunc.xml, last change in rev 1.1 -->
+<refentry id="function.set-error-handler">
+ <refnamediv>
+  <refname>set_error_handler</refname>
+  <refpurpose>
+   Establece una funci&oacute;n de gesti&oacute;n de errores definida
+   por el usuario
+  </refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>mixed</type><methodname>set_error_handler</methodname>
+   <methodparam><type>callback</type><parameter>gestor_errores</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>tipos_error</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Establece una funci&oacute;n de usuario
+   (<parameter>gestor_errores</parameter>) para manejar los errores en
+   un script.
+  </para>
+  <para>
+   Esta funci&oacute;n puede ser usada para definir su propia forma de
+   gestionar errores en tiempo de ejecuci&oacute;n, por ejemplo en
+   aplicaciones en las que necesita efectuar limpieza de
+   datos/archivos cuando ocurre en error cr&iacute;tico, o cuando
+   necesita generar un error bajo ciertas condiciones (usando
+   <function>trigger_error</function>).
+  </para>
+  <para>
+   Es importante recordar que el gestor de errores est&aacute;ndar de
+   PHP es completamente ignorado. Los par&aacute;metros de
+   <function>error_reporting</function> no tendr&aacute;n efecto
+   alguno y su gestor de errores ser&aacute; llamado en cualquier
+   circunstancia - sin embargo es posible leer el valor actual de
+   <link linkend="ini.error-reporting">error_reporting</link> y actuar
+   apropiadamente. Es particularmente importante notar que este valor
+   ser&aacute; 0 si la sentencia que caus&oacute; el error fue
+   precedida por el <link
+   linkend="language.operators.errorcontrol">operador de control de
+   errores @</link>.
+  </para>
+  <para>
+   Note tambi&eacute;n que es su responsabilidad usar
+   <function>die</function> si es necesario. Si la funci&oacute;n de
+   gesti&oacute;n de errores retorna, la ejecuci&oacute;n del script
+   continuar&aacute; con la siguiente sentencia despu&eacute;s de
+   aqu&eacute;lla que caus&oacute; el error.
+  </para>
+  <para>
+   Los siguientes tipos de error no pueden ser gestionados con una
+   funci&oacute;n definida por el usuario:
+   <constant>E_ERROR</constant>, <constant>E_PARSE</constant>,
+   <constant>E_CORE_ERROR</constant>,
+   <constant>E_CORE_WARNING</constant>,
+   <constant>E_COMPILE_ERROR</constant>,
+   <constant>E_COMPILE_WARNING</constant>, y la mayor&iacute;a de
+   <constant>E_STRICT</constant> generados en el archivo en donde
+   <function>set_error_handler</function> es llamado.
+  </para>
+  <para>
+   Si ocurren errores antes de que el script es ejecutado
+   (p.ej. cuando se cargan archivos desde una p&aacute;gina web) el
+   gestor de errores personalizado no puede ser llamado ya que no
+   est&aacute; registrado en ese momento.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>gestor_errores</parameter></term>
+     <listitem>
+      <para>
+       La funci&oacute;n de usuario necesita aceptar dos
+       par&aacute;metros: el c&oacute;digo de error, y una cadena que
+       describa el error. Luego hay tres par&aacute;metros opcionales
+       que pueden entregarse: el nombre del archivo en el que
+       ocurri&oacute; el error, el n&uacute;mero de l&iacute;nea en el
+       que ocurri&oacute; el error, y el contexto en el que
+       ocurri&oacute; el error (una matriz que apunta a la tabla
+       activa de s&iacute;mbolos en el punto en el que ocurri&oacute;
+       el error). La funci&oacute;n puede mostrarse como:
+      </para>
+      <para>
+       <methodsynopsis>
+        <methodname><replaceable>gestor</replaceable></methodname>
+        <methodparam><type>int</type><parameter>num_err</parameter></methodparam>
+        <methodparam><type>string</type><parameter>cadena_err</parameter></methodparam>
+        <methodparam choice="opt"><type>string</type><parameter>archivo_err</parameter></methodparam>
+        <methodparam choice="opt"><type>int</type><parameter>linea_err</parameter></methodparam>
+        <methodparam choice="opt"><type>array</type><parameter>contexto_err</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>num_err</parameter></term>
+         <listitem>
+          <simpara>
+           El primer par&aacute;metro, <parameter>num_err</parameter>,
+           contiene el nivel del error generado, como un entero.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>cadena_err</parameter></term>
+         <listitem>
+          <simpara>
+           El segundo par&aacute;metro,
+           <parameter>cadena_err</parameter>, contiene el mensaje de
+           error, como una cadena.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>archivo_err</parameter></term>
+         <listitem>
+          <simpara>
+           El tercer par&aacute;metro es opcional,
+           <parameter>archivo_err</parameter>, el cual contiene el
+           nombre del archivo en el que se gener&oacute; el error,
+           como una cadena.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>linea_err</parameter></term>
+         <listitem>
+          <simpara>
+           El cuarto par&aacute;metro es opcional,
+           <parameter>linea_err</parameter>, el cual contiene el
+           n&uacute;mero de l&iacute;nea en la que se gener&oacute; el
+           error, como un entero.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>contexto_err</parameter></term>
+         <listitem>
+          <simpara>
+           El quinto par&aacute;metro es opcional,
+           <parameter>contexto_err</parameter>, el cual es una matriz
+           que apunta a la tabla activa de s&iacute;mbolos en el punto
+           en el que ocurri&oacute; el error. En otras palabras,
+           <parameter>contexto_err</parameter> contendr&aacute; una
+           matriz de todas las variables que existieron en el contexto
+           en el que ocurri&oacute; el error.
+          </simpara>
+         </listitem>
+        </varlistentry>
+       </variablelist>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>tipos_error</parameter></term>
+     <listitem>
+      <para>
+       Puede ser usado para aplicar una m&aacute;scara a las llamadas
+       de la funci&oacute;n <parameter>error_handler</parameter> tal y
+       como el par&aacute;metro ini <link
+       linkend="ini.error-reporting">error_reporting</link> controla
+       qu&eacute; errores son mostrados. Sin esta m&aacute;scara
+       definida, el <parameter>gestor_errores</parameter> ser&aacute;
+       llamado para cada error sin importar el valor del
+       par&aacute;metro <link
+       linkend="ini.error-reporting">error_reporting</link>.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve una cadena que contiene el gestor de errores previamente
+   definido (si lo hay), o &false; en caso de error. Si el gestor
+   previo era un m&eacute;todo de clase, esta funci&oacute;n
+   devolver&aacute; una matriz indexada con la clase y el nombre del
+   m&eacute;todo.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>5.0.0</entry>
+       <entry>
+        Se introdujo el par&aacute;metro
+        <parameter>tipos_error</parameter>.
+       </entry>
+      </row>
+      <row>
+       <entry>4.3.0</entry>
+       <entry>
+        En lugar de un nombre de funci&oacute;n, tambi&eacute;n es
+        posible entregar una matriz que contenga una referencia a
+        objeto y un nombre de m&eacute;todo como valor de
+        <parameter>gestor_errores</parameter>.
+       </entry>
+      </row>
+      <row>
+       <entry>4.0.2</entry>
+       <entry>
+        Se introdujeron tres par&aacute;metros opcionales para la
+        funci&oacute;n de usuario
+        <parameter>gestor_errores</parameter>. Estos son el nombre de
+        archivo, el n&uacute;mero de l&iacute;nea, y el contexto.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Gesti&oacute;n de errores con
+    <function>set_error_handler</function> y
+    <function>trigger_error</function></title>
     <para>
-     Establece una funci&oacute;n definida por el usuario (<parameter>error_handler</parameter>) para el manejo de los errores dentro de un script.  Devuelve el anterior manejador de errores (si es que existe alguno) o &false; si se produce un error. Esta funci&oacute;n se utiliza para definir un m&eacute;todo espec&iacute;fico de manejo de los errores que se producen en tiempo de ejecuci&oacute;n. Por ejemplo, se puede utilizar en aplicaciones que requieran un tratamiento especial de algunos datos/archivos cuando se produce un error cr&iacute;tico o cuando se lanza un determinado error (utilizando la funci&oacute;n <function>trigger_error</function>)
+     El siguiente ejemplo muestra la gesti&oacute;n de excepciones
+     internas generando errores y manej&aacute;ndolos con una
+     funci&oacute;n definida por el usuario:
     </para>
-    <para>
-     La funci&oacute;n que se quiere utilizar para el manejo de errores debe aceptar 2 par&aacute;metros: el c&oacute;digo de error y una cadena de texto que describe el error producido. A continuaci&oacute;n se muestra un ejemplo de uso de excepciones mediante el lanzamiento de errores y su manejo con una funci&oacute;n definida por el usuario:
-     <example>
-      <title>
-       Manejo de errores con las funciones <function>set_error_handler</function> y <function>trigger_error</function>
-      </title>
-      <programlisting role="php">
-&lt;?php
+    <programlisting role="php">
+<![CDATA[
+<?php
+// definir el nivel de reporte de errores para este script
+error_reporting(E_USER_ERROR | E_USER_WARNING | E_USER_NOTICE);
 
-// Definici&oacute;n de las constantes de error del usuario - solo PHP4
-define (FATAL,E_USER_ERROR);
-define (ERROR,E_USER_WARNING);
-define (WARNING,E_USER_NOTICE);
-
-// Establecer el nivel de errores notificado en este script
-error_reporting  (FATAL + ERROR + WARNING);
-
-// Funci&oacute;n de manejo de errores
-function myErrorHandler ($errno, $errstr) {
-    switch ($errno) {
-    case FATAL:
-    echo &quot;&lt;b&gt;FATAL&lt;/b&gt; [$errno] $errstr&lt;br&gt;\n&quot;;
-    echo &quot;  Fatal error in line &quot;.__LINE__.&quot; of file &quot;.__FILE__;
-    echo &quot;, PHP &quot;.PHP_VERSION.&quot; (&quot;.PHP_OS.&quot;)&lt;br&gt;\n&quot;;
-    echo &quot;Aborting...&lt;br&gt;\n&quot;;
-    exit -1;
+// funcion de gestion de errores
+function miGestorErrores($num_err, $cadena_err, $archivo_err, $linea_err)
+{
+  switch ($num_err) {
+  case E_USER_ERROR:
+    echo "<b>Mi ERROR</b> [$num_err] $cadena_err<br />\n";
+    echo "  Error fatal en la linea $linea_err del archivo $archivo_err";
+    echo ", PHP " . PHP_VERSION . " (" . PHP_OS . ")<br />\n";
+    echo "Abortando...<br />\n";
+    exit(1);
     break;
-    case ERROR:
-    echo &quot;&lt;b&gt;ERROR&lt;/b&gt; [$errno] $errstr&lt;br&gt;\n&quot;;
+  case E_USER_WARNING:
+    echo "<b>Mi ADVERTENCIA</b> [$num_err] $cadena_err<br />\n";
     break;
-    case WARNING:
-    echo &quot;&lt;b&gt;WARNING&lt;/b&gt; [$errno] $errstr&lt;br&gt;\n&quot;;
+  case E_USER_NOTICE:
+    echo "<b>Mi NOTICIA</b> [$num_err] $cadena_err<br />\n";
     break;
-    default:
-    echo &quot;Unkown error type: [$errno] $errstr&lt;br&gt;\n&quot;;
+  default:
+    echo "Tipo de error desconocido: [$num_err] $cadena_err<br />\n";
     break;
-    }
+  }
 }
 
-// Funci&oacute;n par probar el manejo de errores
-function scale_by_log ($vect, $scale) {
-    if ( !is_numeric($scale) || $scale &lt;= 0 )
-    trigger_error(&quot;log(x) for x &lt;= 0 is undefined, you used: scale = $scale&quot;, 
-      FATAL);
-    if (!is_array($vect)) {
-    trigger_error(&quot;Incorrect input vector, array of values expected&quot;, ERROR);
+// funcion para probar la gestion de errores
+function escalar_por_log($vect, $escala)
+{
+  if (!is_numeric($escala) || $escala <= 0) {
+    trigger_error("log(x) para x <= 0 es indefinido, usted uso: escala = $escala", E_USER_ERROR);
+  }
+
+  if (!is_array($vect)) {
+    trigger_error("Vector de entrada incorrecto, se esperan valores de matriz", E_USER_WARNING);
     return null;
-    }
-    for ($i=0; $i&lt;count($vect); $i++) {
+  }
+
+  for ($i=0; $i<count($vect); $i++) {
     if (!is_numeric($vect[$i]))
-    trigger_error(&quot;Value at position $i is not a number, using 0 (zero)&quot;, 
-      WARNING);
-    $temp[$i] = log($scale) * $vect[$i];
+      trigger_error("El valor en la posicion $i no es un numero, se usa 0 (cero)", E_USER_NOTICE);
+      $temp[$i] = log($escala) * $vect[$i];
     }
     return $temp;
-}
+  }
 
-// Establecer la funci&oacute;n de manejo de errores
-$old_error_handler = set_error_handler(&quot;myErrorHandler&quot;);
+// establecer el gestor de errores definido
+$gestor_errores_anterior = set_error_handler("miGestorErrores");
 
-// Lanzamiento de algunos errores. En primer lugar se define un array mixto con un elemento no num&eacute;rico
-echo &quot;vector a\n&quot;;
-$a = array(2,3,&quot;foo&quot;,5.5,43.3,21.11);
+// generar algunos errores, primero definir una matriz mezclada con un item no-numerico
+echo "vector a\n";
+$a = array(2,3, "foo", 5.5, 43.3, 21.11);
 print_r($a);
 
-// Crear un nuevo array, generando un aviso
-echo &quot;----\nvector b - a warning (b = log(PI) * a)\n&quot;;
-$b = scale_by_log($a, M_PI);
+// ahora generar una segunda matriz, generando una advertencia
+echo "----\nvector b - a advertencia (b = log(PI) * a)\n";
+$b = escalar_por_log($a, M_PI);
 print_r($b);
 
-// Lo siguiente produce un error, ya que se pasa una cadena de texto en lugar de un array
-echo &quot;----\nvector c - an error\n&quot;;
-$c = scale_by_log(&quot;not array&quot;,2.3);
+// esto es un problema, pasamos una cadena en lugar de una matriz
+echo "----\nvector c - un error\n";
+$c = escalar_por_log("no es matriz", 2.3);
 var_dump($c);
 
-// A continuaci&oacute;n se produce un error cr&iacute;tico, ya que no est&aacute; definido el logaritmo
-// de un n&uacute;mero negativo o igual a cero
-echo &quot;----\nvector d - fatal error\n&quot;;
-$d = scale_by_log($a, -2.5);
+// este es un error critico, log de cero o un numero negativo es indefinido
+echo "----\nvector d - error fatal\n";
+$d = escalar_por_log($a, -2.5);
 
-?&gt;
-      </programlisting>
-     <para>Cuando se ejecuta el anterior ejemplo, el resultado ser&aacute; similar al siguiente:</para>
-     <screen>
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
 <![CDATA[
 vector a
 Array
@@ -113,58 +331,46 @@ Array
     [5] => 21.11
 )
 ----
-vector b - a warning (b = log(PI) * a)
-<b>WARNING</b> [1024] Value at position 2 is not a number, using 0 (zero)<br />
+vector b - a advertencia (b = log(PI) * a)
+<b>Mi NOTICIA</b> [1024] El valor en la posicion 2 no es un numero, se usa 0 (cero)<br />
 Array
 (
-    [0] => 2.2894597716988
-    [1] => 3.4341896575482
+    [0] => 2.2894597717
+    [1] => 3.43418965755
     [2] => 0
-    [3] => 6.2960143721717
-    [4] => 49.566804057279
-    [5] => 24.165247890281
+    [3] => 6.29601437217
+    [4] => 49.5668040573
+    [5] => 24.1652478903
 )
 ----
-vector c - an error
-<b>ERROR</b> [512] Incorrect input vector, array of values expected<br />
+vector c - un error
+<b>Mi ADVERTENCIA</b> [512] Vector de entrada incorrecto, se esperan valores de matriz<br />
 NULL
 ----
-vector d - fatal error
-<b>FATAL</b> [256] log(x) for x <= 0 is undefined, you used: scale = -2.5<br />
-  Fatal error in line 36 of file trigger_error.php, PHP 4.0.2 (Linux)<br />
-Aborting...<br />
+vector d - error fatal
+<b>Mi ERROR</b> [256] log(x) para x <= 0 es indefinido, usted uso: escala = -2.5<br />
+  Error fatal en la linea 32 del archivo generar_error.php, PHP 5.0.4 (Linux)<br />
+Abortando...<br />
 ]]>
-      </screen>
-	</example>
-    </para>
-	<para>
-     Un aspecto importante a tener en cuenta cuando se utiliza un manejador propio es que el 
-	 manejador de errores de PHP se deshabilita por completo (de forma temporal). De esta forma,
-	 los cambios efectuados con la funci&oacute;n <function>error_reporting</function> no tienen
-	 ning&uacute;n efecto, ya que se utilizar&aacute; exclusivamente la funci&oacute;n manejadora
-	 de errores definida por el usuario. No obstante, se puede consultar el valor almacenado en
-	 <link linkend="ini.error-reporting">error_reporting</link> y actuar en consecuencia. Adem&aacute;s, es necesario tener presente que el valor almacenado en <link linkend="ini.error-reporting">error_reporting</link> ser&aacute; igual a 0 si la sentencia que origin&oacute; el error tiene como prefijo el <link linkend="language.operators.errorcontrol"> operador @ </link>.
-    </para>
-    <para>
-     Adem&aacute;s, la funci&oacute;n manejadora de errores deber&aacute; hacer uso de la funci&oacute;n <function>die</function> si es necesario. Si la funci&oacute;n manejadora de errores deuelve un valor, la ejecución del script continuar&aacute; en la sentencia siguiente a la que origin&oacute; el error.
-    </para>
-    <note>
-     <para>
-     Si se produce un error antes de que se ejecute el script (por ejemplo cuando se sube un archivo), no se puede utilizar un manejador creado por el usuario, ya que en ese momento a&uacute;n no ha sido registrado.
-     </para>
-    </note>
-    <note>
-     <para>
-      El segundo par&aacute;metro <parameter>error_types</parameter> se introdujo a partir de PHP 5.
-     </para>
-    </note>
-    <para>
-     Puede consultar tambi&eacute; las funciones <function>error_reporting</function>,
-     <function>restore_error_handler</function>,
-     <function>trigger_error</function> y <function>user_error</function>
-    </para>
-   </refsect1>
-  </refentry>
+    </screen>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>error_reporting</function></member>
+    <member><function>restore_error_handler</function></member>
+    <member><function>trigger_error</function></member>
+    <member><link linkend="errorfunc.constants">constantes de nivel de
+    error</link></member>
+    <member>&seealso.callback;</member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
 
 <!-- Keep this comment at the end of the file
 Local variables:
