@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.18 $ -->
-<!-- EN-Revision: 1.86 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.19 $ -->
+<!-- EN-Revision: 1.89 Maintainer: lboshell Status: ready -->
  <chapter id="language.operators">
   <title>Operadores</title>
   <simpara>
@@ -592,6 +592,104 @@ case "a": // nunca se ejecuta ya que "a" ya ha coincidido con 0
    </para>
 
    <para>
+    Si los tipos de los operandos difieren, la comparaci&oacute;n se
+    realiza de acuerdo con la siguient tabla (en orden).
+   </para>
+   <table>
+    <title>Comparaci&oacute;n con Diferentes Tipos</title>
+    <tgroup cols="3">
+     <thead>
+      <row>
+       <entry>Tipo del Operando 1</entry>
+       <entry>Tipo del Operando 2</entry>
+       <entry>Resultado</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry><type>null</type> o <type>string</type></entry>
+       <entry><type>string</type></entry>
+       <entry>Convertir &null; a "", comparaci&oacute;n
+       num&eacute;rica o de l&eacute;xico</entry>
+      </row>
+      <row>
+       <entry><type>bool</type> o <type>null</type></entry>
+       <entry>cualquiera</entry>
+       <entry>Convertir a <type>bool</type>, &false; &lt;
+       &true;</entry>
+      </row>
+      <row>
+       <entry><type>object</type></entry>
+       <entry><type>object</type></entry>
+       <entry>
+        Las clases internas pueden definir su propia
+        comparaci&oacute;n, clases diferentes son incomparables, la
+        misma clase - comparar propiedades en la misma forma que las
+        matrices
+       </entry>
+      </row>
+      <row>
+       <entry><type>string</type>, <type>resource</type> o <type>number</type></entry>
+       <entry><type>string</type>, <type>resource</type> o <type>number</type></entry>
+       <entry>Traducir las cadenas y recursos a n&uacute;meros,
+       matem&aacute;tica usual</entry>
+      </row>
+      <row>
+       <entry><type>array</type></entry>
+       <entry><type>array</type></entry>
+       <entry>
+        Una matriz con menos elementos es menor, si una clave del
+        operando 1 no se encuentra en el operando 2 entonces las
+        matrices son incomparables, de otra forma - comparar valor por
+        valor (vea el siguiente ejemplo)
+       </entry>
+      </row>
+      <row>
+       <entry><type>array</type></entry>
+       <entry>cualquiera</entry>
+       <entry><type>array</type> es siempre mayor</entry>
+      </row>
+      <row>
+       <entry><type>object</type></entry>
+       <entry>cualquiera</entry>
+       <entry><type>object</type> es siempre mayor</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+   <para>
+    <example>
+     <title>Transcripci&oacute;n de la comparaci&oacute;n de matrices
+     est&aacute;ndar</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+// Las matrices son comparadas de esta forma con los operadores de comparacion estandar
+function comparacion_matrices_estandar($op1, $op2)
+{
+    if (count($op1) < count($op2)) {
+        return -1; // $op1 < $op2
+    } elseif (count($op1) > count($op2)) {
+        return 1; // $op1 > $op2
+    }
+    foreach ($op1 as $clave => $val) {
+        if (!array_key_exists($clave, $op2)) {
+            return null; // incomparable
+        } elseif ($val < $op2[$clave]) {
+            return -1;
+        } elseif ($val > $op2[$clave]) {
+            return 1;
+        }
+    }
+    return 0; // $op1 == $op2
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+
+   <para>
     Vea tambi&eacute;n <function>strcasecmp</function>,
     <function>strcmp</function>,
     <link linkend="language.operators.array">Operadores de
@@ -826,8 +924,10 @@ echo "Debe ser 4: " . $a . "<br />\n";
 <![CDATA[
 <?php
 $i = 'W';
-for($n=0; $n<6; $n++)
-  echo ++$i . "\n";
+for ($n=0; $n<6; $n++) {
+    echo ++$i . "\n";
+}
+?>
 ]]>
      </programlisting>
      &example.outputs;
