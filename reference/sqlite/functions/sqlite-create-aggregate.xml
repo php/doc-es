@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 1.13 Maintainer: javi Status: ready -->
+<refentry id="function.sqlite-create-aggregate">
+ <refnamediv>
+  <refname>sqlite_create_aggregate</refname>
+  <refname>SQLiteDatabase->createAggregate</refname>
+  <refpurpose>Registra una FDU (funci&oacute;n definida por el usuario) de grupo normal para su uso en sentencias SQL</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>void</type><methodname>sqlite_create_aggregate</methodname>
+   <methodparam><type>resource</type><parameter>manejador_bd</parameter></methodparam>
+   <methodparam><type>string</type><parameter>nombre_funcion</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>funcion_intermedia</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>funcion_final</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>numero_argumentos</parameter></methodparam>
+  </methodsynopsis>
+  <para>M&eacute;todo que sigue el estilo orientado a objetos:</para>
+  <classsynopsis>
+   <ooclass><classname>SQLiteDatabase</classname></ooclass>
+   <methodsynopsis>
+    <type>void</type><methodname>createAggregate</methodname>
+    <methodparam><type>string</type><parameter>nombre_funcion</parameter></methodparam>
+    <methodparam><type>callback</type><parameter>funcion_intermedia</parameter></methodparam>
+    <methodparam><type>callback</type><parameter>funcion_final</parameter></methodparam>
+    <methodparam choice="opt"><type>int</type><parameter>numero_argumentos</parameter></methodparam>
+   </methodsynopsis>
+  </classsynopsis>
+  <para>
+   <function>sqlite_create_aggregate</function> es similar a 
+   <function>sqlite_create_function</function> salvo que registrar funciones que se 
+   emplean para calcular resultados agrupados de todas las filas del resultado de 
+   una consulta.
+  </para>
+  <para>
+   La diferencia principal entre esta funci&oacute;n y <function>sqlite_create_function</function> 
+   es que se requieren 2 funciones para manejar los c&aacute;lculos agrupados. La funci&oacute;n 
+   indicada en <parameter>funcion_intermedia</parameter> se llama para cada una de las filas del 
+   resultado. La funci&oacute;n PHP acumula y guarda el resultado temporal en el llamado "contexto de 
+   agregaci&oacute;n". Una vez que todas las filas han sido procesadas, se llama a la funci&oacute;n 
+   <parameter>funcion_final</parameter>, que obtendr&aacute; los resultados intermedios a partir del 
+   contexto de agregaci&oacute;n y devolver&aacute; el resultado calculado.
+   Las funciones de callback deben devolver un tipo de datos entendido por SQLite (esto es, 
+   <link linkend="language.types.intro">tipo escalar</link>).
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>manejador_bd</parameter></term>
+     <listitem>
+      <para>
+       El recurso que identifica la base de datos SQLite (y que es el que 
+	   devuelve la funci&oacute;n <function>sqlite_open</function>).
+	   Este par&aacute;metro no se requiere cuando se emplea el m&eacute;todo orientado 
+	   a objetos.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>nombre_funcion</parameter></term>
+     <listitem>
+      <para>
+       El nombre de la funci&oacute;n a utilizar en las sentencias SQL.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>funcion_intermedia</parameter></term>
+     <listitem>
+      <para>
+       La funci&oacute;n de callback que se llama para cada una de las filas del resultado.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>funcion_final</parameter></term>
+     <listitem>
+      <para>
+       La funci&oacute;n de callback que se llama para realizar los c&aacute;lculos agrupados a partir 
+	   de los datos temporales almacenados por la funci&oacute;n intermedia que se ejecuta sobre 
+	   cada una de las filas.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>numero_argumentos</parameter></term>
+     <listitem>
+      <para>
+       Valor destinado al parseador de SQLite si la funci&oacute;n de callback 
+	   acepta un n&uacute;mero predeterminado de argumentos.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo de funci&oacute;n de grupo llamada max_longitud</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$datos = array(
+   'uno',
+   'dos',
+   'tres',
+   'cuatro',
+   'cinco',
+   'seis',
+   'siete',
+   'ocho',
+   'nueve',
+   'diez',
+   );
+$manejador_bd = sqlite_open(':memory:');
+sqlite_query($manejador_bd, "CREATE TABLE tabla_cadenas(a)");
+foreach ($datos as $cadena) {
+    $cadena = sqlite_escape_string($cadena);
+    sqlite_query($manejador_bd, "INSERT INTO tabla_cadenas VALUES ('$cadena')");
+}
+
+function max_longitud_temporal(&$contexto, $cadena) 
+{
+    $cadena = sqlite_udf_decode_binary($cadena);
+    if (strlen($cadena) > $contexto) {
+        $contexto = strlen($cadena);
+    }
+}
+	
+function max_longitud_final(&$contexto) 
+{
+    return $contexto;
+}
+
+sqlite_create_aggregate($dbhandle, 'max_longitud', 'max_longitud_temporal', 'max_longitud_final');
+
+var_dump(sqlite_array_query($manejador_bd, 'SELECT max_longitud(a) from tabla_cadenas'));
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   En este ejemplo, se crea una funci&oacute;n de agregaci&oacute;n que 
+   calcula la longitud de la cadena m&aacute;s larga de una de las columnas 
+   de la tabla.
+   Para cada filam se llama a la funci&oacute;n <literal>max_longitud_temporal</literal> y 
+   se le pasa el par&aacute;metro <parameter>contexto</parameter>.  El par&aacute;metro 
+   <parameter>contexto</parameter> es como cualquier otra variable de PHP y puede contener una 
+   matriz o incluso un objeto. En el ejemplo, solamente almacena la longitud m&aacute;s larga 
+   hasta ese momento. Si la <parameter>cadena</parameter> tiene una longitud superior al m&aacute;ximo 
+   de ese momento, se actualiza el valor almacenado en el contexto para que contenga el nuevo valor m&aacute;ximo.
+  </para>
+  <para>
+   Una vez que todas las filas han sido procesadas, SQLite llama a la funci&oacute;n 
+   <literal>max_longitud_final</literal> que calcula el resultado de la agregaci&oacute;n.
+   en esta funci&oacute;n se pueden realizar los calculos necesarios a partir del valor de 
+   <parameter>contexto</parameter>.  En este ejemplo tan sencillo, simplemente se devuelve 
+   el valor almacenado en contexto, porque ya contiene la longitud m&aacute;xima de todas las 
+   cadenas procesadas.
+  </para>
+  <note>
+   <para>
+    El ejemplo mostrado no funciona correctamente si la columna contiene datos binarios.
+	Vea la p&aacute;gina del manual de la funci&oacute;n <function>sqlite_udf_decode_binary</function> 
+	para una explicaci&oacute;n detallada de este hecho y para ver un ejemplo sobre la forma de 
+	tratar los datos binarios mediante su codificaci&oacute;n.
+   </para>
+  </note>
+  <tip>
+   <para>
+    No se recomienda copiar todos los valores en el contexto y depues&eacute;s realizar 
+	su procesamiento al final, ya que esto provocar&iacute;a que SQLite emplee mucha 
+	memoria para almacenar todos los datos. Por ejemplo, es f&aacute;cil hacerse una idea 
+	del problema que puede surgir si se almacenan 1 mill&oacute;n de registros cada uno de 
+	ellos conteniendo 32 bytes de longitud.
+   </para>
+  </tip>
+  <tip>
+   <para>
+	Se pueden emplear las funciones <function>sqlite_create_function</function> y 
+    <function>sqlite_create_aggregate</function> para sobrecargar las funciones 
+    SQL nativas de SQLite.
+   </para>
+  </tip>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>sqlite_create_function</function></member>
+    <member><function>sqlite_udf_encode_binary</function></member>
+    <member><function>sqlite_udf_decode_binary</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+ Local variables:
+ mode: sgml
+ sgml-omittag:t
+ sgml-shorttag:t
+ sgml-minimize-attributes:nil
+ sgml-always-quote-attributes:t
+ sgml-indent-step:1
+ sgml-indent-data:t
+ sgml-parent-document:nil
+ sgml-default-dtd-file:"../../manual.ced"
+ sgml-exposed-tags:nil
+ sgml-local-catalogs:nil
+ sgml-local-ecat-files:nil
+ End:
+ vim600: syn=xml fen fdm=syntax fdl=2 si
+ vim: et tw=78 syn=sgml
+ vi: ts=1 sw=1
+ -->
