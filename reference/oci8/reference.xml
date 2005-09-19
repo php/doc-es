@@ -1,28 +1,23 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.4 $ -->
-<!-- EN-Revision: 1.13 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.5 $ -->
+<!-- EN-Revision: 1.17 Maintainer: lboshell Status: ready -->
+<!-- Purpose: database.vendors -->
+<!-- Membership: bundled, external -->
+
  <reference id="ref.oci8">
-  <title>Funciones de Oracle 8</title>
+  <title>Funciones de Oracle</title>
   <titleabbrev>OCI8</titleabbrev>
 
   <partintro>
    <section id="oci8.intro">
     &reftitle.intro;
     <para>
-     Estas funciones le permiten acceder a bases de datos Oracle9,
-     Oracle8 y Oracle7. Usan la Interfaz de Llamadas Oracle (OCI por
-     sus siglas en Ingl&eacute;s).
-    </para>
-    <para>
-     Esta extensi&oacute;n es m&aacute;s flexible que la
-     extensi&oacute;n <link linkend="ref.oracle">antigua de
-     Oracle</link>. &Eacute;sta soporta la vinculaci&oacute;n de
-     variables PHP globales y locales con recipientes Oracle, tiene
-     soporte completo LOB, FILE y ROWID, y le permite usar variables
-     de definici&oacute;n entregadas por el usuario. Es recomendable
-     usar esta extensi&oacute;n en lugar de la extensi&oacute;n <link
-     linkend="ref.oracle">antigua de Oracle</link> siempre que sea
-     posible.
+     Estas funciones le permiten acceder a bases de datos Oracle 10,
+     Oracle 9, Oracle 8 y Oracle 7 usando la Interfaz de Llamados
+     Oracle (OCI por sus siglas en Ingl&eacute;s). Ellas soportan la
+     vinculaci&oacute;n de variables PHP a recipientes Oracle, tienen
+     soporte completo LOB, FILE y ROWID, y le permiten usar variables
+     de definici&oacute;n entregadas por el usuario.
     </para>
    </section>
 
@@ -35,11 +30,21 @@
     <filename>php_oci8.dll</filename>.
    </para>
    <para>
+    La forma m&aacute;s conveniente de instalar todos los archivos
+    requeridos es usar el Cliente Instant&aacute;neo de Oracle, que
+    est&aacute; disponible en: <ulink
+    url="&url.oracle.instant.client;">&url.oracle.instant.client;</ulink>. El
+    Cliente Instant&aacute;neo no necesita que est&eacute;n definidas
+    las variables de entorno ORACLE_SID o ORACLE_HOME. Sin embargo,
+    puede que aun necesite definir LD_LIBRARY_PATH y NLS_LANG.
+   </para>
+   <para>
     Antes de usar esta extensi&oacute;n, aseg&uacute;rese de haber
     configurado apropiadamente sus variables de entorno Oracle para
     que correspondan con el usuario de Oracle, as&iacute; como su
-    usuario del demonio web. Las variables que necesita definir son
-    las siguientes:
+    usuario del demonio web. Estas variables deben ser configuradas
+    <emphasis>antes</emphasis> de iniciar su servidor web. Las
+    variables que necesita definir son las siguientes:
     <itemizedlist>
      <listitem>
       <simpara>
@@ -66,12 +71,13 @@
        NLS_LANG
       </simpara>
      </listitem>
-     <listitem>
-      <simpara>
-       ORA_NLS33
-      </simpara>
-     </listitem>
     </itemizedlist>
+     Para m&aacute;s informaci&oacute;n sobre variables de entorno de
+     Oracle usadas con menos frecuencia como TNS_ADMIN, TWO_TASK,
+     ORA_TZFILE, y los varios par&aacute;metros de
+     globalizaci&oacute;n de Oracle como ORA_NLS33, ORA_NLS10 y las
+     variables NLS_* refi&eacute;rase a la documentaci&oacute;n de
+     Oracle.
    </para>
    <para>
     Despu&eacute;s de definir las variables de entorno para su usuario
@@ -88,7 +94,7 @@
      <informalexample>
       <screen>
 <![CDATA[
-# ldd /www/apache/bin/httpd 
+# ldd /www/apache/bin/httpd
     libpthread.so.0 => /lib/libpthread.so.0 (0x4001c000)
     libm.so.6 => /lib/libm.so.6 (0x4002f000)
     libcrypt.so.1 => /lib/libcrypt.so.1 (0x4004c000)
@@ -124,50 +130,135 @@
    </note>
    </section>
 
-   &reference.oci8.configure;
-
-   <section id="oci8.configuration">
-    &reftitle.runtime;
-    &no.config;
-   </section>
-
-   <section id="oci8.resources">
-    &reftitle.resources;
-    <para>
-    </para>
-   </section>
+   &reference.oci8.ini;
 
    &reference.oci8.constants;
 
    <section id="oci8.examples">
-   &reftitle.examples;
+    &reftitle.examples;
+    <para>
+     <example>
+      <title>Consulta b&aacute;sica</title>
+       <programlisting role="php">
+<![CDATA[
+<?php
+
+  $conexion = oci_connect('hr', 'hr', 'orcl');
+  if (!$conexion) {
+    $e = oci_error();
+    print htmlentities($e['message']);
+    exit;
+  }
+
+  $consulta = 'SELECT * FROM DEPARTMENTS';
+
+  $id_sentencia = oci_parse($conexion, $consulta);
+  if (!$id_sentencia) {
+    $e = oci_error($conexion);
+    print htmlentities($e['message']);
+    exit;
+  }
+
+  $r = oci_execute($id_sentencia, OCI_DEFAULT);
+  if (!$r) {
+    $e = oci_error($id_sentencia);
+    echo htmlentities($e['message']);
+    exit;
+  }
+
+  print '<table border="1">';
+  while ($fila = oci_fetch_array($id_sentencia, OCI_RETURN_NULLS)) {
+    print '<tr>';
+       foreach ($fila as $item) {
+         print '<td>'.($item?htmlentities($item):'&nbsp;').'</td>';
+       }
+       print '</tr>';
+  }
+  print '</table>';
+
+  oci_close($conexion);
+?>
+]]>
+       </programlisting>
+     </example>
+    </para>
+    <para>
+     <example>
+      <title>Insertar con variables enlazadas</title>
+       <programlisting role="php">
+<![CDATA[
+<?php
+
+  // Antes de ejecutar, cree la tabla:
+  //   CREATE TABLE MITABLA (mid NUMBER, myd VARCHAR2(20));
+
+  $conexion = oci_connect('scott', 'tiger', 'orcl');
+
+  $consulta = 'INSERT INTO MITABLA VALUES(:myid, :mydata)';
+
+  $id_sentencia = oci_parse($conexion, $consulta);
+
+  $id = 60;
+  $datos = 'Algun dato';
+
+  oci_bind_by_name($id_sentencia, ':myid', $id);
+  oci_bind_by_name($id_sentencia, ':mydata', $datos);
+
+  $r = oci_execute($id_sentencia);
+
+  if ($r)
+    print "Una fila insertada";
+
+  oci_close($conexion);
+
+?>
+]]>
+       </programlisting>
+     </example>
+    </para>
+
+
     <para>
     <example>
-     <title>Consejos OCI</title>
+     <title>Inserci&oacute;n de datos en una columna CLOB</title>
       <programlisting role="php">
 <![CDATA[
 <?php
-// por sergo arroba bacup punto ru
 
-// Use la opcion OCI_DEFAULT en el comando de ejecucion para aplazar
-// la ejecucion
-OCIExecute($sentencia, OCI_DEFAULT);
+// Antes de ejecutar, cree la table:
+//     CREATE TABLE mitabla (miclave NUMBER, miclob CLOB);
 
-// para recuperar datos use (despues de fetch):
+$conexion = oci_connect('scott', 'tiger', 'orcl');
 
-$resultado = OCIResult($sentencia, $n);
-if (is_object($result)) $resultado = $resultado->load();
+$mi_clave = 12343;  // clave arbitraria para este ejemplo;
 
-// Para una sentencia INSERT o UPDATE use:
+$sql = "INSERT INTO mitabla (miclave, miclob)
+        VALUES (:miclave, EMPTY_CLOB())
+        RETURNING miclob INTO :miclob";
 
-$sql = "insert into tabla (campo1, campo2) values (campo1 = 'valor',
- campo2 = empty_clob()) returning campo2 into :campo2";
-OCIParse($con, $sql);
-$clob = OCINewDescriptor($con, OCI_D_LOB);
-OCIBindByName($sentencia, ":campo2", &$clob, -1, OCI_B_CLOB);
-OCIExecute($sentencia, OCI_DEFAULT);
-$clob->save("cualquier texto");
-OCICommit($con);
+$id_sentencia = oci_parse($conexion, $sql);
+$clob = oci_new_descriptor($conexion, OCI_D_LOB);
+oci_bind_by_name($id_sentencia, ":miclave", $mi_clave, 5);
+oci_bind_by_name($id_sentencia, ":miclob", $clob, -1, OCI_B_CLOB);
+oci_execute($id_sentencia, OCI_DEFAULT);
+$clob->save("Una cadena muy larga");
+
+oci_commit($conexion);
+
+// Recuperacion de datos CLOB
+
+$consulta = 'SELECT miclob FROM mitabla WHERE miclave = :miclave';
+
+$id_sentencia = oci_parse ($conexion, $consulta);
+oci_bind_by_name($id_sentencia, ":miclave", $mi_clave, 5);
+oci_execute($id_sentencia, OCI_DEFAULT);
+
+print '<table border="1">';
+while ($fila = oci_fetch_array($id_sentencia, OCI_ASSOC)) {
+  $resultado = $fila['MYCLOB']->load();
+  print '<tr><td>'.$resultado.'</td></tr>';
+}
+print '</table>';
 
 ?>
 ]]>
@@ -184,7 +275,7 @@ OCICommit($con);
 <![CDATA[
 <?php
 // por webmaster arroba remoterealty punto com
-$sth = OCIParse($dbh, "begin proc_nueva_dir( :id_direccion, '$nombre',
+$sth = oci_parse($dbh, "begin proc_nueva_dir( :id_direccion, '$nombre',
  '$apellido', '$companyia', '$dir1', '$dir2', '$ciudad', '$estado',
  '$cod_postal', '$pais', :cod_error );end;");
 
@@ -193,15 +284,205 @@ $sth = OCIParse($dbh, "begin proc_nueva_dir( :id_direccion, '$nombre',
 // variable de salida.
 // Entonces crea la vinculacion:
 
-   OCIBindByName($sth, ":id_direccion", $id_direccion, 10);
-   OCIBindByName($sth, ":cod_error", $cod_error, 10);
-   OCIExecute($sth);
+   oci_bind_by_name($sth, ":id_direccion", $id_direccion, 10);
+   oci_bind_by_name($sth, ":cod_error", $cod_error, 10);
+   oci_execute($sth);
 
 ?>
 ]]>
       </programlisting>
     </example>
     </para>
+   </section>
+
+   <section id="oci8.connection">
+    <title>Manejo de Conexiones</title>
+    <para>
+     La extensi&oacute;n oci8 le ofrece 3 funciones diferentes para
+     conectarse con Oracle. Depende de usted usar la funci&oacute;n
+     m&aacute;s apropiada para su aplicaci&oacute;n, y la
+     informaci&oacute;n en esta secci&oacute;n tiene la
+     intenci&oacute;n de ayudarle a realizar una selecci&oacute;n
+     informada.
+    </para>
+    <para>
+     Conectarse a un servidor Oracle es una operaci&oacute;n
+     razonablemente costosa, en t&eacute;rminos del tiempo que toma en
+     ser completada. La funci&oacute;n
+     <function>oci_pconnect</function> usa un cach&eacute; persistente
+     de conexiones que puede ser re-usado a trav&eacute;s de
+     peticiones de diferentes scripts. Esto quiere decir que
+     usualmente s&oacute;lo se incurrir&aacute; en el costo de
+     conexi&oacute;n una vez por proceso php (o hijo de apache).
+    </para>
+    <para>
+     Si su aplicaci&oacute;n se conecta a Oracle usando un conjunto de
+     credenciales diferente para cada usuario web, el cach&eacute;
+     persistente usado por <function>oci_pconnect</function>
+     ser&aacute; menos &uacute;til a medida que el n&uacute;mero de
+     usuarios concurrentes se incrementa, al punto en que puede
+     empezar a afectar adversamente el rendimiento general de su
+     servidor Oracle debido al mantenimiento de demasiadas conexiones
+     en reposo. Si su aplicaci&oacute;n est&aacute; estructurada de
+     este modo, es recomendable que configure su aplicaci&oacute;n
+     usando los parm&aacute;metros <link
+     linkend="ini.oci8.max_persistent">oci8.max_persistent</link> y
+     <link
+     linkend="ini.oci8.persistent_timeout">oci8.persistent_timeout</link>
+     (estos le dar&aacute;n control sobre el tama&ntilde;o y tiempo de
+     vida del cach&eacute; de conexiones persistentes) o use
+     <function>oci_connect</function> en su lugar.
+    </para>
+    <para>
+     Tanto <function>oci_connect</function> como
+     <function>oci_pconnect</function> emplean un cach&eacute; de
+     conexiones; si realiza m&uacute;ltiples llamadas a
+     <function>oci_connect</function> en un script dado, usando los
+     mismo par&aacute;metros, la segunda llamada y dem&aacute;s
+     despu&eacute;s de &eacute;sta devolver&aacute;n el gestor de
+     conexi&oacute;n existente. El cach&eacute; usado por
+     <function>oci_connect</function> es limpiado al final de la
+     ejecuci&oacute;n del script, o cuando se cierra el gestor de
+     conexi&oacute;n
+     expl&iacute;citamente. <function>oci_pconnect</function> tiene un
+     comportamiento similar, aunque su cach&eacute; es mantenido por
+     separado y sobrevive entre m&uacute;ltiples peticiones.
+    </para>
+    <para>
+     Es importante recordar esta caracter&iacute;stica del uso de
+     cach&eacute;s, ya que da la apariencia de que dos gestores no
+     est&aacute;n aislados transaccionalmente (en realidad son el
+     mismo gestor de conexi&oacute;n, as&iacute; que no hay
+     separaci&oacute;n de ning&uacute;n tipo). Si su aplicaci&oacute;n
+     necesita dos conexiones separadas, aisladas transaccionalmente,
+     deber&iacute;a usar <function>oci_new_connect</function>.
+    </para>
+    <para>
+     <function>oci_new_connect</function> siempre crea una nueva
+     conexi&oacute;n al servidor Oracle, independientemente de
+     cualquier otra conexi&oacute;n que pueda existir. Las
+     aplicaciones con alto tr&aacute;fico web deber&iacute;an tratar
+     de evitar el uso de <function>oci_new_connect</function>,
+     especialmente en las secciones m&aacute;s ocupadas de la
+     aplicaci&oacute;n.
+    </para>
+   </section>
+
+   <section id="oci8.datatypes">
+    <title>Tipos de datos soportados por el controlador</title>
+    <table>
+     <title>El controlador soporta los siguientes tipos cuando enlaza
+     par&aacute;metros con la funci&oacute;n
+     <function>oci_bind_by_name</function>:</title>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>Tipo</entry>
+        <entry>Asociaci&oacute;n</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry>SQLT_NTY</entry>
+        <entry>Asigna un tipo nativo de colecci&oacute;n desde un
+        objeto colecci&oacute;n PHP, tal como aquellos creados por
+        <function>oci_new_collection</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_BFILEE</entry>
+        <entry>Asigna un descriptor nativo, tal como aquellos creados
+        por <function>oci_new_descriptor</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_CFILEE</entry>
+        <entry>Asigna un descriptor nativo, tal como aquellos creados
+        por <function>oci_new_descriptor</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_CLOB</entry>
+        <entry>Asigna un descriptor nativo, tal como aquellos creados
+        por <function>oci_new_descriptor</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_BLOB</entry>
+        <entry>Asigna un descriptor nativo, tal como aquellos creados
+        por <function>oci_new_descriptor</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_RDD</entry>
+        <entry>Asigna un descriptor nativo, tal como aquellos creados
+        por <function>oci_new_descriptor</function>.</entry>
+       </row>
+       <row>
+        <entry>SQLT_NUM</entry>
+        <entry>Convierte el par&aacute;metro PHP a un tipo largo 'C',
+        y lo enlaza a ese valor.</entry>
+       </row>
+       <row>
+        <entry>SQLT_RSET</entry>
+        <entry>Asigna un gestor de sentencia nativo, tal como aquellos
+        creados por <function>oci_parse</function> o aquellos
+        recuperados desde otras consultas OCI.</entry>
+       </row>
+       <row>
+        <entry>SQLT_CHR y cualquier otro tipo</entry>
+        <entry>Convierte el par&aacute;metro PHP a un tipo cadena y lo
+        enlaza como una cadena.</entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </table>
+
+    <table>
+     <title>Los siguientes tipos son soportados cuando se recuperan
+     columnas desde un conjunto de resultados:</title>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>Tipo</entry>
+        <entry>Asociaci&oacute;n</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry>SQLT_RSET</entry>
+        <entry>Crea un recurso de sentencia oci para representar el
+        cursor.</entry>
+       </row>
+       <row>
+        <entry>SQLT_RDD</entry>
+        <entry>Crea un objeto ROWID.</entry>
+       </row>
+       <row>
+        <entry>SQLT_BLOB</entry>
+        <entry>Crea un objeto LOB.</entry>
+       </row>
+       <row>
+        <entry>SQLT_CLOB</entry>
+        <entry>Crea un objeto LOB.</entry>
+       </row>
+       <row>
+        <entry>SQLT_BFILE</entry>
+        <entry>Crea un objeto LOB.</entry>
+       </row>
+       <row>
+        <entry>SQLT_LNG</entry>
+        <entry>Enlazado como SQLT_CHR, devuelto como una
+        cadena</entry>
+       </row>
+       <row>
+        <entry>SQLT_LBI</entry>
+        <entry>Enlazado como SQLT_BIN, devuelto como una
+        cadena</entry>
+       </row>
+       <row>
+        <entry>Any other type</entry>
+        <entry>Enlazado como SQLT_BIN, devuelto como una
+        cadena</entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </table>
    </section>
 
   </partintro>
