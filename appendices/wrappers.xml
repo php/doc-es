@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.23 $ -->
-<!-- EN-Revision: 1.62 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.24 $ -->
+<!-- EN-Revision: 1.69 Maintainer: lboshell Status: ready -->
  <appendix id="wrappers">
  <title>Lista de Protocolos/Envolturas Soportadas</title>
  <para>
@@ -58,7 +58,7 @@
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>No</entry>
       </row>
       <row>
@@ -274,7 +274,7 @@ $resultado = file_get_contents('http://example.com/submit.php', false, $contexto
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>Si</entry>
       </row>
       <row>
@@ -397,6 +397,22 @@ $resultado = file_get_contents('http://example.com/submit.php', false, $contexto
        </entry>
        <entry>20</entry>
       </row>
+      <row>
+       <entry><literal>protocol_version</literal></entry>
+       <entry>
+        Versión del protocolo HTTP. Agregada en PHP 5.1.0.
+       </entry>
+       <entry>1.0</entry>
+      </row>
+      <row>
+       <entry><literal>timeout</literal></entry>
+       <entry>
+        Tiempo de espera de lectura en segundos, especificado por un valor
+        <type>float</type> (p.ej.  <literal>10.5</literal>). Agregada en PHP
+        5.2.1.
+       </entry>
+       <entry><link linkend="ini.default-socket-timeout">default_socket_timeout</link></entry>
+      </row>
      </tbody>
     </tgroup>
    </table>
@@ -513,8 +529,9 @@ X-MiCabeceraPersonalizada: Foo
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
-       <entry>Si</entry> <entry>Si</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
+       <entry>Si</entry>
+       <entry>Si</entry>
       </row>
       <row>
        <entry>Permite Lectura</entry>
@@ -631,11 +648,6 @@ X-MiCabeceraPersonalizada: Foo
 
  <section id="wrappers.php">
   <title>Secuencias de entrada/salida PHP</title>
-  <simpara>
-   PHP 3.0.13 y superior, <filename>php://output</filename> y
-   <filename>php://input</filename> a partir de PHP 4.3.0,
-   <filename>php://filter</filename> desde PHP 5.0.0
-  </simpara>
 
   <itemizedlist>
    <listitem><simpara><filename>php://stdin</filename></simpara></listitem>
@@ -643,13 +655,27 @@ X-MiCabeceraPersonalizada: Foo
    <listitem><simpara><filename>php://stderr</filename></simpara></listitem>
    <listitem><simpara><filename>php://output</filename></simpara></listitem>
    <listitem><simpara><filename>php://input</filename></simpara></listitem>
-   <listitem><simpara><filename>php://filter</filename></simpara></listitem>
+   <listitem><simpara><filename>php://filter</filename> (disponible
+   desde PHP 5.0.0)</simpara></listitem>
+   <listitem><simpara><filename>php://memory</filename> (disponible
+   desde PHP 5.1.0)</simpara></listitem>
+   <listitem><simpara><filename>php://temp</filename> (disponible
+   desde PHP 5.1.0)</simpara></listitem>
   </itemizedlist>
 
   <simpara>
    <filename>php://stdin</filename>, <filename>php://stdout</filename>
    y <filename>php://stderr</filename> le ofrecen acceso a las
-   secuencias de entrada o salida correspondientes del proceso PHP.
+   secuencias de entrada o salida correspondientes del proceso PHP. La
+   secuencia hace referencia a un descriptor de archivo duplicado, de
+   modo que si abre <filename>php://stdin</filename> y luego lo
+   cierra, estará cerrando únicamente su copia del descriptor--la
+   secuencia realmente referenciada por <constant>STDIN</constant> no
+   es afectada. Note que PHP exhibía un comportamiento incorrecto en
+   este sentido hasta PHP 5.2.1. Es recomendable que simplemente use
+   las constantes <constant>STDIN</constant>,
+   <constant>STDOUT</constant> y <constant>STDERR</constant> en lugar
+   de abrir manualmente las secuencias usando estas envolturas.
   </simpara>
   <simpara>
    <filename>php://output</filename> le permite escribir sobre el
@@ -760,6 +786,45 @@ file_put_contents("php://filter/write=string.rot13/resource=ejemplo.txt","Hola M
     </simpara>
    </listitem>
   </itemizedlist>
+
+  <simpara>
+   La envoltura <filename>php://memory</filename> almacena los datos
+   en memoria. <filename>php://temp</filename> se comporta de forma
+   similar, pero usa un archivo temporal para almacenar los datos
+   cuando se alcanza cierto límite de memoria (el valor predeterminado
+   es 2 MB).
+  </simpara>
+  <simpara>
+   La envoltura <filename>php://temp</filename> toma los siguientes
+   'parámetros' como partes de su 'ruta':
+   </simpara>
+  <itemizedlist>
+   <listitem>
+    <para>
+     <literal>/maxmemory:&lt;número de bytes&gt;</literal>
+     (<emphasis>opcional</emphasis>). Este parámetro permite modificar
+     el valor predeterminado para el límite de memoria (cuando los
+     datos son movido a un archivo temporal).
+     <informalexample>
+      <programlisting role="php">
+<![CDATA[
+<?php
+$cincoMBs = 5 * 1024 * 1024;
+$da = fopen("php://temp/maxmemory:$cincoMBs", 'r+');
+
+fputs($da, "hola\n");
+
+// leer lo que hemos escrito
+rewind($da);
+echo stream_get_contents($da);
+?>
+]]>
+      </programlisting>
+     </informalexample>
+    </para>
+   </listitem>
+  </itemizedlist>
+
   <para>
    <table>
     <title>
@@ -776,40 +841,62 @@ file_put_contents("php://filter/write=string.rot13/resource=ejemplo.txt","Hola M
      <tbody>
       <row>
        <entry>Restricción
-       por <link linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       por <link linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>No</entry>
+      </row>
+      <row>
+       <entry>Restricción por <link
+       linkend="ini.allow-url-include">allow_url_include</link></entry>
+       <entry>
+        <literal>php://input</literal>,
+        <literal>php://stdin</literal>,
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente.
+       </entry>
       </row>
       <row>
        <entry>Permite Lectura</entry>
        <entry>
-        <literal>php://stdin</literal> y
-        <literal>php://input</literal> únicamente.
+        <literal>php://stdin</literal>,
+        <literal>php://input</literal>,
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente.
        </entry>
       </row>
       <row>
        <entry>Permite Escritura</entry>
        <entry>
         <literal>php://stdout</literal>,
-        <literal>php://stderr</literal>, y
-        <literal>php://output</literal> únicamente.
+        <literal>php://stderr</literal>,
+        <literal>php://output</literal>,
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente.
        </entry>
       </row>
       <row>
        <entry>Permite Adición</entry>
        <entry>
         <literal>php://stdout</literal>,
-        <literal>php://stderr</literal>, y
-        <literal>php://output</literal> únicamente. (Equivalente a la
+        <literal>php://stderr</literal>,
+        <literal>php://output</literal>,
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente. (Equivalente a la
         escritura)
        </entry>
       </row>
       <row>
        <entry>Permite Lectura y Escritura Simultánea</entry>
-       <entry>No. Estas envolturas son unidireccionales.</entry>
+       <entry>
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente.
+       </entry>
       </row>
       <row>
        <entry>Soporte <function>stat</function></entry>
-       <entry>No</entry>
+       <entry>
+        <literal>php://memory</literal> y
+        <literal>php://temp</literal> únicamente.
+       </entry>
       </row>
       <row>
        <entry>Soporte <function>unlink</function></entry>
@@ -876,7 +963,7 @@ file_put_contents("php://filter/write=string.rot13/resource=ejemplo.txt","Hola M
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>No</entry>
       </row>
       <row>
@@ -926,6 +1013,106 @@ file_put_contents("php://filter/write=string.rot13/resource=ejemplo.txt","Hola M
    </table>
   </para>
  </section>
+
+ <section id="wrappers.data">
+  <title>Datos (RFC 2397)</title>
+  <simpara>
+   La envoltura de secuencia <filename>data:</filename> (<ulink
+   url="&url.rfc;2397">RFC 2397</ulink>) se encuentra disponible desde
+   PHP 5.2.0.
+  </simpara>
+
+  <example>
+   <title>Imprimir los contenidos de data://</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// imprime "I love PHP"
+echo file_get_contents('data://text/plain;base64,SSBsb3ZlIFBIUAo=');
+?>
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Obtener el tipo de medios</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$da   = fopen('data://text/plain;base64,', 'r');
+$meta = stream_get_meta_data($da);
+
+// imprime "text/plain"
+echo $meta['mediatype'];
+?>
+]]>
+   </programlisting>
+  </example>
+
+
+  <para>
+   <table>
+    <title>Resumen de Envoltura</title>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>Atributo</entry>
+       <entry>Soporte</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>Restricción por <link
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Restricción por <link
+       linkend="ini.allow-url-include">allow_url_include</link></entry>
+       <entry>Si</entry>
+      </row>
+      <row>
+       <entry>Permite Lectura</entry>
+       <entry>Si</entry>
+      </row>
+      <row>
+       <entry>Permite Escritura</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Adición</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Lectura y Escritura Simultánea</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporte <function>stat</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporte <function>unlink</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporte <function>rename</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporte <function>mkdir</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporte <function>rmdir</function></entry>
+       <entry>No</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+  </para>
+ </section>
+
  <section id="wrappers.ssh2">
   <title>Shell Seguro 2</title>
   <simpara>
@@ -945,7 +1132,7 @@ file_put_contents("php://filter/write=string.rot13/resource=ejemplo.txt","Hola M
   </itemizedlist>
 
   <note>
-   <title>Esta envoltura no se encuentra habilitada por defecto</title>
+   <title>Esta envoltura no se encuentra habilitada por omisión</title>
    <simpara>
     Para usar las envolturas <filename>ssh2.*://</filename>, es
     necesario instalar la extensión <ulink
@@ -990,8 +1177,8 @@ $secuencia = fopen("ssh2.tunnel://$sesion/remote.example.com:1234", 'r');
      </thead>
      <tbody>
       <row>
-       <entry>Restringido por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       <entry>Restricción por <link
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>Si</entry>
        <entry>Si</entry>
        <entry>Si</entry>
@@ -1219,7 +1406,7 @@ $secuencia = fopen("ssh2.tunnel://$sesion/remote.example.com:1234", 'r');
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>No</entry>
       </row>
       <row>
@@ -1371,7 +1558,7 @@ $secuencia = fopen("ssh2.tunnel://$sesion/remote.example.com:1234", 'r');
      <tbody>
       <row>
        <entry>Restricción por <link
-       linkend="ini.allow-url-fopen">allow_url_fopen</link>.</entry>
+       linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
        <entry>No</entry>
       </row>
       <row>

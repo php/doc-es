@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.15 $ -->
-<!-- EN-Revision: 1.38 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.16 $ -->
+<!-- EN-Revision: 1.47 Maintainer: lboshell Status: ready -->
 
 <appendix id="ini">
  <title>Directivas de &php.ini;</title>
@@ -37,10 +37,10 @@
        <entry>PHP_INI_ALL en PHP &lt;= 4.3.4. Disponible a partir de PHP 4.0.4.</entry>
       </row>
       <row>
-       <entry>allow_url_include</entry>
+       <entry><link linkend="ini.allow-url-include">allow_url_include</link></entry>
        <entry>"0"</entry>
        <entry>PHP_INI_SYSTEM</entry>
-       <entry>Disponible a partir de PHP 6.0.0.</entry>
+       <entry>Disponible a partir de PHP 5.2.0.</entry>
       </row>
       <row>
        <entry><link linkend="ini.always-populate-raw-post-data">always_populate_raw_post_data</link></entry>
@@ -51,8 +51,8 @@
       <row>
        <entry><link linkend="ini.apc.cache-by-default">apc.cache_by_default</link></entry>
        <entry>"1"</entry>
-       <entry>PHP_INI_SYSTEM</entry>
-       <entry></entry>
+       <entry>PHP_INI_ALL</entry>
+       <entry>PHP_INI_SYSTEM in APC &lt;= 3.0.12p2</entry>
       </row>
       <row>
        <entry><link linkend="ini.apc.enabled">apc.enabled</link></entry>
@@ -257,6 +257,12 @@
        <entry>NULL</entry>
        <entry>PHP_INI_SYSTEM</entry>
        <entry></entry>
+      </row>
+      <row>
+       <entry><link linkend="ini.cgi.check-shebang-line">cgi.check_shebang_line</link></entry>
+       <entry>"1"</entry>
+       <entry>PHP_INI_SYSTEM</entry>
+       <entry>Disponible desde PHP 5.2.0.</entry>
       </row>
       <row>
        <entry>cgi.discard_path</entry>
@@ -3124,18 +3130,40 @@
        <listitem>
         <para>
          Establece el orden de procesamiento de variables EGPCS
-         (Entorno, GET, POST, Cookie, Servidor). La configuración
-         predeterminada de esta directiva es "EGPCS". Al definir este
-         valor como "GP", por ejemplo, causará que PHP ignore
-         completamente las variables de entorno, cookies y servidor,
-         asi como que cualquier variable del método GET sea
-         sobrescrita con una variable del método POST con el mismo
-         nombre.
+         (<literal>E</literal>ntorno, <literal>G</literal>ET,
+         <literal>P</literal>OST, <literal>C</literal>ookie, y
+         <literal>S</literal>ervidor). Por ejemplo, si variables_order se
+         define como <literal>"SP"</literal>, entonces PHP creará las
+         variables &link.superglobals; <varname>$_SERVER</varname> y
+         <varname>$_POST</varname>, pero no creará <varname>$_ENV</varname>,
+         <varname>$_GET</varname>, ni <varname>$_COOKIE</varname>. El valor
+         "" quiere decir que ninguna variable &link.superglobals; será
+         definida.
         </para>
         <para>
-         Vea también <link
-         linkend="ini.register-globals">register_globals</link>.
+         Si la directiva ahora obsoleta <link
+         linkend="ini.register-globals">register_globals</link> es
+         habilitada (ésta ha sido removida para PHP 6), entonces
+         variables_order también configura el orden en que las variables
+         <literal>ENV</literal>, <literal>GET</literal>,
+         <literal>POST</literal>, <literal>COOKIE</literal> and
+         <literal>SERVER</literal> son pobladas en el contexto global. De
+         modo que por ejemplo si variables_order se define como
+         <literal>"EGPCS"</literal>, register_globals es habilitado, y tanto
+         <varname>$_GET['action']</varname> como
+         <varname>$_POST['action']</varname> son definidos, entonces
+         <varname>$action</varname> tendrá el valor de
+         <varname>$_POST['action']</varname> ya que <literal>P</literal>
+         viene después de <literal>G</literal> en nuestro valor de ejemplo
+         de la directiva.
         </para>
+        <note>
+         <para>
+          El contenido y el orden de <link
+          linkend="reserved.variables.request">$_REQUEST</link> es también
+          afectado por esta directiva.
+         </para>
+        </note>
        </listitem>
       </varlistentry>
 
@@ -3384,7 +3412,7 @@
        </term>
        <listitem>
         <para>
-         A partir de 4.0b4, PHP siempre imprime de manera
+         A partir de 4.0.0, PHP siempre imprime de manera
          predeterminada una codificación de caracteres en la cabecera
          Content-type:. Para deshabilitar el envío del juego de
          caracteres, simplemente defina este valor como vacío.
@@ -3483,6 +3511,12 @@
          <entry>NULL</entry>
          <entry>&php.ini; solamente</entry>
          <entry></entry>
+        </row>
+        <row>
+         <entry>cgi.check_shebang_line</entry>
+         <entry>"1"</entry>
+         <entry>PHP_INI_SYSTEM</entry>
+         <entry>Disponible desde PHP 5.2.0.</entry>
         </row>
         <row>
          <entry>cgi.fix_pathinfo</entry>
@@ -3626,6 +3660,24 @@ include_path=".;c:\php\includes"
         </para>
        </listitem>
       </varlistentry>
+
+      <varlistentry id="ini.cgi.check-shebang-line">
+       <term>
+        <parameter>cgi.check_shebang_line</parameter>
+        <type>boolean</type>
+       </term>
+       <listitem>
+        <para>
+         Controla si PHP CGI verifica la existencia de una línea que
+         comienze con #! (la secuencia conocida como shebang) al inicio del
+         script en ejecución.  Esta línea puede necesitarse si el script
+         soporta la ejecución tanto como script independiente como un script
+         CGI. PHP en modo CGI ignora esta línea y su contenido si esta
+         directiva es habilitada.
+        </para>
+       </listitem>
+      </varlistentry>
+
 
       <varlistentry id="ini.cgi.fix-pathinfo">
        <term>
