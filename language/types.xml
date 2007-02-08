@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.19 $ -->
-<!-- EN-Revision: 1.167 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.20 $ -->
+<!-- EN-Revision: 1.174 Maintainer: lboshell Status: ready -->
  <chapter id="language.types">
   <title>Tipos</title>
 
@@ -820,11 +820,11 @@ echo 'Las variables no se $expanden $tampoco';
     <sect3 id="language.types.string.syntax.heredoc">
      <title>Heredoc</title>
      <simpara>
-      Otra forma de delimitar cadenas es mediante el uso de la
-      sintaxis heredoc ("&lt;&lt;&lt;"). Debe indicarse un
-      identificador después de la secuencia
-      <literal>&lt;&lt;&lt;</literal>, luego la cadena, y luego el
-      mismo identificador para cerrar la cita.
+      Otra forma de delimitar cadenas es mediante el uso de la sintaxis
+      heredoc ("&lt;&lt;&lt;"). Debe indicarse un identificador (seguido por
+      un salto de línea) después de la secuencia
+      <literal>&lt;&lt;&lt;</literal>, luego la cadena, y luego el mismo
+      identificador para cerrar la cita.
      </simpara>
      <simpara>
       El identificador de cierre <emphasis>debe</emphasis> comenzar en
@@ -1225,6 +1225,12 @@ $tercer = $cadena{2};
      número con sus dígitos (incluyendo la parte del exponente para
      los números de punto flotante).
     </para>
+    <note>
+     <para>
+      El caracter de punto decimal es definido en la localización del script
+      (categoría LC_NUMERIC). Vea <function>setlocale</function>.
+     </para>
+    </note>
     <para>
      Las matrices son siempre convertidas a la cadena
      <literal>"Array"</literal>, de modo que no puede volcar los
@@ -1885,7 +1891,33 @@ $descripciones_de_error[8] = "Esta es una noticia informal";
      Si convierte un <type>object</type> a una matriz, obtiene las
      propiedades (variables miembro) de ese objeto como los elementos
      de la matriz. Las claves son los nombres de las variables
-     miembro.
+     miembro con algunas excepciones notables: las variables privadas tienen
+     el nombre de la clase al comienzo del nombre de la variable; las
+     variables protegidas tienen un caracter '*' al comienzo del nombre de
+     la variable. Estos valores adicionados al inicio tienen bytes nulos a
+     los lados. Esto puede resultar en comportamiento inesperado.
+      <informalexample>
+       <programlisting role="php">
+<![CDATA[
+<?php
+
+class A {
+	private $A; // Este campo se convertirá en '\0A\0A'
+}
+
+class B extends A {
+	private $A; // Este campo se convertirá en '\0B\0A'
+	public $AA; // Este campo se convertirá en 'AA'
+}
+
+var_dump((array) new B());
+?>
+]]>
+       </programlisting>
+      </informalexample>
+
+     En el ejemplo anterior parecerá que se tienen dos claves llamadas 'AA',
+     aunque en realidad una de ellas se llama '\0A\0A'.
     </para>
 
     <para>
@@ -2377,19 +2409,18 @@ $var = NULL;
      métodos de objetos incluyendo métodos estáticos de clase.
     </para>
     <para>
-     Una función de PHP es simplemente pasada usando su nombre como
-     una cadena. Puede pasar cualquier función incorporada o definida
-     por el usuario con la excepción de <function>array</function>,
+     Una función de PHP es simplemente pasada usando su nombre como una
+     cadena. Puede pasar cualquier función incorporada o definida por el
+     usuario con la excepción de <function>array</function>,
      <function>echo</function>, <function>empty</function>,
      <function>eval</function>, <function>exit</function>,
      <function>isset</function>, <function>list</function>,
      <function>print</function> y <function>unset</function>.
     </para>
     <para>
-     Un método de un objeto instanciado es pasado como una
-     matriz que contiene un objeto como el elemento con el
-     índice 0 y un nombre de método como el elemento con
-     índice 1.
+     Un método de un objeto instanciado es pasado como una matriz que
+     contiene un objeto como el elemento con el índice 0 y un nombre de
+     método como el elemento con índice 1.
     </para>
     <para>
      Los métodos estáticos de clase pueden ser pasados también sin
@@ -2397,9 +2428,9 @@ $var = NULL;
      lugar de un objeto como el elemento con índice 0.
     </para>
     <para>
-     Además de la creación de funciones definidas por el usuario
-     comunes, <function>create_function</function> puede ser usada
-     para crear una función de llamada de retorno anónima.
+     Además de la creación de funciones comunes definidas por el usuario,
+     <function>create_function</function> puede ser usada para crear una
+     función de llamada de retorno anónima.
     </para>
 
     <para>
@@ -2437,8 +2468,26 @@ call_user_func(array($obj, 'miMetodoDeRetorno'));
       </programlisting>
      </example>
     </para>
+    <note>
+     <simpara>
+      En PHP4 es necesario usar una referencia para crear una llamada de
+      retorno que apunte al objeto real, y no a una copia de éste. Para más
+      detalles, vea <link linkend="language.references">Referencias
+      Explicadas</link>.
+     </simpara>
+    </note>
 
    </sect2>
+
+   <sect2 id="language.types.void">
+    <title>void</title>
+    <para>
+     <literal>void</literal> como tipo de retorno quiere decir que el valor
+     de retorno no tiene utilidad. <literal>void</literal> en una lista de
+     parámetros quiere decir que la función no recibe ningún parámetro.
+    </para>
+   </sect2>
+
   </sect1>
 
   <sect1 id="language.types.type-juggling">
