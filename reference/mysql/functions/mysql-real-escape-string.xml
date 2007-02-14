@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.10 $ -->
-<!-- EN-Revision: 1.26 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.11 $ -->
+<!-- EN-Revision: 1.27 Maintainer: lboshell Status: ready -->
 <refentry id="function.mysql-real-escape-string">
  <refnamediv>
   <refname>mysql_real_escape_string</refname>
-  <refpurpose>Escapa caracteres especiales de una cadena para su uso
-  en una sentencia SQL</refpurpose>
+  <refpurpose>Escapa caracteres especiales de una cadena para su uso en una
+  sentencia SQL</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -17,23 +17,22 @@
   </methodsynopsis>
   <para>
    Escapa todos los caracteres especiales en la
-   <parameter>cadena_no_escapada</parameter>, tomando en cuenta el
-   juego de caracteres actual de la conexión, de tal modo que sea
-   seguro usarla con <function>mysql_query</function>. Si se van a
-   insertar datos binarios, debe usarse esta función.
+   <parameter>cadena_no_escapada</parameter>, tomando en cuenta el juego de
+   caracteres actual de la conexión, de tal modo que sea seguro usarla con
+   <function>mysql_query</function>. Si se van a insertar datos binarios,
+   debe usarse esta función.
   </para>
   <para>
-   <function>mysql_real_escape_string</function> llama a la función de
-   la biblioteca MySQL mysql_real_escape_string, la cual coloca barras
-   invertidas antes de los siguientes caracteres:
-   <literal>\x00</literal>, <literal>\n</literal>,
-   <literal>\r</literal>, <literal>\</literal>, <literal>'</literal>,
-   <literal>"</literal> y <literal>\x1a</literal>.
+   <function>mysql_real_escape_string</function> llama a la función de la
+   biblioteca MySQL mysql_real_escape_string, la cual coloca barras
+   invertidas antes de los siguientes caracteres: <literal>\x00</literal>,
+   <literal>\n</literal>, <literal>\r</literal>, <literal>\</literal>,
+   <literal>'</literal>, <literal>"</literal> y <literal>\x1a</literal>.
   </para>
   <para>
    Esta función debe usarse siempre (con algunas excepciones) para
-   garantizar que los datos sean seguros antes de enviar una consulta
-   a MySQL
+   garantizar que los datos sean seguros antes de enviar una consulta a
+   MySQL
   </para>
  </refsect1>
 
@@ -57,8 +56,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la cadena escapada, o &false; en caso de que ocurra un
-   error.
+   Devuelve la cadena escapada, o &false; en caso de que ocurra un error.
   </para>
  </refsect1>
 
@@ -123,40 +121,53 @@ SELECT * FROM usuarios WHERE usuario='aidan' AND password='' OR ''=''
    <example>
     <title>Una consulta "Recomendable"</title>
     <para>
-     Mediante el uso de <function>mysql_real_escape_string</function>
-     sobre cada variable se previene la inyección de SQL. Este ejemplo
-     demuestra el método "recomendable" para ejecutar una consulta en
-     la base de datos, independientemente del valor de las <link
+     Mediante el uso de <function>mysql_real_escape_string</function> sobre
+     cada variable se previene la inyección de SQL. Este ejemplo demuestra
+     el método "recomendable" para ejecutar una consulta en la base de
+     datos, independientemente del valor de las <link
      linkend="security.magicquotes">Comillas Mágicas</link>.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Aplicar comillas sobre la variable para hacerla segura
-function comillas_inteligentes($valor)
-{
-    // Retirar las barras
-    if (get_magic_quotes_gpc()) {
-        $valor = stripslashes($valor);
-    }
 
-    // Colocar comillas si no es un número o una cadena numérica
-    if (!is_numeric($valor)) {
-        $valor = "'" . mysql_real_escape_string($valor) . "'";
+if (isset($_POST['nombre_producto']) && isset($_POST['descripcion_producto']) && isset($_POST['id_usuario'])) {
+    // Conectarse
+
+    $enlace = mysql_connect('host_mysql', 'usuario_mysql', 'contrasenya_mysql');
+
+    if(!is_resource($enlace)) {
+
+        echo "Falló la conexión con el servidor\n";
+        // ... registrar el error apropiadamente
+
+    } else {
+        
+        // Revertir los efectos de magic_quotes_gpc sobre las variables si es necesario.
+
+        if(get_magic_quotes_gpc()) {
+            $nombre_producto      = stripslashes($_POST['nombre_producto']);
+            $descripcion_producto = stripslashes($_POST['descripcion_producto']);
+        } else {
+            $nombre_producto      = $_POST['nombre_producto'];
+            $descripcion_producto = $_POST['descripcion_producto'];
+        }
+
+        // Hacer una consulta segura
+        $consulta = sprintf("INSERT INTO productos (`nombre`, `descripcion`, `id_usuario`) VALUES ('%s', '%s', '%d')",
+                    mysql_real_escape_string($nombre_producto, $enlace),
+                    mysql_real_escape_string($descripcion_producto, $enlace),
+                    $_POST['id_usuario']);
+
+        mysql_query($consulta, $enlace);
+
+        if (mysql_affected_rows($enlace) > 0) {
+            echo "Producto insertado\n";
+        }
     }
-    return $valor;
+} else {
+    echo "Llene los campos del formulario correctamente\n";
 }
-
-// Conexión
-$enlace = mysql_connect('mysql_host', 'mysql_usuario', 'mysql_contrasenya')
-    OR die(mysql_error());
-
-// Realizar una consulta segura
-$consulta = sprintf("SELECT * FROM usuarios WHERE usuario=%s AND password=%s",
-            comillas_inteligentes($_POST['username']),
-            comillas_inteligentes($_POST['password']));
-
-mysql_query($consulta);
 ?>
 ]]>
     </programlisting>
@@ -173,34 +184,32 @@ mysql_query($consulta);
   <note>
    <para>
     Es necesaria una conexión MySQL antes de usar
-    <function>mysql_real_escape_string</function> o de lo contrario un
-    error de nivel <literal>E_WARNING</literal> es generado, y &false;
-    es devuelto. Si <parameter>id_enlace</parameter> no está definido,
-    se usará la última conexión con MySQL.
+    <function>mysql_real_escape_string</function> o de lo contrario un error
+    de nivel <literal>E_WARNING</literal> es generado, y &false; es
+    devuelto. Si <parameter>id_enlace</parameter> no está definido, se usará
+    la última conexión con MySQL.
    </para>
   </note>
   <note>
    <para>
     Si se habilita <link
     linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link>, aplique
-    <function>stripslashes</function> sobre los datos primero. Usar
-    esta función sobre datos que ya han sido escapados los escapará
-    dos veces.
+    <function>stripslashes</function> sobre los datos primero. Usar esta
+    función sobre datos que ya han sido escapados los escapará dos veces.
    </para>
   </note>
   <note>
    <para>
     Si esta función no es usada para escapar datos, la consulta es
-    vulnerable a <link
-    linkend="security.database.sql-injection">Ataques de Inyección de
-    SQL</link>.
+    vulnerable a <link linkend="security.database.sql-injection">Ataques de
+    Inyección de SQL</link>.
    </para>
   </note>
   <note>
    <simpara>
     <function>mysql_real_escape_string</function> no escapa
-    <literal>%</literal> ni <literal>_</literal>. Éstos son comodines
-    en MySQL si se combinan con <literal>LIKE</literal>,
+    <literal>%</literal> ni <literal>_</literal>. Éstos son comodines en
+    MySQL si se combinan con <literal>LIKE</literal>,
     <literal>GRANT</literal>, o <literal>REVOKE</literal>.
    </simpara>
   </note>
