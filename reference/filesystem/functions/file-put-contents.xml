@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.10 $ -->
-<!-- EN-Revision: 1.15 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.11 $ -->
+<!-- EN-Revision: 1.21 Maintainer: lboshell Status: ready -->
 <refentry xml:id="function.file-put-contents" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>file_put_contents</refname>
@@ -17,14 +17,14 @@
    <methodparam choice="opt"><type>resource</type><parameter>contexto</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Idéntico a llamar <function>fopen</function>,
-   <function>fwrite</function>, y <function>fclose</function> sucesivamente.
+   Esta función es idéntica a llamar <function>fopen</function>,
+   <function>fwrite</function>, y <function>fclose</function> sucesivamente
+   para escribir datos en un archivo.
   </para>
   <para>
-   También es posible especificar el parámetro <parameter>datos</parameter>
-   como una matriz (matrices que no sean multi-dimensionales). Esto es
-   equivalente a <literal>file_put_contents($nombre_archive, implode('',
-   $matriz))</literal>.
+   Si <parameter>nombre_archivo</parameter> no existe, el archivo es creado.
+   De lo contrario, el archivo existente el sobrescrito, a menos que la
+   bandera <constant>FILE_APPEND</constant> sea definida.
   </para>
  </refsect1>
 
@@ -36,7 +36,7 @@
      <term><parameter>nombre_archivo</parameter></term>
      <listitem>
       <para>
-       El nombre del archivo en donde escribir los datos
+       Ruta al archivo en donde escribir los datos
       </para>
      </listitem>
     </varlistentry>
@@ -54,22 +54,91 @@
        al archivo especificado. Esto es similar al uso de
        <function>stream_copy_to_stream</function>.
       </para>
+      <para>
+       También es posible especificar el parámetro
+       <parameter>datos</parameter> como una matriz uni-dimensional. Esto
+       es equivalente a <literal>file_put_contents($nombre_archive,
+       implode('', $matriz))</literal>.
+      </para>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>banderas</parameter></term>
      <listitem>
       <para>
-       <parameter>banderas</parameter> puede recibir
-       <constant>FILE_USE_INCLUDE_PATH</constant>,
-       <constant>FILE_APPEND</constant> y/o <constant>LOCK_EX</constant>
-       (adquirir un bloqueo exclusivo), sin embargo la opción
-       <constant>FILE_USE_INCLUDE_PATH</constant> debe ser usada con
-       precaución. A partir de PHP 6, también puede recibir
-       <constant>FILE_TEXT</constant> o <constant>FILE_BINARY</constant>
-       para especificar cómo deben manejarse los saltos de línea cuando se
-       produce la salida del archivo. Vea los modos &quot;t&quot; y
-       &quot;b&quot; de <function>fopen</function> para más información.
+       El valor de <parameter>banderas</parameter> puede ser cualquier
+       combinación de las siguientes banderas (con algunas restricciones),
+       unidas con el operador binario OR (<literal>|</literal>).
+      </para>
+      <para>
+       <table>
+        <title>Banderas disponibles</title>
+        <tgroup cols="2">
+         <thead>
+          <row>
+           <entry>Bandera</entry>
+           <entry>Descripción</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry>
+            <constant>FILE_USE_INCLUDE_PATH</constant>
+           </entry>
+           <entry>
+            Buscar por <parameter>nombre_archivo</parameter> en el
+            directorio de inclusiones. Vea <link
+            linkend="ini.include-path">include_path</link> para más
+            información.
+           </entry>
+          </row>
+          <row>
+           <entry>
+            <constant>FILE_APPEND</constant>
+           </entry>
+           <entry>
+            Si el archivo <parameter>nombre_archivo</parameter> ya existe,
+            anexar los datos al archivo en lugar de sobrescribirlo.
+           </entry>
+          </row>
+          <row>
+           <entry>
+            <constant>LOCK_EX</constant>
+           </entry>
+           <entry>
+            Adquirir un bloqueo exclusivo sobre el archivo mientras se
+            procede con la escritura.
+           </entry>
+          </row>
+          <row>
+           <entry>
+            <constant>FILE_TEXT</constant>
+           </entry>
+           <entry>
+            <parameter>datos</parameter> es escrito en modo de texto.  Si la
+            semántica unicode está habilitada, la codificación
+            predeterminada es UTF-8. Es posible especificar una codificación
+            diferente creando un contexto personalizado o modificando el
+            predeterminado mediante
+            <function>stream_default_encoding</function>. Esta bandera no
+            puede ser usada junto con <constant>FILE_BINARY</constant>. Esta
+            bandera está disponible únicamente a partir de PHP 6.
+           </entry>
+          </row>
+          <row>
+           <entry>
+            <constant>FILE_BINARY</constant>
+           </entry>
+           <entry>
+            <parameter>datos</parameter> será escrito en modo binario. Este
+            es el comportamiento predeterminado y la bandera no pude ser
+            usada junto con <constant>FILE_TEXT</constant>. Esta bandera
+            está disponible únicamente desde PHP 6.
+           </entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </table>
       </para>
      </listitem>
     </varlistentry>
@@ -77,7 +146,8 @@
      <term><parameter>contexto</parameter></term>
      <listitem>
       <para>
-       Un recurso de contexto
+       Un recurso de contexto creado con
+       <function>stream_context_create</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -122,8 +192,8 @@
       <row>
        <entry>6.0.0</entry>
        <entry>
-        Se agregó el soporte para <constant>FILE_TEXT</constant> y
-        <constant>FILE_BINARY</constant>
+        Se agregó el soporte para las banderas
+        <constant>FILE_TEXT</constant> y <constant>FILE_BINARY</constant>
        </entry>
       </row>
      </tbody>
@@ -135,7 +205,6 @@
  <refsect1 role="notes">
   &reftitle.notes;
   &note.bin-safe;
-  &note.context-support;
   &tip.fopen-wrapper;
  </refsect1>
 
