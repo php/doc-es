@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.4 $ -->
-<!-- EN-Revision: 1.11 Maintainer: baoengb Status: ready -->
+<!-- $Revision: 1.5 $ -->
+<!-- EN-Revision: 1.18 Maintainer: baoengb Status: ready -->
  <sect1 xml:id="language.oop5.magic" xmlns="http://docbook.org/ns/docbook">
   <title>M&eacute;todos m&aacute;gicos</title>
   <para>
@@ -17,6 +17,7 @@
    <literal>__sleep</literal>,
    <literal>__wakeup</literal>,
    <literal>__toString</literal>,
+   <literal>__set_state</literal>,
    <link linkend="language.oop5.cloning">__clone</link> y
    <link linkend="language.oop5.autoload">__autoload</link>
    son m&aacute;gicos en las clases de PHP. No puede tener funciones con esos
@@ -41,10 +42,12 @@
     esa funci&oacute;n es ejecutada antes de cualquier serializaci&oacute;n.
     Esta puede limpiar el objeto y se espera que regrese una matriz con los 
     nombres de todas las variables de ese objeto que puede ser serializadas.
+    Si el m&eacute;todo no regresa nada, entonces &null;, es serializada y
+    se inicia E_NOTICE.
    </para>
    <para>
-    La intenci&oacute;n de usar <literal>__sleep</literal> es cerrar cualquier
-    conexi&oacute;n a base de datos que el objeto pueda tener, terminar de 
+    La intenci&oacute;n de usar <literal>__sleep</literal> es confirmar
+    datos pendientes, terminar de 
     enviar cualquier dato o ejecutar tareas similares de limpieza. 
     Tambi&eacute;n, la funci&oacute;n es &uacute;til si tiene objetos muy 
     grandes los cuales no necesitan mantenerse completos.
@@ -88,7 +91,7 @@ class Connection {
 
     public function __sleep()
     {
-        mysql_close($this->link);
+        return array('server', 'username', 'password', 'db');
     }
 
     public function __wakeup()
@@ -143,32 +146,29 @@ Hello
     No tiene otro valor que cuando el m&eacute;todo 
     <literal>__toString</literal> es llamado solo cuando es directamente
     combinado con <function>echo</function> o <function>print</function>.
+    Desde PHP 5.2.0 es llamado en cualquier contexto de cadena, (ej. en 
+    <function>printf</function> con el modificador <literal>%s</literal>)
+    pero no en otro tipo de contexto (ej. con el modificador 
+    <literal>%d</literal>). Desde PHP 5.2.0, convertir objetos sin
+    el m&eacute;todo <literal>__toString</literal>  puede causar
+    <constant>E_RECOVERABLE_ERROR</constant>.
    </para>
-   <example>
-    <title>Casos donde <literal>__toString</literal> es llamado</title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// __toString called
-echo $class;
-
-// __toString called (still a normal parameter for echo)
-echo 'text', $class;
-
-// __toString not called (concatenation operator used first)
-echo 'text' . $class;
-
-// __toString not called (cast to string first)
-echo (string) $class;
-
-// __toString not called (cast to string first)
-echo "text $class";
-?>
-]]>
-    </programlisting>
-   </example>
   </sect2>
- </sect1>
+   
+  <sect2 xml:id="language.oop5.magic.set-state">
+   <title><literal>__set_state</literal></title>
+   <para>
+    Este m&eacute;todo <link linkend="language.oop5.static">static</link> 
+    es llamado para clases exportadas por <function>var_export</function> 
+    desde PHP 5.1.0.
+   </para>
+   <para>
+    El unico parametro de este m&eacute;todo es un arreglo conteniendo
+    las propiedades exportadas en la forma
+    <literal>array('property' => value, ...)</literal>.
+   </para>
+  </sect2>
+</sect1>
  
 <!-- Keep this comment at the end of the file
 Local variables:
