@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.8 $ -->
-<!-- EN-Revision: 1.16 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.9 $ -->
+<!-- EN-Revision: 1.17 Maintainer: lboshell Status: ready -->
 <refentry xml:id="function.getopt" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>getopt</refname>
@@ -16,9 +16,7 @@
    <methodparam choice="opt"><type>array</type><parameter>opciones_largas</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve una matriz asociativa con parejas opción / argumento en base al
-   formato de opciones especificado en <parameter>opciones</parameter>, o
-   &false; en caso de fallo.
+   Procesa las opciones pasadas al script.
   </para>
  </refsect1>
 
@@ -29,33 +27,74 @@
     <varlistentry>
      <term><parameter>opciones</parameter></term>
      <listitem>
-      <para>
-       El parámetro <parameter>opciones</parameter> puede contener los
-       siguientes elementos: caracteres individuales, y caracteres seguidos
-       de dos puntos para indicar que sigue un argumento que declara una
-       opción. Por ejemplo, la cadena <literal>x</literal> reconoce una
-       opción <literal>-x</literal>, y una cadena <literal>x:</literal>
-       reconoce una opción y un argumento <literal>-x argumento</literal>.
-       No importa si un argumento incluye espacio en blanco al comienzo.
-      </para>
+      <simpara>
+       Cada caracter en esta cadena será usado como caracter de opción y
+       será comparado con las opciones pasadas al script que comiencen con
+       un guión sencillo (<literal>-</literal>).
+      </simpara>
+      <simpara>
+       Por ejemplo, una cadena de opción <literal>"x"</literal> reconoce una
+       opción <literal>-x</literal>.
+      </simpara>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>opciones_largas</parameter></term>
      <listitem>
-      <para>
-      </para>
+      <simpara>
+       Una matriz de opciones. Cada elemento en esta matriz será usado como
+       cadena de opción y comparado con opciones pasadas al script que
+       comiencen con dos guiones (<literal>--</literal>).
+      </simpara>
+      <simpara>
+       Por ejemplo, un elemento <literal>"opc"</literal> reconoce una opción
+       <literal>--opc</literal>.
+      </simpara>
+      <note>
+       <simpara>
+        Antes de PHP5.3.0 este parámetro solo estaba disponible en unos
+        pocos sistemas
+       </simpara>
+      </note>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
+  <para>
+   El parámetro <parameter>opciones</parameter> puede contener los
+   siguientes elementos:
+   <simplelist>
+    <member>Caracteres individuales (no aceptan valores)</member>
+    <member>Caracteres seguidos por dos-puntos (el parámetro requiere un
+    valor)</member>
+    <member>Caracteres seguidos por dos dos-puntos (valor opcional)</member>
+   </simplelist>
+   Los valores de opción son el primer argumento después de la cadena. No
+   importa si un valor es precedido por espacios en blanco o no.
+   <note>
+    <simpara>
+     Los valores opcionales no aceptan <literal>" "</literal> (espacio) como
+     separador.
+    </simpara>
+   </note>
+  </para>
+  <note>
+   <para>
+    El formato para <parameter>opciones</parameter> y
+    <parameter>opciones_largas</parameter> es casi el mismo, la única
+    diferencia es que <parameter>opciones_largas</parameter> recibe una
+    matriz de opciones (en donde cada elemento es la opción) mientras que
+    <parameter>opciones</parameter> toma una cadena (en donde cada caracter
+    es la opción).
+   </para>
+  </note>
  </refsect1>
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Esta función devolverá una matriz de parejas opción / argumento. Si una
-   opción no tiene argumento, el valor será definido a &false;.
+   Esta función devolverá una matriz de parejas opción / argumento o &false;
+   en caso de fallo.
   </para>
  </refsect1>
 
@@ -87,25 +126,126 @@
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   <example>
+   <example xml:id="getopt.examples-1">
     <title>Ejemplo de <function>getopt</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// procesar la línea de comandos ($GLOBALS['argv'])
 $opciones = getopt("f:hp:");
+var_dump($options);
 ?>
 ]]>
     </programlisting>
+    <para>
+     Ejecutar el script anterior de este modo: <literal>php script.php
+     -fvalor -h</literal> resultará en la siguiente salida:
+    </para>
+    <screen>
+<![CDATA[
+array(2) {
+  ["f"]=>
+  string(5) "valor"
+  ["h"]=>
+  bool(false)
+}
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example xml:id="getopt.examples-2">
+    <title>Ejemplo de <function>getopt</function> #2</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$opciones_cortas  = "";
+$opciones_cortas .= "f:";  // Valor requerido
+$opciones_cortas .= "v::"; // Valor opcional
+$opciones_cortas .= "abc"; // Estas opciones no aceptan valores
+
+$opciones_largas  = array(
+    "requerido:",    // Valor requerido
+    "opcional::",    // Valor opcional
+    "opcion",        // Sin valor
+    "opc",           // Sin valor
+);
+$opciones = getopt($opciones_cortas, $opciones_largas);
+var_dump($opciones);
+?>
+]]>
+    </programlisting>
+    <para>
+     Ejecutar el script anterior de este modo: <literal>php script.php -f
+     "valor para f" -v -a --requerido valor --opcional="valor opcional"
+     --opcion</literal> resultará en la siguiente salida:
+    </para>
+    <screen>
+<![CDATA[
+array(6) {
+  ["f"]=>
+  string(12) "valor para f"
+  ["v"]=>
+  bool(false)
+  ["a"]=>
+  bool(false)
+  ["requerido"]=>
+  string(5) "valor"
+  ["opcional"]=>
+  string(14) "valor opcional"
+  ["opcion"]=>
+  bool(false)
+}
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example xml:id="getopt.examples-3">
+    <title>Ejemplo de <function>getopt</function> #3</title>
+    <para>Pasar múltiples opciones como una</para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$opciones = getopt("abc");
+var_dump($opciones);
+?>
+]]>
+    </programlisting>
+    <para>
+     Ejecutar el script anterior de este modo: <literal>php script.php
+     -aaac</literal> resultará en la siguiente salida:
+    </para>
+    <screen>
+<![CDATA[
+array(2) {
+  ["a"]=>
+  array(3) {
+    [0]=>
+    bool(false)
+    [1]=>
+    bool(false)
+    [2]=>
+    bool(false)
+  }
+  ["c"]=>
+  bool(false)
+}
+]]>
+    </screen>
    </example>
   </para>
  </refsect1>
 
-<!--
  <refsect1 role="notes">
   &reftitle.notes;
+  <note>
+   <para>
+    La opción <link
+    linkend="ini.register-argc-argv">register_argc_argv</link> debe estar
+    habilitada para que esta función trabaje correctamente
+   </para>
+  </note>
  </refsect1>
--->
 
 </refentry>
 
