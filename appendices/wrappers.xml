@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 1.27 $ -->
-<!-- EN-Revision: 1.73 Maintainer: lboshell Status: ready -->
+<!-- $Revision: 1.28 $ -->
+<!-- EN-Revision: 1.80 Maintainer: lboshell Status: ready -->
  <appendix xml:id="wrappers" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Lista de Protocolos/Envolturas Soportadas</title>
  <para>
@@ -10,6 +10,10 @@
   Adicionalmente a estas envolturas, y a partir de PHP 4.3.0, usted puede
   escribir sus propias envolturas usando scripts PHP y
   <function>stream_wrapper_register</function>.
+ </para>
+ <para>
+  Una lista de las opciones de contexto está disponible en el capítulo <xref
+  linkend="context"/>.
  </para>
 
  <section xml:id="wrappers.file">
@@ -101,64 +105,9 @@
   </para>
  </section>
 
- <section xml:id="wrappers.socket">
-  <title>Socket</title>
-  <para>
-   Esta sección contiene las opciones de contexto soportadas por las
-   envolturas que trabajan sobre sockets, como <literal>tcp</literal>,
-   <literal>http</literal> o <literal>ftp</literal>.
-  </para>
-  <para>
-   A partir de PHP 5.1.0 solo una opción es soportada,
-   <literal>bindto</literal>, la cual puede ser usada para especificar la
-   dirección IP (ya sea IPv4 o IPv6) y/o el número de puerto que PHP usará
-   para acceder a la red. La sintaxis es <literal>ip:puerto</literal> (es
-   posible definir el número IP o de puerto como <literal>0</literal> si
-   desea que el sistema lo elija por usted).
-  </para>
-  <note>
-   <para>
-    Dado que FTP crea dos conexiones de socket durante la operación normal,
-    no es posible especificar el número de puerto en la opción
-    <literal>bindto</literal>. Así que la única sintaxis soportada es
-    <literal>ip:0</literal> para la envoltura FTP.
-   </para>
-  </note>
-  <example>
-   <title>Algunos ejemplos del uso de la opción bindto</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-// conectarse a internet usando la IP '192.168.0.100' IP
-$opciones = array('socket' =>
-            array('bindto' => '192.168.0.100:0'));
-
-
-// conectarse a internet usando la IP '192.168.0.100' y el puerto '7000'
-$opciones = array('socket' =>
-            array('bindto' => '192.168.0.100:7000'));
-
-
-// conectarse a internet usando el puerto '7000'
-$opciones = array('socket' =>
-            array('bindto' => '0:7000'));
-
-
-// crear el contexto...
-$contexto = stream_context_create($opciones);
-
-// ...y usarlo para recuperar los datos
-echo file_get_contents('http://www.example.com', false, $contexto);
-
-?>
-]]>
-   </programlisting>
-  </example>
- </section>
-
  <section xml:id="wrappers.http">
   <title>HTTP y HTTPS</title>
-   <simpara>PHP 3, PHP 4, PHP 5. <filename>https://</filename> a partir de
+   <simpara>PHP 4, PHP 5, PHP 6. <filename>https://</filename> a partir de
    PHP 4.3.0</simpara>
 
   <itemizedlist>
@@ -212,34 +161,6 @@ foreach($meta_datos['wrapper_data'] as $respuesta) {
 ]]>
    </programlisting>
   </informalexample>
-  <example>
-   <title>Descargar una página y enviar datos POST</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$datos_post = http_build_query(
-    array(
-        'var1' => 'alguna cosa',
-        'var2' => 'doh'
-    )
-);
-
-$opciones = array('http' =>
-    array(
-        'method'  => 'POST',
-        'header'  => 'Content-type: application/x-www-form-urlencoded',
-        'content' => $datos_post
-    )
-);
-$contexto  = stream_context_create($opciones);
-
-$resultado = file_get_contents('http://example.com/submit.php', false, $contexto);
-
-?>
-]]>
-   </programlisting>
-  </example>
   <simpara>
    La secuencia permite acceso al <emphasis>cuerpo</emphasis> del recurso;
    las cabeceras son almacenadas en la variable
@@ -313,121 +234,9 @@ $resultado = file_get_contents('http://example.com/submit.php', false, $contexto
     </tgroup>
    </table>
   </para>
-  <para>
-   <table>
-    <title>Opciones de contexto</title>
-    <tgroup cols="3">
-     <thead>
-      <row>
-       <entry>Nombre</entry>
-       <entry>Uso</entry>
-       <entry>Predeterminado</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry><literal>method</literal></entry>
-       <entry>
-        <constant>GET</constant>, <constant>POST</constant>, u otro método
-        HTTP soportado por el servidor remoto.
-       </entry>
-       <entry><constant>GET</constant></entry>
-      </row>
-      <row>
-       <entry><literal>header</literal></entry>
-       <entry>
-        Cabeceras adicionales a ser enviadas durante la petición. Los
-        valores en esta opción sobrescribirán otros valores (tales como
-        <literal>User-agent:</literal>, <literal>Host:</literal>, y
-        <literal>Authentication:</literal>).
-       </entry>
-       <entry></entry>
-      </row>
-      <row>
-       <entry><literal>user_agent</literal></entry>
-       <entry>
-       Valor a enviar con la cabecera User-Agent:. Este valor solo será
-       usado si user-agent <emphasis>no</emphasis> es especificado en la
-       opción de contexto <literal>header</literal> anterior.
-       </entry>
-       <entry>
-        Parámetro &php.ini;: <literal>user_agent</literal>
-       </entry>
-      </row>
-      <row>
-       <entry><literal>content</literal></entry>
-       <entry>
-       Datos adicionales a ser enviados después de las cabeceras.
-       Típicamente usados con peticiones POST o PUT.
-       </entry>
-       <entry></entry>
-      </row>
-      <row>
-       <entry><literal>proxy</literal></entry>
-       <entry>
-        URI que especifica la dirección del servidor proxy. (p.ej.
-        <literal>tcp://proxy.example.com:5100</literal> ). El uso de proxys
-        HTTPS (a través de proxys HTTP) solo funciona en PHP 5.1.0 o
-        superior.
-       </entry>
-       <entry></entry>
-      </row>
-      <row>
-       <entry><literal>request_fulluri</literal></entry>
-       <entry>
-        Cuando es definido como &true;, la URI completa será usada a la hora
-        de construir la petición. (Es decir, <literal>GET
-        http://www.example.com/ruta/hacia/archivo.html HTTP/1.0</literal>).
-        Aunque éste es un formato de petición no-estándar, algunos
-        servidores proxy lo requieren.
-       </entry>
-       <entry>&false;</entry>
-      </row>
-      <row>
-       <entry><literal>max_redirects</literal></entry>
-       <entry>
-        El número máximo de redirecciones a seguir. El valor
-        <literal>1</literal> o menor quiere decir que no se permiten las
-        redirecciones. Agregada en PHP 5.1.0.
-       </entry>
-       <entry>20</entry>
-      </row>
-      <row>
-       <entry><literal>protocol_version</literal></entry>
-       <entry>
-        Versión del protocolo HTTP. Agregada en PHP 5.1.0.
-       </entry>
-       <entry>1.0</entry>
-      </row>
-      <row>
-       <entry><literal>timeout</literal></entry>
-       <entry>
-        Tiempo de espera de lectura en segundos, especificado por un valor
-        <type>float</type> (p.ej.  <literal>10.5</literal>). Agregada en PHP
-        5.2.1.
-       </entry>
-       <entry><link linkend="ini.default-socket-timeout">default_socket_timeout</link></entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </table>
-  </para>
-
-  <note>
-   <title>Opciones de contexto de las secuencias de socket
-   interno</title>
-   <simpara>
-    Puede que se soporten opciones de contexto adicionales por el <link
-    linkend="transports.inet">transporte implícito</link>.  Para secuencias
-    <literal>http://</literal>, refiérase a las opciones de contexto para el
-    transporte <literal>tcp://</literal>. Para secuencias
-    <literal>https://</literal>, refiérase a las opciones de contexto del
-    transporte <literal>ssl://</literal>.
-   </simpara>
-  </note>
 
   <para>
-   Es posible enviar cabaceras personalizadas con una petición HTTP antes de
+   Es posible enviar cabeceras personalizadas con una petición HTTP antes de
    la versión 5 aprovechando un efecto lateral en el manejo del parámetro
    INI <literal>user_agent</literal>. Defina <literal>user_agent</literal>
    con cualquier cadena válida (tal como el valor
@@ -463,8 +272,8 @@ X-MiCabeceraPersonalizada: Foo
 
  <section xml:id="wrappers.ftp">
   <title>FTP y FTPS</title>
-  <simpara>PHP 3, PHP 4, PHP 5.  <filename>ftps://</filename> a partir
-  de PHP 4.3.0</simpara>
+  <simpara>PHP 4, PHP 5, PHP 6. <filename>ftps://</filename> a partir de PHP
+  4.3.0</simpara>
 
   <itemizedlist>
    <listitem><simpara><filename>ftp://example.com/pub/archivo.txt</filename></simpara></listitem>
@@ -583,61 +392,6 @@ X-MiCabeceraPersonalizada: Foo
     </tgroup>
    </table>
   </para>
-  <para>
-   <table>
-    <title>Opciones de contexto (a la altura de PHP 5.0.0)</title>
-    <tgroup cols="3">
-     <thead>
-      <row>
-       <entry>Nombre</entry>
-       <entry>Uso</entry>
-       <entry>Predeterminado</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry><literal>overwrite</literal></entry>
-       <entry>
-        Permite la sobrescritura de archivos previamente existentes en el
-        servidor remoto. Se aplica al modo de escritura (carga de archivos)
-        solamente.
-       </entry>
-       <entry>&false; (Deshabilitada)</entry>
-      </row>
-      <row>
-       <entry><literal>resume_pos</literal></entry>
-       <entry>
-        Desplazamiento de archivo para iniciar la transferencia. Se aplica
-        únicamente al modo de lectura (descarga de archivos).
-       </entry>
-       <entry>0 (Comienzo del Archivo)</entry>
-      </row>
-      <row>
-       <entry><literal>proxy</literal> (PHP 5.1.0 o superior)</entry>
-       <entry>
-        Petición proxy FTP mediante un servidor proxy http. Se aplica
-        únicamente a las operaciones de lectura de archivos. Ej:
-        <literal>tcp://squid.example.com:8000</literal>
-       </entry>
-       <entry/>
-       </row>
-     </tbody>
-    </tgroup>
-   </table>
-  </para>
-  <note>
-
-   <title>Opciones de contexto de las secuencias de socket
-   interno</title>
-   <simpara>
-    Puede que se soporten opciones de contexto adicionales por el <link
-    linkend="transports.inet">transporte implícito</link>.  Para secuencias
-    <literal>ftp://</literal>, refiérase a las opciones de contexto para el
-    transporte <literal>tcp://</literal>. Para secuencias
-    <literal>ftps://</literal>, refiérase a las opciones de contexto del
-    transporte <literal>ssl://</literal>.
-   </simpara>
-  </note>
  </section>
 
  <section xml:id="wrappers.php">
@@ -1002,6 +756,10 @@ echo stream_get_contents($da);
     </tgroup>
    </table>
   </para>
+  <para>
+   La <link linkend="ref.zip">extensión ZIP</link> registra la envoltura
+   <filename>zip:</filename>.
+  </para>
  </section>
 
  <section xml:id="wrappers.data">
@@ -1095,6 +853,104 @@ echo $meta['mediatype'];
       </row>
       <row>
        <entry>Soporte <function>rmdir</function></entry>
+       <entry>No</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+  </para>
+ </section>
+
+ <section xml:id="wrappers.glob">
+  <title>Glob</title>
+  <simpara>
+   La envoltura de secuencias <filename>glob:</filename> está disponible
+   desde PHP 5.3.0.
+  </simpara>
+
+  <example>
+   <title>Uso básico</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// Visitar todos los archivos *.php en el directorio ext/spl/examples/
+// e imprimir el nombre del archivo y su tamaño
+$it = new DirectoryIterator("glob://ext/spl/examples/*.php");
+foreach($it as $f) {
+    printf("%s: %.1FK\n", $f->getFilename(), $f->getSize()/1024);
+}
+?>
+]]>
+   </programlisting>
+   <screen>
+<![CDATA[
+tree.php: 1.0K
+findregex.php: 0.6K
+findfile.php: 0.7K
+dba_dump.php: 0.9K
+nocvsdir.php: 1.1K
+phar_from_dir.php: 1.0K
+ini_groups.php: 0.9K
+directorytree.php: 0.9K
+dba_array.php: 1.1K
+class_tree.php: 1.8K
+]]>
+   </screen>
+  </example>
+
+  <para>
+   <table>
+    <title>Resumen de Envoltura</title>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>Atributo</entry>
+       <entry>Soporte</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>Restringido por <link linkend="ini.allow-url-fopen">allow_url_fopen</link></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Restringido por <link linkend="ini.allow-url-include">allow_url_include</link></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Lectura</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Escritura</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Adición</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Permite Lectura y Escritura Simultánea</entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporta <function>stat</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporta <function>unlink</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporta <function>rename</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporta <function>mkdir</function></entry>
+       <entry>No</entry>
+      </row>
+      <row>
+       <entry>Soporta <function>rmdir</function></entry>
        <entry>No</entry>
       </row>
      </tbody>
