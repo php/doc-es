@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<!-- $Revision: 1.4 $ -->
-<!-- EN-Revision: 1.5 Maintainer: lboshell Status: ready -->
-<!-- splitted from ./en/functions/apache.xml, last change in rev 1.2 -->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 1.5 $ -->
+<!-- EN-Revision: 1.7 Maintainer: lboshell Status: ready -->
 <refentry xml:id="function.apache-note" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>apache_note</refname>
-  <refpurpose>Obtener y establecer las notas de petici&oacute;n de
-   apache</refpurpose>
+  <refpurpose>Obtener y establecer las notas de petición de
+  apache</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -17,9 +16,15 @@
    <methodparam choice="opt"><type>string</type><parameter>valor_nota</parameter></methodparam>
   </methodsynopsis>
   <para>
-   <function>apache_note</function> es una funci&oacute;n
-   espec&iacute;fica de Apache que obtiene y define valores en la
-   tabla <literal>notes</literal> de una petici&oacute;n.
+   Esta función es una envoltura para las instrucciones
+   <literal>table_get</literal> y
+   <literal>table_set</literal> de Apache. Edita las tablas de notas que
+   existen durante una petición. El propósito de la tabla es permitir la
+   comunicación entre módulos de Apache.
+  </para>
+  <para>
+   El principal uso para <function>apache_note</function> es el paso de
+   información desde un módulo a otro al interior de la misma petición.
   </para>
  </refsect1>
 
@@ -51,14 +56,79 @@
   &reftitle.returnvalues;
   <para>
    Si es llamada con un argumento, devuelve el valor actual de la nota
-   <literal>nombre_nota</literal>. Si es llamada con dos argumentos,
-   define el valor de la nota <literal>nombre_nota</literal> a
+   <literal>nombre_nota</literal>. Si es llamada con dos argumentos, define
+   el valor de la nota <literal>nombre_nota</literal> a
    <literal>valor_nota</literal> y devuelve el valor previo de la nota
-   <literal>nombre_nota</literal>. Si la nota no puede ser recuperada,
-   se devuelve &false;.
+   <literal>nombre_nota</literal>. Si la nota no puede ser recuperada, se
+   devuelve &false;.
   </para>
  </refsect1>
-  </refentry>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Paso de información entre PHP y Perl</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+apache_note('nombre', 'Fredrik Ekengren');
+
+// Llamar script perl
+virtual("/perl/algun_script.pl");
+
+$resultado = apache_note("datos_resultado");
+?>
+]]>
+    </programlisting>
+    <programlisting role="perl">
+<![CDATA[
+# Obtener el objeto de petición de Apache
+my $r = Apache->request()->main();
+
+# Obtener los datos pasados
+my $nombre = $r->notes('nombre');
+
+# aquí va el procesamiento
+
+# Pasar los resultados de vuelta a PHP
+$r->notes('datos_resultado', $resultado);
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Registro de valores en access.log</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+apache_note('sessionID', session_id());
+
+?>
+]]>
+    </programlisting>
+    <programlisting role="apache">
+<![CDATA[
+# "%{sessionID}n" puede ser usado en la directiva LogFormat
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>virtual</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
 
 <!-- Keep this comment at the end of the file
 Local variables:
