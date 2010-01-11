@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 288721 $ -->
+<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fopen">
+ <refnamediv>
+  <refname>fopen</refname>
+  <refpurpose>Abre un archivo o URL</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>resource</type><methodname>fopen</methodname>
+   <methodparam><type>string</type><parameter>nombre_de_archivo</parameter></methodparam>
+   <methodparam><type>string</type><parameter>modo</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>usar_include_path</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type>resource</type><parameter>contexto</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   <function>fopen</function> asocia un recurso nominado, especificado por
+   <parameter>nombre_de_archivo</parameter>, a un flujo. 
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>nombre_de_archivo</parameter></term>
+     <listitem>
+      <para>
+       Si <parameter>nombre_de_archivo</parameter> está en la forma "scheme://...", se
+       asume que será una URL y PHP buscará un gestor de protocolo
+       (también conocido como envoltura) para ese scheme. Si no está registrada
+       ninguna envoltura para ese protocolo, PHP emitirá un aviso para ayudarle a rastrear
+       problemas potenciales en su script y continuará como si
+       <parameter>nombre_de_archivo</parameter> especificara un archivo habitual.
+      </para>
+      <para>
+       Si PHP ha decidido que <parameter>nombre_de_archivo</parameter> especifica
+       un archivo local, intentará abrir un flujo para ese archivo.
+       El archivo debe ser accesible para PHP, por lo que necesita asegurarse de que
+       los permisos de acceso del archivo permiten este acceso.
+       Si tiene habilitado el &safemode;,
+       o <link linkend="ini.open-basedir">open_basedir</link> se pueden aplicar
+       más restricciones.
+      </para>
+      <para>
+       Si PHP ha decidido que <parameter>nombre_de_archivo</parameter> especifica
+       un protocolo registrado, y ese protocolo está registrado como una
+       URL de red, PHP se asegurará de que
+       <link linkend="ini.allow-url-fopen">allow_url_fopen</link> está
+       habilitado. Si es desactivado, PHP emitirá un aviso y
+       la llamada a fopen fallará.
+      </para>
+      <note>
+       <para>
+        La lista de protocolos soportados se puede encontrar en <xref
+        linkend="wrappers"/>. Algunos protocolos (también descritos como
+        <literal>envolturas</literal>) soportan <literal>contexto</literal>
+        y/u opciones de &php.ini;. Consulte la página específica del protocolo
+        en uso para una lista de opciones que se pueden establecer. (p.ej.
+        el valor <literal>user_agent</literal> en &php.ini; usado por la
+        envoltura <literal>http</literal>).
+       </para>
+      </note>
+      <para>
+       En la plataforma Windows, asegúrese de escapar cualquier barra invertida
+       usada en la ruta de archivo, o use barras hacia delante.
+       <informalexample>
+        <programlisting role="php">
+<![CDATA[
+<?php
+$gestor = fopen("c:\\data\\info.txt", "r");
+?>
+]]>
+        </programlisting>
+       </informalexample>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>modo</parameter></term>
+     <listitem>
+      <para>
+       El parámetro <parameter>modo</parameter> especifica el tipo de acceso
+       que se necesita para el flujo. Puede ser cualquiera de los siguientes:
+       <table>
+        <title>
+         Una lista de los modos posibles de <function>fopen</function>
+         usando <parameter>modo</parameter>
+        </title>
+        <tgroup cols="2">
+         <thead>
+          <row>
+           <entry><parameter>modo</parameter></entry>
+           <entry>Descripción</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry><literal>'r'</literal></entry>
+           <entry>
+            Apertura para sólo lectura; coloca el puntero al archivo al
+            principio del archivo.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'r+'</literal></entry>
+           <entry>
+            Apertura para lectura y escritura; coloca el puntero al archivo al
+            principio del archivo.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'w'</literal></entry>
+           <entry>
+            Apertura para sólo escritura; coloca el puntero al archivo al
+            principio del archivo y trunca el archivo a longitud cero.
+            Si el archivo no existe se intenta crear.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'w+'</literal></entry>
+           <entry>
+            Apertura para lectura y escritura; coloca el puntero al archivo al
+            principio del archivo y trunca el archivo a longitud cero.
+            Si el archivo no existe se intenta crear.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'a'</literal></entry>
+           <entry>
+            Apertura para sólo escritura; coloca el puntero al archivo al
+            final del archivo. Si el fichero no existe se intenta crear.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'a+'</literal></entry>
+           <entry>
+            Apertura para lectura y escritura; coloca el puntero al archivo al
+            final del archivo. Si el fichero no existe se intenta crear.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'x'</literal></entry>
+           <entry>
+            Creación y apertura para sólo escritura; coloca el puntero al archivo al
+            principio del archivo. Si el archivo ya existe, la
+            llamada a <function>fopen</function> fallará devolviendo &false; y
+            generando un error de nivel <constant>E_WARNING</constant>. Si
+            el archivo no exite se intenta crear. Esto es equivalente
+            a especificar las banderas <literal>O_EXCL|O_CREAT</literal> para la
+            llamada al sistema <literal>open(2)</literal> subyacente.
+           </entry>
+          </row>
+          <row>
+           <entry><literal>'x+'</literal></entry>
+           <entry>
+            Creación y apertura para lectura y escritura; coloca el puntero al archivo al
+            principio del archivo. Si el archivo ya existe, la
+            llamada a <function>fopen</function> fallará devolviendo &false; y
+            generando un error de nivel <constant>E_WARNING</constant>. Si
+            el archivo no exite se intenta crear. Esto es equivalente
+            a especificar las banderas <literal>O_EXCL|O_CREAT</literal> para la
+            llamada al sistema <literal>open(2)</literal> subyacente.
+           </entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </table>
+      </para>
+      <note>
+       <para>
+        Familias de sistemas operativos diferentes tienen diferentes convenciones
+        para el final de línea. Cuando escribe un archivo de texto y quiere insertar un salto
+        de línea, necesita usar el carácter o caracters correctos de final de línea para su
+        sistema operativo. Los sistemas basados en Unix usan <literal>\n</literal> como el
+        carácter de final de línea, los sistemas basados en Windows usan <literal>\r\n</literal>
+        como caracteres de final de línea y los sistemas basados en Macintosh usan
+        <literal>\r</literal> como carácter de final de línea.
+       </para>
+       <para>
+        Si usa los caracteres de final de línea erróneos cuando escribe sus archivos, se
+        podrá encontrar con que otras aplicaciones que abran esos archivos "parecerán
+        raras".
+       </para>
+       <para>
+        Windows ofrece una bandera de traducción en modo texto (<literal>'t'</literal>)
+        que traducirá de manera transparente <literal>\n</literal> a
+        <literal>\r\n</literal> cuando se trabaja con el archivo. En contraste, puede
+        usar <literal>'b'</literal> para forzar el modo binario, lo cual no
+        traducirá su información. Para usar estas banderas, especifique
+        <literal>'b'</literal> o <literal>'t'</literal> como el último carácter
+        del parámetro <parameter>modo</parameter>.
+       </para>
+       <para>
+        El modo de traducción predeterminado depende de SAPI y de la versión de PHP que
+        esté usando, por lo que se le anima a especificar siempre la bandera
+        apropiada por razones de portabilidad. Debería usar el modo <literal>'t'</literal>
+        si está trabajando con archivos de texto plano y usa
+        <literal>\n</literal> para delimitar los finales de línea es su script, pero
+        confíe que sus archivos serán legibles por aplicaciones tales como notepad. Debería
+        usar <literal>'b'</literal> en los demás casos.
+       </para>
+       <para>
+        Si no especifica la bandera 'b' cuando está trabajando con archivos binarios,
+        puede experimentar problemas extraños con su información, incluidos archivos imagen
+        rotos o problemas extraños con los caracteres <literal>\r\n</literal>.
+       </para>
+      </note>
+      <note>
+       <para>
+        Por portabilidad, se recomienda encarecidamente que siempre use
+        la bandera 'b' cuando se abran archivos con <function>fopen</function>.
+       </para>
+      </note>
+      <note>
+       <para>
+        De nuevo, por portabilidad, también se recomienda encarecidamente que
+        rescriba el código que usa o depende del modo <literal>'t'</literal>
+        por lo que use los finales de línea correctos y el modo
+        <literal>'b'</literal> en su lugar.
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>usar_include_path</parameter></term>
+     <listitem>
+      <para>
+       El tercer parámetro opcional <parameter>usar_include_path</parameter>
+       puede ser establecido a '1' o &true; si desea buscar un archivo en
+       <link linkend="ini.include-path">include_path</link> también.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>contexto</parameter></term>
+     <listitem>
+      &note.context-support;
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un recurso de puntero a archivo si tiene éxito, o &false; si se produjo un error.
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Si la apertura falla, se generea un error de nivel
+   <constant>E_WARNING</constant>. Puede usar <link
+   linkend="language.operators.errorcontrol">@</link> para suprimir esta
+   advertencia.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>4.3.2</entry>
+       <entry>
+        A partir de PHP 4.3.2, el modo por defecto se establece a binario para todas las
+        plataformas que distinquen entre modo bianrio y modo texto. Si está teniendo
+        problemas con sus scripts después de una acutalización, intente usar la
+        bandera <literal>'t'</literal> como solución alternativa hasta que haya hecho su
+        script más portable, como se mencionó antes
+       </entry>
+      </row>
+      <row>
+       <entry>4.3.2</entry>
+       <entry>
+        Se añadió la opción <literal>'x'</literal> y <literal>'x+'</literal>
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplos de <function>fopen</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$handle = fopen("/home/rasmus/archivo.txt", "r");
+$handle = fopen("/home/rasmus/archivo.gif", "wb");
+$handle = fopen("http://www.ejemplo.com/", "r");
+$handle = fopen("ftp://user:password@ejemplo.com/archivo.txt", "w");
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  &warn.ssl-non-standard;
+  &note.sm.uidcheck.dir;
+  <para>
+   Si está experimentando problemas al leer y escribir archivos y
+   está usando la versión de módulo de servidor de PHP, asegúrese de que
+   los archivos y directorios que está usando son accesibles por el proceso
+   del servidor.
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><xref linkend="wrappers"/></member>
+    <member><function>fclose</function></member>
+    <member><function>fgets</function></member>
+    <member><function>fread</function></member>
+    <member><function>fwrite</function></member>
+    <member><function>fsockopen</function></member>
+    <member><function>file</function></member>
+    <member><function>file_exists</function></member>
+    <member><function>is_readable</function></member>
+    <member><function>stream_set_timeout</function></member>
+    <member><function>popen</function></member>
+    <member><function>stream_context_create</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
