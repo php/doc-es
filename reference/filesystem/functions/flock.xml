@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 290977 $ -->
-<!-- EN-Revision: 7f5fbb545cb862865ea31d8fa49b86135fc91982 Maintainer: seros Status: ready -->
+<!-- $Revision: 293481 $ -->
+<!-- EN-Revision: 326303276c3db4e013e805b389913b353bc56ae0 Maintainer: seros Status: ready -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.flock">
  <refnamediv>
   <refname>flock</refname>
@@ -29,7 +29,7 @@
    (lo cual significa que todos los programas de acceso tiene que usar la misma forma de
    bloqueo, o no funcionará). Por defecto, esta función operará hasta que el
    bloqueo solicitado sea adquirido; esto puede ser controlado (en plataformas diferentes
-   de Windows) con la opción LOCK_NB documentada abajo.
+   de Windows) con la opción <constant>LOCK_NB</constant> documentada abajo.
   </para>
  </refsect1>
 
@@ -69,9 +69,9 @@
        </itemizedlist>
       </para>
       <para>
-       También es posible añadir <constant>LOCK_NB</constant> si no se desea
-       que <function>flock</function> bloquee mientras opera.
-       (no soportado en Windows)
+       También es posible añadir <constant>LOCK_NB</constant> como una máscara de bit
+       a una de las operaciones de arriba si no se desea que <function>flock</function>
+       bloquee mientras opera. (no soportado en Windows)
       </para>
      </listitem>
     </varlistentry>
@@ -80,7 +80,7 @@
      <listitem>
       <para>
        El tercer argumento opcional es establecido a &true; si el aviso produciría un bloqueo
-       (condición EWOULDBLOCK errno).
+       (condición EWOULDBLOCK errno). (no soportado en Windows)
       </para>
      </listitem>
     </varlistentry>
@@ -148,13 +148,36 @@ fclose($fp);
     </programlisting>
    </example>
   </para>
+  <para>
+   <example>
+    <title><function>flock</function> usando la opción <constant>LOCK_NB</constant></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$fp = fopen('/tmp/lock.txt', 'r+');
+
+/* Activar la opción LOCK_NB sobre una operación LOCK_EX */
+if(!flock($fp, LOCK_EX | LOCK_NB)) {
+ echo 'No se puede obtener el bloqueo';
+ exit(-1);
+}
+
+/* ... */
+
+fclose($fp);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
  </refsect1>
 
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    <function>flock</function> bloquea de forma obligada bajo Windows.
+    <function>flock</function> bloquea de forma obligada bajo Windows así como en
+    algunos sistemas operativos basados en POSIX.
    </para>
   </note>
   <note>
@@ -165,6 +188,13 @@ fclose($fp);
     <function>fopen</function>).
    </para>
   </note>
+  <note>
+   <para>
+    Los sistemas comatibles con POSIX.1 publicarán los scripts de <function>flock</function>
+    en un archivo, si los scripts usan <function>fclose</function> en cualquier gestor de
+    archivo sobre ese archivo.
+   </para>
+  </note>
   <warning>
    <para>
     Asignar otro valor al argumento <parameter>handle</parameter> en el
@@ -172,11 +202,6 @@ fclose($fp);
    </para>
   </warning>
   <warning>
-   <para>
-    <function>flock</function> no funcionará en NFS y en muchos otros sistemas
-    de archivos en red. Compruebe la documentación de su sistema para más
-    detalles.
-   </para>
    <para>
     En algunos sistemas operativos <function>flock</function> está implementada en
     nivel de proceso. Cuando se usa un API servidor multi-hilo como ISAPI, ¡no
