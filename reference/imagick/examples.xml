@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 293274 $ -->
+<!-- EN-Revision: 04a0c156efa3fdd2896b4c80a6b644408caf45b6 Maintainer: seros Status: ready -->
+
+<chapter xml:id="imagick.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.examples;
+ <section xml:id="imagick.examples-1">
+  &reftitle.examples;
+  <para>
+   Imagick hace que la manipulación de imágenes en PHP sea extremadamente sencilla a través
+   de una interfaz OO. Aquí está un ejemplo breve de cómo hacer una miniatura:
+   <example>
+    <title>Crear una miniatura con Imagick</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+header('Content-type: image/jpeg');
+
+$imagen = new Imagick('imagen.jpg');
+
+// Si se proporciona 0 como parámetro de ancho o alto,
+// se mantiene la proporción de aspecto
+$imagen->thumbnailImage(100, 0);
+
+echo $imagen;
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+
+  <para>
+   Al usar SPL y otras características OO soportadas en Imagick, puede ser sencillo
+   redimensionar todos los archivos de un directorio (útil para la redimensión por lotes de
+   muchas imágenes de cámara digital para que sean visibles desde una web). Aquí usamos redimensión,
+   ya que queremos mantener cierta meta-información:
+   <example>
+    <title>Hacer una miniatura de todos los archivos JPG de un directorio</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$imágenes = new Imagick(glob('imagenes/*.JPG'));
+
+foreach($imágenes as $imagen) {
+
+    // Proporcionar 0 fuerza a thumbnailImage a mantener la proporción de aspecto
+    $imagen->thumbnailImage(1024,0);
+
+}
+
+$imágenes->writeImages();
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Este es un ejemplo de crear un reflejo de una imagen.
+   El reflejo se crea volteando la imagen y poniendo una capa de gradiente sobre ella.
+   Ambas, la imagen original y el reflejo, están sobrepuestas en un lienzo.
+   <example>
+    <title>Crear un reflejo de una imagen</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* Leer la imagen */
+$im = new Imagick("test.png");
+
+/* Miniaturizar la imagen */
+$im->thumbnailImage(200, null);
+
+/* Crear un borde para la imagen */
+$im->borderImage(new ImagickPixel("white"), 5, 5);
+
+/* Clonar la imagen y voltearla */
+$reflejo = $im->clone();
+$reflejo->flipImage();
+
+/* Crear un gradiente. Será sobrepuesto en el reflejo */
+$gradiente = new Imagick();
+
+/* El gradiente necesita ser más grande que la imagen y los bordes */
+$gradiente->newPseudoImage($reflejo->getImageWidth() + 10, $reflejo->getImageHeight() + 10, "gradient:transparent-black");
+
+/* Componer el gradiente con el reflejo */
+$reflejo->compositeImage($gradiente, imagick::COMPOSITE_OVER, 0, 0);
+
+/* Añadir algo de opacidad. Requiere ImageMagick 6.2.9 o superior */
+$reflejo->setImageOpacity( 0.3 );
+
+/* Crear un lienzo vacío */
+$lienzo = new Imagick();
+
+/* El lienzo necesita ser más grande para mantener ambas imágenes */
+$ancho = $im->getImageWidth() + 40;
+$alto = ($im->getImageHeight() * 2) + 30;
+$lienzo->newImage($ancho, $alto, new ImagickPixel("black"));
+$lienzo->setImageFormat("png");
+
+/* Componer la imagen original y el reflejo sobre el lienzo */
+$lienzo->compositeImage($im, imagick::COMPOSITE_OVER, 20, 10);
+$lienzo->compositeImage($reflejo, imagick::COMPOSITE_OVER, 20, $im->getImageHeight() + 10);
+
+/* Imprimir la imagen */
+header("Content-Type: image/png");
+echo $lienzo;
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <mediaobject>
+     <alt>Salida del ejemplo : Crear un reflejo de una imagen</alt>
+     <imageobject>
+      <imagedata fileref="en/reference/imagick/figures/hello_world_reflection.png"/>
+     </imageobject>
+    </mediaobject>
+   </example>
+  </para>
+  <para>
+   Este ejemplo ilustra cómo usar patrones de relleno durante el dibujo.
+   <example>
+    <title>Rellenar un texto con un gradiente</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+/* Crear un nuevo objeto imagick */
+$im = new Imagick();
+
+/* Crear una nueva imagen. Será usada como patrón de relleno */
+$im->newPseudoImage(50, 50, "gradient:red-black");
+
+/* Crear un objeto imagickdraw */
+$dibujo = new ImagickDraw();
+
+/* Iniciar un nuevo patrón llamado "gradient" */
+$dibujo->pushPattern('gradient', 0, 0, 50, 50);
+
+/* Componer el gradiente con el patrón */
+$dibujo->composite(Imagick::COMPOSITE_OVER, 0, 0, 50, 50, $im);
+
+/* Cerrar el patrón */
+$dibujo->popPattern();
+
+/* Usar el patrón llamado "gradient" como el relleno */
+$dibujo->setFillPatternURL('#gradient');
+
+/* Establecer el tamaño de fuente a 52 */
+$dibujo->setFontSize(52);
+
+/* Anotar algo de texto */
+$dibujo->annotation(20, 50, "Hello World!");
+
+/* Crear un nuevo lienzo y una imagen blanca */
+$lienzo = new Imagick();
+$lienzo->newImage(350, 70, "white");
+
+/* Dibujar el objeto ImagickDraw sobre el lienzo */
+$lienzo->drawImage($dibujo);
+
+/* Borde negro de 1px alrededor de la imagen */
+$lienzo->borderImage('black', 1, 1);
+
+/* Establecer el formato a PNG */
+$lienzo->setImageFormat('png');
+
+/* Imprimir la imagen */
+header("Content-Type: image/png");
+echo $lienzo;
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <mediaobject>
+     <alt>Salida del ejemplo : Rellenar texto con gradiente</alt>
+     <imageobject>
+      <imagedata fileref="en/reference/imagick/figures/hello_world.png"/>
+     </imageobject>
+    </mediaobject>
+   </example>
+  </para>
+  <para>
+   Trabajar con imágenes GIF animadas
+   <example>
+    <title>Leer una imágen GIF y redimensionar todos los fotogramas</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+/* Crear un nuevo objeto imagick y leer el GIF */
+$im = new Imagick("ejemplo.gif");
+
+/* Redimensionar todos los fotogramas */
+foreach ($im as $fotograma) {
+	/* Fotogramas de 50x50 */
+	$fotograma->thumbnailImage(50, 50);
+
+	/* Establecer el lienzo virtual para corregir el tamaño */
+	$fotograma->setImagePage(50, 50, 0, 0);
+}
+
+/* Observe: writeImages en vez de writeImage */
+$im->writeImages("example_small.gif", true);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </section>
+</chapter>
+
+
