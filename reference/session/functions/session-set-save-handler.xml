@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 288721 $ -->
+<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-set-save-handler">
+ <refnamediv>
+  <refname>session_set_save_handler</refname>
+  <refpurpose>Establece funciones de almacenamiento de sesiones a nivel de usuario</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>session_set_save_handler</methodname>
+   <methodparam><type>callback</type><parameter>open</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>close</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>read</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>write</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>destroy</parameter></methodparam>
+   <methodparam><type>callback</type><parameter>gc</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   <function>session_set_save_handler</function> establece las funciones
+   de almacenamiento de sesiones a nivel de usuario que se usan para almacenar y
+   recuperar información asociada con una sesión. Ésto es más útil
+   cuando se prefiere un método de almacenamiento distinto de aquellos proporcionados
+   por las sesiones de PHP. Esto es, almacenar la información de sesión en una base de datos local.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>open</parameter></term>
+     <listitem>
+      <para>
+       Función open, funciona como un constructor en las clases y se
+       ejecuta cuando la sesion está siendo abierta. La función open
+       espera dos parámetros, donde el primero es la ruta de almacenamiento y
+       el segundo es el nombre de sesión.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>close</parameter></term>
+     <listitem>
+      <para>
+       Función close, funciona como un destructor en las clases y se
+       ejecuta cuando la operación de sesión está hecha.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>read</parameter></term>
+     <listitem>
+      <para>
+       La función read debe devolver siempre un valor de cadena para que el gestor de
+       almacenamiento funcione como se esperaba. Devolver una cadena vacía si no hay información que
+       leer. Los valores devueltos de otros gestores se convierten en expresiones booleanas.
+       &true; para éxito, &false; para fallo.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>write</parameter></term>
+     <listitem>
+      <para>
+       <note>
+        <para>
+         El gestor "write" no se ejecuta hasta después de que se cierre el flujo
+         de salida. Así, la salida desde declaraciones de depuración en el gestor "write"
+         nunca serán vistas en el navegador. Si es necesaria la salida de depuración,
+         se sugiere que la salida de depuración sea escrita en un archivo
+         en su lugar.
+        </para>
+       </note>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>destroy</parameter></term>
+     <listitem>
+      <para>
+       El gestor destroy, se ejecuta cuando una sesión se destruye con
+       <function>session_destroy</function> y toma el id de sesión como su
+       único parámetro.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>gc</parameter></term>
+     <listitem>
+      <para>
+       El recolector de basura (Garbage Collector, en inglés), es ejecuta cuando el recolector
+       de basura de sesiones se ejecuta y toma el tiempo de vida de sesión máximo como su único
+       parámetro.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo de <function>session_set_save_handler</function></title>
+    <para>
+     El siguiente ejemplo proporciona almacenamiento de sesiones basado en archivos similar al
+     gestor de almacenamiento por defecto de sesiones de PHP <parameter>files</parameter>. Este
+     ejemplo podría extenderse fácilmente para cubrir el almacenamiento en bases de datos usando
+     su motor de bases de datos favorito soportado por PHP.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function open($save_path, $session_name)
+{
+  global $sess_save_path;
+
+  $sess_save_path = $save_path;
+  return(true);
+}
+
+function close()
+{
+  return(true);
+}
+
+function read($id)
+{
+  global $sess_save_path;
+
+  $sess_file = "$sess_save_path/sess_$id";
+  return (string) @file_get_contents($sess_file);
+}
+
+function write($id, $sess_data)
+{
+  global $sess_save_path;
+
+  $sess_file = "$sess_save_path/sess_$id";
+  if ($fp = @fopen($sess_file, "w")) {
+    $return = fwrite($fp, $sess_data);
+    fclose($fp);
+    return $return;
+  } else {
+    return(false);
+  }
+
+}
+
+function destroy($id)
+{
+  global $sess_save_path;
+
+  $sess_file = "$sess_save_path/sess_$id";
+  return(@unlink($sess_file));
+}
+
+function gc($maxlifetime)
+{
+  global $sess_save_path;
+
+  foreach (glob("$sess_save_path/sess_*") as $filename) {
+    if (filemtime($filename) + $maxlifetime < time()) {
+      @unlink($filename);
+    }
+  }
+  return true;
+}
+
+session_set_save_handler("open", "close", "read", "write", "destroy", "gc");
+
+session_start();
+
+// proceder a usar sesiones normamente
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <warning>
+   <para>
+    A partir de PHP 5.0.5 los gestores <parameter>write</parameter> y
+    <parameter>close</parameter> son llamados después de la destrucción
+    del objeto y por lo tanto no pueden usar objetos o lanzar excepciones.
+    Sin embargo, los destructores de objetos pueden usar sesiones.
+   </para>
+   <para>
+    Es posible llamar a <function>session_write_close</function> desde el
+    destructor para solucionar este problema de "quién fue antes, si el huevo o la gallina".
+   </para>
+  </warning>
+  <warning>
+   <para>
+    El directorio de trabajo actual es cambiado en algunas SAPI si la sesión
+    se cierra al finalizar el script. Es posible cerrar la sesión antes
+    con <function>session_write_close</function>.
+   </para>
+  </warning>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member>
+     La directiva de configuración <link linkend="ini.session.save-handler">session.save_handler</link>
+    </member>
+   </simplelist>
+  </para>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
