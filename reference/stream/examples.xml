@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 288721 $ -->
+<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
+<chapter xml:id="stream.examples">
+ &reftitle.examples;
+ <para>
+  <example>
+   <title>Usar <function>file_get_contents</function>
+    para recuperar información desde múltiples fuentes</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+/* Leer un archivo local desde /home/bar */
+$localfile = file_get_contents("/home/bar/foo.txt");
+
+/* Igual que arriba, explícitamente nombrando el protocolo FILE */
+$localfile = file_get_contents("file:///home/bar/foo.txt");
+
+/* Leer un archivo remoto desde www.ejemplo.com usando HTTP */
+$httpfile  = file_get_contents("http://www.ejemplo.com/foo.txt");
+
+/* Leer un archivo remoto desde www.ejemplo.com usando HTTPS */
+$httpsfile = file_get_contents("https://www.ejemplo.com/foo.txt");
+
+/* Leer un archivo remoto desde ftp.ejemplo.com usando FTP */
+$ftpfile   = file_get_contents("ftp://user:pass@ftp.ejemplo.com/foo.txt");
+
+/* Leer un archivo remoto desde ftp.ejemplo.com usando FTPS */
+$ftpsfile  = file_get_contents("ftps://user:pass@ftp.ejemplo.com/foo.txt");
+?>
+]]>
+   </programlisting>
+  </example>
+ </para>
+ <para>
+  <example>
+   <title>Hacer una petición POST a un servidor https</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+/* Enviar una petición POST a https://secure.ejemplo.com/form_action.php
+* Incluye los elementos de formulario llamados "foo" y "bar" con valores sin importancia
+*/
+
+$sock = fsockopen("ssl://secure.ejemplo.com", 443, $errno, $errstr, 30);
+if (!$sock) die("$errstr ($errno)\n");
+
+$data = "foo=" . urlencode("Valor para Foo") . "&bar=" . urlencode("Valor para Bar");
+
+fwrite($sock, "POST /form_action.php HTTP/1.0\r\n");
+fwrite($sock, "Host: secure.ejemplo.com\r\n");
+fwrite($sock, "Content-type: application/x-www-form-urlencoded\r\n");
+fwrite($sock, "Content-length: " . strlen($data) . "\r\n");
+fwrite($sock, "Accept: */*\r\n");
+fwrite($sock, "\r\n");
+fwrite($sock, "$data\r\n");
+fwrite($sock, "\r\n");
+
+$headers = "";
+while ($str = trim(fgets($sock, 4096)))
+$headers .= "$str\n";
+
+echo "\n";
+
+$body = "";
+while (!feof($sock))
+$body .= fgets($sock, 4096);
+
+fclose($sock);
+?>
+]]>
+   </programlisting>
+  </example>
+ </para>
+ <para>
+  <example>
+   <title>Escribir información en un archivo compirmido</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+/* Crear un archivo comprimido que contiene una cadena arbitraria
+* El archivo se puede volver a leer usando el flujo compress.zlib o
+* descomprimiéndolo desde la línea de comandos usando 'gzip -d foo-bar.txt.gz'
+*/
+$fp = fopen("compress.zlib://foo-bar.txt.gz", "wb");
+if (!$fp) die("No se puede crear el archivo.");
+
+fwrite($fp, "Esto es una prueba.\n");
+
+fclose($fp);
+?>
+]]>
+   </programlisting>
+  </example>
+ </para>
+
+ <section xml:id='stream.streamwrapper.example-1'>
+  <title>Ejemplo de clase registrada como envoltura de flujo</title>
+  <para>
+   El ejemplo de abajo implementa un gestor de protocolo var:// que permite
+   el acceso a lectura/escritura a una variable global nominada usando un flujo de sistema de archivos
+   estándar tal como <function>fread</function>. El protocolo var://
+   implementado abajo, dada la URL "var://foo", leerá/escribirá información
+   hacia/desde $GLOBALS["foo"].
+  </para>
+  <para>
+   <example>
+    <title>Un Flujo para leer/escribir variables globales</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class FlujoVariable {
+    var $posición;
+    var $nombre;
+
+    function stream_open($ruta, $modo, $opciones, &$ruta_abierta)
+    {
+        $url = parse_url($ruta);
+        $this->nombre = $url["host"];
+        $this->posición = 0;
+
+        return true;
+    }
+
+    function stream_read($cuenta)
+    {
+        $ret = substr($GLOBALS[$this->nombre], $this->posición, $cuenta);
+        $this->posición += strlen($ret);
+        return $ret;
+    }
+
+    function stream_write($data)
+    {
+        $izquierda = substr($GLOBALS[$this->nombre], 0, $this->posición);
+        $derecha = substr($GLOBALS[$this->nombre], $this->posición + strlen($data));
+        $GLOBALS[$this->nombre] = $izquierda . $data . $derecha;
+        $this->posición += strlen($data);
+        return strlen($data);
+    }
+
+    function stream_tell()
+    {
+        return $this->posición;
+    }
+
+    function stream_eof()
+    {
+        return $this->posición >= strlen($GLOBALS[$this->nombre]);
+    }
+
+    function stream_seek($índice, $dónde)
+    {
+        switch ($dónde) {
+            case SEEK_SET:
+                if ($índice < strlen($GLOBALS[$this->nombre]) && $índice >= 0) {
+                     $this->posición = $índice;
+                     return true;
+                } else {
+                     return false;
+                }
+                break;
+
+            case SEEK_CUR:
+                if ($índice >= 0) {
+                     $this->posición += $índice;
+                     return true;
+                } else {
+                     return false;
+                }
+                break;
+
+            case SEEK_END:
+                if (strlen($GLOBALS[$this->nombre]) + $índice >= 0) {
+                     $this->posición = strlen($GLOBALS[$this->nombre]) + $índice;
+                     return true;
+                } else {
+                     return false;
+                }
+                break;
+
+            default:
+                return false;
+        }
+    }
+}
+
+stream_wrapper_register("var", "FlujoVariable")
+    or die("Fallo al registrar el protocolo");
+
+$mivar = "";
+
+$fp = fopen("var://mivar", "r+");
+
+fwrite($fp, "línea1\n");
+fwrite($fp, "línea2\n");
+fwrite($fp, "línea3\n");
+
+rewind($fp);
+while (!feof($fp)) {
+    echo fgets($fp);
+}
+fclose($fp);
+var_dump($mivar);
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+línea1
+línea2
+línea3
+string(24) "línea1
+línea2
+línea3
+"
+]]>
+    </screen>
+   </example>
+  </para>
+ </section>
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+
