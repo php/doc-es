@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 290998 $ -->
+<!-- EN-Revision: b71e8b802f19ebed1067898d628e8a03b0550a11 Maintainer: tatai Status: ready -->
+
+<chapter xml:id="gearman.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.examples;
+ <section xml:id="gearman.examples-reverse">
+  <para>
+   <example>
+    <title>Cliente y trabajador básicos en Gearman</title>
+    <para>
+     Este ejemplo muestra un cliente y un trabajador muy sencillo. El cliente
+     envía un string al servidor de trabajos, y el trabajador da la vuelta al
+     string y lo envía de vuelta. El trabajo se realiza de forma síncrona.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+# Se crea el objeto cliente
+$gmclient= new GearmanClient();
+
+# Se añade el servidor por defecto (localhost).
+$gmclient->addServer();
+
+echo "Sending job\n";
+
+# Enviamos trabajo "reverse"
+do
+{
+  $result = $gmclient->do("reverse", "Hello!");
+
+  # Comprobación de varios paquetes de retorno y errores
+  switch($gmclient->returnCode())
+  {
+    case GEARMAN_WORK_DATA:
+      echo "Data: $result\n";
+      break;
+    case GEARMAN_WORK_STATUS:
+      list($numerator, $denominator)= $gmclient->doStatus();
+      echo "Status: $numerator/$denominator complete\n";
+      break;
+    case GEARMAN_WORK_FAIL:
+      echo "Failed\n";
+      exit;
+    case GEARMAN_SUCCESS:
+      break;
+    default:
+      echo "RET: " . $gmclient->returnCode() . "\n";
+      exit;
+  }
+}
+while($gmclient->returnCode() != GEARMAN_SUCCESS);
+
+?>
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+echo "Starting\n";
+
+# Se crea el objeto del trabajador
+$gmworker= new GearmanWorker();
+
+# Se añade el servidor por defecto (localhost).
+$gmworker->addServer();
+
+# Registro de la función "reverse" en el servidor. Cambiar la función del
+# trabajador a "reverse_fn_fast" para un trabajo más rápido sin mensajes de
+# estado.
+$gmworker->addFunction("reverse", "reverse_fn");
+
+print "Waiting for job...\n";
+while($gmworker->work())
+{
+  if ($gmworker->returnCode() != GEARMAN_SUCCESS)
+  {
+    echo "return_code: " . $gmworker->returnCode() . "\n";
+    break;
+  }
+}
+
+function reverse_fn($job)
+{
+  echo "Received job: " . $job->handle() . "\n";
+
+  $workload = $job->workload();
+  $workload_size = $job->workloadSize();
+
+  echo "Workload: $workload ($workload_size)\n";
+
+  # Este bucle de estado no es necesario, sólo es para mostrar cómo funciona
+  for ($x= 0; $x < $workload_size; $x++)
+  {
+    echo "Sending status: " . $x + 1 . "/$workload_size complete\n";
+    $job->sendStatus($x, $workload_size);
+    sleep(1);
+  }
+
+  $result= strrev($workload);
+  echo "Result: $result\n";
+
+  # Retornamos lo que hay que enviar de vuelta al cliente
+  return $result;
+}
+
+# Una forma mucho más sencilla y que da menos información sería:
+function reverse_fn_fast($job)
+{
+  return strrev($job->workload());
+}
+
+?>
+]]>
+    </programlisting>
+     &example.outputs.similar;
+    <screen>
+<![CDATA[
+% php reverse_worker.php
+Starting
+Waiting for job...
+Received job: H:foo.local:36
+Workload: Hello! (6)
+Sending status: 1/6 complete
+Sending status: 2/6 complete
+Sending status: 3/6 complete
+Sending status: 4/6 complete
+Sending status: 5/6 complete
+Sending status: 6/6 complete
+Result: !olleH
+]]>
+    </screen>
+    <screen>
+<![CDATA[
+% php reverse_client.php
+Starting
+Sending job
+Status: 1/6 complete
+Status: 2/6 complete
+Status: 3/6 complete
+Status: 4/6 complete
+Status: 5/6 complete
+Status: 6/6 complete
+Success: !olleH
+]]>
+    </screen>
+   </example>
+  </para>
+ </section>
+ <section xml:id="gearman.examples-reverse-bg">
+  <para>
+   <example>
+    <title>Cliente y trabajador básicos en Gearman, trabajo en segundo plano</title>
+    <para>
+     Este ejemplo muestra un trabajador y un cliente muy sencillos. El cliente
+     envía un string al servidor de trabajos como trabajo en segundo plano, y
+     el trabajador da la vuelta al string. Notar que como el trabajo se
+     realiza de forma asíncrona, el cliente no espera a que se complete el
+     trabajo y termina (y, por tanto, el cliente nunca recibe los resultados).
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+# Creación del objeto cliente
+$gmclient= new GearmanClient();
+
+# Se añade el servidor por defecto (localhost)
+$gmclient->addServer();
+
+# Ejecutar el cliente "reverse" en segundo plano
+$job_handle = $gmclient->doBackground("reverse", "this is a test");
+
+if ($gmclient->returnCode() != GEARMAN_SUCCESS)
+{
+  echo "bad return code\n";
+  exit;
+}
+
+echo "done!\n";
+
+?>
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+echo "Starting\n";
+
+# Creación del objeto trabajador
+$gmworker= new GearmanWorker();
+
+# Se añade el servidor por defecto (localhost).
+$gmworker->addServer();
+
+# Registro de la función "reverse" en el servidor. Cambiar la funcion del
+# trabajador a "reverse_fn_fast" para usar un trabajador más rápido sin
+# mostrar mensajes de estado
+$gmworker->addFunction("reverse", "reverse_fn");
+
+print "Waiting for job...\n";
+while($gmworker->work())
+{
+  if ($gmworker->returnCode() != GEARMAN_SUCCESS)
+  {
+    echo "return_code: " . $gmworker->returnCode() . "\n";
+    break;
+  }
+}
+
+function reverse_fn($job)
+{
+  echo "Received job: " . $job->handle() . "\n";
+
+  $workload = $job->workload();
+  $workload_size = $job->workloadSize();
+
+  echo "Workload: $workload ($workload_size)\n";
+
+  # Este bucle de estado no es necesario, únicamente muestra cómo funciona
+  for ($x= 0; $x < $workload_size; $x++)
+  {
+    echo "Sending status: " . $x + 1 . "/$workload_size complete\n";
+    $job->sendStatus($x, $workload_size);
+    sleep(1);
+  }
+
+  $result= strrev($workload);
+  echo "Result: $result\n";
+
+  # Retorna lo que se quiere enviar de vuelta al cliente
+  return $result;
+}
+
+# Una versión mucho más sencilla y que muestra menos información del proceso sería:
+function reverse_fn_fast($job)
+{
+  return strrev($job->workload());
+}
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+% php reverse_worker.php
+Starting
+Waiting for job...
+Received job: H:foo.local:41
+Workload: this is a test (14)
+1/14 complete
+2/14 complete
+3/14 complete
+4/14 complete
+5/14 complete
+6/14 complete
+7/14 complete
+8/14 complete
+9/14 complete
+10/14 complete
+11/14 complete
+12/14 complete
+13/14 complete
+14/14 complete
+Result: tset a si siht
+]]>
+    </screen>
+    <screen>
+<![CDATA[
+% php reverse_client_bg.php
+done!
+]]>
+    </screen>
+   </example>
+  </para>
+ </section>
+ <section xml:id="gearman.examples-reverse-task">
+  <para>
+   <example>
+    <title>Cliente y trabajador básicos, enviando tareas</title>
+    <para>
+     En este ejemplo, se extiende el cliente básico que da la vuelta al texto
+     para ejecutar dos tareas en paralelo. El trabajador "reverse" es idéntico
+     excepto la parte del envío del datos durante el proceso.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+# Creación del cliente Gearman
+$gmc= new GearmanClient();
+
+# Añade el servidor por defecto (localhost)
+$gmc->addServer();
+
+# Registra alguna llamadas de retorno
+$gmc->setCreatedCallback("reverse_created");
+$gmc->setDataCallback("reverse_data");
+$gmc->setStatusCallback("reverse_status");
+$gmc->setCompleteCallback("reverse_complete");
+$gmc->setFailCallback("reverse_fail");
+
+# Asignación de datos arbitrarios para la aplicación
+$data['foo'] = 'bar';
+
+# Añade dos tareas
+$task= $gmc->addTask("reverse", "foo", $data);
+$task2= $gmc->addTaskLow("reverse", "bar", NULL);
+
+#  Ejecuta las tareas en paralelo (se asumen múltiples trabajadores)
+if (! $gmc->runTasks())
+{
+    echo "ERROR " . $gmc->error() . "\n";
+    exit;
+}
+
+echo "DONE\n";
+
+function reverse_created($task)
+{
+    echo "CREATED: " . $task->jobHandle() . "\n";
+}
+
+function reverse_status($task)
+{
+    echo "STATUS: " . $task->jobHandle() . " - " . $task->taskNumerator() . 
+         "/" . $task->taskDenominator() . "\n";
+}
+
+function reverse_complete($task)
+{
+    echo "COMPLETE: " . $task->jobHandle() . ", " . $task->data() . "\n";
+}
+
+function reverse_fail($task)
+{
+    echo "FAILED: " . $task->jobHandle() . "\n";
+}
+
+function reverse_data($task)
+{
+    echo "DATA: " . $task->data() . "\n";
+}
+
+?>
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+echo "Starting\n";
+
+# Creación del objeto trabajador
+$gmworker= new GearmanWorker();
+
+# Añade el servidor por defecto (localhost).
+$gmworker->addServer();
+
+# Registra la función "reverse" en el servidor. Cambiar la función a
+# "reverse_fn_fast" para obtener un worker más rápido que no genera
+# informacion del proceso
+$gmworker->addFunction("reverse", "reverse_fn");
+
+print "Waiting for job...\n";
+while($gmworker->work())
+{
+  if ($gmworker->returnCode() != GEARMAN_SUCCESS)
+  {
+    echo "return_code: " . $gmworker->returnCode() . "\n";
+    break;
+  }
+}
+
+function reverse_fn($job)
+{
+  echo "Received job: " . $job->handle() . "\n";
+
+  $workload = $job->workload();
+  $workload_size = $job->workloadSize();
+
+  echo "Workload: $workload ($workload_size)\n";
+
+  # Este bucle de estado no es necesario, sólo es para mostrar cómo funciona
+  for ($x= 0; $x < $workload_size; $x++)
+  {
+    echo "Sending status: " + $x + 1 . "/$workload_size complete\n";
+    $job->sendStatus($x+1, $workload_size);
+    $job->sendData(substr($workload, $x, 1));
+    sleep(1);
+  }
+
+  $result= strrev($workload);
+  echo "Result: $result\n";
+
+  # Retornamos lo que queremos enviar de vuelta al cliente
+  return $result;
+}
+
+# Una versión mucho más sencilla y que muestra menos información del proceso sería:
+function reverse_fn_fast($job)
+{
+  return strrev($job->workload());
+}
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+% php reverse_worker.php
+Starting
+Waiting for job...
+Received job: H:foo.local:45
+Workload: foo (3)
+1/3 complete
+2/3 complete
+3/3 complete
+Result: oof
+Received job: H:foo.local:44
+Workload: bar (3)
+1/3 complete
+2/3 complete
+3/3 complete
+Result: rab
+]]>
+    </screen>
+    <screen>
+<![CDATA[
+% php reverse_client_task.php
+CREATED: H:foo.local:44
+CREATED: H:foo.local:45
+STATUS: H:foo.local:45 - 1/3
+DATA: f
+STATUS: H:foo.local:45 - 2/3
+DATA: o
+STATUS: H:foo.local:45 - 3/3
+DATA: o
+COMPLETE: H:foo.local:45, oof
+STATUS: H:foo.local:44 - 1/3
+DATA: b
+STATUS: H:foo.local:44 - 2/3
+DATA: a
+STATUS: H:foo.local:44 - 3/3
+DATA: r
+COMPLETE: H:foo.local:44, rab
+DONE
+]]>
+    </screen>
+   </example>
+  </para>
+ </section>
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"../../../manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
