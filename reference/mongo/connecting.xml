@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 296280 $ -->
+<!-- EN-Revision: 13d9a87041ee11fbffc2846d5c643344c9bc5d58 Maintainer: julionc Status: ready -->
+
+<section xml:id="mongo.connecting" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Conexión</title>
+
+ <para>
+  La Conexión a MongoDB es fácil con <literal>new Mongo</literal>, pero 
+  hay muchas más opciones y configuraciones adicionales. La 
+  página <function>Mongo::__construct</function> cubre todas las opciones de la API,
+  pero está página ofrece algunos caso de usos prácticos.
+ </para>
+
+ <section>
+  <title>Acceso a la conexión</title>
+  <para>
+   If MongoDB is started with the <literal>--auth</literal> option, connections
+   Si MongoDB se inicia con la opción <literal>--auth</literal> , las conexiones
+   must be authenticated before they are used.  You can do this on a 
+   deben ser autorizadas antes de ser usadas.  Puede hacer esto 
+   a nivel de cada base de datos con <function>MongoDB::authenticate</function>:
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo();
+$db = $m->admin;
+
+$db->authenticate($username, $password);
+
+?>
+]]>
+  </programlisting>
+  <para>
+   Hay una gran desventaja en este método: si la conexión a la base de datos se
+   ha caído y, se conecta automáticamente, La conexión ya no será 
+   autentificada.
+  </para>
+  <para>
+   Si utiliza el formato de cadena de conexión descrito en 
+   <function>Mongo::__construct</function>, la base de datos se autentificará cuando
+   la conexión se realice y debe autentificar si la conexión es 
+   extablecida nuevamente.
+  </para>
+  <para>
+   Esto es equivalente al código anterior, excepto que la reconexiones a la 
+   base de datos es automáticamente autentificadas:
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo("mongodb://${username}:${password}@localhost");
+
+?>
+]]>
+  </programlisting>
+  <para>
+   Por omisión, el controlador autentifica al usuario en la base de datos.
+   To authenticate with a different database, specify the database name after 
+   Para autentifica con diferentes base de datos, especifique el nombre de la base de datos después 
+   del host.  Este ejemplo muestra el log del usuario dentro de la base de datos "blog":
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo("mongodb://${username}:${password}@localhost/blog");
+
+?>
+]]>
+  </programlisting>
+ </section>
+
+ <section>
+  <title>Replica Pairs</title>
+  <para>
+   Para conectarse a un replica pair, especifique ambos lados de la pareja (pair).
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo("mongodb://localhost:27017,localhost:27018");
+
+?>
+]]>
+  </programlisting>
+  <para>
+   El orden es irrelevante, el controlador PHP consulta los servidores de base de datos para averiguar
+   cual es el master.  Mientras se identifica los servidores disponibles y el master, la 
+   conexión será éxitosa.  Si ninguno esta operativo y no es el master, se lanzá
+   una expeción <classname>MongoConnectionException</classname>.
+  </para>
+  <para>
+   Si el master no se encuentra disponible, el slave no se convertirá en master por algunos
+   segundos.  Durante ese tiempo, el controlador no puede realizar ninguna operación en la base de datos 
+   porque la base de datos master se ha ido y otra base de datos es un slave 
+   Por lo tanto, si intenta hacer cualquier tipo de consulta (incluyendo
+   operaciones "seguras") que generen excepciones.
+  </para>
+  <para>
+   El slave evalua y comprende que el master se ha ido y se convertirá 
+   asimismo como master.  En este punto, el controlador establecerá esta como la base de datos primaria 
+   y continuará las operacciones normalmente.
+  </para>
+  <para>
+   Para obtener más información sobre replica pairs, consulte la 
+   <link xlink:href="&url.mongodb.replica;">documentación del núcleo</link>.
+  </para>
+ </section>
+
+ <section>
+  <title>Connexiones persistentes</title>
+
+  <para>
+   Crear una conexión a la base de datos es muy lento.  Para minimizar el número
+   de conexiones que se necesite, utilice las conexiones persistentes.  Una 
+   conexión persistente es guardada por PHP, para que pueda usarse la misma conexión para
+   múltiples peticiones.
+  </para>
+
+  <para>
+   Por ejemplo, este simple programa para conectarse 1000 veces a la base de datos:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+for ($i=0; $i<1000; $i++) {
+  $m = new Mongo();
+}
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   Esto tarda apróximadamente 18 segundos en ejecutarse.  Si cambiamos esto para que utilice 
+   una conexión persistente:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+for ($i=0; $i<1000; $i++) {
+  $m = new Mongo("localhost:27017", array("persist" => "x"));
+}
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   ...se tarda menos de 0.02 segundos en ejecutarse, ya que sólo se hace una conexión
+   a la base de datos.
+  </para>
+
+  <para>
+   La conexión persistente necesita un string para identificarlo (que puede ser "x" como en el 
+   ejemplo anterior) para identificarlo únicamente.  Para una conexión persistente se utiliza,
+   el hostname, puerto, un string con el dato persistente, y un usuario y contraseña (si se le da) debe
+   coincidir y existir en una conexión persistente existente.  De lo contrario, una nueva conexión se crea
+   con la información de identificación.
+  </para>
+ </section>
+
+</section>
