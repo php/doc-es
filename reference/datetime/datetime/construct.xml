@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 295819 $ -->
-<!-- EN-Revision: 0bd545b5a5e2671946c0067420f01a95f454a9fe Maintainer: seros Status: ready -->
+<!-- $Revision$ -->
+<!-- EN-Revision: 5da1c6eac52c6626f59470896f301e2bba9bdb0e Maintainer: seros Status: ready -->
 
 <refentry xml:id="datetime.construct" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -10,10 +10,17 @@
  
  <refsect1 role="description">
   &reftitle.description;
+  <para>&style.oop;</para>
   <methodsynopsis>
    <methodname>DateTime::__construct</methodname>
    <methodparam choice="opt"><type>string</type><parameter>time</parameter><initializer>"now"</initializer></methodparam>
-   <methodparam choice="opt"><type>DateTimeZone</type><parameter>timezone</parameter><initializer>NULL</initializer></methodparam>
+   <methodparam choice="opt"><type>DateTimeZone</type><parameter>timezone</parameter><initializer>&null;</initializer></methodparam>
+  </methodsynopsis>
+  <para>&style.procedural;</para>
+  <methodsynopsis>
+   <type>DateTime</type><methodname>date_create</methodname>
+   <methodparam choice="opt"><type>string</type><parameter>time</parameter><initializer>"now"</initializer></methodparam>
+   <methodparam choice="opt"><type>DateTimeZone</type><parameter>timezone</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
    Devuelve un nuevo objeto DateTime.
@@ -22,25 +29,54 @@
  
  <refsect1 role="parameters">
   &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>time</parameter></term>
+    <listitem>
+     <para>
+      Un cadena con el formato aceptado por <function>strtotime</function>.
+     </para>
+     <para>
+      Introduzca &null; aquí para obtener el momento actual cuando se use
+      el parámetro <parameter>$timezone</parameter>.
+     </para>
+     <para>
+      Para usar una fecha Unix, ponga una <literal>@</literal> en
+      frente de la cadena de marca de tiempo.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>timezone</parameter></term>
+    <listitem>
+     <para>
+      Un objeto <classname>DateTimeZone</classname> que representa la
+      zona horaria deseada.
+     </para>
+     <para>
+      Si se omite <parameter>$timezone</parameter>,
+      se usará la zona horaria actual.
+     </para>
+     <note>
+      <para>
+       El parámetro <parameter>$timezone</parameter>
+       y la zona horaria actuales se ignoran cuando el
+       parámetro <parameter>$time</parameter>
+       es una fecha UNIX (p.ej. <literal>@946684800</literal>)
+       o especifica una zona horaria
+       (p.ej. <literal>2010-01-28T15:00:00+02:00</literal>).
+      </para>
+     </note>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
   <para>
-   <variablelist>
-    <varlistentry>
-     <term><parameter>time</parameter></term>
-     <listitem>
-      <para>
-       Un cadena con el formato aceptado por <function>strtotime</function>.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>timezone</parameter></term>
-     <listitem>
-      <para>
-       Zona horaria de la hora.
-      </para>
-     </listitem>
-    </varlistentry>
-   </variablelist>
+   evuelve una nueva instancia de DateTime.
+   &return.falseforfailure.style.procedural;
   </para>
  </refsect1>
  
@@ -53,37 +89,101 @@
  
  <refsect1 role="examples">
   &reftitle.examples;
-  <para>
-   <example>
-    <title>Ejemplo de <function>DateTime::__construct</function></title>
-    <programlisting role="php">
+  <example>
+   <title>Ejemplo de <function>DateTime::__construct</function></title>
+   <para>&style.oop;</para>
+   <programlisting role="php">
 <![CDATA[
 <?php
-date_default_timezone_set('Europe/London');
+try {
+    $fecha = new DateTime('2000-01-01');
+} catch (Exception $e) {
+    echo $e->getMessage();
+    exit(1);
+}
 
-$datetime = new DateTime('2008-08-03 14:52:10');
-echo $datetime->format(DATE_ATOM);
+echo $fecha->format('Y-m-d');
 ?>
 ]]>
-    </programlisting>
-   </example>
-   
-   <example>
-    <title>Crear un objeto <classname>DateTime</classname> desde una marca de tiempo UNIX</title>
-    <para>
-     Para crear un objeto <classname>DateTime</classname> desde una marca de tiempo UNIX
-     use la palabra clave <literal>@</literal> con <function>strtotime</function>.
-    </para>
-    <programlisting role="php">
+   </programlisting>
+   <para>&style.procedural;</para>
+   <programlisting role="php">
 <![CDATA[
 <?php
-$timestamp = $_SERVER["REQUEST_TIME"];
-$dt = new DateTime("@$timestamp");
+$fecha = date_create('2000-01-01');
+if (!$fecha) {
+    $e = date_get_last_errors();
+    foreach ($e['errors'] as $error) {
+        echo "$error\n";
+    }
+    exit(1);
+}
+
+echo date_format($fecha, 'Y-m-d');
 ?>
 ]]>
-    </programlisting>
-   </example>
-  </para>
+   </programlisting>
+   &examples.outputs;
+   <screen>
+<![CDATA[
+2000-01-01
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Complejidades de <function>DateTime::__construct</function></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// Fecha/hora especificadas en la zona horaria de su ordenador.
+$fecha = new DateTime('2000-01-01');
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+
+// Fecha/hora especificadas en la zona horaria especificada.
+$fecha = new DateTime('2000-01-01', new DateTimeZone('Pacific/Nauru'));
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+
+// Fecha/hora actuales en la zona horaria de su ordenador.
+$fecha = new DateTime();
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+
+// Fecha/hora actuales en la zona horaria especificada.
+$fecha = new DateTime(null, new DateTimeZone('Pacific/Nauru'));
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+
+// Usando una fecha UNIX.  Nótese el resultado en la zona horaria UTC.
+$fecha = new DateTime('@946684800');
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+
+// Valores no existentes que se exceden.
+$fecha = new DateTime('2000-02-30');
+echo $fecha->format('Y-m-d H:i:sP') . "\n";
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+2000-01-01 00:00:00-05:00
+2000-01-01 00:00:00+12:00
+2010-04-24 10:24:16-04:00
+2010-04-25 02:24:16+12:00
+2000-01-01 00:00:00+00:00
+2000-03-01 00:00:00-05:00
+]]>
+   </screen>
+  </example>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><function>DateTime::createFromFormat</function></member>
+   <member><function>DateTimeZone::__construct</function></member>
+   <member>Configuración ini de <link linkend="ini.date.timezone">date.timezone</link></member>
+   <member><function>date_default_timezone_set</function></member>
+   <member><function>DateTime::getLastErrors</function></member>
+  </simplelist>
  </refsect1>
  
 </refentry>
