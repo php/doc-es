@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: lboshell Status: ready -->
+<!-- EN-Revision: b1ff25f2fb23215a3d80d166c3b1ce2f2d7f0e8e Maintainer: yago Status: ready -->
 <refentry xml:id="function.exit" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>exit</refname>
@@ -19,6 +19,9 @@
   </methodsynopsis>
   <para>
    Finaliza la ejecución del script.
+  <link linkend="function.register-shutdown-function">Funciones shutdown</link>
+   y <link linkend="language.oop5.decon.destructor">Objectos destructores</link>
+   siempre serán ejecutados incluso si se llama a la función <function>exit</function>.   
   </para>
  </refsect1>
 
@@ -35,7 +38,7 @@
       </para>
       <para>
        Si <parameter>status</parameter> es un valor <type>integer</type>,
-       ese valor será usado también como el status de salida. Los status de
+       ese valor será usado también como el status de salida y no se mostrará. Los status de
        salida deben estar en el rango 0 a 254, el status de salida 255 es
        reservado por PHP y no debe ser usado. El status 0 es usado para
        finalizar el programa de forma satisfactoria.
@@ -98,7 +101,43 @@ exit(0376); //octal
     </programlisting>
    </example>
   </para>
- </refsect1>
+  <para>
+   <example>
+    <title>Las funciones Shutdown y los destructores se ejecutan igualmente</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class Foo
+{
+    public function __destruct()
+    {
+        echo 'Destruct: ' . __METHOD__ . '()' . PHP_EOL;
+    }
+}
+
+function shutdown()
+{
+    echo 'Shutdown: ' . __FUNCTION__ . '()' . PHP_EOL;
+}
+
+$foo = new Foo();
+register_shutdown_function('shutdown');
+
+exit();
+echo 'Esto no se mostrará.';
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+ <![CDATA[
+ Shutdown: shutdown()
+ Destruct: Foo::__destruct()
+ ]]>
+    </screen>
+   </example>
+  </para>
+ </refsect1>  
 
  <refsect1 role="notes">
   &reftitle.notes;
