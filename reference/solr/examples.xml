@@ -1,0 +1,855 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 294364 $ -->
+<!-- EN-Revision: 05d6a8cc9bc0aab7eb8d9221e8d2b60a4c071df7 Maintainer: seros Status: ready -->
+
+<chapter xml:id="solr.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.examples;
+ 
+    <para>
+        Ejemplos de cómo usar la extensión Apache Solr de PHP
+    </para>
+    <example>
+        <title>Contenido del archivo BootStrap</title>
+        <programlisting role="php">
+<![CDATA[
+
+<?php
+
+/* Nombre de dominio de servidor Solr */
+define('SOLR_SERVER_HOSTNAME', 'solr.example.com');
+
+/* Si ejecutar en modo seguro */
+define('SOLR_SECURE', true);
+
+/* Puerto HTTP para la conexión */
+define('SOLR_SERVER_PORT', ((SOLR_SECURE) ? 8443 : 8983));
+
+/* Nomre de Usuario de Autenticación Básica de HTTP */
+define('SOLR_SERVER_USERNAME', 'admin');
+
+/* Contraseña de Autenticación Básica de HTTP */
+define('SOLR_SERVER_PASSWORD', 'changeit');
+
+/* Tiempo límite de conexión de HTTP */
+/* Esto es el tiempo máximo en segundos permitido para la operación de transferencias de datos de http.*/
+/* El valor predeterminado es 30 segundos */
+define('SOLR_SERVER_TIMEOUT', 10);
+
+/* Nombre de archivo a una clave + certificado privados con formato PEM (concatenado en ese ornden */
+define('SOLR_SSL_CERT', 'certs/combo.pem');
+
+/* Nombre de archivo a un certificado privado con formato PEM */
+define('SOLR_SSL_CERT_ONLY', 'certs/solr.crt');
+
+/* Nombre de archivo a una clave privada con formato PEM */
+define('SOLR_SSL_KEY', 'certs/solr.key');
+
+/* Contraseña para el archivo de clave privada con formato PEM */
+define('SOLR_SSL_KEYPASSWORD', 'StrongAndSecurePassword');
+
+/* Name of file holding one or more CA certificates to verify peer with*/
+define('SOLR_SSL_CAINFO', 'certs/cacert.crt');
+
+/* Name of directory holding multiple CA certificates to verify peer with */
+define('SOLR_SSL_CAPATH', 'certs/');
+
+?>
+
+]]>
+        </programlisting>
+
+    </example>
+
+ <example>
+  <title>Añadir un documento al índice</title>
+  <programlisting role="php">
+<![CDATA[
+
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$doc = new SolrInputDocument();
+
+$doc->addField('id', 334455);
+$doc->addField('cat', 'Software');
+$doc->addField('cat', 'Lucene');
+
+$respuestaActualización = $cliente->addDocument($doc);
+
+print_r($respuestaActualización->getResponse());
+
+?>
+
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+<![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 446
+        )
+
+)
+]]>
+  </screen>
+ </example>
+ 
+ <example>
+  <title>Fusionar un documento con otro documento</title>
+  <programlisting role="php">
+   <![CDATA[
+
+<?php
+
+include "bootstrap.php";
+
+$doc = new SolrDocument();
+
+$segundo_doc = new SolrDocument();
+
+$doc->addField('id', 1123);
+
+$doc->features = "PHP Client Side";
+$doc->features = "Fast development cycles";
+
+$doc['cat'] = 'Software';
+$doc['cat'] = 'Custom Search';
+$doc->cat   = 'Information Technology';
+
+$segundo_doc->addField('cat', 'Lucene Search');
+
+$segundo_doc->merge($doc, true);
+
+print_r($segundo_doc->toArray());
+
+
+?>
+
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+   <![CDATA[
+Array
+(
+    [document_boost] => 0
+    [field_count] => 3
+    [fields] => Array
+        (
+            [0] => SolrDocumentField Object
+                (
+                    [name] => cat
+                    [boost] => 0
+                    [values] => Array
+                        (
+                            [0] => Software
+                            [1] => Custom Search
+                            [2] => Information Technology
+                        )
+
+                )
+
+            [1] => SolrDocumentField Object
+                (
+                    [name] => id
+                    [boost] => 0
+                    [values] => Array
+                        (
+                            [0] => 1123
+                        )
+
+                )
+
+            [2] => SolrDocumentField Object
+                (
+                    [name] => features
+                    [boost] => 0
+                    [values] => Array
+                        (
+                            [0] => PHP Client Side
+                            [1] => Fast development cycles
+                        )
+
+                )
+
+        )
+
+)
+]]>
+  </screen>
+ </example>
+ 
+ 
+ <example>
+  <title>Buscar documentos - respuestas de SolrObject</title>
+  <programlisting role="php">
+<![CDATA[
+
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery();
+
+$consulta->setQuery('lucene');
+
+$consulta->setStart(0);
+
+$consulta->setRows(50);
+
+$consulta->addField('cat')->addField('features')->addField('id')->addField('timestamp');
+
+$respuesta_consulta = $cliente->query($consulta);
+
+$respuesta = $respuesta_consulta->getResponse();
+
+print_r($respuesta);
+
+?>
+
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+<![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 1
+            [params] => SolrObject Object
+                (
+                    [wt] => xml
+                    [rows] => 50
+                    [start] => 0
+                    [indent] => on
+                    [q] => lucene
+                    [fl] => cat,features,id,timestamp
+                    [version] => 2.2
+                )
+
+        )
+
+    [response] => SolrObject Object
+        (
+            [numFound] => 3
+            [start] => 0
+            [docs] => Array
+                (
+                    [0] => SolrObject Object
+                        (
+                            [cat] => Array
+                                (
+                                    [0] => Software
+                                    [1] => Lucene
+                                )
+
+                            [id] => 334456
+                        )
+
+                    [1] => SolrObject Object
+                        (
+                            [cat] => Array
+                                (
+                                    [0] => Software
+                                    [1] => Lucene
+                                )
+
+                            [id] => 334455
+                        )
+
+                    [2] => SolrObject Object
+                        (
+                            [cat] => Array
+                                (
+                                    [0] => software
+                                    [1] => search
+                                )
+
+                            [features] => Array
+                                (
+                                    [0] => Advanced Full-Text Search Capabilities using Lucene
+                                    [1] => Optimized for High Volume Web Traffic
+                                    [2] => Standards Based Open Interfaces - XML and HTTP
+                                    [3] => Comprehensive HTML Administration Interfaces
+                                    [4] => Scalability - Efficient Replication to other Solr Search Servers
+                                    [5] => Flexible and Adaptable with XML configuration and Schema
+                                    [6] => Good unicode support: héllo (hello with an accent over the e)
+                                )
+
+                            [id] => SOLR1000
+                            [timestamp] => 2009-09-04T20:38:55.906
+                        )
+
+                )
+
+        )
+
+)
+]]>
+  </screen>
+ </example>
+ 
+ <example>
+  <title>Buscar documentos - respuestas de SolrDocument</title>
+  <programlisting role="php">
+<![CDATA[
+
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery();
+
+$consulta->setQuery('lucene');
+
+$consulta->setStart(0);
+
+$consulta->setRows(50);
+
+$consulta->addField('cat')->addField('features')->addField('id')->addField('timestamp');
+
+$respuesta_consulta = $cliente->query($consulta);
+
+$respuesta_consulta->setParseMode(SolrQueryResponse::PARSE_SOLR_DOC);
+
+$respuesta = $respuesta_consulta->getResponse();
+
+print_r($respuesta);
+
+?>
+
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+   <![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 1
+            [params] => SolrObject Object
+                (
+                    [wt] => xml
+                    [rows] => 50
+                    [start] => 0
+                    [indent] => on
+                    [q] => lucene
+                    [fl] => cat,features,id,timestamp
+                    [version] => 2.2
+                )
+
+        )
+
+    [response] => SolrObject Object
+        (
+            [numFound] => 3
+            [start] => 0
+            [docs] => Array
+                (
+                    [0] => SolrDocument Object
+                        (
+                            [_hashtable_index:SolrDocument:private] => 19740
+                        )
+
+                    [1] => SolrDocument Object
+                        (
+                            [_hashtable_index:SolrDocument:private] => 25485
+                        )
+
+                    [2] => SolrDocument Object
+                        (
+                            [_hashtable_index:SolrDocument:private] => 25052
+                        )
+
+                )
+
+        )
+
+)
+]]>
+  </screen>
+ </example>
+    
+ <example>
+        <title>Ejemplo sencillo de TermsComponent - básico</title>
+        <programlisting role="php">
+<![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery();
+
+$consulta->setTerms(true);
+
+$consulta->setTermsField('cat');
+
+$respuestaActualización = $cliente->query($consulta);
+
+print_r($respuestaActualización->getResponse());
+
+?>
+]]>
+        </programlisting>
+        &example.outputs.similar;
+        <screen>
+<![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 2
+        )
+
+    [terms] => SolrObject Object
+        (
+            [cat] => SolrObject Object
+                (
+                    [electronics] => 14
+                    [Lucene] => 4
+                    [Software] => 4
+                    [memory] => 3
+                    [card] => 2
+                    [connector] => 2
+                    [drive] => 2
+                    [graphics] => 2
+                    [hard] => 2
+                    [monitor] => 2
+                )
+
+        )
+
+)
+
+]]>
+        </screen>
+ </example>
+    
+<example>
+    <title>Ejemplo sencillo de TermsComponent - usar un prefijo</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery();
+
+$consulta->setTerms(true);
+
+/* Devolver sólo los términos que empiecen con $prefijo */
+$prefijo = 'c';
+
+$consulta->setTermsField('cat')->setTermsPrefix($prefijo);
+
+$respuestaActualización = $cliente->query($consulta);
+
+print_r($respuestaActualización->getResponse());
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 1
+        )
+
+    [terms] => SolrObject Object
+        (
+            [cat] => SolrObject Object
+                (
+                    [card] => 2
+                    [connector] => 2
+                    [camera] => 1
+                    [copier] => 1
+                )
+
+        )
+
+)
+]]>
+    </screen>
+</example>
+    
+<example>
+    <title>Ejemplo sencillo de TermsComponent - especificar una frecuencia mínima</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery();
+
+$consulta->setTerms(true);
+
+/* Devolver sólo los términos que empiecen con $prefijo */
+$prefijo = 'c';
+
+/* Devolver sólo los términos con una frecuencia de 2 o mayor */
+$frecuencia_mín = 2;
+
+$consulta->setTermsField('cat')->setTermsPrefix($prefijo)->setTermsMinCount($frecuencia_mín);
+
+$respuestaActualización = $cliente->query($consulta);
+
+print_r($respuestaActualización->getResponse());
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 0
+        )
+
+    [terms] => SolrObject Object
+        (
+            [cat] => SolrObject Object
+                (
+                    [card] => 2
+                    [connector] => 2
+                )
+
+        )
+
+)
+]]>
+    </screen>
+</example>
+    
+<example>
+<title>Ejemplo sencillo de Facet</title>
+<programlisting role="php">
+<![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery('*:*');
+
+$consulta->setFacet(true);
+
+$consulta->addFacetField('cat')->addFacetField('name')->setFacetMinCount(2);
+
+$respuestaActualización = $cliente->query($consulta);
+
+$matriz_respuesta = $respuestaActualización->getResponse();
+
+$datos_faceta = $matriz_respuesta->facet_counts->facet_fields;
+
+print_r($datos_faceta);
+
+?>
+]]>
+</programlisting>
+&example.outputs.similar;
+<screen>
+<![CDATA[
+SolrObject Object
+(
+    [cat] => SolrObject Object
+        (
+            [electronics] => 14
+            [memory] => 3
+            [Lucene] => 2
+            [Software] => 2
+            [card] => 2
+            [connector] => 2
+            [drive] => 2
+            [graphics] => 2
+            [hard] => 2
+            [monitor] => 2
+            [search] => 2
+            [software] => 2
+        )
+
+    [name] => SolrObject Object
+        (
+            [gb] => 6
+            [1] => 3
+            [184] => 3
+            [2] => 3
+            [3200] => 3
+            [400] => 3
+            [500] => 3
+            [ddr] => 3
+            [i] => 3
+            [ipod] => 3
+            [memori] => 3
+            [pc] => 3
+            [pin] => 3
+            [pod] => 3
+            [sdram] => 3
+            [system] => 3
+            [unbuff] => 3
+            [canon] => 2
+            [corsair] => 2
+            [drive] => 2
+            [hard] => 2
+            [mb] => 2
+            [n] => 2
+            [power] => 2
+            [retail] => 2
+            [video] => 2
+            [x] => 2
+        )
+
+)
+]]>
+</screen>
+</example>
+    
+<example>
+    <title>Ejemplo sencillo de Facet - con sobrescritura de campo opcional para mincount</title>
+    <programlisting role="php">
+        <![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery('*:*');
+
+$consulta->setFacet(true);
+
+$consulta->addFacetField('cat')->addFacetField('name')->setFacetMinCount(2)->setFacetMinCount(4, 'name');
+
+$respuestaActualización = $cliente->query($consulta);
+
+$matriz_respuesta = $respuestaActualización->getResponse();
+
+$datos_faceta = $matriz_respuesta->facet_counts->facet_fields;
+
+print_r($datos_faceta);
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+        <![CDATA[
+SolrObject Object
+(
+    [cat] => SolrObject Object
+        (
+            [electronics] => 14
+            [memory] => 3
+            [Lucene] => 2
+            [Software] => 2
+            [card] => 2
+            [connector] => 2
+            [drive] => 2
+            [graphics] => 2
+            [hard] => 2
+            [monitor] => 2
+            [search] => 2
+            [software] => 2
+        )
+
+    [name] => SolrObject Object
+        (
+            [gb] => 6
+        )
+
+)
+]]>
+    </screen>
+</example>
+
+<example>
+        <title>Conectar a un Servidor con SSL Habilitado</title>
+        <programlisting role="php">
+<![CDATA[
+<?php
+
+include "bootstrap.php";
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+    'timeout'  => SOLR_SERVER_TIMEOUT,
+    'secure'   => SOLR_SECURE,
+    'ssl_cert' => SOLR_SSL_CERT_ONLY,
+    'ssl_key'  => SOLR_SSL_KEY,
+    'ssl_keypassword' => SOLR_SSL_KEYPASSWORD,
+    'ssl_cainfo' => SOLR_SSL_CAINFO,
+);
+
+$cliente = new SolrClient($opciones);
+
+$consulta = new SolrQuery('*:*');
+
+$consulta->setFacet(true);
+
+$consulta->addFacetField('cat')->addFacetField('name')->setFacetMinCount(2)->setFacetMinCount(4, 'name');
+
+$respuestaActualización = $cliente->query($consulta);
+
+$matriz_respuesta = $respuestaActualización->getResponse();
+
+$datos_faceta = $matriz_respuesta->facet_counts->facet_fields;
+
+print_r($datos_faceta);
+
+?>
+]]>
+        </programlisting>
+        &example.outputs.similar;
+        <screen>
+            <![CDATA[
+SolrObject Object
+(
+    [cat] => SolrObject Object
+        (
+            [electronics] => 14
+            [memory] => 3
+            [Lucene] => 2
+            [Software] => 2
+            [card] => 2
+            [connector] => 2
+            [drive] => 2
+            [graphics] => 2
+            [hard] => 2
+            [monitor] => 2
+            [search] => 2
+            [software] => 2
+        )
+
+    [name] => SolrObject Object
+        (
+            [gb] => 6
+        )
+
+)
+]]>
+        </screen>
+    </example>
+    
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+
