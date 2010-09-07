@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: befe9b237508e7e320c503d63368cb6d7b64e9bc Maintainer: seros Status: ready -->
+<!-- EN-Revision: 6ec7dfe8a74bd95325b8afe00bef6c8b5f8d45fa Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-execute" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -11,24 +11,24 @@
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>int</type><methodname>cubrid_execute</methodname>
-   <methodparam><type>int</type><parameter>conn_handle</parameter></methodparam>  
+   <type>resource</type><methodname>cubrid_execute</methodname>
+   <methodparam><type>resource</type><parameter>conn_identifier</parameter></methodparam>  
    <methodparam><type>string</type><parameter>SQL</parameter></methodparam>  
    <methodparam choice="opt"><type>int</type><parameter>option</parameter></methodparam>  
   </methodsynopsis>
   <methodsynopsis>
    <type>int</type><methodname>cubrid_execute</methodname>
-   <methodparam><type>int</type><parameter>request_handle</parameter></methodparam>  
+   <methodparam><type>resource</type><parameter>request_identifier</parameter></methodparam>  
    <methodparam choice="opt"><type>int</type><parameter>option</parameter></methodparam>  
   </methodsynopsis>
   <para>
-   La función <function>cubrid_execute</function> se usa para ejecutar la sentencia SQL dada. Ejecuta la consulta usando <parameter>conn_handle</parameter> y SQL, y luego devuelve el gestor de solicitud creado. Se usa para la simple ejecución de la consulta, donde el parámetro binding no es necesario. Además, <function>cubrid_execute</function> se usa para ejecutar la declaración preparada por medio de <function>cubrid_prepare</function> y <function>cubrid_bind</function>. En este momento se necesitan especificar los argumentos <parameter>request_handle</parameter> y <parameter>option</parameter>.
+   La función <function>cubrid_execute</function> se usa para ejecutar la sentencia SQL dada. Ejecuta la consulta usando <parameter>conn_identifier</parameter> y SQL, y luego devuelve el gestor de solicitud creado. Se usa para la simple ejecución de la consulta, donde el parámetro binding no es necesario. Además, <function>cubrid_execute</function> se usa para ejecutar la declaración preparada por medio de <function>cubrid_prepare</function> y <function>cubrid_bind</function>. En este momento se necesitan especificar los argumentos <parameter>request_identifier</parameter> y <parameter>option</parameter>.
   </para>
   <para>
    Se puede usar el argumento <parameter>option</parameter> para indicar si recibir el oid de la fila después de la ejecución, y si ejecutar la consulta en modo asíncrono. Se puede utilizar estableciendo CUBRID_INCLUDE_OID y CUBRID_ASYNC usando el operador a nivle de bit OR. Si ambas variables no se dan explícitamente, no se seleccionan por defecto.
   </para>
   <para>
-   Si el primer argumento de la función es <parameter>request_handle</parameter> para ejecutar <function>cubrid_prepare</function>, se necesita especificar una opción, CUBRID_ASYNC sólamente.
+   Si el primer argumento de la función es <parameter>request_identifier</parameter> para ejecutar <function>cubrid_prepare</function>, se necesita especificar una opción, CUBRID_ASYNC sólamente.
   </para>
  </refsect1>
  
@@ -37,8 +37,8 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>conn_handle</parameter></term>
-     <listitem><para>Gestor de conexión.</para></listitem>
+     <term><parameter>conn_identifier</parameter></term>
+     <listitem><para>Identificador de conexión.</para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>SQL</parameter></term>
@@ -49,8 +49,8 @@
      <listitem><para>La opción de ejecución de la consulta CUBRID_INCLUDE_OID, CUBRID_ASYNC.</para></listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>request_handle</parameter></term>
-     <listitem><para>Gestor de <function>cubrid_prepare</function>.</para></listitem>
+     <term><parameter>request_identifier</parameter></term>
+     <listitem><para>Identificador de <function>cubrid_prepare</function>.</para></listitem>
     </varlistentry>
    </variablelist>
   </para>
@@ -59,7 +59,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Gestor de solicitud, cuando el proceso tiene éxito. 
+   Gestor de solicitud, cuando el proceso tiene éxito y el primer parámetro es conn_identifier; &true;, cuando el proceso tiene éxito y el primer argumento es request_identifier. 
   </para>
   <para>
    &false;, cuando el proceso no tiene éxito.
@@ -74,22 +74,38 @@
 <![CDATA[
 <?php
 $con = cubrid_connect ("dbsvr.cubrid.com", 33000, "demodb"); 
-if ($con) {    echo "conectado con éxito"; 
-   $req = cubrid_execute ( $con, "select * from members",  CUBRID_INCLUDE_OID | CUBRID_ASYNC);    if ($req) { 
-while ( list ($id, $nombre) = cubrid_fetch ($req) ){   echo $id;   echo $nombre; 
+if ($con) {
+
+    echo "conectado con éxito"; 
+    $req = cubrid_execute ( $con, "select * from members",  CUBRID_INCLUDE_OID | CUBRID_ASYNC);
+
+    if ($req) { 
+        while ( list ($id, $nombre) = cubrid_fetch ($req) ){
+            echo $id;
+            echo $nombre; 
+        }
+        cubrid_close_request ($req);
+    }
+
+    cubrid_disconnect ($con); 
 }
-  cubrid_close_request ($req); }   cubrid_disconnect ($con); 
-} $con = cubrid_connect ("dbsvr.cubrid.com", 33000, "demodb"); 
-if ($con) {  echo "conectado con éxito"; 
-$sql = "insert into tbl values ( ?,?,?)";  $req = cubrid_prepare( $con, $sql, CUBRID_INCLUDE_OID ); 
- $i = 0;
- while ( $i < 2 ) { 
- $res = cubrid_bind( $req, 1, "1", "NUMBER"); 
- $res = cubrid_bind( $req, 2, "2"); 
- $res = cubrid_bind( $req, 3, "04:22:34 PM 08/07/2007"); 
- $res = cubrid_execute( $req );  
- $i = $i + 1; 
-}}
+
+
+$con = cubrid_connect ("dbsvr.cubrid.com", 33000, "demodb"); 
+if ($con) {
+    echo "conectado con éxito"; 
+    $sql = "insert into tbl values ( ?,?,?)";
+    $req = cubrid_prepare( $con, $sql, CUBRID_INCLUDE_OID ); 
+ 
+    $i = 0;
+    while ( $i < 2 ) { 
+        $res = cubrid_bind( $req, 1, "1", "NUMBER"); 
+        $res = cubrid_bind( $req, 2, "2"); 
+        $res = cubrid_bind( $req, 3, "04:22:34 PM 08/07/2007"); 
+        $res = cubrid_execute( $req );  
+        $i = $i + 1; 
+    }
+}
 ?>
 ]]>
    </programlisting>
