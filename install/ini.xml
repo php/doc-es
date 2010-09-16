@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 49299aaa95a46651d75167fcb449ff4b34f5a4f3 Maintainer: chuso #464 Status: ready -->
+ <chapter xml:id="configuration" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>Configuración en tiempo de ejecución</title>
+
+  <sect1 xml:id="configuration.file">
+   <title>El fichero de configuración</title>
+
+   <simpara>
+    Cuando PHP inicia, lee el fichero de configuración (&php.ini;).
+    En las versiones en que PHP funciona como módulo de servidor,
+    esto sucede únicamente cuando se arranca el servidor. Para las versiones
+    <acronym>CGI</acronym> y <acronym>CLI</acronym>, esto ocurre en
+    cada ejecución.
+   </simpara>
+   <para>
+ Se trata de encontrar al fichero &php.ini; en las siguientes localizaciones (en orden):
+    <itemizedlist>
+     <listitem>
+      <para>
+       Localización específica de módulo SAPI (directiva <literal>PHPIniDir</literal>
+       en Apache 2, opción de línea de comandos<literal>-c</literal> en CGI y CLI,
+       parámetro <literal>php_ini</literal> en NSAPI,
+       variable de entorno <literal>PHP_INI_PATH</literal> en THTTPD)
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       En la variable de entorno <varname>PHPRC</varname>. Antes de PHP 5.2.0
+       esta localización se comprobaba después de la clave de registro descrita más abajo.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       A partir de PHP 5.2.0, se puede establecer la localización del fichero
+       <literal>php.ini</literal> para diferentes versiones de PHP. Se examinan
+       en orden las siguientes claves de registro:
+       <literal>[HKEY_LOCAL_MACHINE\SOFTWARE\PHP\x.y.z]</literal>,
+       <literal>[HKEY_LOCAL_MACHINE\SOFTWARE\PHP\x.y]</literal> y
+       <literal>[HKEY_LOCAL_MACHINE\SOFTWARE\PHP\x]</literal>, donde
+       'x', 'y' y 'z' identifican la versión mayor, menor y edición de PHP. Si hubiera
+       un valor para <literal>IniFilePath</literal> en estas claves, entonces la primera en
+       ser encontrada se utilizaría como localización del fichero <literal>php.ini</literal> (solo en Windows).
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       <literal>[HKEY_LOCAL_MACHINE\SOFTWARE\PHP]</literal>, valor de
+       <literal>IniFilePath</literal> (solo en Windows).
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Directorio actual de trabajo (excepto CLI)
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       El directorio del servidor web (para módulos SAPI), o el directorio de PHP
+       (excepto en Windows)
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Directorio de Windows (<filename class="directory">C:\windows</filename>
+       o <filename class="directory">C:\winnt</filename>) (para Windows), o
+       <literal>--with-config-file-path</literal> en tiempo de compilación
+      </para>
+     </listitem>
+    </itemizedlist> 
+   </para>
+   <para>
+    Si existiera el fichero <filename>php-SAPI.ini</filename> (donde SAPI es la SAPI usada, de manera que
+    el nombre de fichero es p.ej. <filename>php-cli.ini</filename> o
+    <filename>php-apache.ini</filename>), se usaría éste en lugar de &php.ini;.
+    Se puede determinar el nombre de la SAPI usando <function>php_sapi_name</function>.
+   </para>
+   <note>
+    <para>
+     El servidor web Apache cambia el directorio al raíz al arrancar, haciendo
+     que PHP intente leer &php.ini; desde la raíz del sistema de ficheros si éste existe.
+    </para>
+   </note>
+   <para>
+    Las directivas de &php.ini; manejadas por extensiones están documentadas
+    en la propia página de cada extensión. La <link linkend="ini">lista de
+    directivas del núcleo</link> están disponibles en su apéndice. Es posible que no todas
+    las directivas de PHP estén documentadas en el manual. Para consultar una lista completa
+    de las directivas disponibles en tu versión de PHP, por favor, revise la versión de su fichero
+    &php.ini; que incluye todos los comentarios. Adicionalmente, puede encontrar útil
+    <link xlink:href="&url.php.svn.phpini;">el último &php.ini;</link> del SVN.
+   </para>
+   <para>
+    <example>
+     <title>&php.ini; ejemplo</title>
+     <programlisting role="ini">
+<![CDATA[
+; todo texto en una línea tras un punto y coma sin comillas (;) será ignorado
+[php] ; los marcadores de sección (textos entre corchetes) también se ignoran
+; Los valores de tipo Boolean puede establecerse a:
+;    true, on, yes
+; o  false, off, no, none
+register_globals = off
+track_errors = yes
+
+; puedes encerrar tus strings en comillas dobles
+include_path = ".:/usr/local/lib/php"
+
+; las barras reciben el mismo tratamiento que el resto de caracteres
+include_path = ".;c:\php\lib"
+]]>
+</programlisting>
+<!-- TODO: add more details about values and expressions -->
+    </example>
+   </para>
+   <para>
+    A partir de PHP 5.1.0, es posible hacer referencia a variables .ini ya existentes desde
+    el propio fichero .ini. Ejemplo: <literal>open_basedir = ${open_basedir}
+    ":/new/dir"</literal>.
+   </para>
+  </sect1>
+  
+  <sect1 xml:id="configuration.file.per-user">
+   <title>ficheros .user.ini</title>
+   
+   <simpara>
+    A partir de PHP 5.3.0, PHP incluye soporte para ficheros INI .tipo-htaccess
+    a nivel de directorios. Estos ficheros <emphasis>solo</emphasis> los procesa
+    la SAPI CGI/FastCGI. Esta funcionalidad deja obsoleta la extensión PECL htscanner.
+    Si está usando Apache, use los ficheros &htaccess; para lograr el mismo efecto.
+   </simpara>
+   
+   <simpara>
+    Además del fichero &php.ini; princiapl, PHP escanea en busca de ficheros INI en cada
+    directorio, empezando por el directorio del fichero PHP solicitado, y 
+    continuando hasta el documento raíz actual (tal y como está establecido en
+    <varname>$_SERVER['DOCUMENT_ROOT']</varname>). En el caso de que el fichero PHP se encuentre
+    fuera del documento raíz, sólo se escaneará su directorio.
+   </simpara>
+   <simpara>
+    En los ficheros INI .user.ini sólo se reconocerán
+    los ajustes INI que tengan los modos
+    <constant>PHP_INI_PERDIR</constant> y
+    <constant>PHP_INI_USER</constant>.
+   </simpara>
+   
+   <simpara>
+    Las dos nuevas directivas INI,
+    <literal>user_ini.filename</literal> y
+    <literal>user_ini.cache_ttl</literal>
+    <!--
+        <link linkend="ini.user-ini.filename">user_ini.filename</link> and
+        <link linkend="ini.user-ini.cache-ttl">user_ini.cache_ttl</link>
+    -->
+    controlan el uso de los ficheros INI de usuarios.
+   </simpara>
+   
+   <simpara>
+    <literal>user_ini.filename</literal> fija el nombre del fichero que PHP buscará
+    en cada directorio; si se fija un string vacío, PHP directamente no realizará ninguna búsqueda.
+    El nombre por omisión es <literal>.user.ini</literal>.
+   </simpara>
+   
+   <simpara>
+    <literal>user_ini.cache_ttl</literal> controla con qué frecuencia se reescanean los ficheros
+    INI de usuario. El valor por omisión es 300 segundos (5 minutos).
+   </simpara>
+  </sect1>
+
+  <sect1 xml:id="configuration.changes.modes">
+   <title>Dónde realizar un ajuste de configuración</title>
+
+   <para>
+    Estos modos determinan cuándo y dónde se debe o no asignar una directiva
+    PHP, y cada directiva del manual hace referencia a uno de estos
+    modos. Por ejemplo, algunos ajustes pueden establecerse en scripts PHP
+    usando <function>ini_set</function>, mientras que otros requieren hacerlo en
+    &php.ini; o en &httpd.conf;.
+   </para>
+
+   <para>
+    Por ejemplo, el ajuste de 
+    <link linkend="ini.output-buffering">output_buffering</link>
+    es <literal>PHP_INI_PERDIR</literal> por tanto no puede establecerse usando
+    <function>ini_set</function>. Sin embargo, la directiva
+    <link linkend="ini.display-errors">display_errors</link> es
+    <literal>PHP_INI_ALL</literal> por tanto se puede establecer en cualquier lugar,
+    incluso con <function>ini_set</function>.
+   </para>
+
+   <para>
+    <table>
+     <title>Definición de los modos PHP_INI_*</title>
+     <tgroup cols="3">
+      <thead>
+       <row>
+        <entry>Modo</entry>
+        <entry>Valor</entry>
+        <entry>Significado</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry><literal>PHP_INI_USER</literal></entry>
+        <entry>1</entry>
+        <entry>
+         La entrada se puede fijar en scripts de usuario (como con <function>ini_set</function>)
+         o en el <link linkend="configuration.changes.windows">registro de Windows</link>
+        </entry>
+       </row>
+       <row>
+        <entry><literal>PHP_INI_PERDIR</literal></entry>
+        <entry>6</entry>
+        <entry>La entrada se puede fijar en &php.ini;, &htaccess; o en &httpd.conf;</entry>
+       </row>
+       <row>
+        <entry><literal>PHP_INI_SYSTEM</literal></entry>
+        <entry>4</entry>
+        <entry>La entrada se puede fijar en &php.ini; o en &httpd.conf;</entry>
+       </row>
+       <row>
+        <entry><literal>PHP_INI_ALL</literal></entry>
+        <entry>7</entry>
+        <entry>La entrada se puede fijar en cualquier lugar</entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </table>
+   </para>
+  </sect1>
+
+  <sect1 xml:id="configuration.changes">
+   <title>Cómo cambiar los ajustes de configuración</title>
+
+   <sect2 xml:id="configuration.changes.apache">
+    <title>Ejecutando PHP como un módulo de Apache</title>
+    <simpara>
+     Cuando se usa PHP como un módulo de Apache, puede cambiar los
+     ajustes de configuración usando directivas en los ficheros de configuración
+     de Apache (p. ej. &httpd.conf;) y en los ficheros &htaccess;. Necesitará
+     los privilegios "AllowOverride Options" o "AllowOverride All" para poder hacerlo.
+    </simpara>
+
+    <para>
+     Hay varias directivas de Apache que le permiten
+     cambiar la configuración de PHP desde los propios ficheros de configuración
+     de Apache. Para consultar un listado de qué directivas son 
+     <constant>PHP_INI_ALL</constant>, <constant>PHP_INI_PERDIR</constant>, 
+     o <constant>PHP_INI_SYSTEM</constant>, consulte el apéndice de la 
+     <link linkend="ini.list">Lista de directivas de php.ini</link>.
+    </para>
+
+    <para>
+     <variablelist>
+      <varlistentry>
+       <term>
+        <systemitem role="directive">php_value</systemitem>
+        <parameter>nombre</parameter>
+        <parameter>valor</parameter>
+       </term>
+       <listitem>
+        <para>
+         Fija el valor de la directiva especificada.
+         Sólo puede usarse con las directivas de tipo <constant>PHP_INI_ALL</constant>
+         y <constant>PHP_INI_PERDIR</constant>. Para dejar en blanco un valor
+         previamente establecido, use <literal>none</literal> como valor.
+        </para>
+        <note>
+         <simpara>
+          No uses <systemitem role="directive">php_value</systemitem> para fijar valores boolean.
+          Debe usarse en su lugar <systemitem role="directive">php_flag</systemitem> (ver más abajo).
+         </simpara>
+        </note>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+        <systemitem role="directive">php_flag</systemitem>
+        <parameter>nombre</parameter>
+        <parameter>on|off</parameter>
+       </term>
+       <listitem>
+        <para>
+         Usado para fijar una directiva de configuración de tipo boolean.
+         Sólo puede usarse con las directivas de tipo
+         <constant>PHP_INI_ALL</constant> y <constant>PHP_INI_PERDIR</constant>.
+        </para>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+        <systemitem role="directive">php_admin_value</systemitem>
+        <parameter>nombre</parameter>
+        <parameter>valor</parameter>
+       </term>
+       <listitem>
+        <para>
+         Fija el valor de la directiva especificada.
+         Esto <emphasis>no se puede usar</emphasis> en ficheros &htaccess;.
+         Ninguna directiva fijada con <systemitem role="directive">php_admin_value</systemitem>
+         podrá ser sobrescrita por &htaccess; o por <function>ini_set</function>.
+         Para borrar un valor fijado previamente use <literal>none</literal> como valor.
+        </para>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>
+        <systemitem role="directive">php_admin_flag</systemitem>
+        <parameter>nombre</parameter>
+        <parameter>on|off</parameter>
+       </term>
+       <listitem>
+        <para>
+         Usado para fijar una directiva de configuración de tipo boolean.
+         Esto <emphasis>no se puede usar</emphasis> en ficheros &htaccess;.
+         Ninguna directiva fijada con <systemitem role="directive">php_admin_flag</systemitem>
+         podrá ser sobcrescrita por &htaccess; o por <function>ini_set</function>.
+        </para>
+       </listitem>
+      </varlistentry>
+     </variablelist>
+    </para>
+    <para>
+     <example>
+      <title>Ejemplo de configuración de Apache</title>
+      <programlisting role="ini">
+<![CDATA[
+<IfModule mod_php5.c>
+  php_value include_path ".:/usr/local/lib/php"
+  php_admin_flag safe_mode on
+</IfModule>
+<IfModule mod_php4.c>
+  php_value include_path ".:/usr/local/lib/php"
+  php_admin_flag safe_mode on
+</IfModule>
+]]>
+      </programlisting>
+     </example>
+    </para>
+    <caution>
+     <para>
+      Las constantes de PHP no existen fuera de PHP. Por ejemplo, en
+      &httpd.conf; no puede usar constantes de PHP
+      tales como <constant>E_ALL</constant> o <constant>E_NOTICE</constant> 
+      para fijar la directiva <link linkend="ini.error-reporting">error_reporting</link> 
+      puesto que no tendrán ningún significado y se evaluarán a
+      <emphasis>0</emphasis>. Use en su lugar la máscara de bits asociada.
+      Estas constantes sí pueden ser usadas en &php.ini;
+     </para>
+    </caution>
+   </sect2>
+
+   <sect2 xml:id="configuration.changes.windows">
+    <title>Cambiando la configuración de PHP a partir del registro de Windows</title>
+     <simpara>
+      Cuando se ejecuta PHP en Windows, se pueden modificar los valores
+      de configuración a nivel de directorio usando el registro de Windows.
+      Los valores de configuración se almacenan en la clave de registro
+      <literal>HKLM\SOFTWARE\PHP\Per Directory Values</literal>, 
+      en las sub-claves correspondientes al path. Por ejemplo, los valores
+      de configuración para el directorio <literal>c:\inetpub\wwwroot</literal>
+      se almacenarían en la clave <literal>HKLM\SOFTWARE\PHP\Per Directory
+      Values\c\inetpub\wwwroot</literal>. Los ajustes para el directorio
+      estarían activos para cualquier script dentro de este directorio o
+      en cualquier de sus subdirectorios. Los valores bajo esta clave
+      deben tener el nombre de la directiva de configuración de PHP
+      y su valor. Las constantes de PHP usadas como valor 
+      no serán procesadas. En cualquier aso, únicamente los valores de configuración
+      modificables presentes en <constant>PHP_INI_USER</constant> podrán
+      fijarse con este método, mientras que los valores en <constant>PHP_INI_PERDIR</constant> no.
+     </simpara>
+   </sect2>
+   
+   <sect2 xml:id="configuration.changes.other">
+    <title>Otras interfaces a PHP</title>
+    <para>
+     Independientemente de cómo ejecute PHP, puede cambiar determinados valores
+     de sus scripts en tiempo de ejecución mediante <function>ini_set</function>.
+     Consulte la documentación en la página <function>ini_set</function> para más información.
+    </para>
+    <para>
+     Si está interesado en una lista completa de los ajustes de configuración
+     en su sistema con sus parámetros actuales, puede ejecutar la función
+     <function>phpinfo</function>, y consultar la página mostrada.
+     Puede también acceder a los valores de directivas de configuración concretas
+     usando <function>ini_get</function> o <function>get_cfg_var</function>.
+    </para>
+   </sect2>
+  </sect1>
+
+ </chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+
