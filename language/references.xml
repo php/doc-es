@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 22434db00e7486f5cecb9550904bbddce944ddcb Maintainer: seros Status: ready -->
+<!-- EN-Revision: 590845fd0e99d6d7e9d4b1111b3f1eebbb52dd5c Maintainer: seros Status: ready -->
 <chapter xml:id="language.references" xmlns="http://docbook.org/ns/docbook">
  <title>Referencias Explicadas</title>
  
@@ -108,6 +108,11 @@ $foo =& find_var($bar);
     usar <literal>=&amp;</literal> en este contexto es obsoleto y
     produce un mensaje <constant>E_DEPRECATED</constant> en PHP 5.3 y
     posteriores, y un mensaje <constant>E_STRICT</constant> en versiones anteriores.
+    (Técnicamente, la diferencia es que, en PHP 5, las variables de objetos, como
+    los recursos, son meros punteros a la información del objeto actual, por lo que estas referencias
+    a objetos no son "referencias" en el mismo sentido usado antes (alias).
+    Para más información, véase <link linkend="language.oop5.references">Objetos
+    y referencias</link>.)
    </para>
    <warning>
     <para>
@@ -166,6 +171,56 @@ echo $ref; // 3 - último elemento de la matriz iterada
      </example>
     </para>
    </note>
+   <para>
+    Mientras que no sea estrictamente una asignación por referencias, las expresiones creadas
+    con el constructor de lenguaje
+    <link linkend="function.array"><literal>array()</literal></link> también pueden
+    comportarse como tales prefijando <literal>&amp;</literal> al elemento del array
+    a añadir. Ejemplo:
+    <informalexample>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$a = 1;
+$b = array(2, 3);
+$arr = array(&$a, &$b[0], &$b[1]);
+$arr[0]++; $arr[1]++; $arr[2]++;
+/* $a == 2, $b == array(3, 4); */
+?>
+]]>
+     </programlisting>
+    </informalexample>
+   </para>
+   <para>
+    Observe, sin embargo, que las referencias dentro de arrays son potencialmente peligrosas.
+    Mientras que una asignación normal (no por referencia) con una referencia en el
+    lado derecho no convierte el lado izquierdo en una referencia, las referencias dentro
+    de arrays son conservadas en asignaciones normales. Ejemplo:
+    <informalexample>
+     <programlisting role="php">
+<![CDATA[
+<?php
+/* Asignación de variables escalares */
+$a = 1;
+$b =& $a;
+$c = $b;
+$c = 7; //$c no es una referencia; no cambia $a o $b
+
+/* Asignación de variables de array */
+$a = 1;
+$arr = array(&$a);
+$arr2 = $arr; // ¡no es una asignación por referencia!
+$arr2[0]++;
+/* $a == 2, $arr == array(2) */
+/* ¡El contenido de $arr se cambia incluso si no es una referencia! */
+?>
+]]>
+     </programlisting>
+    </informalexample>
+    En otras palabras, el comportamiento de las referencias de arrays está definido en una
+    base elemento-por-elemento; el comportamiento de las referencias de elementos individuales
+    está desasociado del estado de la referencia del array contenedor.
+   </para>
   </sect2>
   <sect2 xml:id="language.references.whatdo.pass">
    <title>Pasar por Referencia</title>
