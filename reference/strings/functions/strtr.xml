@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bc3a5cc7bd9d0ed1388589352f63e080a61b80d2 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 3bbb0ff28b32a373b5236ed20b1eb0b186c4af7f Maintainer: jpberdejo Status: ready -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.strtr" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>strtr</refname>
-  <refpurpose>Traduce ciertos caracteres</refpurpose>
+  <refpurpose>Traduce ciertos caracteres o reemplaza substrings</refpurpose>
  </refnamediv>
 
- <refsect1 role="description"> 
-  &reftitle.description; 
+ <refsect1 role="description">
+  &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>strtr</methodname>
    <methodparam><type>string</type><parameter>str</parameter></methodparam>
@@ -21,13 +21,34 @@
    <methodparam><type>array</type><parameter>replace_pairs</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función devuelve una copia de la <parameter>cadena</parameter>,
-   traduciendo todas las apariciones de cada caracter en 
-   <parameter>desde</parameter> por el carácter correspondiente
-   <parameter>hasta</parameter>.
+   Si se dan tres argumentos, esta función devuelve una copia de
+   <parameter>str</parameter> donde todas las apariciones de cada caracter
+   (byte simple) en <parameter>from</parameter> ha sido traducido al
+   caracter correspondiente en <parameter>to</parameter> es decir, todas
+   las apariciones de <literal>$from[$n]</literal> han sido reemplazadas con
+   <literal>$to[$n]</literal>, donde <literal>$n</literal> es un desplazamiento
+   válido en ambos argumentos.
   </para>
-  <para> Si <parameter>desde</parameter> y <parameter>hasta</parameter> son de distinta logitud, se
-   ignoran los caracteres extra de la cadena más larga.
+  <para> 
+   Si <parameter>from</parameter> y <parameter>to</parameter> tienen
+   distinta logitud, se ignoran los caracteres extra del string
+   más largo. La longitud de <parameter>str</parameter> será la misma
+   que la del valor devuelto.
+  </para>
+  <para>
+   Si se dan dos argumentos, el segundo debe ser un <type>array</type> en la
+   forma de <literal>array('from' => 'to', ...)</literal>. El valor devuelto es
+   un <type>string</type> donde todas las apariciones de las claves del array han sido
+   reemplazadas por los valores correspondientes. Las claves más largas se intentarán primero.
+   Una vez una substring ha sido reemplazada, su nuevo valor no será buscado
+   de nuevo.
+  </para>
+  <para>
+   En este caso, las claves y los valores pueden tener cualquier longitud, siempre que
+   no haya llaves vacías; adicionalmente, la longitud del valor devuelto puede
+   diferir de la de <parameter>str</parameter>.
+   Sin embargo, esta función será la más eficiente cuando todas las claves tienen el
+   mismo tamaño.
   </para>
  </refsect1>
 
@@ -36,7 +57,7 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>cadena</parameter></term>
+     <term><parameter>string</parameter></term>
      <listitem>
       <para>
        Tipo <type>string</type> La cadena que se está traduciendo.
@@ -44,32 +65,34 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>desde</parameter></term>
+     <term><parameter>from</parameter></term>
      <listitem>
       <para>
        Tipo <type>string</type> sus caracteres serán reemplazado por
-        <parameter>hasta</parameter>.
+        <parameter>to</parameter>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term>
-      <parameter>hasta</parameter>
+      <parameter>to</parameter>
      </term>
      <listitem>
-      <para> Tipo <type>string</type> los caracteres que reemplazarán a
-       <parameter>desde</parameter>. 
+      <para>
+ Tipo <type>string</type> los caracteres que reemplazarán a
+       <parameter>from</parameter>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term>
-      <parameter>pares_sustituidos</parameter>
+      <parameter>replace_pairs</parameter>
      </term>
      <listitem>
-      <para> El argumento <parameter>pares_sustituidos</parameter> puede ser usado como un sustituto
-       para <parameter>hasta</parameter> y <parameter>desde</parameter> en cuyo caso se trata de un
-       <type>array</type> en esta forma <literal>array('from' => 'to', ...)</literal>.
+      <para>
+       El parámetro <parameter>replace_pairs</parameter> puede ser usado en lugar de
+       <parameter>to</parameter> y <parameter>from</parameter>, en cuyo caso es un
+       <type>array</type> en la forma <literal>array('from' => 'to', ...)</literal>.
       </para>
       </listitem>
     </varlistentry>
@@ -79,12 +102,12 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para> 
-   Devuelve la <type>cadena</type> traducida.
+  <para>
+   Devuelve el <type>string</type> traducido.
   </para>
    <para>
    Si el <parameter>replace_pairs</parameter> contiene una clave con
-   una <type>cadena</type> vacía (<literal>""</literal>),
+   una <type>string</type> vacía (<literal>""</literal>),
    se devolverá &false;.
   </para>
  </refsect1>
@@ -93,10 +116,12 @@
   &reftitle.examples;
   <para>
    <example>
-    <title><function>strtr</function> ejemplo</title>
+    <title>Ejemplo de <function>strtr</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
+//En esta forma, strtr() hace una traducción byte por byte
+//Por lo tanto, se asume una codificación de un solo byte aquí:
 $addr = strtr($addr, "äåö", "aao");
 ?>
 ]]>
@@ -104,33 +129,57 @@ $addr = strtr($addr, "äåö", "aao");
    </example>
   </para>
   <para>
-   <function>strtr</function> Puede llamarse con dos unicos argumentos. Si se llama con 2 argumentos
-   se comporta de otro modo: <parameter>desde</parameter> debe ser entonces una matriz que contenga
-   pares cadena -> cadena que serán sustituídos en la cadena original. <function>strtr</function>
-   siempre buscará la coincidencia más larga primero y *NO* intentará sustituir nada en lo que haya
-   trabajado ya.
+   El siguiente ejemplo muestra el comportamiento de <function>strtr</function> cuando
+   se llama con sólo dos argumentos. Tenga en cuenta la preferencia de los reemplazos
+   (<literal>"h"</literal> no se toma porque hay emparejamientos más largos)
+   y como el texto remplazado no fue buscado de nuevo.
   </para>
   <example>
-   <title><function>strtr</function> ejemplo con 2 argumentos</title>
+   <title>Ejemplo de <function>strtr</function> con 2 argumentos</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$trans = array("hola" => "buen dia", "buen dia" => "hola");
-echo strtr("hola a todos, digo buen dia", $trans);
+$trans = array("h" => "-", "hello" => "hi", "hi" => "hello");
+echo strtr("hi all, I said hello", $trans);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-buen dia a todos, digo hola
+hello all, I said hi
+]]>
+    </screen>
+  </example>
+  <para>
+   Los dos modos de comportamiento son muy diferentes. Con tres argumentos
+   <function>strtr</function> reemplazará bytes; con dos, puede reemplazar
+   substrings más largas.
+  </para>
+  <example>
+   <title>Comparación del comportamiento de <function>strtr</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+echo strtr("baab", "ab", "01"),"\n";
+
+$trans = array("ab" => "01");
+echo strtr("baab", $trans);
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+1001
+ba01
 ]]>
     </screen>
   </example>
  </refsect1>
 
  <refsect1 role="seealso">
-  &reftitle.seealso; 
+  &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>str_replace</function></member>
@@ -160,3 +209,4 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
+
