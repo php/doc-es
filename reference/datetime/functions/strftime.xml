@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: cb18b62069d314b4a38c7b8a2b87ab325b2b311b Maintainer: agarzon Status: ready -->
+<!-- EN-Revision: 515006c2e5f1605bda89df9915be26897b1b67a6 Maintainer: agarzon Status: ready -->
 <refentry xml:id="function.strftime" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>strftime</refname>
@@ -321,6 +321,12 @@
         El ejemplo de abajo ilustra cómo escribir una función compatible multiplataforma.
        </simpara>
       </warning>
+      <warning>
+       <simpara>
+        <emphasis>Solamente Mac OS X:</emphasis> El modificador <literal>%P</literal> 
+        no está soportado en la implementación de Mac OS X de esta función.
+       </simpara>
+      </warning>   
      </listitem>
     </varlistentry>
     
@@ -474,6 +480,153 @@ echo strftime($format);
     </programlisting>
    </example>
   </para>
+  <para>
+   <example>
+    <title>Mostrar todos los formatos conocidos y desconocidos.</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Describe los formatos.
+$strftimeFormats = array(
+    'A' => 'Una representación textual completa del día',
+    'B' => 'Nombre del mes completo, basado en la configuración regional',
+    'C' => 'Representación de dos dígitos del siglo (año dividido entre 100, truncado a un integer)',
+    'D' => 'Lo mismo que "%m/%d/%y"',
+    'E' => '',
+    'F' => 'Lo mismo que "%Y-%m-%d"',
+    'G' => 'La versión de cuatro dígitos completa de %g',
+    'H' => 'Representación de dos dígitos de la hora en formato de 24 horas',
+    'I' => 'Representación de dos dígitos de la hora en formato de 12 horas',
+    'J' => '',
+    'K' => '',
+    'L' => '',
+    'M' => 'Representación de dos dígitos de los minutos',
+    'N' => '',
+    'O' => '',
+    'P' => ''am' o 'pm' en minúsculas basados en la hora dada',
+    'Q' => '',
+    'R' => 'Lo mismo que "%H:%M',
+    'S' => 'Representación de dos dígitos de los segundos',
+    'T' => 'Lo mismo que "%H:%M:%S"',
+    'U' => 'Número de semana del año dado, comenzando con el primer Domingo como la primera semana',
+    'V' => 'Número de semana ISO-8601:1988 del año dado, comenzando con la primera semana del año con al menos 4 días de semana, con Lunes siendo el principio de la semana',
+    'W' => 'Una representación numérica de la semana del año, comenzando con el primer Domingo como la primera semana',
+    'X' => 'Representación preferida de la hora basda en la configuración regional, sin la fecha',
+    'Y' => 'Representación de cuatro dígitos del año',
+    'Z' => 'La opción de índice/abreviatura de la zona horaria NO dada por %z (depende del sistema operativo)',
+    'a' => 'Una representación textual abreviada del día',
+    'b' => 'Nombre del mes abreviado, basado en la configuración regional',
+    'c' => 'Marca preferida de la fecha y hora basadas en la configuración regional',
+    'd' => 'El día del mes con dos dígitos (con ceros iniciales)',
+    'e' => 'El día del mes, con un espacio precediendo a los dígitos simples',
+    'f' => '',
+    'g' => 'Representación de dos dígitos del año por el estándar ISO-8601:1988 (véase %V)',
+    'h' => 'Nombre del mes abreviado, basado en la configuración regional (un alias de %b)',
+    'i' => '',
+    'j' => 'Día del año, 3 dígitos con ceros iniciales',
+    'k' => '',
+    'l' => 'La hora en formato de 12 horas, con un espacio precediendo a los dígitos simples',
+    'm' => 'Representación de dos dígitos del mes',
+    'n' => 'Un carácter de nueva línea ("\n")',
+    'o' => '',
+    'p' => ''AM' o 'PM' en MAYÚSCULAS basados en la hora dada',
+    'q' => '',
+    'r' => 'Lo mismo que "%I:%M:%S %p"',
+    's' => 'Marca de tiempo del momento de la Época Unix',
+    't' => 'Un carácter de tabulación ("\t")',
+    'u' => 'Representación numérica ISO-8601 del día de la semana',
+    'v' => '',
+    'w' => 'Representación numérica del día de la semana',
+    'x' => 'Representación preferida de la fecha basda en la configuración local, sin la hora',
+    'y' => 'Representación de dos dígitos del año',
+    'z' => 'El índice de la zona horaria de UTC o la abreviatura (depende del sistema operativo)',
+    '%' => 'Un carácter de porcentaje literal ("%")',
+);
+
+// Resultados.
+$strftimeValues = array();
+
+// Evalúa los formatos, mientras suprime cualquier error.
+foreach($strftimeFormats as $format => $description){
+    if (False !== ($value = @strftime("%{$format}"))){
+        $strftimeValues[$format] = $value;
+    }
+}
+
+// Encuentra el valor más largo.
+$maxValueLength = 2 + max(array_map('strlen', $strftimeValues));
+
+// Reporta los formatos conocidos.
+foreach($strftimeValues as $format => $value){
+    echo "Formato conocido : '{$format}' = ", str_pad("'{$value}'", $maxValueLength), " ( {$strftimeFormats[$format]} )\n";
+}
+
+// Reporta los formatos desconocidos.
+foreach(array_diff_key($strftimeFormats, $strftimeValues) as $format => $description){
+    echo "Formato desconocido : '{$format}'   ", str_pad(' ', $maxValueLength), ($description ? " ( {$description} )" : ''), "\n";
+}
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Formato conocido   : 'A' = 'Friday'            ( Una representación textual completa del día )
+Formato conocido   : 'B' = 'December'          ( Nombre del mes completo, basado en la configuración regional )
+Formato conocido   : 'H' = '11'                ( Representación de dos dígitos de la hora en formato de 24 horas )
+Formato conocido   : 'I' = '11'                ( Representación de dos dígitos de la hora en formato de 12 horas )
+Formato conocido   : 'M' = '24'                ( Representación de dos dígitos de los minutos )
+Formato conocido   : 'S' = '44'                ( Representación de dos dígitos de los segundos )
+Formato conocido   : 'U' = '48'                ( Número de semana del año dado, comenzando con el primer Domingo como la primera semana )
+Formato conocido   : 'W' = '48'                ( Una representación numérica de la semana del año, comenzando con el primer Domingo como la primera semana )
+Formato conocido   : 'X' = '11:24:44'          ( Representación preferida de la hora basda en la configuración regional, sin la fecha )
+Formato conocido   : 'Y' = '2010'              ( Representación de cuatro dígitos del año )
+Formato conocido   : 'Z' = 'GMT Standard Time' ( La opción de índice/abreviatura de la zona horaria NO dada por %z (depende del sistema operativo) )
+Formato conocido   : 'a' = 'Fri'               ( Una representación textual abreviada del día )
+Formato conocido   : 'b' = 'Dec'               ( Nombre del mes abreviado, basado en la configuración regional )
+Formato conocido   : 'c' = '12/03/10 11:24:44' ( Marca preferida de la fecha y hora basadas en la configuración regional )
+Formato conocido   : 'd' = '03'                ( El día del mes con dos dígitos (con ceros iniciales) )
+Formato conocido   : 'j' = '337'               ( Día del año, 3 dígitos con ceros iniciales )
+Formato conocido   : 'm' = '12'                ( Representación de dos dígitos del mes )
+Formato conocido   : 'p' = 'AM'                ( 'AM' o 'PM' en MAYÚSCULAS basados en la hora dada )
+Formato conocido   : 'w' = '5'                 ( Representación numérica del día de la semana )
+Formato conocido   : 'x' = '12/03/10'          ( Representación preferida de la fecha basda en la configuración local, sin la hora )
+Formato conocido   : 'y' = '10'                ( Representación de dos dígitos del año )
+Formato conocido   : 'z' = 'GMT Standard Time' ( El índice de la zona horaria de UTC o la abreviatura (depende del sistema operativo) )
+Formato conocido   : '%' = '%'                 ( Un carácter de porcentaje literal ("%") )
+Formato desconocido : 'C'                       ( Representación de dos dígitos del siglo (año dividido entre 100, truncado a un integer) )
+Formato desconocido : 'D'                       ( Lo mismo que "%m/%d/%y" )
+Formato desconocido : 'E'
+Formato desconocido : 'F'                       ( Lo mismo que "%Y-%m-%d" )
+Formato desconocido : 'G'                       ( La versión de cuatro dígitos completa de %g )
+Formato desconocido : 'J'
+Formato desconocido : 'K'
+Formato desconocido : 'L'
+Formato desconocido : 'N'
+Formato desconocido : 'O'
+Formato desconocido : 'P'                       ( 'am' o 'pm' en minúsculas basados en la hora dada )
+Formato desconocido : 'Q'
+Formato desconocido : 'R'                       ( Lo mismo que "%H:%M )
+Formato desconocido : 'T'                       ( Lo mismo que "%H:%M:%S" )
+Formato desconocido : 'V'                       ( Número de semana ISO-8601:1988 del año dado, comenzando con la primera semana del año con al menos 4 días de semana, con Lunes siendo el principio de la semana )
+Formato desconocido : 'e'                       ( El día del mes, con un espacio precediendo a los dígitos simples )
+Formato desconocido : 'f'
+Formato desconocido : 'g'                       ( Representación de dos dígitos del año por el estándar ISO-8601:1988 (véase %V) )
+Formato desconocido : 'h'                       ( Nombre del mes abreviado, basado en la configuración regional (un alias de %b) )
+Formato desconocido : 'i'
+Formato desconocido : 'k'
+Formato desconocido : 'l'                       ( La hora en formato de 12 horas, con un espacio precediendo a los dígitos simples )
+Formato desconocido : 'n'                       ( Un carácter de nueva línea ("\n") )
+Formato desconocido : 'o'
+Formato desconocido : 'q'
+Formato desconocido : 'r'                       ( Lo mismo que "%I:%M:%S %p" )
+Formato desconocido : 's'                       ( Marca de tiempo del momento de la Época Unix )
+Formato desconocido : 't'                       ( Un carácter de tabulación ("\t") )
+Formato desconocido : 'u'                       ( Representación numérica ISO-8601 del día de la semana )
+Formato desconocido : 'v'
+]]>
+    </screen>
+   </example>
+  </para>  
  </refsect1>
  
  <refsect1 role="notes">
