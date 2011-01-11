@@ -22,11 +22,16 @@
    servicios.
   </para>
   <para>
-   Una vez iniciado, el proceso de servicio debería continuar registrado con el
-   administrador de control de servicios por lo que puede determinar si debería de finalizar.
-   Esto se logra llamando periódicamente a
-   <function>win32_get_last_control_message</function> y manejando el código de
-   retorno apropiado.
+   Una vez iniciado, el proceso de servicio debería hacer 2 cosas. La primera es llamar
+   al Administrador de Control de Servicios que esté ejecutando el servicio. Esto se lleva a cabo
+   llamando a <function>win32_set_service_status</function> con la
+   constante <constant>WIN32_SERVICE_RUNNING</constant>. Si necesita realizar
+   algún proceso prolongado antes de que el servicio esté realmente ejecutándose, puede
+   usar la constante <constant>WIN32_SERVICE_START_PENDING</constant>. Lo segundo
+   es continuar registrando con el administrador de control de servicios por lo que
+   puede determinar si debería finalizarse. Esto se lleva a cabo llamando
+   periódicamente a <function>win32_get_last_control_message</function> y manteniendo el
+   código devuelto de manera apropiada.
   </para>
   
  </refsect1>
@@ -69,9 +74,15 @@ if (!win32_start_service_ctrl_dispatcher('dummyphp')) {
   die("Probablemente no esté ejecutándome bajo el administrador de control de servicios");
 }
 
+win32_set_service_status(WIN32_SERVICE_START_PENDING);
+
+// Algún proceso prolongado para levantar este servicio y ejecutar.
+
+win32_set_service_status(WIN32_SERVICE_RUNNING);
+
 while (WIN32_SERVICE_CONTROL_STOP != win32_get_last_control_message()) {
-  # hacer su trabajo aquí, intentando no tomar más de 30 segundos antes de
-  # ejecutar de nuevo el bucle
+  # hacer su trabajo aquí, intentando no tomar más de 30 segundos
+  # antes de ejecutar de nuevo el bucle
 }
 ?>
 ]]>
@@ -84,6 +95,7 @@ while (WIN32_SERVICE_CONTROL_STOP != win32_get_last_control_message()) {
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>win32_set_service_status</function></member>
     <member><function>win32_get_last_control_message</function></member>
     <member><link linkend="win32service.constants.errors">Códigos de Error de Win32</link></member>
    </simplelist>
