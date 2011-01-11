@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9b785467c8cb0e8bf704b2a08e0a6bd4ec235ecd Maintainer: seros Status: ready -->
+<!-- EN-Revision: 9573757afae0aa1dc1bc84463f7b6a3e07bb23d4 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-bind" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -20,9 +20,16 @@
   <para>
    La función <function>cubrid_bind</function> se usa para vincular valores de una variable <function>cubrid_prepare</function>, de varios tipos de PHP y correspondientes tipos de SQL. Si no se da bind_value_type lo predeterminado será una cadena.
   </para>
-  <para>
-   Nota: El valor de tipo de colección (conjunto, multiconjunto o secuencia) no se puede vincular.
-  </para>
+  <note>
+   <para>
+    Nota: El valor de tipo de colección (conjunto, multiconjunto o secuencia) no se puede vincular.
+   </para>
+  </note>
+  <note>
+   <para>
+    Problema conocido: Si el tipo de información de columna es CLOB, la vinculación del parámetro fallará. Este error será corregido posteriormente, ahora use mejor BLOB.
+   </para>
+  </note>
  </refsect1>
  
  <refsect1 role="parameters">
@@ -31,7 +38,7 @@
    <variablelist>
     <varlistentry>
      <term><parameter>req_identifier</parameter></term>
-     <listitem><para>Identificador de solicitud como resultado de <function>cubrid_prepare.</function></para></listitem>
+     <listitem><para>Identificador de solicitud como resultado de <function>cubrid_prepare</function></para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>bind_index</parameter></term>
@@ -43,13 +50,11 @@
     </varlistentry>
     <varlistentry>
      <term><parameter>bind_index</parameter></term>
-     <listitem><para>Un tipo de valor a vincular. (Es omitido por defecto. Así, el sistema internamente usa una cadena por omisión. Sin embargo, se necesita especificar el tipo exacto del valor como argumento cuando son de tipo NCHAR o BIT).</para></listitem>
+     <listitem><para>Un tipo de valor a vincular. (Es omitido por defecto. Así, el sistema internamente usa una cadena por omisión. Sin embargo, se necesita especificar el tipo exacto del valor como argumento cuando son de tipo NCHAR, BIT, o BLOB/CLOB).</para></listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
- 
  
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
@@ -61,6 +66,30 @@
   </para>
  </refsect1>
  
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.3.1</entry>
+       <entry>
+        Añadido el soporte para tipos de datos BLOB/CLOB.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -68,18 +97,40 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$con = cubrid_connect ("dbsvr.cubrid.com", 12345, "demodb");
+$con = cubrid_connect("dbsvr.cubrid.com", 12345, "demodb");
 if ($con) {
-$sql = "insert into tbl values ( ?,?,?)"; 
- $req = cubrid_prepare( $con, $sql, CUBRID_INCLUDE_OID ); 
- $i = 0;
- while ( $i < 2 ) { 
- $res = cubrid_bind( $req, 1, "1", "NUMBER"); 
- $res = cubrid_bind( $req, 2, "2"); 
- $res = cubrid_bind( $req, 3, "04:22:34 PM 08/07/2007"); 
- $res = cubrid_execute( $req );  
- $i = $i + 1; 
-}} 
+    $sql = "insert into tbl values (?,?,?)"; 
+    $req = cubrid_prepare($con, $sql, CUBRID_INCLUDE_OID); 
+
+    $i = 0;
+    while ($i < 2) { 
+        $res = cubrid_bind($req, 1, "1", "NUMBER"); 
+        $res = cubrid_bind($req, 2, "2"); 
+        $res = cubrid_bind($req, 3, "04:22:34 PM 08/07/2007"); 
+        $res = cubrid_execute( $req );  
+        $i = $i + 1; 
+    }
+} 
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example>
+   <title><function>cubrid_bind</function> BLOB/CLOB example</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$con = cubrid_connect ("localhost", 33000, "foo");
+if ($con) {
+    $sql = "INSERT INTO php_cubrid_lob_test(doc_content) VALUES(?)"; 
+    $req = cubrid_prepare($con, $sql); 
+
+    $fp = fopen("book.txt", "rb");
+
+    cubrid_bind($req, 1, $fp, "blob"); 
+    cubrid_execute($req);  
+}
 ?>
 ]]>
    </programlisting>
