@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9145baba028d1f823e476c5bb577d0dd24066a2d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 307575 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-close-request" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_close_request</refname>
-  <refpurpose>Cierra el gestor de solicitud</refpurpose>
+  <refpurpose>Cerrar el gestor de solicitud</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -15,7 +15,9 @@
    <methodparam><type>resource</type><parameter>req_identifier</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>cubrid_close_request</function> cierra el gestor de solicitud dado por el argumento <parameter>req_identifier</parameter>, y libera la región de memoria relacionada con el gestor.
+   La función <function>cubrid_close_request</function> cierra el gestor de
+   solicitud dado por el argumento <parameter>req_identifier</parameter>, y
+   libera la región de memoria relacionada con el gestor.
   </para>
  </refsect1>
  
@@ -48,22 +50,36 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$con = cubrid_connect ("dbsvr.cubrid.com", 12345, "demodb");
-if ($con) {
-   echo "conectado con éxito";
-   $req = cubrid_execute ( $con, "select * from members", CUBRID_INCLUDE_OID | CUBRID_ASYNC);
-   if ($req) {
-      while ( list ($id, $nombre) = cubrid_fetch ($req) ){
-         echo $id;
-         echo $nombre;
-      } 
-      cubrid_close_request($req);
-   }
-   cubrid_disconnect($con);
+$conn = cubrid_connect("localhost", 33000, "demodb");
+$req = cubrid_prepare ($conn, "SELECT * FROM olympic WHERE host_year=?");
+
+$host_year = 2004;
+cubrid_bind($req, 1, $host_year, "number");
+cubrid_execute($req);
+
+printf("%-9s %-11s %-9s %-12s %-12s %-15s %-15s\n",
+    "host_year", "host_nation", "host_city", "opening_date", 
+    "closing_date", "mascot", "slogan");
+
+while ($row = cubrid_fetch_assoc($req)) {
+    printf("%-9s %-11s %-9s %-12s %-12s %-15s %-15s\n", 
+        $row["host_year"], $row["host_nation"], $row["host_city"], 
+        $row["opening_date"], $row["closing_date"], $row["mascot"], $row["slogan"]);
 }
+
+cubrid_close_request($req);
+
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+host_year host_nation host_city opening_date closing_date mascot          slogan         
+2004      Greece      Athens    2004-8-13    2004-8-29    Athena  Phevos  Welcome Home   
+]]>
+   </screen>
   </example>
  </refsect1>
  
