@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9145baba028d1f823e476c5bb577d0dd24066a2d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 244029a89a510a653e0d551be896c995d7c2ea23 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-commit" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_commit</refname>
-  <refpurpose>Se usa para ejecutar el envío (commit) de la transacción</refpurpose>
+  <refpurpose>Consigna una transacción</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -14,7 +14,17 @@
    <type>bool</type><methodname>cubrid_commit</methodname>
    <methodparam><type>resource</type><parameter>conn_identifier</parameter></methodparam>  </methodsynopsis>
   <para>
-   La función <function>cubrid_commit</function> se usa para ejecutar el envío de la transacción apuntada por <parameter>conn_handle</parameter>, actualmente en progreso. La conexión al servidor se cierra después de llamar a la función <function>cubrid_commit</function>; sin embargo, el gestor de conexión todavía es válido.
+   La función <function>cubrid_commit</function> se usa para ejecutar el envío
+   de la transacción apuntada por <parameter>conn_handle</parameter>,
+   actualmente en progreso. La conexión al servidor se cierra después de
+   llamar a la función <function>cubrid_commit</function>; sin embargo,
+   el gestor de conexión todavía es válido.
+  </para>
+  <para>
+   En CUBRID PHP, se deshabilita un modo de auto consigna por opmisión para el gestor
+   de transacciones, y no se puede habilitar en la versión actual de CUBRID PHP. Se puede
+   establecer un la versión siguiente. Y los modos de auto consigna solamente pueden ser aplicados
+   para sentencias SELECT estableciendo los parámetros del agente.
   </para>
  </refsect1>
  
@@ -47,18 +57,72 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$req = cubrid_execute ($oid, "insert into person values (2,’John’)");
-if ($req) {
-   cubrid_close_request ($req);
-   if ($failed) {
-      cubrid_rollback ($con);
-   } else {
-      cubrid_commit ($con);
-   }
+$conn = cubrid_connect("127.0.0.1", 33000, "demodb");
+
+@cubrid_execute($conn, "DROP TABLE publishers");
+
+$sql = <<<EOD
+CREATE TABLE publishers(
+pub_id CHAR(3), 
+pub_name VARCHAR(20), 
+city VARCHAR(15), 
+state CHAR(2), 
+country VARCHAR(15)
+)
+EOD;
+
+if (!cubrid_execute($conn, $sql)) {
+    printf("Error  facility: %d\nError code: %d\nError msg: %s\n",  cubrid_error_code_facility(), cubrid_error_code(), cubrid_error_msg());
+
+    cubrid_disconnect($conn);
+    exit;
 }
+
+$req = cubrid_prepare($conn, "INSERT INTO publishers VALUES(?, ?, ?, ?, ?)");
+
+$id_list = array("P01", "P02", "P03", "P04");
+$name_list = array("Abatis Publishers", "Core Dump Books", "Schadenfreude Press", "Tenterhooks Press");
+$city_list = array("New York", "San Francisco", "Hamburg", "Berkeley");
+$state_list = array("NY", "CA", NULL, "CA");
+$country_list = array("USA", "USA", "Germany", "USA");
+
+for ($i = 0, $size = count($id_list); $i < $size; $i++) {
+    cubrid_bind($req, 1, $id_list[$i]);
+    cubrid_bind($req, 2, $name_list[$i]);
+    cubrid_bind($req, 3, $city_list[$i]);
+    cubrid_bind($req, 4, $state_list[$i]);
+    cubrid_bind($req, 5, $country_list[$i]);
+
+    if (!($ret = cubrid_execute($req))) {
+        break;
+    }
+}
+
+if (!$ret) {
+    cubrid_rollback($conn);
+} else {
+    cubrid_commit($conn);
+
+    $req = cubrid_execute($conn, "SELECT * FROM publishers");
+    while ($result = cubrid_fetch_assoc($req)) {
+        printf("%-3s %-20s %-15s %-3s %-15s\n", 
+            $result["pub_id"], $result["pub_name"], $result["city"], $result["state"], $result["country"]);
+    }
+}
+
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+P01 Abatis Publishers    New York        NY  USA            
+P02 Core Dump Books      San Francisco   CA  USA            
+P03 Schadenfreude Press  Hamburg             Germany        
+P04 Tenterhooks Press    Berkeley        CA  USA            
+]]>
+   </screen>
   </example>
  </refsect1>
  

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9b785467c8cb0e8bf704b2a08e0a6bd4ec235ecd Maintainer: seros Status: ready -->
+<!-- EN-Revision: 244029a89a510a653e0d551be896c995d7c2ea23 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-column-types" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_column_types</refname>
-  <refpurpose>Obtiene los tipos de columnas</refpurpose>
+  <refpurpose>Obtener los tipos de columnas del resultado</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -15,7 +15,8 @@
    <methodparam><type>resource</type><parameter>req_identifier</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>cubrid_column_types</function> obtiene los tipos de columnas de los resultados de la consulta usando <parameter>req_identifier</parameter>.
+   La función <function>cubrid_column_types</function> obtiene los tipos de columnas de
+   los resultados de la consulta usando <parameter>req_identifier</parameter>.
   </para>
  </refsect1>
  
@@ -48,19 +49,35 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$req = cubrid_execute ($con, "select * from person");
-if ($req) {
-   $tiposcol = cubrid_column_types ($req);
-   $nombrescol = cubrid_column_names ($req);
-   while (list ($clave, $tipocol) = each ($tiposcol))
-      echo $tipocol;
-   while (list ($clave, $nombrecol) = each ($nombrescol))
-      echo $nombrecol;
-   cubrid_close_request ($req);
+$conn = cubrid_connect("localhost", 33000, "demodb");
+$result = cubrid_execute($conn, "SELECT * FROM game WHERE host_year=2004 AND nation_code='AUS' AND medal='G'");
+
+$column_names = cubrid_column_names($result);
+$column_types = cubrid_column_types($result);
+
+printf("%-30s %-30s %-15s\n", "Column Names", "Column Types", "Column Maxlen");
+for($i = 0, $size = count($column_names); $i < $size; $i++) {
+    $column_len = cubrid_field_len($result, $i);
+    printf("%-30s %-30s %-15s\n", $column_names[$i], $column_types[$i], $column_len); 
 }
+
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+Column Names                   Column Types                   Column Maxlen  
+host_year                      integer                        11             
+event_code                     integer                        11             
+athlete_code                   integer                        11             
+stadium_code                   integer                        11             
+nation_code                    char(3)                        3              
+medal                          char(1)                        1              
+game_date                      date                           10             
+]]>
+   </screen>
   </example>
  </refsect1>
  
