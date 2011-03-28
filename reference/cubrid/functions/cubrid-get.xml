@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9b785467c8cb0e8bf704b2a08e0a6bd4ec235ecd Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3c08ec64aebb60e9d3163aa56711ccac9d2d0f05 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-get" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_get</refname>
-  <refpurpose>Se usa para obtener el atributo</refpurpose>
+  <refpurpose>Obtener una columna usando OID</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -17,7 +17,11 @@
    <methodparam choice="opt"><type>mixed</type><parameter>attr</parameter></methodparam>  
   </methodsynopsis>
   <para>
-   La función <function>cubrid_get</function> se usa para obtener el atributo de la instancia del <parameter>oid</parameter> dado. Se puede obtener un solo atributo usando el tipo de datos de cadena para el argumento <parameter>attr</parameter>, o muchos atributos usando tipo de datos de matriz para el argumento <parameter>attr</parameter>.
+   La función <function>cubrid_get</function> se usa para obtener el atributo
+   de la instancia del <parameter>oid</parameter> dado. Se puede obtener
+   un solo atributo usando el tipo de datos de cadena para el
+   argumento <parameter>attr</parameter>, o muchos atributos usando el tipo de datos
+   array para el argumento <parameter>attr</parameter>.
   </para>
  </refsect1>
  
@@ -31,7 +35,7 @@
     </varlistentry>
     <varlistentry>
      <term><parameter>oid</parameter></term>
-     <listitem><para>Oid de la instancia que se quiere leer.</para></listitem>
+     <listitem><para>OID de la instancia que se quiere leer.</para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>attr</parameter></term>
@@ -45,10 +49,17 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Contenido del atributo solicitado, cuando el proceso tiene éxito;Cuando <parameter>attr</parameter> se establece al tipo de datos de cadena, el resultado es devuelto como una cadena; cuando <parameter>attr</parameter> se establece como tipo de datos de matriz (númerica basada en 0), el resultado es devuelto como una matriz asociativa. Cuanso se omite <parameter>attr</parameter>, entonces todos los atributos se reciben como matriz.
+   Contenido del atributo solicitado, cuando el proceso tiene éxito; Cuando
+   <parameter>attr</parameter> se establece al tipo de datos de cadena, el resultado es
+   devuelto como una cadena; cuando <parameter>attr</parameter> se establece como tipo
+   de datos array (númerico basado en 0), el resultado es devuelto como un
+   array asociativo. Cuanso se omite <parameter>attr</parameter>, entonces todos
+   los atributos se reciben como array.
   </para>
   <para>
-   &false; cuando el proceso no tiene éxito o el resultado es NULL (Si ocurre un error para diferenciar una cadena vacía de NULL, se imprime un mensaje de advertencia. Se puede comprobar el error usando <function>cubrid_error_code</function>)
+   &false; cuando el proceso no tiene éxito o el resultado es NULL (Si ocurre un error para
+   diferenciar una cadena vacía de NULL, se imprime un mensaje de advertencia.
+   Se puede comprobar el error usando <function>cubrid_error_code</function>)
   </para>
  </refsect1>
  
@@ -59,12 +70,61 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$matrizatrib = cubrid_get ($con, $oid);
-echo $matrizatrib["id"];
-echo $matrizatrib["name"];
+$conn = cubrid_connect("localhost", 33000, "demodb");
+
+@cubrid_execute($conn, "DROP TABLE foo");
+cubrid_execute($conn, "CREATE TABLE foo(a int AUTO_INCREMENT, b set(int), c list(int), d char(10))");
+cubrid_execute($conn, "INSERT INTO foo(a, b, c, d) VALUES(1, {1,2,3}, {11,22,33,333}, 'a')");
+cubrid_execute($conn, "INSERT INTO foo(a, b, c, d) VALUES(2, {4,5,7}, {44,55,66,666}, 'b')");
+
+$req = cubrid_execute($conn, "SELECT * FROM foo", CUBRID_INCLUDE_OID);
+
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_FIRST);
+$oid = cubrid_current_oid($req);
+
+$attr = cubrid_get($conn, $oid, "b");
+var_dump($attr);
+
+$attr = cubrid_get($conn, $oid);
+var_dump($attr);
+
+cubrid_close_request($req);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+string(9) "{1, 2, 3}"
+array(4) {
+  ["a"]=>
+  string(1) "1"
+  ["b"]=>
+  array(3) {
+    [0]=>
+    string(1) "1"
+    [1]=>
+    string(1) "2"
+    [2]=>
+    string(1) "3"
+  }
+  ["c"]=>
+  array(4) {
+    [0]=>
+    string(2) "11"
+    [1]=>
+    string(2) "22"
+    [2]=>
+    string(2) "33"
+    [3]=>
+    string(3) "333"
+  }
+  ["d"]=>
+  string(10) "a         "
+}
+]]>
+   </screen>
   </example>
  </refsect1>
  

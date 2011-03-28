@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9b785467c8cb0e8bf704b2a08e0a6bd4ec235ecd Maintainer: seros Status: ready -->
+<!-- EN-Revision: 244029a89a510a653e0d551be896c995d7c2ea23 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-insert-id" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_insert_id</refname>
-  <refpurpose>Devuelve una matriz con los IDs generados por las columnas <constant>AUTO_INCREMENT</constant></refpurpose>
+  <refpurpose>Devolver un array con los IDs generados por las columnas <constant>AUTO_INCREMENT</constant></refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -16,7 +16,12 @@
    <methodparam choice="opt"><type>resource</type><parameter>conn_identifier</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función devuelve una matriz con los IDs generados por las columnas <constant>AUTO_INCREMENT</constant> que fueron actualizados por la consulta INSERT previa. Devuelve una matriz con todas las columnas <constant>AUTO_INCREMENT</constant> y sus valores. Devuelve 0 si la consulta previa no generó nuevas filas, o FALSE en caso de fallo.
+   Esta función devuelve una matriz con los IDs generados por las
+   columnas <constant>AUTO_INCREMENT</constant> que fueron actualizados por la
+   consulta INSERT previa. Devuelve un array con todas las
+   columnas <constant>AUTO_INCREMENT</constant> y sus valores. Devuelve 0
+   si la consulta previa no generó nuevas filas, o devuelve FALSE en
+   caso de fallo.
   </para>
  </refsect1>
  
@@ -26,11 +31,15 @@
    <variablelist>
     <varlistentry>
      <term><parameter>class_name</parameter></term>
-     <listitem><para>El nombre de la clase (tabla) que se usó en la última sentencia INSERT para la que los valores de autoincremento son recuperdos.</para></listitem>
+     <listitem><para>El nombre de la clase (tabla) que se usó en la última sentencia INSERT
+      para la que los valores de autoincremento son recuperdos.
+      </para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>conn_identifier</parameter></term>
-     <listitem><para>El Identificador de conexión previamente obtenido por una llamada a <function>cubrid_connect</function>.</para></listitem>
+     <listitem><para>El Identificador de conexión previamente obtenido por una llamada a
+      <function>cubrid_connect</function>.
+      </para></listitem>
     </varlistentry>
    </variablelist>
   </para>
@@ -56,28 +65,29 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-    $enlace = cubrid_connect("localhost", 30000, "demodb2", "dba", "");
-    if (!$enlace)
-    {
-        die('No se pudo conectar.');
-    }
-    $consulta = "insert into employees (name, address, salary) values ('Michael', 'Boston, MA', 3750)";
-    $resultado = cubrid_execute($enlace, $consulta);
-    if ($resultado) 
-    {
-        $array_id = cubrid_insert_id("employees");
-        echo "El último id insertado fue ".$array_id["id"];
-        
-        cubrid_close_request($resultado); 
-    }
+$conn = cubrid_connect("localhost", 33000, "demodb");
+
+@cubrid_execute($conn, "DROP TABLE cubrid_test");
+cubrid_execute($conn, "CREATE TABLE cubrid_test (d int AUTO_INCREMENT(1, 2), t varchar)");
+
+for ($i = 0; $i < 10; $i++) {
+    cubrid_execute($conn, "INSERT INTO cubrid_test(t) VALUES('cubrid_test')");
+}
+
+$id_list = cubrid_insert_id("cubrid_test");
+var_dump($id_list);
+
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-Result:
-El último id insertado fue 10
+array(1) {
+  ["d"]=>
+  int(19)
+}
 ]]>
    </screen>
   </example>
