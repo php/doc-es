@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9b785467c8cb0e8bf704b2a08e0a6bd4ec235ecd Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3c08ec64aebb60e9d3163aa56711ccac9d2d0f05 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-put" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_put</refname>
-  <refpurpose>Se usa para actualizar un atributo</refpurpose>
+  <refpurpose>Actualizar un atributo usando OID</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -18,10 +18,16 @@
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>  
   </methodsynopsis>
   <para>
-   La función <function>cubrid_put</function> se usa para actualizar un atributo de la instancia del <parameter>oid</parameter> dado. Se puede actualizar un único atributo estableciendo <parameter>attr</parameter> como cadena. En tal caso se puede usar el tipo de datos entero, coma flotante, o cadena para el argumento <parameter>value</parameter>. Para actualizar múltiples atributos se puede ignorara el argumento <parameter>attr</parameter> y establecer el argumento <parameter>value</parameter> con una matriz asociativa. Sin embargo, no se puede usar el método para un atributo de tipo colección. Se tiene que usar las APIs relacionadas con el tipo colección (<function>cubrid_set_add</function>, <function>cubrid_set_drop</function>, etc.) cuando se quiera usar <function>cubrid_put</function> en un atributo de tipo colección.
+   La función <function>cubrid_put</function> se usa para actualizar un
+   atributo de la instancia del <parameter>oid</parameter> dado.
   </para>
   <para>
-   Se puede actualizar un único atributo usando un tipo de datos de cadena para establecer <parameter>attr</parameter>. En tal caso, se puede usar información de tipo entero, coma flotante o cadena para el argumento <parameter>value</parameter>. Para actualizar múltiples atributos se puede ignorar el argumento <parameter>attr</parameter>, y establecer el argumento <parameter>value</parameter> con una matriz asociativa. Sin embargo, no se puede usar el método para atributos de tipo colección. Se tiene que usar las APIs relacionadas con el tipo colección (<function>cubrid_set_add</function>, <function>cubrid_set_drop</function>, etc) cuando se quiera usar <function>cubrid_put</function> en un atributo de tipo colección.
+   Se puede actualizar un único atributo usando un tipo de datos de cadena para establecer
+   <parameter>attr</parameter>. En tal caso, se puede usar información de tipo entero,
+   coma flotante o cadena para el argumento <parameter>value</parameter>.
+   Para actualizar múltiples atributos se puede ignorar el
+   argumento <parameter>attr</parameter>, y establecer
+   el argumento <parameter>value</parameter> con un array asociativo.
   </para>
  </refsect1>
  
@@ -35,7 +41,7 @@
     </varlistentry>
     <varlistentry>
      <term><parameter>oid</parameter></term>
-     <listitem><para>Oid de la instancia que se quiere actualizar.</para></listitem>
+     <listitem><para>OID de la instancia que se quiere actualizar.</para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>attr</parameter></term>
@@ -66,14 +72,52 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$matriz_atrib = cubrid_get ($con, $oid);
-$matriz_atrib["name"] = "Nombre Nuevo";
-cubrid_put ($con, $oid, $matriz_atrib);
-cubrid_put ($con, $oid, "name", "Nombre Nuevo 2");
-cubrid_put ($con, $oid, "hobbies", array("aa", "bb"));
+$conn = cubrid_connect("localhost", 33000, "demodb");
+
+@cubrid_execute($conn, "DROP TABLE foo");
+cubrid_execute($conn, "CREATE TABLE foo(a int AUTO_INCREMENT, b set(int), c list(int), d char(10))");
+cubrid_execute($conn, "INSERT INTO foo(a, b, c, d) VALUES(1, {1,2,3}, {11,22,33,333}, 'a')");
+cubrid_execute($conn, "INSERT INTO foo(a, b, c, d) VALUES(2, {4,5,7}, {44,55,66,666}, 'b')");
+
+$req = cubrid_execute($conn, "SELECT * FROM foo", CUBRID_INCLUDE_OID);
+
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_FIRST);
+$oid = cubrid_current_oid($req);
+
+$attr = cubrid_col_get($conn, $oid, "b");
+var_dump($attr);
+
+cubrid_put($conn, $oid, "b", array(2, 4, 8));
+
+$attr = cubrid_col_get($conn, $oid, "b");
+var_dump($attr);
+
+cubrid_close_request($req);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  [0]=>
+  string(1) "1"
+  [1]=>
+  string(1) "2"
+  [2]=>
+  string(1) "3"
+}
+array(3) {
+  [0]=>
+  string(1) "2"
+  [1]=>
+  string(1) "4"
+  [2]=>
+  string(1) "8"
+}
+]]>
+   </screen>
   </example>
  </refsect1>
  
