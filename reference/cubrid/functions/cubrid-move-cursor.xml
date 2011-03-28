@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 35d7bcbee5eb664e54829509d0564703a9995152 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3c08ec64aebb60e9d3163aa56711ccac9d2d0f05 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-move-cursor" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_move_cursor</refname>
-  <refpurpose>Se usa para mover la posición del cursor actual</refpurpose>
+  <refpurpose>Mover el cursor en el resultado</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -17,10 +17,22 @@
    <methodparam choice="opt"><type>int</type><parameter>origin</parameter><initializer>CUBRID_CURSOR_CURRENT</initializer></methodparam>  
   </methodsynopsis>
   <para>
-   La función <function>cubrid_move_cursor</function> se usa para mover la posición del cursor actual de <parameter>req_handle</parameter> por el valor establecido en el argumento <parameter>offset</parameter>, a la dirección establecida en el argumento <parameter>origin</parameter>. Para establecer el argumento <parameter>origin</parameter> se puede usar CUBRID_CURSOR_FIRST como primera parte del resultado, CUBRID_CURSOR_CURRENT como la posición actual del resultado, o CUBRID_CURSOR_LAST como la última parte del resultado. Si el argumento <parameter>origin</parameter> no es designado explícitamente, la función usa CUBRID_CURSOR_CURRENT como valor predeterminado.
+   La función <function>cubrid_move_cursor</function> se usa para mover la
+   posición del cursor actual de <parameter>req_handle</parameter> por el
+   valor establecido en el argumento <parameter>offset</parameter>, a la dirección
+   establecida en el argumento <parameter>origin</parameter>. Para establecer el
+   argumento <parameter>origin</parameter> se puede usar CUBRID_CURSOR_FIRST
+   como primera parte del resultado, CUBRID_CURSOR_CURRENT como la posición
+   actual del resultado, o CUBRID_CURSOR_LAST como la última parte del
+   resultado. Si el argumento <parameter>origin</parameter> no es designado
+   explícitamente, la función usa CUBRID_CURSOR_CURRENT como valor
+   predeterminado.
   </para>
   <para>
-   Si el valor del alcance de movimiento del cursor se sale del límite válido, el cursor se mueve a la siguiente posición después del alcance válido del cursor. Por ejemplo, si se mueve 20 unidades en un resultado cuyo tamaño es 10, el cursor se moverá al lugar 11 y devolverá CUBRID_NO_MORE_DATA.
+   Si el valor del alcance de movimiento del cursor se sale del límite válido, el
+   cursor se mueve a la siguiente posición después del alcance válido del cursor.
+   Por ejemplo, si se mueve 20 unidades en un resultado cuyo tamaño es 10,
+   el cursor se moverá al lugar 11 y devolverá CUBRID_NO_MORE_DATA.
   </para>
  </refsect1>
  
@@ -64,18 +76,50 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-cubrid_move_cursor ($gestor_req, 1, CUBRID_CURSOR_FIRST);  
-// mover el cursor a la primera posición posible
-$fila = cubrid_fetch ($gestor_req);
-echo $fila["id"], $fila["name"];
+$conn = cubrid_connect("127.0.0.1", 33000, "demodb");
 
-cubrid_move_cursor ($gestor_req, 1, CUBRID_CURSOR_LAST);  
-// mover el cursor a la última posición posible
-$fila = cubrid_fetch ($gestor_req);
-echo $fila["id"], $fila["name"];
+$req = cubrid_execute($conn, "SELECT * FROM code");
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_LAST);
+
+$result = cubrid_fetch_row($req);
+var_dump($result);
+
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_FIRST);
+$result = cubrid_fetch_row($req);
+var_dump($result);
+
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_CURRENT);
+$result = cubrid_fetch_row($req);
+var_dump($result);
+
+cubrid_close_request($req);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  [0]=>
+  string(1) "G"
+  [1]=>
+  string(4) "Gold"
+}
+array(2) {
+  [0]=>
+  string(1) "X"
+  [1]=>
+  string(5) "Mixed"
+}
+array(2) {
+  [0]=>
+  string(1) "M"
+  [1]=>
+  string(3) "Man"
+}
+]]>
+   </screen>
   </example>
  </refsect1>
  
