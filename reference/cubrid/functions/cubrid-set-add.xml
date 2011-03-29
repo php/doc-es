@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9145baba028d1f823e476c5bb577d0dd24066a2d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3c08ec64aebb60e9d3163aa56711ccac9d2d0f05 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-set-add" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_set_add</refname>
-  <refpurpose>Se usa para insertar un único elemento</refpurpose>
+  <refpurpose>Insertar un único elemento en la columna del tipo de conjunto usando OID</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -18,7 +18,9 @@
    <methodparam><type>string</type><parameter>set_element</parameter></methodparam> 
   </methodsynopsis>
   <para>
-   La función <function>cubrid_set_add</function> se usa para insertar un único elemento en un atributo de tipo de conjunto (conjunto, multiconjunto) que se solicitó.
+   La función <function>cubrid_set_add</function> se usa para insertar un
+   único elemento en un atributo de tipo de conjunto (conjunto, multiconjunto, secuencia) que
+   se solicitó.
   </para>
  </refsect1>
  
@@ -32,7 +34,7 @@
     </varlistentry>
     <varlistentry>
      <term><parameter>oid</parameter></term>
-     <listitem><para>Oid de la instancia con la que se quiere trabajar.</para></listitem>
+     <listitem><para>OID de la instancia con la que se quiere trabajar.</para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>attr_name</parameter></term>
@@ -63,11 +65,53 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-cubrid_set_add ($con, $oid, "friend", "James");
-cubrid_set_add ($con, $oid, "friend", "Michael");
+$conn = cubrid_connect("localhost", 33000, "demodb");
+
+@cubrid_execute($conn, "DROP TABLE foo");
+cubrid_execute($conn, "CREATE TABLE foo(a int AUTO_INCREMENT, b set(int), c list(int), d char(10))");
+cubrid_execute($conn, "INSERT INTO foo(a, b, c, d) VALUES(1, {1,2,3}, {11,22,33,333}, 'a')");
+
+$req = cubrid_execute($conn, "SELECT * FROM foo", CUBRID_INCLUDE_OID);
+
+cubrid_move_cursor($req, 1, CUBRID_CURSOR_FIRST);
+$oid = cubrid_current_oid($req);
+
+$attr = cubrid_col_get($conn, $oid, "b");
+var_dump($attr);
+
+cubrid_set_add($conn, $oid, "b", "4");
+
+$attr = cubrid_col_get($conn, $oid, "b");
+var_dump($attr);
+
+cubrid_close_request($req);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  [0]=>
+  string(1) "1"
+  [1]=>
+  string(1) "2"
+  [2]=>
+  string(1) "3"
+}
+array(4) {
+  [0]=>
+  string(1) "1"
+  [1]=>
+  string(1) "2"
+  [2]=>
+  string(1) "3"
+  [3]=>
+  string(1) "4"
+}
+]]>
+   </screen>
   </example>
  </refsect1>
  
