@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 307575 $ -->
-<!-- EN-Revision: 37e48ccbbd457e838f20d1dd995cc13eb3e24a8e Maintainer: seros Status: ready -->
+<!-- $Revision$ -->
+<!-- EN-Revision: 6aaa26b850606a59b23c033ab119bd7e615c72c5 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-fetch-object" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -17,7 +17,9 @@
    <methodparam choice="opt"><type>array</type><parameter>params</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función devuelve un objeto con los nombres de las columnas del conjunto de resultados como propiedades. Los valores de estas propiedades son extraídos de la fila actual del resultado. 
+   Esta función devuelve un objeto con los nombres de las columnas del conjunto de resultados como
+   propiedades. Los valores de estas propiedades son extraídos de la fila
+   actual del resultado. 
   </para>
  </refsect1>
  
@@ -33,8 +35,9 @@
      <term><parameter>class_name</parameter></term>
      <listitem>
       <para>
-       El nombre de la clase a instanciar, a establecer las propiedades y devolver.
-       Si no se especifica, se devuelve un objeto <classname>stdClass</classname>.
+       El nombre de la clase a instanciar, Si no se especifica, se
+       devuelve un objeto <classname>stdClass</classname> (stdClass es una clase
+       génerica vacía de PHP que se usa al convertir otros tipos a objetos).
       </para>
      </listitem>
     </varlistentry>
@@ -68,32 +71,64 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-    $enlace = cubrid_connect("localhost", 30000, "demodb2", "dba", "");
-    if (!$enlace)
-    {
-        die('No se pudo conectar.');
+$conn = cubrid_connect("localhost", 33000, "demodb");
+$res = cubrid_execute($conn, "SELECT * FROM code");
+
+var_dump(cubrid_fetch_object($res));
+
+class demodb_code {
+    public $s_name = null;
+    public $f_name = null;
+
+    public function toString() {
+        var_dump($this);
     }
-    $consulta = 'SELECT name, address, salary FROM employees';
-    $resultado = cubrid_execute($enlace, $consulta);
-    if ($resultado) 
-    {
-        $fila = cubrid_fetch_object($resultado);
-        echo $fila->name."<BR>";
-        echo $fila->address."<BR>";
-        echo $fila->salary;
-        
-        cubrid_close_request($resultado); 
-    }
+}
+
+var_dump(cubrid_fetch_object($res, "demodb_code"));
+
+class demodb_code_construct extends demodb_code {
+    public function __construct($s, $f) {
+        $this->s_name = $s;
+        $this->f_name = $f;
+    }   
+}
+
+var_dump(cubrid_fetch_object($res, 'demodb_code_construct', array('s_name', 'f_name')));
+var_dump(cubrid_fetch_object($res));
+
+cubrid_close_request($res);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-Result:
-Peter
-1st Avenue, New York
-1000.0000000000000000
+object(stdClass)#1 (2) {
+  ["s_name"]=>
+  string(1) "X"
+  ["f_name"]=>
+  string(5) "Mixed"
+}
+object(demodb_code)#1 (2) {
+  ["s_name"]=>
+  string(1) "W"
+  ["f_name"]=>
+  string(5) "Woman"
+}
+object(demodb_code_construct)#1 (2) {
+  ["s_name"]=>
+  string(6) "s_name"
+  ["f_name"]=>
+  string(6) "f_name"
+}
+object(stdClass)#1 (2) {
+  ["s_name"]=>
+  string(1) "B"
+  ["f_name"]=>
+  string(6) "Bronze"
+}
 ]]>
    </screen>
   </example>

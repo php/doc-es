@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 306526 $ -->
-<!-- EN-Revision: 459bc86722bb9e35e7ea8a57391de69b7b0b374a Maintainer: seros Status: ready -->
+<!-- $Revision$ -->
+<!-- EN-Revision: 6aaa26b850606a59b23c033ab119bd7e615c72c5 Maintainer: seros Status: ready -->
 
 <refentry xml:id="function.cubrid-real-escape-string" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_real_escape_string</refname>
-  <refpurpose>Devuelve la versión escapada de la cadena dada</refpurpose>
+  <refpurpose>Escapar caracteres especiales en una cadena para usarla en una sentencia SQL</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -16,7 +16,17 @@
    <methodparam choice="opt"><type>resource</type><parameter>conn_identifier</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función devuelve la versión escapada de la cadena dada. Añade al inicio una barra invertida a los siguientes caracteres: <constant>'</constant>. Esta función siempre debe ser usada (con algunas excepciones) para hacer la información segura antes de envia la consulta a CUBRID.
+   Esta función devuelve la versión escapada de la cadena dada.
+   Escapará los siguientes caracteres: <constant>'</constant>.
+   
+   En general, las comillas simples se usan para encerrar cadenas de caracteres. Las
+   comillas dobles se pueden usar también dependiendo del valor de ansi_quotes,
+   que es un parámetro relacionado con sentencias SQL. Si el valor de ansi_quotes value está
+   establecido a no, las cadenas de caracteres encerradas entre comillas dobles se tratan como
+   cadenas de caracteres, no como identificadores. El valor predeterminado es yes.
+   
+   Si quiere incluir una comilla simple como parte de una cadena de caracteres, introduzca
+   dos comillas simples en una fila.
   </para>
  </refsect1>
  
@@ -30,7 +40,10 @@
     </varlistentry>
     <varlistentry>
      <term><parameter>conn_identifier</parameter></term>
-     <listitem><para>La conexión CUBRID. Si el identificador de conexión no se especifica, se asume el último enlace abierto por <function>cubrid_connect</function>.</para></listitem>
+     <listitem><para>
+      La conexión CUBRID. Si el identificador de conexión no se especifica, se
+      asume el último enlace abierto por <function>cubrid_connect</function>.
+      </para></listitem>
     </varlistentry>
    </variablelist>
   </para>
@@ -53,21 +66,34 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-    $usuario = "'username'";
-    $contraseña = "\"pass\"";
-    $consulta = sprintf("SELECT * FROM users WHERE user='%s' AND password='%s'",
-            cubrid_real_escape_string($usuario),
-            cubrid_real_escape_string($contraseña));
-    
-    echo $consulta;
+$conn = cubrid_connect("localhost", 33000, "demodb");
+
+$unescaped_str = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+$escaped_str = cubrid_real_escape_string($unescaped_str);
+
+$len = strlen($unescaped_str);
+
+@cubrid_execute($conn, "DROP TABLE cubrid_test");
+cubrid_execute($conn, "CREATE TABLE cubrid_test (t char($len))");
+cubrid_execute($conn, "INSERT INTO cubrid_test (t) VALUES('$escaped_str')");
+
+$req = cubrid_execute($conn, "SELECT * FROM cubrid_test");
+$row = cubrid_fetch_assoc($req);
+
+var_dump($row);
+
+cubrid_close_request($req);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-Result:
-SELECT * FROM users WHERE user='\'username\'' AND password='"pass"'
+array(1) {
+  ["t"]=>
+  string(95) " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+}
 ]]>
    </screen>
   </example>
