@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: yago Status: ready -->
+<!-- EN-Revision: e1eb3dd782f482879450be49c7e80f88845f8fb9 Maintainer: chuso Status: ready -->
 <refentry xml:id="function.unpack" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>unpack</refname>
@@ -19,10 +19,11 @@
    <parameter>format</parameter>.
   </para>
   <para>
-   <function>unpack</function> opera ligeramente distinto que en Perl ya que
-   los datos desempaquetados son almacenados en una matriz asociativa. Para
+   Los datos desempaquetados son almacenados en una matriz asociativa. Para
    lograr esto es necesario nombrar los diferentes códigos de formato y
-   separarlos con una barra /.
+   separarlos con una barra /. Si estuviera presente un parámetro repetidor,
+   cada una de las claves de la matriz tendría un número de secuencia tras
+   el valor establecido.
   </para>
  </refsect1>
 
@@ -67,16 +68,35 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$matriz = unpack("c2chars/nint", $datos_binarios);
+$datosbinarios = "\x04\x00\xa0\x00";
+$matriz = unpack("cchars/nint", $datosbinarios);
 ?>
 ]]>
     </programlisting>
     <para>
-     La matriz resultante contendrá las entradas "chars1",
-     "chars2" e "int".
+     La matriz resultante contendrá las entradas "chars" con el valor
+     <literal>4</literal> e "int" con el valor <literal>160</literal>.
     </para>
    </example>
   </para>
+  
+  <para>
+   <example>
+    <title>Ejemplo de <function>unpack</function> con un repetidor</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$datosbinarios = "\x04\x00\xa0\x00";
+$matriz = unpack("c2chars/nint", $datosbinarios);
+?>
+]]>
+     </programlisting>
+     <para>
+      La matriz resultante contendrá las entradas "chars1",
+      "chars2" e "int".
+     </para>
+    </example>
+   </para>
  </refsect1>
 
  <refsect1 role="notes">
@@ -88,6 +108,34 @@ $matriz = unpack("c2chars/nint", $datos_binarios);
     que los valores almacenados internamente por PHP, el resultado será un
     número negativo incluso si se especifica un valor sin signo al
     desempaquetar.
+   </para>
+  </caution>
+  <caution>
+   <para>
+    Tenga en cuenta que si un elemento no tiene nombre, se usará una cadena vacía.
+    Si hubiera más de un elemento sin nombre, esto significaría que se
+    sobrescribirían algunos datos, ya que sus claves coincidirían, como ocurre en:
+   </para>
+   <para>
+    <example>
+     <title>Ejemplo <function>unpack</function> con claves sin nombre</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+$datosbinarios = "\x32\x42\x00\xa0";
+$matriz = unpack("c2/n", $datosbinarios);
+var_dump($matriz);
+?>
+]]>
+     </programlisting>
+     <para>
+      La matriz resultante contendrá las entradas "1" con el valor
+      <literal>160</literal> y "2" con <literal>66</literal>. El
+      primer valor del especificador <literal>c</literal> quedaría
+      sobrescrito por el primer valor del especificador
+      <literal>n</literal>.
+     </para>
+    </example>
    </para>
   </caution>
  </refsect1>
