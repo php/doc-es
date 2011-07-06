@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 63c5351f883b8b5f9961590aca7944c0ee7afd09 Maintainer: chuso Status: ready -->
+<section xml:id="mongo.queries" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Consultas</title>
+
+ <section>
+  <title>Distribuyendo consultas a esclavos</title>
+
+  <note>
+   <title>1.1.0+</title>
+   <para>
+    Si se está utilizando un
+    <link xlink:href="&url.mongodb.replica;">conjunto de réplicas</link> y un driver versión
+    1.1.0 o superior, éste puede hacer que senvíen las consultas automáticamente a los esclavos.
+    Este comportamiento no existe en las versiones anteriores del driver y 
+    <emphasis>no</emphasis> puede ser usado en un maestro-esclavo "normal".
+   </para>
+  </note>
+
+  <para>
+   Por omisión, el driver enviará todas las consultas al maestro. Si se habilita
+   la opción "slaveOkay", el driver enviará todas las consultas a un servidor no primario,
+   siempre y cuando fuera posible. La opción "slaveOkay" puede habilitarse a cualquier "nivel":
+   <link linkend="mongo.setslaveokay">conexión</link>,
+   <link linkend="mongodb.setslaveokay">base de datos</link>,
+   <link linkend="mongocollection.setslaveokay">colección</link>, y
+   <link linkend="mongocursor.slaveokay">cursor</link>. Cada clase hereda el ajuste
+   "slaveOkay" de su clase superior, de modo que si hiciéramos:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$db->setSlaveOkay(true);
+$c = $db->myCollection;
+
+$cursor = $c->find();
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   la consulta se ejecutaría contra un esclavo (la colección hereda "slaveOkay"
+   de la base de datos y el cursor lo hereda de la colección).
+  </para>
+
+  <section>
+   <title>Cómo se escogen los esclavos</title>
+
+   <para>
+    Cada instancia de <classname>Mongo</classname> escoge su propio esclavo
+    utilizando el esclavo disponible con el menor tiempo de respuesta. Es decir, si tuviéramos un
+    cliente PHP en Europa y otro en Australia y tuviéramos un secundario en cada uno de estos
+    centros de datos, podríamos:
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+// P es el primario
+
+// en el cliente de Australia
+$m1 = new Mongo("mongodb://P", array("replicaSet" => true));
+echo "el esclavo de m1 es ".$m1->getSlave()."\n";
+
+// en el cliente de Europa
+$m2 = new Mongo("mongodb://P", array("replicaSet" => true));
+echo "el esclavo de m2 es ".$m2->getSlave()."\n";
+
+?>
+]]>
+   </programlisting>
+   <para>
+    probablemente se termine con algo así:
+   </para>
+   <screen>
+el esclavo de m1 es: australianHost
+el esclavo de m2 es: europeanHost
+   </screen>
+
+   <para>
+    Puede consultarse el estado actual del conjunto de miembros que ve el servidor
+    ejecutando <function>Mongo::getHosts</function>.
+   </para>
+
+   <para>
+    Si no pudiera leerse ningun servidor no primario, el driver enviaría
+    la lectura al primario (incluso con "slaveOkay" habilitado). Un servidor se considera
+    legible si su estado es 2 (SECONDARY) y su salud es 1. Puede comprobarse esto
+    con <function>Mongo::getHosts</function>.
+   </para>
+
+   <para>
+    Si disfruta tocando botones que probablemente no debería tocar, puede
+    solicitar al driver un nuevo esclavo usando
+    <function>Mongo::switchSlave</function>. Esto escogería un nuevo esclavo
+    (si hubiera alguno disponible), pero no debería usarse salvo que se sepa bien qué
+    se está haciendo.
+   </para>
+
+  </section>
+  <section>
+   <title>Notas aleatorias</title>
+
+   <para>
+    Las escrituras siempre se envian al primario. Los comandos de la base de datos,
+    incluso los comandos de sólo lectura, también se envían siempre al primario.
+   </para>
+
+   <para>
+    La salud y estado de un esclavo se comprueba cada 5 secundos o al realizarse
+    la siguiente operación antes de que venzan los 5 segundos. También se volverá a comprobar la
+    configuración cuando el driver tenga problemas accediendo a algún servidor.
+   </para>
+
+   <para>
+    Tenga en cuenta que un servidor no primario podría encontrarse detrás de un primario en las
+    operaciones, por lo que su software deberá tolerar datos "desfasados" (o si no tendrá que usar
+    w en todas las escrituras).
+   </para>
+  </section>
+
+ </section>
+
+ <section>
+  <title>Consultando por _id</title>
+  <para>
+   A cada objeto que se inserta se le asigna automáticamente un campo _id único, a menudo
+   útil para usar en consultas.
+  </para>
+  <para>
+   Supongamos que queremos localizar el documento que acabamos de insertar. Las inserciones
+   añaden un campo _id al documento, de modo que podemos consultar en base a él:
+
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$person = array("name" => "joe");
+
+$people->insert($person);
+
+// ahora $joe tiene un campo _id
+$joe = $people->findOne(array("_id" => $person['_id']));
+
+?>
+]]>
+   </programlisting>
+  </para>
+  <para>
+   Salvo que se indique lo contrario, el campo _id será de tipo
+   <classname>MongoId</classname>. El error más frecuente consiste en usar una cadena
+   de texto que concuerde con un <classname>MongoId</classname>. Debe tenerse presente
+   que son dos tipos de datos distintos, y no concuerdan, del mismo modo que el texto
+   "array()" no es lo mismo que un array vacío. Por ejemplo:
+
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$person = array("name" => "joe");
+
+$people->insert($person);
+
+// convertimos el _id a texto
+$pid = $person['_id'] . "";
+
+// FALLO - $pid es un texto, no un MongoId
+$joe = $people->findOne(array("_id" => $pid));
+
+?>
+]]>
+   </programlisting>
+  </para>
+ </section>
+
+ <section>
+  <title>Arrays</title>
+
+  <para>
+   Los arrays son especiales por varias razones. En primer lugar, hay dos tipos de arrays que
+   MongoDB utiliza: arrays "normales" y arrays asociativos. Los arrays asociativos pueden tener
+   cualquier combinación de claves y valores. Los arrays "normales" se definen como arrays
+   con un índice numérico ascendente que comienza por 0 y se incrementa en uno por cada
+   elemento. Estos son, normalmente, los arrays de PHP más comunes.
+  </para>
+
+  <para>
+   Por ejemplo, si se quisiera guardar una lista de premios en un documento, podríamos
+   poner:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$collection->save(array("awards" => array("gold", "silver", "bronze")));
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   Las consultas pueden llegar hasta los arrays en busca de elementos. Supongamos que queremos
+   encontrar todos los documentos que contienen un elemento de un array con un determinado valor. Por ejemplo,
+   documentos con un premio "gold", como por ejemplo:
+  </para>
+
+  <programlisting>
+<![CDATA[
+{ "_id" : ObjectId("4b06c282edb87a281e09dad9"), "awards" : ["gold", "silver", "bronze"]}
+]]>
+  </programlisting>
+
+  <para>
+   Esto puede lograrse con una única consulta, ignorando el hecho de que "awards" es
+   un array:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+  $cursor = $collection->find(array("awards" => "gold"));
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   Supongamos que estamos consultando un objeto más complejo, si cada elemento del array
+   fuera un objeto en sí mismo, como en:
+  </para>
+
+  <programlisting>
+<![CDATA[
+{
+     "_id" : ObjectId("4b06c282edb87a281e09dad9"),
+     "awards" :
+     [
+        {
+            "first place" : "gold"
+        },
+        {
+            "second place" : "silver"
+        },
+        {
+            "third place" :  "bronze"
+        }
+     ]
+}
+]]>
+  </programlisting>
+
+  <para>
+   Incluso aquí, ignorando que se trata de un array, podemos usar la misma
+   notación para consultar al subobjeto:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$cursor = $collection->find(array("awards.first place" => "gold"));
+
+?>
+]]>
+  </programlisting>
+
+  <para>
+   Debe tenerse en cuenta que no importa que haya espacios en los nombres de campos
+   (pese a que sea mejor no usarlos, sólo por mantenerlo más
+   legible).
+  </para>
+
+  <para>
+   Puede también usarse un array para consultar un determinado número de posibles valores. Por
+   ejemplo, si buscáramos documentos "gold" o "copper", podríamos hacer:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$cursor = $collection->find(array("awards" => array('$in' => array("gold", "copper"))));
+
+?>
+]]>
+  </programlisting>
+
+ </section>
+</section>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+

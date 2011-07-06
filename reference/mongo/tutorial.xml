@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 63c5351f883b8b5f9961590aca7944c0ee7afd09 Maintainer: chuso Status: ready -->
+
+<section xml:id="mongo.tutorial" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Tutorial</title>
+ <section>
+  <title>Introducción</title>
+  <para>
+   Gracias al driver de PHP para MongoDB de 10gen.
+  </para>
+  <para>Código de ejemplo para conectar, insertar documentos, consultar documentos,
+   recorrer el resultado de una consulta, y desconectar de MongoDB.
+   Encontrará más detalles en cada uno de los pasos del siguiente tutorial.
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+// conectar
+$m = new Mongo();
+
+// seleccionar una base de datos
+$db = $m->comedy;
+
+// seleccionar una colección (equivalente a una tabla en una base de datos relacional)
+$collection = $db->cartoons;
+
+// añadir un registro
+$obj = array( "title" => "Calvin and Hobbes", "author" => "Bill Watterson" );
+$collection->insert($obj);
+
+// añadir un nuevo registro, con un distinto "perfil"
+$obj = array( "title" => "XKCD", "online" => true );
+$collection->insert($obj);
+
+// encontrar todo lo que haya en la colección
+$cursor = $collection->find();
+
+// recorrer el resultado
+foreach ($cursor as $obj) {
+    echo $obj["title"] . "\n";
+}
+
+?>
+]]>
+  </programlisting>
+  <para>
+   Mostrará:
+  </para>
+  <screen>
+<![CDATA[
+Calvin and Hobbes
+XKCD
+]]>
+  </screen>
+ </section>
+ <section>
+  <title>Estableciendo una Conexión</title>
+  <para>
+   Para conectar al servidor de bases de datos, utilice alguna de las siguientes formas:
+
+   <programlisting role="php">
+    <![CDATA[
+<?php
+
+$connection = new Mongo(); // conecta a localhost:27017
+$connection = new Mongo( "example.com" ); // conecta a un host remoto (puerto por omisión)
+$connection = new Mongo( "example.com:65432" ); // conecta a un host remoto en el puerto facilitado
+
+?>
+]]>
+   </programlisting>
+
+   No es necesario desconectar explícitamente de la base de datos. Cuando
+   <literal>$connection</literal> queda fuera de ámbito, la conexión se cierra
+   automáticamente y todos sus recursos se liberan.
+  </para>
+  <section>
+   <title>Ver también</title>
+   <para>
+    El capítulo <link linkend="mongo.connecting">connecting</link> del manual
+    cubre los distintos tipos de conexiones.
+   </para>
+   <para>
+    Tanto la documentación de la API de la clase <classname>Mongo</classname> como
+    <function>Mongo::__construct</function> proporcionan un exhaustivo repaso a todas
+    las opciones disponibles, y un gran número de ejemplos.
+   </para>
+  </section>
+
+  <section>
+   <title>Obteniendo una Base de Datos</title>
+   <para>
+    Para seleccionar una base de datos, utilice.
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$db = $connection->dbname;
+
+?>
+]]>
+    </programlisting>
+    La base de datos no debe necesariamente haber sido ya creada, sino que
+    pueden crearse con sólo seleccionarlas. ¡Tenga cuidado con los errores tipográficos! Podría,
+    por inadvertencia, crear una nueva base de datos, provocando errores:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$db = $connection->mybiglongdbname;
+// hacemos algo
+$db = $connection->mybiglongdbnme;
+// ¡ahora estamos conectando a una nueva base de datos!
+
+?>
+]]>
+    </programlisting>
+   </para>
+   <section>
+    <title>Ver También</title>
+    <para>
+     La documentación API de la clase <classname>MongoDB</classname> contiene más
+     información sobre los objetos de bases de datos.
+    </para>
+   </section>
+  </section>
+
+  <section>
+   <title>Obteniendo Una Colección</title>
+   <para>
+    Para obtener una conexión se utiliza la misma sintaxis que para obtener una base de datos:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$db = $connection->baz;
+$collection = $db->foobar;
+
+// o de forma resumida:
+$collection = $connection->baz->foobar;
+
+?>
+]]>
+    </programlisting>
+   </para>
+   <section>
+    <title>Ver También</title>
+    <para>
+     La documentación API de la clase <classname>MongoCollection</classname> contiene más
+     información sobre objetos de colecciones.
+    </para>
+   </section>
+  </section>
+
+  <section>
+   <title>Insertando un Documento</title>
+   <para>
+    Los objetos básicos para almacenar en una colección de una base de datos son los
+    arrays asociativos. Un "documento" cualquiera podría ser:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$doc = array( "nombre" => "MongoDB",
+   "tipo" => "database",
+   "contador" => 1,
+   "info" => (object)array( "x" => 203, "y" => 102),
+   "versiones" => array("0.9.7", "0.9.8", "0.9.9")
+);
+
+?>
+]]>
+    </programlisting>
+
+    Tenga en cuenta que puede tener array y objetos anidados.
+   </para>
+   <para>
+    Para insertar este documento, utilice <function>MongoCollection::insert</function>:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$collection->insert( $doc );
+
+?>
+]]>
+    </programlisting>
+   </para>
+   <para>
+   </para>
+   <section>
+    <title>Ver También</title>
+    <para>
+     La documentación API de <function>MongoCollection::insert</function>
+     contiene más información sobre la inserción de datos.
+    </para>
+   </section>
+  </section>
+
+  <section>
+   <title>
+    Localizando documentos usando <function>MongoCollection::findOne</function>
+   </title>
+   <para>
+    Para comprobar que el documento que insertamos en el paso anterior se encuentra ahí, podemos
+    realizar una operación <function>MongoCollection::findOne</function> para obtener un
+    único documento de la colección. Este método es útil cuando sólo hay un documento que concuerde
+    con la consulta, o cuando sólo se está interesado en un resultado.
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$obj = $collection->findOne();
+var_dump( $obj );
+
+?>
+]]>
+    </programlisting>
+
+    Mostrará:
+
+    <programlisting>
+     <![CDATA[
+array(5) {
+  ["_id"]=>
+  object(MongoId)#6 (0) {
+  }
+  ["nombre"]
+  string(7) "MongoDB"
+  ["tipo"]=>
+  string(8) "database"
+  ["contador"]=>
+  int(1)
+  ["info"]=>
+  array (2) {
+    ["x"]=>
+    int(203)
+    ["y"]=>
+    int(102)
+  }
+  ["versiones"]
+  array(3) {
+    [0]=>
+    string(5) "0.9.7"
+    [1]=>
+    string(5) "0.9.8"
+    [2]=>
+    string(5) "0.9.9"
+  }
+}
+]]>
+    </programlisting>
+   </para>
+   <para>
+    El campo <literal>_id</literal> se ha añadido automáticamente al documento.
+    <literal>_id</literal> el campo de la "clave primaria" que se genera
+    automáticamente en prácticamente todos los documentos de MongoDB.
+   </para>
+   <section>
+    <title>Ver También</title>
+    <para>
+     La documentación de la API de <function>MongoCollection::findOne</function>
+     contiene más información sobre cómo localizar datos.
+    </para>
+   </section>
+  </section>
+
+  <section>
+   <title>Añadiendo Múltiples Documentos</title>
+   <para>
+    Para hacer más interesante el tema de las consultas, vamos a añadir
+    varios documentos a la colección. Estos documentos simplemente serán
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+array( "i" => valor );
+
+?>
+]]>
+    </programlisting>
+
+    y podemos hacerlo de un modo muy eficiente con un bucle
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+for($i=0; $i<100; $i++) {
+    $collection->insert( array( "i" => $i ) );
+}
+
+?>
+]]>
+    </programlisting>
+   </para>
+
+   <para>
+    Tenga en cuenta que podemos insertar en una misma colección arrays con conjuntos de
+    claves diferente. A esta característica nos refereemos cuando decimos que MongoDB
+    es independiente de esquemas.
+   </para>
+  </section>
+
+  <section>
+   <title>Contando los Documentos de una Colección</title>
+   <para>
+    Ahora que hemos insertado 101 documentos (los 100 del bucle, junto con el
+    primero), podemos comprobar si los tenemos todos usando el método
+    <function>MongoCollection::count</function>.
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+echo $collection->count();
+
+?>
+]]>
+    </programlisting>
+    y debe mostrar 101.
+   </para>
+  </section>
+
+  <section>
+   <title>Usando un Cursor para Obtener Todo de los Documentos</title>
+   <para>
+    Paraa obtener todos los documentos, usaremos
+    <function>MongoCollection::find</function>. El método find() devuelve un objeto
+    <classname>MongoCursor</classname> que nos permite recorrer el conjunto de documentos
+    que concuerdan con nuestra consulta. De ese modo, para consultar todos los documentos
+    y mostrarlos por pantalla:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$cursor = $collection->find();
+foreach ($cursor as $id => $value) {
+    echo "$id: ";
+    var_dump( $value );
+}
+
+?>
+]]>
+    </programlisting>
+
+    y mostrará los 101 documentos de la colección.
+    <literal>$id</literal> es el campo <literal>_id</literal> del documento,
+    y <literal>$value</literal> es el documento en sí.
+   </para>
+   <section>
+    <title>Ver También</title>
+    <para>
+     La documentación API de <function>MongoCollection::find</function>
+     contiene más información sobre cómo localizar datos.
+    </para>
+   </section>
+  </section>
+
+  <section>
+   <title>Estableciendo el Criterio de la Consulta</title>
+   <para>
+    Podemos crear una consulta para pasar al método
+    <function>MongoCollection::find</function> y así obtener un subconjunto de documentos
+    de nuestra colección. Por ejemplo, si quisiéramos encontrar el documento cuyo valor en el
+    campo "i" es 71, haríamos lo siguiente:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$query = array( "i" => 71 );
+$cursor = $collection->find( $query );
+
+while( $cursor->hasNext() ) {
+    var_dump( $cursor->getNext() );
+}
+
+?>
+]]>
+    </programlisting>
+
+    y debería mostrar un único documento
+
+    <programlisting>
+     <![CDATA[
+array(2) {
+  ["_id"]=>
+  object(MongoId)#6 (0) {
+  }
+  ["i"]=>
+  int(71)
+  ["_ns"]=>
+  "testCollection"
+}
+]]>
+    </programlisting>
+   </para>
+  </section>
+
+  <section>
+   <title>Consultando un Conjunto de Documentos con una Consulta</title>
+   <para>
+    Podemos usar la consulta para obtener un conjunto de documentos de nuestra colección. Por ejemplo,
+    si quisiéramos obtener todos los documentos en los que "i" &gt; 50, podríamos poner:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$query = array( "i" => array( '$gt' => 50 ) ); //fíjese en las comillas simples de '$gt'
+$cursor = $coll->find( $query );
+
+while( $cursor->hasNext() ) {
+    var_dump( $cursor->getNext() );
+}
+
+?>
+]]>
+    </programlisting>
+
+    lo cual mostraría los documentos en que i &gt; 50. Podemos también consultar un rango, digamos
+    20 &lt; i &lt;= 30:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$query = array( "i" => array( "\$gt" => 20, "\$lte" => 30 ) );
+$cursor = $coll->find( $query );
+
+while( $cursor->hasNext() ) {
+    var_dump( $cursor->getNext() );
+}
+
+?>
+]]>
+    </programlisting>
+
+    Ya que es fácil olvidar escapar el caracter "$", puede elegírse cualquier otro carácter especial
+    para usar en lugar de '$'. Elija un carácter que no esté presente
+   en sus nombres de clave, p.ej. ":", y añada la siguiente línea a php.ini:
+
+    <programlisting>
+     <![CDATA[
+mongo.cmd = ":"
+]]>
+    </programlisting>
+
+    De este modo, el ejemplo superior quedaría así:
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$query = array( "i" => array( ":gt" => 20, ":lte" => 30 ) );
+
+?>
+]]>
+    </programlisting>
+
+    Puede cambiarse también en tiempo de ejecución usando ini_set("mongo.cmd", ":"). Por supuesto,
+    también podrá usar comillas simples con el $.
+   </para>
+  </section>
+
+  <section>
+   <title>Creando un Índice</title>
+   <para>
+    MongoDB soporta índices, y es muy fácil añadirlos a una colección. Para
+    crear un Índice, debe indicar el nombre del campo y la dirección: ascendente (1) o
+    descendente (-1). A continuación, creamos un índice ascendente en el campo "i":
+
+    <programlisting role="php">
+     <![CDATA[
+<?php
+
+$coll->ensureIndex( array( "i" => 1 ) );  // creamos un índice en "i"
+$coll->ensureIndex( array( "i" => -1, "j" => 1 ) );  // índice de "i" descendente, "j" ascendente
+
+?>
+]]>
+    </programlisting>
+   </para>
+  </section>
+ </section>
+</section>
