@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 3b6540c7b92660d5889b584c6356923e65c863da Maintainer: chuso Status: ready -->
+<!-- Reviewed: no -->
+<!-- $Revision$ -->
+<refentry xml:id="mongocollection.ensureindex" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>MongoCollection::ensureIndex</refname>
+  <refpurpose>
+   Crea un índice en el campo o cmapos dados, o si el índice ya existe, no realiza
+   nada.
+  </refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>public</modifier> <type>bool</type><methodname>MongoCollection::ensureIndex</methodname>
+   <methodparam><type>array</type><parameter>keys</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   No se puede crear un índice único sobre un campo si varios documentos ya existentes no 
+   contienen a este campo. En estos documentos el campo sería &null; y, por tanto,
+   no sería único.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters"> 
+  &reftitle.parameters; 
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term>
+      <parameter>keys</parameter>
+     </term>
+     <listitem>
+      <para>
+       Campo o campos a usar como índice.
+      </para>
+     </listitem>
+    </varlistentry>   
+    <varlistentry>
+     <term>
+      <parameter>options</parameter>
+     </term>
+     <listitem>
+      <para>
+       Este parámetro es un array asociativo de la forma
+       <literal>array("nombredeopcion" => &lt;boolean&gt;, ...)</literal>. Las opciones
+       soportadas actualmente son:
+       <itemizedlist>
+        <listitem>
+         <para>
+          <literal>"unique"</literal>
+         </para>
+         <para>
+          Crea un índice único.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"dropDups"</literal>
+         </para>
+         <para>
+          Si se estuviera creando un índice único, y existieran valores duplicados, borrar
+          todos excepto uno de ellos.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"background"</literal>
+         </para>
+         <para>
+          Si se estuviera usando MongoDB versión 1.3.2 o superior, se podrán crear índices
+          de fondo mientras se realiza otras operaciones. Por omisión, la creación de índices
+          sucede de forma síncrona. Si se especifica &true; en esta opción,
+          la creación de índices será asíncrona.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"safe"</literal>
+         </para>
+         <para>
+          Desde la versión 1.0.4 del driver, se puede indicar mediante un booleano
+          si se comprobará si ha habido o no éxito creando el índice. Si fallara la creación del
+          índice, el driver emitiría una excepción de tipo MongoCursorException.
+         </para>
+         <para>
+          Si se estuvieran utilizando réplicas, y el maestro cambiara, al usar "safe"
+          se provocaría que el driver desconectaría del maestro, emitiría una excepción,
+          y en la siguiente operación se tratría de encontrar un nuevo maestro (su aplicación
+          debe decidir si reintentará realizar de nuevo la operación sobre un nuevo
+          maestro).
+         </para>
+         <para>
+          Si <emphasis>no</emphasis> utiliza "safe" con conjuntos de réplicas y el maestro
+          cambia, no habrá forma de que el driver conozca el cambio. En este caso, continuará
+          la ejecución y la escritura, silenciosamente, fallará.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"name"</literal>
+         </para>
+         <para>
+          Desde la versión 1.0.4 del driver (SIN incluir 1.0.4) se puede especificar un nombre
+          de índice. Puede ser útil cuando se indexan muchas claves y Mongo se queja de que
+          los nombres de índices son demasiado largos.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"timeout"</literal>
+         </para>
+         <para>
+          Entero, por omisión <literal>MongoCursor::$timeout</literal>. Si
+          "safe" está habilitado, este valor indica por cuánto tiempo (en milisegundos)
+          esperará el cliente la respuesta de la base de datos. Si la base de datos no respondiera
+          en ese periodo de tiempo, se lanzaría una excepción de tipo
+          <classname>MongoCursorTimeoutException</classname>.
+         </para>
+        </listitem>
+       </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve &true;.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>1.2.0</entry>
+       <entry>
+        Añadida la opción timeout.
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.11</entry>
+       <entry>
+        "safe" emitirá fallos del maestro, cuando proceda.
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.11</entry>
+       <entry>
+        Se lanza <classname>MongoException</classname> si el nombre de índice
+        (generado o asignado) es superior a 128 bytes.
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.2</entry>
+       <entry>
+        Cambiado el parámetro "options" de booleano a array. Antes de 1.0.2, el
+        segundo parámetro era un valor booleano opcional que especificaba
+        un índice único.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Lanza <classname>MongoException</classname> si el nombre de índice es superior
+   a 128 bytes. (Versión 1.0.11+)
+  </para>
+  <para>
+   Lanza <classname>MongoCursorException</classname> si la opción "safe" está habilitada
+   y falla la creación del índice.
+  </para>
+  <para>
+   Lanza <classname>MongoCursorTimeoutException</classname> si la opción "safe" está
+   habilitada y la operación lleva más de 
+   <varname>MongoCursor::$timeout</varname> milisegundos para ser completada. Esto no
+   paraliza la operación en el servidor, es sólo un límite de tiempo en el lado del cliente.
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <function>MongoCollection::ensureIndex</function></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$c = new MongoCollection($db, 'foo');
+
+// crea un índice en 'x' ascendente
+$c->ensureIndex(array('x' => 1));
+
+// crea un índice en 'z' ascendente y en 'zz' descendente
+$c->ensureIndex(array('z' => 1, 'zz' => -1));
+
+// crea un índice único en 'x'
+$c->ensureIndex(array('x' => 1), array("unique" => true));
+
+?>
+]]>
+   </programlisting>
+  </example>
+  <example>
+   <title>Ejemplo de borrado de duplicados</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$collection->insert(array("username" => "joeschmoe"));
+$collection->insert(array("username" => "joeschmoe"));
+
+/*
+ * falla la creación del índice; no se puede crear un índice único en una clave que no tiene
+ * valores únicos
+ */
+$collection->ensureIndex(array("username" => 1), array("unique" => 1));
+
+/*
+ * éxito al crear índice: se ha eliminado uno de los documentos de la colección
+ */
+$collection->ensureIndex(array("username" => 1), array("unique" => 1, "dropDups" => 1));
+
+/* 
+ * ahora tenemos un índice único, por lo que las inserciones con el mismo username (como el
+ * anterior) fallarán
+ */
+$collection->insert(array("username" => "joeschmoe"));
+
+?>
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Indexación Geoespacial</title>
+   <para>
+    Mongo soporta índices geoespaciales, que permiten buscar documentos cercanos a una
+    determinada localización o que estén dentro de una determinada forma. Por ejemplo, para crear
+    un índice geoespacial en el campo "loc":
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$collection->ensureIndex(array("loc" => "2d"));
+
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   Documentación de MongoDB sobre
+   <link xlink:href="&url.mongodb.dochub.indexes;">índices por defecto</link> y sobre
+   <link xlink:href="&url.mongodb.dochub.geo;">índices geoespaciales</link>.
+  </para>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+--> 
