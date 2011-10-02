@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d1c7b2d2bbe6851689a047a79dacb989a0ebe94c Maintainer: yago Status: ready -->
+<!-- EN-Revision: 9fa2d6307cf18d533584eea85d204ddf3a383160 Maintainer: chuso Status: ready -->
 <sect1 xml:id="language.types.string">
  <title>Cadenas</title>
  
@@ -8,8 +8,9 @@
  <para>
   Un <type>string</type> es una serie de caracteres donde un caracter es
   lo mismo que un byte. Esto significa que PHP solo soporta el conjunto de 256 caracteres
-  y por lo tanto no tiene soporte nativo Unicode. Ver <function>utf8_decode</function> para informarse de
-  la funcionalidad básica de Unicode.
+  y por lo tanto no tiene soporte nativo Unicode. Ver
+  <link linkend="language.types.string.details">detalles del tipo de dato
+  string</link>.
  </para>
  
  <note>
@@ -985,6 +986,112 @@ echo "\$foo==$foo; tipo es " . gettype ($foo) . "<br />\n";
    <function>chr</function> para convertir entre código ASCII y caracteres.
   </para>
   
+ </sect2>
+ 
+<sect2 xml:id="language.types.string.details">
+  
+  <title>Detalles del tipo de dato String</title>
+  
+  <para>
+   En PHP, los <type>string</type> se implementan como una matriz de bytes y con un
+   entero que indica la longitud del buffer. No guarda ninguna información sobre cómo
+   traducir esos bytes, relegando esa tarea al programador.
+   No existe ninguna limitación sobre el valor que puede contener un string; en
+   concreto, está permitido colocar un bytes con valor <literal>0</literal> (“bytes NUL”)
+   en cualquier posición del string (existen algunas funciones, marcadas en este manual como
+   que no utilizan "modo binario seguro", podrían rechazar estos strings para aquellas
+   bibliotecas que ignoren los datos preceden a un byte NUL.)
+  </para>
+  <para>
+   Este comportamiento de los strings justifica el que no exista un tipo de dato "byte"
+   en PHP – los strings se encargan de esto. Las funciones que no devuelvan datos de texto – por
+   ejemplo, cualquier dato leído a partir de un socket de red – devolverán 
+   strings.
+  </para>
+  <para>
+   Dado que PHP no obliga a utilizar ninguna condificación en particular, uno podría
+   preguntarse cómo se codifican los textos literales. Por ejemplo, ¿es el string
+   <literal>"á"</literal> equivalente a <literal>"\xE1"</literal> (ISO-8859-1),
+   <literal>"\xC3\xA1"</literal> (forma en C UTF-8),
+   <literal>"\x61\xCC\x81"</literal> (forma en D UTF-8) o cualquier otra representación
+   posible? La resuesta es que un string se codifica en cualesquiera forma en que
+   estuviera el fichero de código. Por tanto, si un fichero de código estuviera escrito en
+   ISO-8859-1, el string se codificará en ISO-8859-1, y así. Sin embargo,
+   esto no es aplicable si Zend Multibyte está habilitado; en ese caso, el fichero de código
+   podría estar escrito en cualquier codificación (declarada explícitamente o bien
+   detectada) para después convertirse a una determinada codificación interna, que será
+   entonces la codificación usada para los textos literales.
+   Tenga presente que existen algunas limitaciones sobre la codificación del código fuente (o en
+   la codificación internal, si Zend Multibyte estuviera habilitado) – esto suele significar
+   que se debe usar uan codificación complatible con el conjunto ASCII, como por ejemplo
+   UTF-8 o ISO-8859-1. Por contra, las codificaciones dependientes de estados, donde
+   un mismo byte se puede utilizar en estados de desplazamiento iniciales y no iniciales,
+   podría generar problemas.
+  </para>
+  <para>
+   Por supuesto, para poder ser útil, las funciones que operen con texto podrán partir de unos
+   supuestos sobre cómo está codificado el string. Desafortunadamente, respecto a 
+   esto existen muchas variaciones en la funciones de PHP:
+  </para>
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Algunas funciones asumen que el string está codificado en una codificación
+     simple de bytes, por lo que no necesitan interpretar estos bytes como caracteres
+     específicos. Este es el caso de, por ejemplo, <function>substr</function>, 
+     <function>strpos</function>, <function>strlen</function> o
+     <function>strcmp</function>. Otra forma de entender estas funciones es pensando
+     que operan sobre buffers de memoria, es decir, trabajan con bytes y con desplazamientos
+     de bytes.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     A otras funciones se les indica la codificación del string, si bien es posible
+     que tengan una codificación predeterminada. Este es el caso de
+     <function>htmlentities</function> y la mayoría de funciones de la extensión
+     <link linkend="book.mbstring">mbstring</link>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Otras, utilizan las locales en uso (ver <function>setlocale</function>), pero 
+     operan byte a byte. Este es el caso de <function>strcasecmp</function>,
+     <function>strtoupper</function> y <function>ucfirst</function>.
+     Esto significa que sólo se pueden usar con codificaciones de un byte, siempre y
+     cuando la codificación coincida con la de la local. Por ejemplo
+     <literal>strtoupper("á")</literal> podría devolver <literal>"Á"</literal> si las
+     locales están correctamente habilitadas y <literal>á</literal> está codificado con un
+     único byte. Si está codificado en UTF-8, no se devolverá un resultado correcto
+     y el string resultante podría, o no, devolverse corrupto, en función de las
+     locales en uso.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Por último, podrán tambien asumir que se utiliza una codificación en particular,
+     usualmente UTF-8. Este es el caso de la mayoría de las funciones de la extensión
+     <link linkend="book.intl">intl</link> y de la extensión
+     <link linkend="book.pcre">PCRE</link>
+     (en este último caso, sólo cuando se utiliza el modificador <literal>u</literal>).
+     Debido a su propósito especial, la función
+     <function>utf8_decode</function> asume una codificación UTF-8, mientras que la
+     función <function>utf8_encode</function> asume una codificación ISO-8859-1.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+
+  <para>
+   En resumen, esto significa que para escribir programas Unicode de forma correcta
+   hay que evitar cuidadosamente las funciones que pudean fallar y que muy probablemente
+   vuelvan los datos corruptos, y utilizar en su lugar las funciones que se comportan de forma
+   correcta, generalmente de las extensiones <link linkend="book.intl">intl</link> y
+   <link linkend="book.mbstring">mbstring</link>.
+   Sin embargo, el utilizar funciones que puedan manejar codificaciones Unicode es sólo
+   el principio. No importa qué funciones incorpore el lenguaje; es primordial
+   conocer la especificación Unicode. Por ejemplo, un programa que asuma que sólo
+   hay mayúsculas y minúsculas estará haciendo una suposición erronea.
+  </para>
  </sect2>
 </sect1><!-- end string -->
 
