@@ -1,22 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bb68ae3b245112cca18cdcd0dba4bcc8218ce389 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 8b6d169424ff189bb563ef4c3f35f8adff3f42c5 Maintainer: julionc Status: ready -->
 <section xml:id="mongo.connecting" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Conexión</title>
-
+ 
  <para>
-  La Conexión a MongoDB es tan fácil como usar <literal>new Mongo</literal>, pero 
+  La conexión a MongoDB es tan fácil como usar <literal>new Mongo</literal>, pero 
   hay muchas más opciones y configuraciones adicionales. La 
   página <function>Mongo::__construct</function> cubre todas las opciones del API,
   pero está página ofrece más detalles y consejos para casos de uso prácticos.
  </para>
-
+ 
  <section>
   <title>Acceso a la conexión</title>
   <para>
-   Si MongoDB se inicia con la opción <literal>--auth</literal> , las conexiones
-   deben ser autenticadas antes de ser usadas.  Se puede hacer 
-   a nivel de cada base de datos con <function>MongoDB::authenticate</function>:
+   Si MongoDB es iniciado con la opción <literal>--auth</literal> o con
+   la opción <literal>--keyFile</literal>, deben acceder antes de realizar cualquier
+   operación con el driver. Puede acceder a una conexión mediante el ingreso del
+   nombre de usuario y contraseña en la URI de conexión:
+  </para>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo("mongodb://${username}:${password}@localhost");
+
+?>
+]]>
+  </programlisting>
+  <para>
+   Si la conexión es interrumpida, el driver intentará automáticamente 
+   reconectarlo y reautentificarlo.
+  </para>
+  <para>
+   También puede autentificar a nivel de base de datos con
+   <function>MongoDB::authenticate</function>:
   </para>
   <programlisting role="php">
 <![CDATA[
@@ -31,31 +49,14 @@ $db->authenticate($username, $password);
 ]]>
   </programlisting>
   <para>
-   Hay una gran desventaja al usar este método: si la conexión a la base de datos se
-   cae y luego se reconecta, la conexión ya no estará autentificada.
+   La mayor desventaja de este método: es si la conexión con la base de datos es borrada
+   será reconectada, pero la conexión no será autentificada. Si utiliza
+   el formato URI, el driver automáticamente autentificará al usuario
+   cuando una nueva conexión es realizada.
   </para>
   <para>
-   Si se utiliza la forma de conexión mediante cadena, como se describe en 
-   <function>Mongo::__construct</function>, la base de datos se autentificará al
-   conectarse y se autentificará de nuevo si la conexión se cae y se restablece. 
-  </para>
-  <para>
-   Hace lo mismo que el código anterior, a excepción que las reconexiones a la 
-   base de datos serán automáticamente autentificadas:
-  </para>
-  <programlisting role="php">
-<![CDATA[
-<?php
-
-$m = new Mongo("mongodb://${username}:${password}@localhost");
-
-?>
-]]>
-  </programlisting>
-  <para>
-   Por omisión, el controlador autentificará al usuario en la base de datos. 
-   Para autentificarse con diferentes base de datos, se especifica el nombre de la base de datos después 
-   del host. Este ejemplo iniciará la sesión al usuario en la base de datos "blog":
+   Para autentificar con una base de datos diferente, se debe especificar el nombre de la base de datos
+   después del host.  En este ejemplo se logueara un usuario en la base de datos llamado "blog":
   </para>
   <programlisting role="php">
 <![CDATA[
@@ -67,7 +68,7 @@ $m = new Mongo("mongodb://${username}:${password}@localhost/blog");
 ]]>
   </programlisting>
  </section>
-
+ 
  <section>
   <title>Grupos replica</title>
   <para>
@@ -78,14 +79,14 @@ $m = new Mongo("mongodb://${username}:${password}@localhost/blog");
 <![CDATA[
 <?php
 
-$m = new Mongo("mongodb://localhost:27017", array("replicaSet" => true));
+$m = new Mongo("mongodb://localhost:27017", array("replicaSet" => "myReplSetName"));
 
 ?>
 ]]>
   </programlisting>
   <para>
    Se require la versión 1.0.9+ del driver para conectar a un grupo réplica 
-   (versiones anteriores del driver no auto-detectarán el master o no se reconectarán 
+   (versiones anteriores del driver no autodetecta el master o no reconecta
    correctamente).
   </para>
   <para>
@@ -96,7 +97,7 @@ $m = new Mongo("mongodb://localhost:27017", array("replicaSet" => true));
    <classname>MongoConnectionException</classname> devolverá una excepción.
   </para>  
   <para>
-   Si el master no se encuentra disponible, los slaves no promocionarán un nuevo master por algunos
+   Si el master no se encuentra disponible, los slaves  ó esclavos no promocionarán un nuevo master por algunos
    segundos.  Durante ese tiempo, el controlador no podrá realizar ninguna operación en 
    la base de datos (excepto las conexiones a los slaves que seguirán disponibles para
    operaciones de lectura) Por lo tanto, si se intenta hacer cualquier tipo de consulta de lectura o escritura mientras
@@ -112,20 +113,174 @@ $m = new Mongo("mongodb://localhost:27017", array("replicaSet" => true));
    <link xlink:href="&url.mongodb.replica;">documentación del núcleo</link>.
   </para>
  </section>
+ 
+ <section>
+  <title>Soporte de Domain Socket</title>
+  
+  <para>
+   Si se está ejecutando MongoDB localmente con la versión 1.0.9 o superior del
+   driver, se puede conectar a la base de datos vía fichero. MongoDB automáticamente
+   abre un fichero socket al iniciarse: /tmp/mongodb-&lt;port&gt;.sock.
+  </para>
+  
+  <para>
+   Para conectarse al fichero socket, especifique la ruta de la conexión
+   MongoDB:
+  </para>
+  
+  <programlisting role="php">
+<![CDATA[
+<?php
 
+$m = new Mongo("mongodb:///tmp/mongo-27017.sock");
+
+?>
+]]>
+  </programlisting>
+  
+  <para>
+   Si se quiere utilizar autenticación en la conexión (tal y como se indica más arriba)
+   usando un fichero socket, se debe especificar el puerto 0 para que el analizador
+   de la cadena de conexión sepa donde acaba la cadena de conexión.
+  </para>
+  
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+$m = new Mongo("mongodb://username:password@/tmp/mongo-27017.sock:0/foo");
+
+?>
+]]>
+  </programlisting>
+  
+ </section>
+ 
+ <section>
+  <title>Pool de conexiones (versión 1.2.0+)</title>
+  <para>
+   La creación de conexiones es uno de las cosas más pesada que el driver 
+   realiza. Puede tomar miles de milisegundos establecer una conexión correcta,
+   incluso en una red rápida.  Por lo tanto, el driver intentará reducir el número de nuevas
+   conexiones creadas mediante la reutilización del pool de conexiones.
+  </para>
+  <para>
+   Cuando un usuario crea una nueva instancia de <classname>Mongo</classname>, todas
+   las conexiones necesarias serán tomadas por el pool (un conjunto de replicas de conexiones 
+   pueden requerir conexiones múltiples). Cuando la instancia de
+   <classname>Mongo</classname> se sale del ámbito, las conexiones se
+   retornarán al pool.  Cuando el proceso en PHP termine, todas las conexiones en el
+   pools serán cerrados.
+  </para>
+  <section>
+   <title>"¿Por qué tengo tantas conexiones abiertas?"</title>
+   <para>
+    Las conexiones en el pool pueden generar un gran número de estas. Esto es normal 
+    y, con un poco de aritmética, es posible averiguar la cantidad de conexiones que se
+    experan.  Hay tres factores en el número total de conexiones:
+   </para>
+   <itemizedlist>
+    <listitem>
+     <para>
+      <literal>
+       connections_per_pool
+      </literal>
+     </para>
+     <para>
+      Cada pool creará, por omisión, un número ilimitado de
+      conexiones. Uno puede suponer que este es un problema: si puede crear un
+      número ilimitado de conexiones, no se podría crear miles y el
+      servidor se quedaría sin descriptores de ficheros. En la práctica, es poco probable,
+      ya que las conexiones no utilizadas son devueltas al pool para usarlos luego, Así las futuras
+      conexiones van a utilizar la misma conexión en lugar de crear uno nuevo.
+      A menos que cree miles de conexiones a la vez sin que ninguna este 
+      fuera del ámbito, el número de conexiones abiertas deben permanecer en un 
+      número razonable.
+     </para>
+     <para>
+      Puede verse cuantas conexiones se tiene en el pool utilizando la función
+      <function>MongoPool::info</function>.  Agregue los campos "in use" y
+      "in pool" de un servidor determinado.  Ese será el número total de
+      conexiones de ese pool.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      <literal>
+       pools_per_process
+      </literal>
+     </para>
+     <para>
+      Cada dirección del servidor MongoDB al cual se va a conectar contiene su propio
+      pool de conexiones.  Por ejemplo, si el hostname local es "example.net", connectarse
+      a "example.net:27017", "localhost:27017", y "/tmp/mongodb-27017.sock"
+      creará tres grupos pools de conexiones.  Puede ver como muchos grupos pools de conexiones
+      tienes abiertas usando <function>MongoPool::info</function>.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      <literal>
+       processes
+      </literal>
+     </para>
+     <para>
+      Cada proceso PHP tiene un conjunto independiente de pools.  PHP-FPM y Apache
+      generalmente crean entre 6 y un par de docenas de PHP worker children. Compruebe
+      su configuración y vea cuál es el máximo número de procesos de PHP que se pueden
+      procesar.
+     </para>
+     <para>
+      Si está usando PHP-FPM, la estimación del número de conexiones puede ser 
+      difícil porque este puede procesar más workers de PHP-FPM y así volver pesado la carga. Para estar
+      en lado de la seguro, mire en parámetro max_children o sume
+      spare_servers+start_servers (elegir el número más alto).  Así es
+      cómo muchos procesos en PHP (y, por tanto, se establece en los pools) debes planificarlo.
+     </para>
+    </listitem>
+   </itemizedlist>
+   <para>
+    The three variables above can be multiplied together to give the max
+    number of connections expected:
+    <literal>connections_per_pool*pools_per_process*processes</literal>.  Note
+    that <literal>connections_per_pool</literal> can be different for different
+    pools, so <literal>connections_per_pool</literal> should be the max.
+   </para>
+   <para>
+    Por ejemplo, supongamos que se recibe 30 conexiones por pool, 10 pools por
+    procesos en PHP, y 128 procesos PHP.  Entonces podemos esperar 38400 conexiones desde
+    esta máquina.  Por lo tanto, debemos establecer el límite del descriptor del fichero para
+    ser lo suficientemente alto para manejar todas las conexiones o pueda ejecutarse los ficheros
+    de descriptores.
+   </para>
+   <para>
+    See <classname>MongoPool</classname> para obtener más información sobre la conexión
+    pooling.
+   </para>
+  </section>
+ </section>
+ 
  <section>
   <title>Connexiones persistentes</title>
+  <note>
+   <para>
+    Esta sección no es relevante para 1.2.0+. En 1.2.0+, siempre las conexiones
+    que son persistentes son administradas automáticamente por el driver
+   </para>
+  </note>
+  
   <para>
    Crear una nueva conexión cada vez a la base de datos es muy lento.  Para minimizar el número
    de conexiones que se necesite, se pueden usar las conexiones persistentes.  Una 
    conexión persistente es guardada por PHP, para que pueda usarse la misma conexión en
    múltiples peticiones.
   </para>
-
+  
+  
   <para>
    Por ejemplo, este simple programa para conectarse 1000 veces a la base de datos:
   </para>
-
+  
   <programlisting role="php">
 <![CDATA[
 <?php
@@ -137,12 +292,12 @@ for ($i=0; $i<1000; $i++) {
 ?>
 ]]>
   </programlisting>
-
+  
   <para>
    Esto tarda apróximadamente 18 segundos en ejecutarse. Pero si lo cambiamos para que utilice 
    una conexión persistente:
   </para>
-
+  
   <programlisting role="php">
 <![CDATA[
 <?php
@@ -154,12 +309,12 @@ for ($i=0; $i<1000; $i++) {
 ?>
 ]]>
   </programlisting>
-
+  
   <para>
    ...tardará menos de 0.02 segundos en ejecutarse, ya que solo se realiza una sola conexión
    a la base de datos.
   </para>
-
+  
   <para>
    Las conexiones persistentes necesitan indicarse usando la variable de identificación (tal y como se muestra "x" 
    en el ejemplo anterior).  Para que la conexión persistente pueda usarse,
@@ -173,54 +328,6 @@ for ($i=0; $i<1000; $i++) {
    La mayoría de razones por las cuales no son recomendadas para bases de datos relacionales
    son totalmente irrelevantes para MongoDB.
   </para>
-  <para>
-   Las conexiones persistentes serán el tipo de conexión por omisión en 1.0.12. Para
-   crear conexiones no persistentes, se deberá pasar 
-   <literal>"persist" =&gt; false</literal> a
-   <function>Mongo::__construct</function>.
-  </para>  
  </section>
-
- <section>
-  <title>Soporte de Domain Socket</title>
-
-  <para>
-   Si se está ejecutando MongoDB en local con la versión 1.0.9 o superior del
-   driver, se puede conectar a la base de datos vía fichero. MongoDB automáticamente
-   abre un fichero socket al iniciarse: /tmp/mongodb-&lt;port&gt;.sock.
-  </para>
-
-  <para>
-   Para conectarse al fichero socket, especifique la ruta de la conexión 
-   MongoDB:
-  </para>
-
-  <programlisting role="php">
-<![CDATA[
-<?php
-
-$m = new Mongo("mongodb:///tmp/mongo-27017.sock");
-
-?>
-]]>
-  </programlisting>
-
-  <para>
-   Si se quiere utilizar autenticación en la conexión (tal y como se indica más arriba)
-   usando un fichero socket, se debe especificar el puerto 0 para que el analizador
-   de la cadena de conexión sepa donde acaba la cadena de conexión.
-  </para>
-
-  <programlisting role="php">
-<![CDATA[
-<?php
-
-$m = new Mongo("mongodb://username:password@/tmp/mongo-27017.sock:0/foo");
-
-?>
-]]>
-  </programlisting>
-
- </section>
-
+ 
 </section>
