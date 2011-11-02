@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 8a0d2c0cd53804a739ebf38449fa85b1a06a6b15 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<book xml:id="book.eio" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Eio</title>
+ <titleabbrev>Eio</titleabbrev>
+ <!--{{{ preface -->
+ <preface xml:id="intro.eio">
+  &reftitle.intro;
+  <para>
+   Esta extensión proporciona E/S POSIX asíncrima a través de
+   la biblioteca de C <link xlink:href="&url.eio.libeio;">libeio</link>
+   escrita por Marc Lehmann.
+  </para>
+  
+  &note.no-windows.extension;
+  
+  <para>
+   
+   <warning>
+    <simpara>
+     Es importante ser consciente de que cada petición es ejecutada en un hilo, y el
+     orden de ejecución continua de peticiones en cola es basicamente
+     impredecible. Por ejemplo, el siguiente trozo de código es incorrecto.
+    </simpara>
+   </warning>
+   
+   <example>
+    <title>Incorrect requests</title>
+    <programlisting role="php"><![CDATA[
+<?php
+// Petición para crear un enlace simbólico de $nombre_archivo a $enlace
+eio_symlink($nombre_archivo, $enlace);
+
+// Petición para mover $nombre_archivo a $nuevo_nombre_archivo
+eio_rename($nombre_archivo, $nuevo_nombre_archivo);
+
+// Procesar las peticiones
+eio_event_loop();
+?>
+]]>
+    </programlisting>
+   </example>
+   
+   En el ejemplo de arriba la petición <function>eio_rename</function> puede finalizar
+   antes que <function>eio_symlink</function>. Para corregirlo se podría llamar a <function>eio_rename</function>
+   en la llamada de retorno de <function>eio_symlink</function>:
+   <example>
+    <title>Llamar a una petición desde una llamada de retorno de petición</title>
+    <programlisting role="php"><![CDATA[
+<?php
+function mi_enlace_simbólico_hecho($nombre_archivo, $resultado) {
+ // Petición para mover $nombre_archivo a $nuevo_nombre_archivo
+ eio_rename($nombre_archivo, "/ruta/a/nuevo-nombre");
+
+ // Procesar las peticiones
+ eio_event_loop();
+}
+
+// Petición para crear un enlace simbólico de $nombre_archivo a $enlace
+eio_symlink($nombre_archivo, $enlace, EIO_PRI_DEFAULT, "mi_enlace_simbólico_hecho", $nombre_archivo);
+
+ // Procesar las peticiones
+eio_event_loop();
+?>
+   ]]>
+    </programlisting>
+   </example>
+   
+   Alternativamente, podría querer crear un grupo de peticiones:
+   
+   <example>
+    <title>Llamar a una petición desde una llamada de retorno de petición</title>
+    <programlisting role="php"><![CDATA[
+<?php
+/* Se llama cuando el grupo de peticiones está hecho */
+function mi_grupo_hecho($data, $resultado) {
+ // ...
+}
+
+function mi_enlace_simbólico_hecho($nombre_archivo, $resultado) {
+ // Crear una petición eio_rename y añadirla al grupo
+ $petición = eio_rename($nombre_archivo, "/ruta/a/nuevo-nombre");
+ eio_grp_add($grupo, $petición);
+ // Podría querer añadir más peticiones...
+}
+
+// Crear un grupo de peticiones
+$grupo = eio_grp("mi_grupo_hecho", "mis_datos_de_grupo");
+
+// Crear una petición eio_symlink y añadirla al grupo
+// Pasar $nombre_archivo a la llamada de retorno
+$petición = eio_symlink($nombre_archivo, $enlace,
+  EIO_PRI_DEFAULT, "mi_enlace_simbólico_hecho", $nombre_archivo);
+eio_grp_add($grupo, $petición);
+
+ // Procesar las peticiones
+eio_event_loop();
+?>
+]]></programlisting>
+   </example>
+   
+   El grupo es un tipo especial de peticion que podría acumular un conjunto de peticiones
+   <emphasis>eio</emphasis> regulares. Se podría usar para crear una petición
+   compleja para abrir, leer y cerrar un fichero.
+  </para>
+  <para>
+   Desde la versión 0.3.0 alfa, un descriptor de fichero usado para comunicaciones con
+   libeio internamente, podía ser recuperado con
+   <function>eio_get_eventfd</function>. El descriptor de fichero podría ser usado para
+   vincularse a un bucle de eventos soportado por alguna otra extensión. Por ejemplo,
+   <emphasis>libevent</emphasis> actualmente(Fri Oct 28 01:07:55 UZT 2011)
+   soporta descriptores de fichero en APIs básicas y con buffer en SVN.
+   Así, podría organizar un sencillo bucle de eventos donde eio y libevent trabajaran
+   juntos:
+   <example>
+    <title>Usar eio con libevent</title>
+    <programlisting role="php"><![CDATA[
+<?php
+function mi_eio_poll($df, $eventos, $argumentos) {
+ /* Algunas regulaciones de libevent podrían ir aquí .. */
+ if (eio_nreqs()) {
+  eio_poll();
+ }
+ /* .. y aquí */
+}
+
+function mi_res_cb($d, $r) {
+ var_dump($r); var_dump($d);
+}
+
+$base = event_base_new();
+$evento = event_new();
+
+// Obtener el descriptor de fichero de eio
+$df = eio_get_eventfd();
+
+eio_nop(EIO_PRI_DEFAULT, "mi_res_cb", "nop data");
+eio_mkdir("/tmp/abc-eio-temp", 0750, EIO_PRI_DEFAULT, "mi_res_cb", "mkdir data");
+/* algunas llamadas eio_* aquí ... */
+
+
+// establecer las banderas del evento
+event_set($evento, $df, EV_READ /*| EV_PERSIST*/, "mi_eio_poll", array($evento, $base));
+
+// Establecer las propiedades del evento
+event_base_priority_init($base, 10);
+
+// Establecer la base del evento
+event_base_set($evento, $base);
+
+// Esto actualmente está en SVN, pero debería aparecer el la siguiente versión de
+// libevent
+event_priority_set($evento, 2);
+
+// habilitar el evento
+event_add($evento);
+
+// iniciar el bucle de eventos
+event_base_loop($base);
+
+/* Lo mismo estará disponible mediante interfaz libevent con buffer */
+?>
+]]></programlisting>
+   </example>
+   
+  </para>
+ </preface>
+ <!--}}}-->
+ &reference.eio.setup;
+ &reference.eio.constants;
+ &reference.eio.examples;
+ &reference.eio.reference;
+ 
+</book>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml fdm=marker
+vi: ts=1 sw=1
+-->
