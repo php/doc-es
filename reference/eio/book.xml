@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8a0d2c0cd53804a739ebf38449fa85b1a06a6b15 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 043fadeac39c58bbcba579cda54dc9f280ceb72f Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <book xml:id="book.eio" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -107,14 +107,11 @@ eio_event_loop();
    compleja para abrir, leer y cerrar un fichero.
   </para>
   <para>
-   Desde la versión 0.3.0 alfa, un descriptor de fichero usado para comunicaciones con
-   libeio internamente, podía ser recuperado con
-   <function>eio_get_eventfd</function>. El descriptor de fichero podría ser usado para
-   vincularse a un bucle de eventos soportado por alguna otra extensión. Por ejemplo,
-   <emphasis>libevent</emphasis> actualmente(Fri Oct 28 01:07:55 UZT 2011)
-   soporta descriptores de fichero en APIs básicas y con buffer en SVN.
-   Así, podría organizar un sencillo bucle de eventos donde eio y libevent trabajaran
-   juntos:
+   Desde la versión 0.3.0 alfa, una variable usada internamete en las comunicaciones con
+   libeio, podía ser recuperada con
+   <function>eio_get_event_stream</function>. La variable se podría usar
+   para vincularse a un bucle de eventos soportado por alguna otra extensión. Se podría
+   organizar un sencillo bucle de eventos donde eio y libevent trabajaran juntos:
    <example>
     <title>Usar eio con libevent</title>
     <programlisting role="php"><![CDATA[
@@ -134,8 +131,8 @@ function mi_res_cb($d, $r) {
 $base = event_base_new();
 $evento = event_new();
 
-// Obtener el descriptor de fichero de eio
-$df = eio_get_eventfd();
+// Este flujo se usa para vincularse con libevent
+$df = eio_get_event_stream();
 
 eio_nop(EIO_PRI_DEFAULT, "mi_res_cb", "nop data");
 eio_mkdir("/tmp/abc-eio-temp", 0750, EIO_PRI_DEFAULT, "mi_res_cb", "mkdir data");
@@ -145,15 +142,8 @@ eio_mkdir("/tmp/abc-eio-temp", 0750, EIO_PRI_DEFAULT, "mi_res_cb", "mkdir data")
 // establecer las banderas del evento
 event_set($evento, $df, EV_READ /*| EV_PERSIST*/, "mi_eio_poll", array($evento, $base));
 
-// Establecer las propiedades del evento
-event_base_priority_init($base, 10);
-
 // Establecer la base del evento
 event_base_set($evento, $base);
-
-// Esto actualmente está en SVN, pero debería aparecer el la siguiente versión de
-// libevent
-event_priority_set($evento, 2);
 
 // habilitar el evento
 event_add($evento);

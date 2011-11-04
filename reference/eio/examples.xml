@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8a0d2c0cd53804a739ebf38449fa85b1a06a6b15 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 043fadeac39c58bbcba579cda54dc9f280ceb72f Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="eio.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -12,17 +12,17 @@
 <![CDATA[
  <?php
  /* Es llamada cuando finaliza eio_nop() */
- function mi_nop_cb($datos, $resultado) {
+ function mi_llamada_retorno_nop($datos, $resultado) {
   echo "mi_nop ", $datos, "\n";
  }
 
 // Esta llamada a eio_nop() será cancelada
-$petición = eio_nop(EIO_PRI_DEFAULT, "mi_nop_cb", "1");
+$petición = eio_nop(EIO_PRI_DEFAULT, "mi_llamada_retorno_nop", "1");
 var_dump($petición);
 eio_cancel($petición);
 
 // Esta vez eio_nop() será procesada
-eio_nop(EIO_PRI_DEFAULT, "mi_nop_cb", "2");
+eio_nop(EIO_PRI_DEFAULT, "mi_llamada_retorno_nop", "2");
 
 // Process requests
 eio_event_loop();
@@ -45,7 +45,7 @@ mi_nop 2
    <programlisting role="php">
 <![CDATA[
 <?php
-$nombre_fichero_temp = "eio-fichero-temp.tmp";
+$nombre_fichero_temp = dirname(__FILE__) ."eio-fichero-temp.tmp";
 touch($nombre_fichero_temp);
 
 /* Es llamada cuando finaliza eio_chmod() */
@@ -203,34 +203,26 @@ function mi_eio_poll($df, $eventos, $argumentos) {
  /* .. y aquí */
 }
 
-function my_nop_cb($d, $r) {
+function mi_llamada_retorno_nop($d, $r) {
  var_dump($r); var_dump($d);
 }
 
 $base = event_base_new();
 $evento = event_new();
 
-// Obtener el descriptor de fichero de eio
-$df = eio_get_eventfd();
+$df = eio_get_event_stream();
 var_dump($df);
 
-eio_nop(EIO_PRI_DEFAULT, "my_nop_cb", "nop data");
-eio_mkdir("/tmp/abc-eio-temp", 0750, EIO_PRI_DEFAULT, "my_nop_cb", "nop data");
+eio_nop(EIO_PRI_DEFAULT, "mi_llamada_retorno_nop", "nop data");
+eio_mkdir("/tmp/abc-eio-temp", 0750, EIO_PRI_DEFAULT, "mi_llamada_retorno_nop", "nop data");
 /* algunas llamadas eio_* aquí ... */
 
 
 // establecer las banderas del evento
 event_set($evento, $df, EV_READ /*| EV_PERSIST*/, "my_eio_poll", array($evento, $base));
 
-// Establecer las propiedades del evento
-event_base_priority_init($base, 10);
-
 // Establecer la base del evento
 event_base_set($evento, $base);
-
-// Esto actualmente está en SVN, pero debería aparecer el la siguiente versión de
-// libevent
-event_priority_set($evento, 2);
 
 // habilitar el evento
 event_add($evento);
