@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!-- $Revision$ -->
-<!-- EN-Revision: ba819856bba5372c5624f89232f08d4b7081d713 Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 86b07cdc1e05df99fe79b52403a110b1858fe045 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
-<!-- $Revision$ -->
 <refentry xml:id="mongocollection.find" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoCollection::find</refname>
   <refpurpose>Realiza una consulta a la colección</refpurpose>
  </refnamediv>
-
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -17,7 +17,7 @@
    <methodparam choice="opt"><type>array</type><parameter>fields</parameter><initializer>array()</initializer></methodparam>
   </methodsynopsis>
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;  
   <para>
@@ -45,14 +45,14 @@
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    Devuelve un cursor para el resultado de la búsqueda.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -62,16 +62,46 @@
 <![CDATA[
 <?php
 
+$m = new Mongo();
+$db = $m->selectDB('test');
+$colección = new MongoCollection($db, 'phpmanual');
+
 // buscar documentos donde 5 < x < 20
 $rangeQuery = array('x' => array( '$gt' => 5, '$lt' => 20 ));
 
-$cursor = $collection->find($rangeQuery);
+$cursor = $colección->find($rangeQuery);
+foreach ($cursor as $doc) {
+    var_dump($doc);
+}
 
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  ["_id"]=>
+  object(MongoId)#10 (1) {
+    ["$id"]=>
+    string(24) "4ebc3e3710b89f2349000000"
+  }
+  ["x"]=>
+  int(12)
+}
+array(2) {
+  ["_id"]=>
+  object(MongoId)#11 (1) {
+    ["$id"]=>
+    string(24) "4ebc3e3710b89f2349000001"
+  }
+  ["x"]=>
+  int(12)
+}
+]]>
+   </screen>
    <para>
-     Revise <classname>MongoCursor</classname> para más información sobre cómo trabajar con cursores.
+    Revise <classname>MongoCursor</classname> para más información sobre cómo trabajar con cursores.
    </para>
   </example>
   <example>
@@ -81,16 +111,37 @@ $cursor = $collection->find($rangeQuery);
 <![CDATA[
 <?php
 
-$coleccion = $db->mi_bd->articulos;
+$m = new Mongo();
+$db = $m->selectDB('test');
+$colección = new MongoCollection($db, 'phpmanual');
 
 $js = "function() {
-  return this.type == 'paginadeinicio' || this.destacado == true;
+    return this.name == 'Joe' || this.age == 50;
 }";
-$articulos = $coleccion->find(array('$where' => $js));
+$cursor = $colección->find(array('$where' => $js));
+foreach ($cursor as $doc) {
+    var_dump($doc);
+}
 
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  ["_id"]=>
+  object(MongoId)#7 (1) {
+    ["$id"]=>
+    string(24) "4ebc3e3710b89f2349000002"
+  }
+  ["name"]=>
+  string(3) "Joe"
+  ["age"]=>
+  int(20)
+}
+]]>
+   </screen>
   </example>
   <example>
    <title>Ejemplo de <function>MongoCollection::find</function> usando $in</title>
@@ -99,16 +150,35 @@ $articulos = $coleccion->find(array('$where' => $js));
 <![CDATA[
 <?php
 
-$coleccion = $db->mi_bd->articulos;
-$articulos = $coleccion->find(array(
-  'tipo' => array('$in' => array('paginadeinicio', 'editorial'))
+$m = new Mongo();
+$db = $m->selectDB('test');
+$colección = new MongoCollection($db, 'phpmanual');
+
+$cursor = $colección->find(array(
+    'name' => array('$in' => array('Joe', 'Wendy'))
 ));
 
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  ["_id"]=>
+  object(MongoId)#7 (1) {
+    ["$id"]=>
+    string(24) "4ebc3e3710b89f2349000002"
+  }
+  ["name"]=>
+  string(3) "Joe"
+  ["age"]=>
+  int(20)
+}
+]]>
+   </screen>
   </example>
-
+  
   <example>
    <title>Obteniendo resultados en forma de array</title>
    <para>
@@ -120,12 +190,55 @@ $articulos = $coleccion->find(array(
 <![CDATA[
 <?php
 
-$cursor = $coleccion->find();
+$m = new Mongo();
+$db = $m->selectDB('test');
+$colección = new MongoCollection($db, 'phpmanual');
+
+$cursor = $colección->find();
 $array = iterator_to_array($cursor);
 
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  ["4ebc40af10b89f5149000000"]=>
+  array(2) {
+    ["_id"]=>
+    object(MongoId)#6 (1) {
+      ["$id"]=>
+      string(24) "4ebc40af10b89f5149000000"
+    }
+    ["x"]=>
+    int(12)
+  }
+  ["4ebc40af10b89f5149000001"]=>
+  array(2) {
+    ["_id"]=>
+    object(MongoId)#11 (1) {
+      ["$id"]=>
+      string(24) "4ebc40af10b89f5149000001"
+    }
+    ["x"]=>
+    int(12)
+  }
+  ["4ebc40af10b89f5149000002"]=>
+  array(3) {
+    ["_id"]=>
+    object(MongoId)#12 (1) {
+      ["$id"]=>
+      string(24) "4ebc40af10b89f5149000002"
+    }
+    ["name"]=>
+    string(3) "Joe"
+    ["age"]=>
+    int(20)
+  }
+}
+]]>
+   </screen>
    <para>
     Al usar <function>iterator_to_array</function> se fuerza a que el driver cargue todos los
     resultados en memoria. ¡No lo use cuando el resultado supere el tamaño máximo
@@ -140,14 +253,16 @@ $array = iterator_to_array($cursor);
    </para>
   </example>
  </refsect1>
-
+ 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   Documentación de MongoDB sobre <link xlink:href="&url.mongodb.dochub.find;">find</link>.
-  </para>
+  <simplelist>
+   <member><function>MongoCollection::findOne</function></member>
+   <member><function>MongoCollection::insert</function></member>
+   <member>Documentación de MongoDB sobre <link xlink:href="&url.mongodb.dochub.find;">find</link>.</member>
+  </simplelist>
  </refsect1>
-
+ 
 </refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
