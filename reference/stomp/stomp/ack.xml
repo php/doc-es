@@ -3,30 +3,30 @@
 <!-- EN-Revision: 6a6061bbd4b1c78af2b50aba8ddd8fd5e4590b05 Maintainer: jesusruiz Status: ready -->
 <!-- Reviewed: no -->
 
-<refentry xml:id="stomp.abort" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+<refentry xml:id="stomp.ack" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
-  <refname>Stomp::abort</refname>
-  <refname>stomp_abort</refname>
-  <refpurpose>Deshacer una transacción en curso</refpurpose>
+  <refname>Stomp::ack</refname>
+  <refname>stomp_ack</refname>
+  <refpurpose>Confirmar la recepción y el consumo de un mensaje</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop; (método):</para>
    <methodsynopsis>
-   <modifier>public</modifier> <type>bool</type><methodname>Stomp::abort</methodname>
-   <methodparam><type>string</type><parameter>transaction_id</parameter></methodparam>
+   <modifier>public</modifier> <type>bool</type><methodname>Stomp::ack</methodname>
+   <methodparam><type>mixed</type><parameter>msg</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>headers</parameter></methodparam>
    </methodsynopsis>
   <para>&style.procedural;:</para>
   <methodsynopsis>
-   <type>bool</type><methodname>stomp_abort</methodname>
+   <type>bool</type><methodname>stomp_ack</methodname>
    <methodparam><type>resource</type><parameter>link</parameter></methodparam>
-   <methodparam><type>string</type><parameter>transaction_id</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>msg</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>headers</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Deshacer una transacción en curso.
+   Confirmar el consumo de un mensaje desde una suscripción enviando el cliente una trama ACK de confirmación.
   </para>
  </refsect1>
 
@@ -36,10 +36,10 @@
    <variablelist>
     &stomp.param.link;
     <varlistentry>
-     <term><parameter>transaction_id</parameter></term>
+     <term><parameter>msg</parameter></term>
      <listitem>
       <para>
-       La transacción a abortar.
+       El mensaje/Id del mensaje a ser confirmado.       
       </para>
      </listitem>
     </varlistentry>
@@ -57,6 +57,7 @@
 
  <refsect1 role="notes">
   &reftitle.notes;
+  &stomp.note.transaction;
   &stomp.note.sync;
  </refsect1>
 
@@ -69,6 +70,9 @@
 <![CDATA[
 <?php
 
+$queue  = '/queue/foo';
+$msg    = 'bar';
+
 /* conexión */
 try {
     $stomp = new Stomp('tcp://localhost:61613');
@@ -76,17 +80,26 @@ try {
     die('Connection failed: ' . $e->getMessage());
 }
 
-/* iniciar una transacción */
-$stomp->begin('t1');
+/* enviar un mensaje a la cola 'foo' */
+$stomp->send($queue, $msg);
 
-/* enviar un mensaje a la cola */
-$stomp->send('/queue/foo', 'bar', array('transaction' => 't1'));
+/* suscribirse a mensajes de la cola 'foo' */
+$stomp->subscribe($queue);
 
-/* deshacer/abortar */
-$stomp->abort('t1');
+/* leer una trama */
+$frame = $stomp->readFrame();
+
+if ($frame->body === $msg) {
+    /* confirmar que la trama fue recibida */
+    $stomp->ack($frame);
+}
+
+/* eliminar la suscripción */
+$stomp->unsubscribe($queue);
 
 /* cerrar la conexión */
 unset($stomp);
+
 ?>
 ]]>
      </programlisting>
@@ -99,8 +112,11 @@ unset($stomp);
 <![CDATA[
 <?php
 
+$queue  = '/queue/foo';
+$msg    = 'bar';
+
 /* conexión */
-$link = stomp_connect('tcp://localhost:61613');
+$link = stomp_connect('ssl://localhost:61612');
 
 /* comprobar la conexión */
 if (!$link) {
@@ -111,10 +127,24 @@ if (!$link) {
 stomp_begin($link, 't1');
 
 /* enviar un mensaje a la cola 'foo' */
-stomp_send($link, '/queue/foo', 'bar', array('transaction' => 't1'));
+stomp_send($link, $queue, $msg, array('transaction' => 't1'));
 
-/* deshacer/abortar */
-stomp_abort($link, 't1');
+/* validar una transacción */
+stomp_commit($link, 't1');
+
+/* suscribirse a mensajes de la cola 'foo' */
+stomp_subscribe($link, $queue);
+
+/* leer una trama */
+$frame = stomp_read_frame($link);
+
+if ($frame['body'] === $msg) {
+    /* confirmar que la trama fue recibida */
+    stomp_ack($link, $frame['headers']['message-id']);
+}
+
+/* eliminar la suscripción */
+stomp_unsubscribe($link, $queue);
 
 /* cerrar la conexión */
 stomp_close($link);
@@ -125,7 +155,6 @@ stomp_close($link);
    </example>
   </para>
  </refsect1>
-
 
 </refentry>
 
