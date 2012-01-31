@@ -12,14 +12,14 @@
   <methodsynopsis>
    <type>array</type><methodname>get_html_translation_table</methodname>
    <methodparam choice="opt"><type>int</type><parameter>table</parameter><initializer>HTML_SPECIALCHARS</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>quote_style</parameter><initializer>ENT_COMPAT</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>charset_hint</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>ENT_COMPAT | ENT_HTML401</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>charset</parameter><initializer>'UTF-8'</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>get_html_translation_table</function> devolverá la
    tabla de traducción que es utilizada internamente para
    <function>htmlspecialchars</function> y
-   <function>htmlentities</function> con el juego de caracteres por defecto.
+   <function>htmlentities</function>.
   </para>
   <note>
    <para>
@@ -41,32 +41,69 @@
      <term><parameter>table</parameter></term>
      <listitem>
       <para>
-       Hay dos nuevas constantes (<constant>HTML_ENTITIES</constant>,
-       <constant>HTML_SPECIALCHARS</constant>) que permiten especificar la
-       tabla que se desea.
+       Cual tabla devolver. Entre<constant>HTML_ENTITIES</constant> o
+       <constant>HTML_SPECIALCHARS</constant>).
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>quote_style</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Al igual que las funciones <function>htmlspecialchars</function> y
-       <function>htmlentities</function> se puede especificar opcionalmente
-       el <parameter>quote_style</parameter> con el que está trabajando.
-       Ver la descripción
-       de estos modos en <function>htmlspecialchars</function>.
+       Una máscara de bits de uno o más de los siguientes indicadores, que especifican que comillas
+       contendrá la tabla, así como para qué tipo de documento es la tabla. El valor por defecto es
+       <literal>ENT_COMPAT | ENT_HTML401</literal>.
+       <table>
+        <title>Constantes disponibles para <parameter>flags</parameter></title>
+        <tgroup cols="2">
+         <thead>
+          <row>
+           <entry>Nombre de la constante</entry>
+           <entry>Descripción</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry><constant>ENT_COMPAT</constant></entry>
+           <entry>La tabla contendrá entidades para comillas dobles, pero no por comillas simples.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_QUOTES</constant></entry>
+           <entry>La tabla contendrá entidades para ambas comillas dobles y simples.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_NOQUOTES</constant></entry>
+           <entry>La tabla no contendrá entidades de comillas simples ni las de comillas dobles.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_HTML401</constant></entry>
+           <entry>Tabla para HTML 4.01.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_XML1</constant></entry>
+           <entry>Tabla para XML 1.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_XHTML</constant></entry>
+           <entry>Tabla para XHTML.</entry>
+          </row>
+          <row>
+           <entry><constant>ENT_HTML5</constant></entry>
+           <entry>Tabla para HTML 5.</entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </table>
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>charset_hint</parameter></term>
+     <term><parameter>charset</parameter></term>
      <listitem>
       <para>
-       Al igual que <function>htmlentities</function>, se toma un tercer
-       argumento opcional <parameter>charset</parameter> el cual define el conjunto
-       de caracteres utilizado para la conversión.
-       En la actualidad, por defecto se utiliza la norma ISO-8859-1.
+       El juego de caracteres a usar.
+       Si se omite, el valor por defecto para este argumento es ISO-8859-1 en
+       versiones de PHP anteriores a 5.4.0, y es UTF-8 a partir de PHP 5.4.0 en adelante.
       </para>
       &reference.strings.charsets;
      </listitem>
@@ -78,7 +115,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la tabla de traducción como un array.
+   Devuelve la tabla de traducción como un array, con los caracteres originales
+   como claves y las entidades como valores.
   </para>
  </refsect1>
 
@@ -95,9 +133,23 @@
      </thead>
      <tbody>
       <row>
+       <entry>5.4.0</entry>
+       <entry>
+        El valor por defecto para el parámetro <parameter>charset</parameter> fue
+        cambiado a UTF-8.
+       </entry>
+      </row>
+      <row>
+       <entry>5.4.0</entry>
+       <entry>
+        Fueron agregadas las constantes <constant>ENT_HTML401</constant>, <constant>ENT_XML1</constant>,
+        <constant>ENT_XHTML</constant> y <constant>ENT_HTML5</constant>.
+       </entry>
+      </row>
+      <row>
        <entry>5.3.4</entry>
        <entry>
-        Fue agregado el parámetro <parameter>charset_hint</parameter>.
+        Fue agregado el parámetro <parameter>charset</parameter>.
        </entry>
       </row>
      </tbody>
@@ -114,18 +166,35 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$trans = get_html_translation_table(HTML_ENTITIES);
-$str = "Hallo & <Frau> & Krämer";
-$encoded = strtr($str, $trans);
-
-echo $encoded;
+var_dump(get_html_translation_table(HTML_ENTITIES, ENT_QUOTES | ENT_HTML5));
 ?>
 ]]>
     </programlisting>
-    &example.outputs;
+    &example.outputs.similar;
     <screen>
 <![CDATA[
-Hallo &amp; &lt;Frau&gt; &amp; Kr&auml;mer
+array(1510) {
+  ["	"]=>
+  string(5) "&Tab;"
+  ["
+"]=>
+  string(9) "&NewLine;"
+  ["!"]=>
+  string(6) "&excl;"
+  ["""]=>
+  string(6) "&quot;"
+  ["#"]=>
+  string(5) "&num;"
+  ["$"]=>
+  string(8) "&dollar;"
+  ["%"]=>
+  string(8) "&percnt;"
+  ["&"]=>
+  string(5) "&amp;"
+  ["'"]=>
+  string(6) "&apos;"
+  // ...
+}
 ]]>
     </screen>
    </example>
