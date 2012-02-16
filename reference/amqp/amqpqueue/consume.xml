@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e90268fb155ae35c1b1f2439a631b4b22d141fb9 Maintainer: andresdzphp Status: ready -->
+<!-- EN-Revision: dc1dcfb27b0a3dcbaa771035ce891c3ce31a03c7 Maintainer: andresdzphp Status: ready -->
 
 <refentry xml:id="amqpqueue.consume" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>AMQPQueue::consume</refname>
-  <refpurpose>El propósito de consumo</refpurpose>
+  <refpurpose>Consume mensajes de una cola</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <modifier>public</modifier> <type>array</type><methodname>AMQPQueue::consume</methodname>
-   <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
+   <modifier>public</modifier> <type>void</type><methodname>AMQPQueue::consume</methodname>
+   <methodparam><type>callback</type><parameter>callback</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer><constant>AMQP_NOPARAM</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Es una función de bloqueo, la función no devolverá nada hasta que el mínimo de mensajes especificados por el valor <parameter>min</parameter> sean leídos fuera de la cola.
-   Para usar una función de no bloqueo, ver <methodname>AMQPQueue::get</methodname>.
+   El bloqueo de la función que va a recuperar el mensaje siguiente de la cola cuando esté disponible y hacerlo pasar a la llamada de retorno.
   </para>
  </refsect1>
 
@@ -24,14 +24,23 @@
   &reftitle.parameters;
   <para>
    <variablelist>
+     <varlistentry>
+      <term><parameter>callback</parameter></term>
+      <listitem>
+       <para>
+        Una función de llamada de retorno para que el mensaje de consumo será pasada. La función debe aceptar como mínimo un parámetro, un objeto <classname>AMQPEnvelope</classname>,
+        y un segundo parámetro opcional <classname>AMQPQueue</classname> de que el mensaje fue consumido.
+       </para>
+       <para>
+         The <methodname>AMQPQueue::consume</methodname> will not return the processing thread back to the PHP script until the callback function returns &false;.
+       </para>
+      </listitem>
+     </varlistentry>
     <varlistentry>
-     <term><parameter>options</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       <parameter>options</parameter> es un array de opciones de consumo. Las claves utilizadas en el array <parameter>options</parameter> son: min, max, y ack. Todas las demás claves serán ignoradas.
-      </para>
-      <para>
-       Por cada opción faltante, la extensión chequeará la configuración INI o utilizará el valor por defecto.
+       Una máscara de bits de cualquiera de las flags: <constant>AMQP_NOACK</constant>.
       </para>
      </listitem>
     </varlistentry>
@@ -39,12 +48,20 @@
   </para>
  </refsect1>
 
- <refsect1 role="returnvalues">
-  &reftitle.returnvalues;
+ <refsect1 role="errors">
+  &reftitle.errors;
   <para>
-   Un array que contiene los mensajes utilizados. El número de mensajes devueltos será almentos el número especificado en <parameter>min</parameter> en el array <parameter>options</parameter>. Pero no mayor que el número especificado en <parameter>max</parameter>. 
+   Lanza una <classname>AMQPChannelException</classname> si el canal no está abierto.
+  </para>
+  <para>
+   Lanza una <classname>AMQPConnectionException</classname> si se perdió la conexión con el corredor.
   </para>
  </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+ </refsect1>
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -54,28 +71,31 @@
 <![CDATA[
 <?php
 
-/* Crea una conección utilizando todas als credenciales por defecto: */
+/* Crea una conección utilizando todas las credenciales por defecto: */
 $connection = new AMQPConnection();
 $connection->connect();
 
+$channel = new AMQPChannel($connection);
+
 /* Crea un objeto de la cola */
-$queue = new AMQPQueue($connection);
+$queue = new AMQPQueue($channel);
 
 // Declara la cola
 $queue->declare('myqueue');
 
-$options = array(
-    'min' => 1,
-    'max' => 10,
-    'ack' => true
-);
-
-// Toma los mensajes
-$messages = $queue->consume($options);
-
-foreach ($messages as $message) {
-    echo $message['message_body'];
+$i = 0;
+function processMessage($envelope, $queue) {
+   global $i;
+   echo "Message $i: " . $envelope->getBody() . "\n";
+   $i++;
+   if ($i > 10) {
+       // Bail after 10 messages
+       return false;
+    }
 }
+
+// Consume los mensajes en la cola
+$queue->consume("processMessage");
 
 ?>
 ]]>
