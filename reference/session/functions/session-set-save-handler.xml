@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 827c4bb5be72c63554d6aaf371ccb434a2c5f20e Maintainer: seros Status: ready -->
+<!-- EN-Revision: c66c49e21a92f06b5f85647f0f7d345d0a23ff58 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-set-save-handler">
@@ -20,6 +20,9 @@
    <methodparam><type>callback</type><parameter>destroy</parameter></methodparam>
    <methodparam><type>callback</type><parameter>gc</parameter></methodparam>
   </methodsynopsis>
+  <para>
+   Desde PHP 5.4 es posible registrar el siguiente prototipo:
+  </para>
   <methodsynopsis>
    <type>bool</type><methodname>session_set_save_handler</methodname>
    <methodparam><type>SessionHandlerInterface</type><parameter>sessionhandler</parameter></methodparam>
@@ -28,7 +31,7 @@
   <para>
    <function>session_set_save_handler</function> establece las funciones
    de almacenamiento de sesiones a nivel de usuario que se usan para almacenar y
-   recuperar información asociada con una sesión. Ésto es más útil
+   recuperar información asociada con una sesión. Es más útil
    cuando se prefiere un método de almacenamiento distinto de aquellos proporcionados
    por las sesiones de PHP. Esto es, almacenar la información de sesión en una base de datos local.
   </para>
@@ -46,7 +49,7 @@
        Una instancia de una clase que implemente
        <interfacename>SessionHandlerInterface</interfacename>, tal como
        <classname>SessionHandler</classname>, para registrarla como el gestor de
-       sesión.
+       sesión. Sólo desde PHP 5.4.
       </para>
      </listitem>
     </varlistentry>
@@ -65,42 +68,65 @@
    
    <variablelist>
     <varlistentry>
-     <term><parameter>open</parameter></term>
+     <term><parameter>open(string $savePath, string $sessionName)</parameter></term>
      <listitem>
       <para>
-       Función open, funciona como un constructor en las clases y se
-       ejecuta cuando la sesion está siendo abierta. La función open
-       espera dos parámetros, donde el primero es la ruta de almacenamiento y
-       el segundo es el nombre de sesión.
+       La llamada de retorno open funciona como un constructor en las clases y es
+       ejecutada cuando la sesión está siendo abierta. Es la primera función de llamada
+       de retorno ejecutada cuando la sesión se inicia automáticamente o
+       manualmente con <function>session_start</function>.
+       El valor devuelto es &true; en caso de éxito, &false; en caso de error.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>close</parameter></term>
+     <term><parameter>close()</parameter></term>
      <listitem>
       <para>
-       Función close, funciona como un destructor en las clases y se
-       ejecuta cuando la operación de sesión está hecha.
+       La llamada de retorno close funciona como un destructor en las clases y es
+       ejecutada después de haber llamado a la llamada de retorno write de la sesión. También se invoca cuando
+       se llama a <function>session_write_close</function>.
+       El valor devuelto debería ser &true; en caso de éxito, &false; en caso de error.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>read</parameter></term>
+     <term><parameter>read(string $sessionId)</parameter></term>
      <listitem>
       <para>
-       La función read debe devolver siempre un valor de cadena para que el gestor de
-       almacenamiento funcione como se esperaba. Devolver una cadena vacía si no hay información que
-       leer. Los valores devueltos de otros gestores se convierten en expresiones booleanas.
-       &true; para éxito, &false; para fallo.
+       La llamada de retorno <parameter>read</parameter> debe devolver siempre una cadena de sesión
+       (serializada), o una cadena vacía si no existe información que leer.
+      </para>
+      <para>
+       Esta llamada de retorno es llamda internamente por PHP cuando se inicia la sesión o
+       cuando se llama a <function>session_start</function>. Antes de invocar a esta llamada de sesión
+       PHP invocará a la llamda de retorno <parameter>open</parameter>.
+      </para>
+      <para>
+       El valor que devuelve esta llamada de retorno debe estar exactamente en el mismo formato de serialización que fue originalmente
+       pasado para el almacenamiento de la llamada de retorno <parameter>write</parameter>. El valor devuelto será deserializado
+       automáticamente por PHP y srá usado para rellenar la variable superglobal <varname>$_SESSION</varname>.
+       Aunque la información parezca similar a <function>serialize</function>, observe que está en un formato diferente,
+       el cual está especificado en la configuración ini <link linkend="ini.session.serialize-handler">session.serialize_handler</link>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>write</parameter></term>
+     <term><parameter>write(string $sessionId, string $data)</parameter></term>
      <listitem>
       <para>
-       Escribe una función que es llamada cuando los datos de la sesión son guardados. Esta
-       función espera dos parámetros: un identificador y los datos asociados.
+       La llamada de retorno <parameter>write</parameter> es llamada cuando la sesión necesita ser almacenada y cerrada. Esta
+       llamada de retorno recibe el ID de sesión actual, una versión serializada de la variable superglobal <varname>$_SESSION</varname>. El método de
+       serialización usado internamente por PHP está especificado en la configuración ini <link linkend="ini.session.serialize-handler">session.serialize_handler</link>.
+      </para>
+      <para>
+       La información serializada de sesión pasada a esta llamada de retorno debería ser almacenada junto con el ID de sesión pasado. Al recuperar
+       esta información, la llamada de retorno <parameter>read</parameter> debe devolver el valor exacto que fue pasado originalmente a
+       la llamda de retorno <parameter>write</parameter>.
+      </para>
+      <para>
+       Esta llamada de retorno es invocada cuando PHP se cierra o cuando se llamda explícitamente a
+       <function>session_write_close</function>. Observe que después de ejecutar esta función PHP ejecutará internamente la llamada de retorno <parameter>close</parameter>.
        <note>
         <para>
          El gestor "write" no se ejecuta hasta después de que se cierre el flujo
@@ -114,26 +140,27 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>destroy</parameter></term>
+     <term><parameter>destroy($sessionId)</parameter></term>
      <listitem>
       <para>
-       El gestor destroy, se ejecuta cuando una sesión se destruye con
-       <function>session_destroy</function> y toma el id de sesión como su
-       único parámetro.
+       Esta llamada de retorno es ejecutada cuando una sesión es destruida con <function>session_destroy</function> o con
+       <function>session_regenerate_id</function> con el parámetro destroy establecido en &true;.
+       El valor devuelto debería ser &true; en caso de éxito, &false; en caso de error.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>gc</parameter></term>
+     <term><parameter>gc($lifetime)</parameter></term>
      <listitem>
       <para>
-       El recolector de basura (Garbage Collector, en inglés), es ejecuta cuando el recolector
-       de basura de sesiones se ejecuta y toma el tiempo de vida de sesión máximo como su único
-       parámetro.
+       La llamada de retorno del recolector de basura (Garbage Collector) es invocada internamente por PHP de manera periódica para
+       destruir información antigua de sesiones. La frecuencia es controlada por
+       <link linkend="ini.session.gc-probability">session.gc_probability</link> y <link linkend="ini.session.gc-divisor">session.gc_divisor</link>.
+       El valor del tiempo de vida (lifetime) que es pasado a esta llamada de retorno puede establecerse en <link linkend="ini.session.gc-maxlifetime">session.gc_maxlifetime</link>.
+       El valor devuelto debería ser &true; en caso de éxito, &false; en caso de error.
       </para>
      </listitem>
-    </varlistentry>
-   </variablelist>
+    </varlistentry>   </variablelist>
   </para>
  </refsect1>
  
@@ -148,9 +175,80 @@
   &reftitle.examples;
   <para>
    <example>
+    <title>
+     <function>session_set_save_handler</function> utilizando <classname>SessionHandler</classname>
+    </title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class MySessionHandler implements SessionHandlerInterface
+{
+    private $savePath;
+
+    public function open($savePath, $sessionName)
+    {
+        $this->savePath = $savePath;
+
+        return true;
+    }
+
+    public function close()
+    {
+        return true;
+    }
+
+    public function read($id)
+    {
+        $file = "$this->savePath/sess_$id";
+        return (string)@file_get_contents($file);
+    }
+
+    public function write($id, $data)
+    {
+        $file = "$this->savePath/sess_$id";
+        if ($fp = @fopen($file, "w")) {
+            $return = fwrite($fp, $data);
+            fclose($fp);
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+    public function destroy($id)
+    {
+        $file = "$this->savePath/sess_$id";
+        if (file_exists($file)) {
+            unlink($file);
+        }
+
+        return true;
+    }
+
+    public function gc($maxlifetime)
+    {
+        foreach (glob("$this->savePath/sess_*") as $file) {
+            if (filemtime($file) + $maxlifetime < time() && file_exists($file)) {
+                unlink($file);
+            }
+        }
+
+        return true;
+    }
+}
+
+$handler = new MySessionHandler();
+session_set_save_handler($handler);
+session_start();
+
+// proceder para establecer y recuperar valores por clave desde $_SESSION
+]]>
+    </programlisting>
+   </example>
+   <example>
     <title>Ejemplo de <function>session_set_save_handler</function></title>
     <para>
-     El siguiente ejemplo proporciona almacenamiento de sesiones basado en archivos similar al
+     El siguiente ejemplo proporciona almacenamiento de sesiones basado en ficheros similar al
      gestor de almacenamiento por defecto de sesiones de PHP <parameter>files</parameter>. Este
      ejemplo podría extenderse fácilmente para cubrir el almacenamiento en bases de datos usando
      su motor de bases de datos favorito soportado por PHP.
@@ -158,137 +256,72 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-function open($save_path, $session_name)
+function open($savePath, $sessionName)
 {
-  global $sess_save_path;
+    global $sess_save_path;
 
-  $sess_save_path = $save_path;
-  return(true);
+    $sess_save_path = $savePath;
+
+    return true;
 }
 
 function close()
 {
-  return(true);
+    return true;
 }
 
 function read($id)
 {
-  global $sess_save_path;
+    global $sess_save_path;
 
-  $sess_file = "$sess_save_path/sess_$id";
-  return (string) @file_get_contents($sess_file);
+    $sess_file = "$sess_save_path/sess_$id";
+
+    return (string)@file_get_contents($sess_file);
 }
 
-function write($id, $sess_data)
+function write($id, $data)
 {
-  global $sess_save_path;
+    global $sess_save_path;
 
-  $sess_file = "$sess_save_path/sess_$id";
-  if ($fp = @fopen($sess_file, "w")) {
-    $return = fwrite($fp, $sess_data);
-    fclose($fp);
-    return $return;
-  } else {
-    return(false);
-  }
+    $sess_file = "$sess_save_path/sess_$id";
+    if ($fp = @fopen($sess_file, "w")) {
+        $return = fwrite($fp, $data);
+        fclose($fp);
 
+        return $return;
+    } else {
+        return false;
+    }
 }
 
 function destroy($id)
 {
-  global $sess_save_path;
+    global $sess_save_path;
 
-  $sess_file = "$sess_save_path/sess_$id";
-  return(@unlink($sess_file));
+    $file = "$sess_save_path/sess_$id";
+    if (file_exists($file)) {
+        unlink($file);
+    }
+    return true;
 }
 
 function gc($maxlifetime)
 {
-  global $sess_save_path;
+    global $sess_save_path;
 
-  foreach (glob("$sess_save_path/sess_*") as $filename) {
-    if (filemtime($filename) + $maxlifetime < time()) {
-      @unlink($filename);
+    foreach (glob("$sess_save_path/sess_*") as $file) {
+        if (filemtime($file) + $maxlifetime < time() && file_exists($file)) {
+            unlink($file);
+        }
     }
-  }
-  return true;
+
+    return true;
 }
 
 session_set_save_handler("open", "close", "read", "write", "destroy", "gc");
 
 session_start();
-
-// proceder a usar sesiones normamente
-
-?>
-]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>
-     <function>session_set_save_handler</function> utilizando
-     <classname>SessionHandler</classname>
-    </title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-class MySessionHandler extends SessionHandler {
-  public function open($save_path, $sessionid)
-  {
-    global $sess_save_path;
-
-    $sess_save_path = $save_path;
-    return(true);
-  }
-  public function close()
-  {
-    return true;
-  }
-  public function read($sessionid)
-  {
-    global $sess_save_path;
-
-    $sess_file = "$sess_save_path/sess_$id";
-    return (string) @file_get_contents($sess_file);
-  }
-  public function write($sessionid, $sessiondata)
-  {
-    global $sess_save_path;
-
-    $sess_file = "$sess_save_path/sess_$id";
-    if ($fp = @fopen($sess_file, "w")) {
-      $return = fwrite($fp, $sess_data);
-      fclose($fp);
-      return $return;
-    } else {
-      return(false);
-    }
-  }
-  public function destroy($sessionid)
-  {
-    global $sess_save_path;
-
-    $sess_file = "$sess_save_path/sess_$id";
-    return(@unlink($sess_file));
-  }
-  public function gc($maxlifetime)
-  {
-    global $sess_save_path;
-
-    foreach (glob("$sess_save_path/sess_*") as $filename) {
-      if (filemtime($filename) + $maxlifetime < time()) {
-        @unlink($filename);
-      }
-    }
-    return true;
-  }
-}
-
-$handler = new MySessionHandler();
-session_set_save_handler($handler);
-
-session_start();
-?>
+// proceder para establecer y recuperar valores por clave desde $_SESSION
 ]]>
     </programlisting>
    </example>
