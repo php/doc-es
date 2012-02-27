@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c66c49e21a92f06b5f85647f0f7d345d0a23ff58 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 6afb06c369fa1bd027db796aedee48103c1b42ce Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-set-save-handler">
@@ -178,6 +178,20 @@
     <title>
      <function>session_set_save_handler</function> utilizando <classname>SessionHandler</classname>
     </title>
+    <para>
+     El siguiente código es para la versión 5.4.0 y superiror de PHP.
+    </para>
+    <para>
+     El siguiente ejemplo proporciona un almacenamiento de sesiones basado en fichero similar al
+     gestor de almacenamiento de sesiones de PHP predeterminado <parameter>files</parameter>. Este
+     ejemplo podría extenderse fácilmente para cubrir el almacenamiento de bases de datos usando su
+     motor de bases de datos favorito soportado por PHP.
+    </para>
+    <para>
+     Observe que usamos el prototipo de POO con <function>session_set_save_handler</function> y
+     registramos la función de cierre usando la bandera de parámetro de la función. Esto se recomienda
+     generalmente al registrar objetos como gestores de almacenamiento de sesiones.
+    </para>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -188,6 +202,9 @@ class MySessionHandler implements SessionHandlerInterface
     public function open($savePath, $sessionName)
     {
         $this->savePath = $savePath;
+        if (!is_dir($this->savePath)) {
+            mkdir($this->savePath, 0777);
+        }
 
         return true;
     }
@@ -199,20 +216,12 @@ class MySessionHandler implements SessionHandlerInterface
 
     public function read($id)
     {
-        $file = "$this->savePath/sess_$id";
-        return (string)@file_get_contents($file);
+        return (string)@file_get_contents("$this->savePath/sess_$id");
     }
 
     public function write($id, $data)
     {
-        $file = "$this->savePath/sess_$id";
-        if ($fp = @fopen($file, "w")) {
-            $return = fwrite($fp, $data);
-            fclose($fp);
-            return $return;
-        } else {
-            return false;
-        }
+        return file_put_contents("$savePath/sess_$id", $data) === false ? false : true;
     }
 
     public function destroy($id)
@@ -238,7 +247,7 @@ class MySessionHandler implements SessionHandlerInterface
 }
 
 $handler = new MySessionHandler();
-session_set_save_handler($handler);
+session_set_save_handler($handler, true);
 session_start();
 
 // proceder para establecer y recuperar valores por clave desde $_SESSION
@@ -246,79 +255,88 @@ session_start();
     </programlisting>
    </example>
    <example>
-    <title>Ejemplo de <function>session_set_save_handler</function></title>
+    <title>Gestor de almacenamiento de sesiones personalizado usando objetos</title>
     <para>
-     El siguiente ejemplo proporciona almacenamiento de sesiones basado en ficheros similar al
-     gestor de almacenamiento por defecto de sesiones de PHP <parameter>files</parameter>. Este
-     ejemplo podría extenderse fácilmente para cubrir el almacenamiento en bases de datos usando
-     su motor de bases de datos favorito soportado por PHP.
+     El siguiente código es para versiones de PHP inferiores a 5.4.0.
+    </para>
+    <para>
+     El siguiente ejemplo proporciona un almacenamiento de sesiones basado en fichero similar al
+     gestor de almacenamiento de sesiones de PHP predeterminado <parameter>files</parameter>. Este
+     ejemplo podría extenderse fácilmente para cubrir el almacenamiento de bases de datos usando su
+     motor de bases de datos favorito soportado por PHP.
+    </para>
+    <para>
+     Observe que registramos de forma adicional la función de cierre <function>session_write_close</function>
+     usando <function>register_shutdown_function</function> bajo PHP inferior a 5.4.0.
+     Esto se recomienda generalmente al registrar objetos como gestores de almacenamiento de sesiones bajo PHP inferior
+     a 5.4.0.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-function open($savePath, $sessionName)
+class FileSessionHandler
 {
-    global $sess_save_path;
+    private $savePath;
 
-    $sess_save_path = $savePath;
+    function open($savePath, $sessionName)
+    {
+        $this->savePath = $savePath;
+        if (!is_dir($this->savePath)) {
+            mkdir($this->savePath, 0777);
+        }
 
-    return true;
-}
-
-function close()
-{
-    return true;
-}
-
-function read($id)
-{
-    global $sess_save_path;
-
-    $sess_file = "$sess_save_path/sess_$id";
-
-    return (string)@file_get_contents($sess_file);
-}
-
-function write($id, $data)
-{
-    global $sess_save_path;
-
-    $sess_file = "$sess_save_path/sess_$id";
-    if ($fp = @fopen($sess_file, "w")) {
-        $return = fwrite($fp, $data);
-        fclose($fp);
-
-        return $return;
-    } else {
-        return false;
+        return true;
     }
-}
 
-function destroy($id)
-{
-    global $sess_save_path;
-
-    $file = "$sess_save_path/sess_$id";
-    if (file_exists($file)) {
-        unlink($file);
+    function close()
+    {
+        return true;
     }
-    return true;
-}
 
-function gc($maxlifetime)
-{
-    global $sess_save_path;
+    function read($id)
+    {
+        return (string)@file_get_contents("$this->savePath/sess_$id");
+    }
 
-    foreach (glob("$sess_save_path/sess_*") as $file) {
-        if (filemtime($file) + $maxlifetime < time() && file_exists($file)) {
+    function write($id, $data)
+    {
+        return file_put_contents("$savePath/sess_$id", $data) === false ? false : true;
+    }
+
+    function destroy($id)
+    {
+        $file = "$this->savePath/sess_$id";
+        if (file_exists($file)) {
             unlink($file);
         }
+
+        return true;
     }
 
-    return true;
+    function gc($maxlifetime)
+    {
+        foreach (glob("$this->savePath/sess_*") as $file) {
+            if (filemtime($file) + $maxlifetime < time() && file_exists($file)) {
+                unlink($file);
+            }
+        }
+
+        return true;
+    }
 }
 
-session_set_save_handler("open", "close", "read", "write", "destroy", "gc");
+$handler = new FileSessionHandler();
+session_set_save_handler(
+    array($handler, 'open'),
+    array($handler, 'close'),
+    array($handler, 'read'),
+    array($handler, 'write'),
+    array($handler, 'destroy'),
+    array($handler, 'gc')
+    );
+
+// lo siguiente previene de efectos inesperados al usar objetos como gestores de almacenamiento
+register_shutdown_function('session_write_close');
 
 session_start();
 // proceder para establecer y recuperar valores por clave desde $_SESSION
@@ -332,14 +350,33 @@ session_start();
   &reftitle.notes;
   <warning>
    <para>
+    Cuando se usan objetos como gestores de almacenamiento de sesionea es importante registrar la
+    función de cierre con PHP para evitar efectos secundarios inesperados ya que
+    PHP internamente destruye objetos en el cierre y puede prevenir que
+    <parameter>write</parameter> y <parameter>close</parameter> sean llamados.
+    Normalmente se debería registrar <parameter>'session_write_close'</parameter> usando la
+    función <function>register_shutdown_function</function>.
+   </para>
+   <para>
+    A partir de PHP 5.4.0 se puede usar <function>session_register_shutdown</function> o
+    simplemente la bandera 'register shutdown' al invocar
+    <function>session_set_save_handler</function> usando el método de POO the OOP y pasando una
+    instancia que implemente <classname>SessionHandlerInterface</classname>.
+   </para>
+  </warning>
+  <warning>
+   <para>
     A partir de PHP 5.0.5 los gestores <parameter>write</parameter> y
     <parameter>close</parameter> son llamados después de la destrucción
     del objeto y por lo tanto no pueden usar objetos o lanzar excepciones.
+    Las excepciones no pueden ser capturadas ya que no serán capturadas ni
+    cualquier rastro de excepción será mostrado y la ejecución se interrumpirá de improviso.
     Sin embargo, los destructores de objetos pueden usar sesiones.
    </para>
    <para>
     Es posible llamar a <function>session_write_close</function> desde el
-    destructor para solucionar este problema de "quién fue antes, si el huevo o la gallina".
+    destructor para solucionar este problema de "quién fue antes, si el huevo o la gallina" pero la forma más fiable es
+    registrar la función de ceirre como está descrito más arraba.
    </para>
   </warning>
   <warning>
@@ -382,6 +419,8 @@ session_start();
     <member>
      La directiva de configuración <link linkend="ini.session.save-handler">session.save_handler</link>
     </member>
+    <member>La función <function>register_shutdown_function</function></member>
+    <member>La función <function>session_register_shutdown</function> para PHP 5.4.0+</member>
    </simplelist>
   </para>
  </refsect1>
