@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a63190d9c474f19bcc54c643fdd7424623e48c38 Maintainer: seros Status: ready -->
+<!-- EN-Revision: cc47cb2ff9974788392b8f78c580496ea202230a Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <phpdoc:classref xml:id="class.sessionhandler" xmlns:phpdoc="http://php.net/ns/phpdoc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -14,18 +14,28 @@
   <section xml:id="sessionhandler.intro">
    &reftitle.intro;
    <para>
-    <classname>SessionHandler</classname> es una clase especial que puede usarse para extender
-    el gestor de almacenamiento de sesiones interno actual de PHP usando herencia. Existen seis métodos que
-    envuelven las seris llamadas de retorno del gestor de almacenamiento de sesiones. Por defecto PHP usa el gestor
-    de almacenamiento <parameter>files</parameter> como está definido por <link linkend="ini.session.save-handler">session.save_handler</link>.
-    Otros son proporcionados por extensiones de PHP tales como SQLite (como <parameter>sqlite</parameter>),
+    <classname>SessionHandler</classname> es una clase especial que puede usarse para exponer
+    el gestor de almacenamiento de sesiones interno actual de PHP por herencia. Existen seis métodos que
+    envuelven las seis llamadas de retorno del gestor de almacenamiento de sesiones (<parameter>open</parameter>, <parameter>close</parameter>,
+    <parameter>read</parameter>, <parameter>write</parameter>, <parameter>destroy</parameter> y <parameter>gc</parameter>).
+    Por defecto, esta clase envolverá cualquier gestor de almacenamiento que esté establecido como está definido por la
+    directiva de configuración <link linkend="ini.session.save-handler">session.save_handler</link>, el cual normalmente es
+    <parameter>files</parameter> por omisión.
+    Otros gestores de almacenamiento de sesión internos son proporcionados por extensiones de PHP tales como SQLite (como <parameter>sqlite</parameter>),
     Memcache (como <parameter>memcache</parameter>), y Memcached (como <parameter>Memcached</parameter>).
    </para>
    <para>
-    Esta clase se puede extender y sus métodos se pueden sobreescribir por herencia incluyendo
-    la capacidad de llamar a los métodos de la clase madre. Esto permite que, por ejemplo, se intercepten los
-    métodos <parameter>read</parameter> y <parameter>write</parameter> para encriptar/desencriptar la
-    información de sesión y luego pasar el resultado hacia y desde la clase madre.
+    Cuando se establece una simple instancia de <classname>SessionHandler</classname> como el gestor de almacenamiento usando
+    <function>session_set_save_handler</function>, envolverá los gestores de almacenamiento actuales.
+    Una clase que extienda de <classname>SessionHandler</classname> permite sobrescribir
+    los métodos o interceptarlos o filtrarlos llamando a los métodos de la clase madre, los cuales en última instancia envolverán
+    los gestores de sesiones de PHP internos.
+   </para>
+   <para>
+    Esto permite, por ejemplo, interceptar los métodos <parameter>read</parameter> y <parameter>write</parameter>
+    para encriptar/desencriptar la información de sesión y luego pasar el resultado hacia y desde la clase madre.
+    De forma alternativa se podría elegir sobrescribir por completo un método como la llamada de retorno del recolector de basura
+    <parameter>gc</parameter>.
    </para>
    <para>
     Ya que <classname>SessionHandler</classname> envuelve los métodos del gestor de almacenamiento interno
@@ -33,9 +43,14 @@
     tener que conocer los entresijos de los gestores.
    </para>
    <para>
-    Para usar esta clase se ha de pasar una instancia de esta clase o una que la extienda
-    a <function>session_set_save_handler</function>. Esto causará que cualquier
-    gestor de sesiones nativo (interno) en uso sea envuelto por esta instancia.
+    Para usar esta clase, primero establezca el gestor de almacenamiento que desee exponer usando
+    <link linkend="ini.session.save-handler">session.save_handler</link> y luego pasar una instancia de
+    <classname>SessionHandler</classname> o una que la extienda a <function>session_set_save_handler</function>.
+   </para>
+   <para>
+    Observe que los métodos de llamda de retorno de esta clase están diseñados para ser llamados internamente por
+    PHP y no para ser llamados desde código de espacio de usuario. Los valores devueltos son igualmente procesados internamente
+    por PHP. Para más información sobre el flujo de trabajo de sesiones consulte <function>session_set_save_handler</function>.
    </para>
   </section>
   <!-- }}} -->
@@ -64,6 +79,16 @@
    </classsynopsis>
    <!-- }}} -->
    
+   <section xml:id="session.notes">
+   <warning>
+    <para>
+     Esta clase está diseñada para exponer el gestor de almacenamiento de sesiones interno de PHP, si quiere
+     escribir sus propios gestores de almacenamiento, implemente la interfaz <classname>SessionHandlerInterface</classname>
+     en lugar de extender desde <classname>SessionHandler</classname>.
+    </para>
+   </warning>
+  </section>
+   
   </section>
   <section xml:id="sessionhandler.examples">
    <example>
@@ -73,7 +98,7 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-class EncryptedSessionHandler implements SessionHandler
+class EncryptedSessionHandler extends SessionHandler
 {
     private $key;
 
