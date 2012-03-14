@@ -1,55 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 55f644c156f21a22428e7b3ca12d78db4a437ed1 Maintainer: seros Status: ready -->
+<!-- EN-Revision: a7b98eb2dbfe34958382535b90bba40784d1180d Maintainer: seros Status: ready -->
 
 <appendix xml:id="session.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  &reftitle.examples;
  <section xml:id="session.examples.basic">
   <title>Uso básico</title>
-  <note>
-   <para>
-    A partir de PHP 4.1.0, <varname>$_SESSION</varname> está disponible como una
-    variable global como <varname>$_POST</varname>,
-    <varname>$_GET</varname>, <varname>$_REQUEST</varname>, etc.
-    A diferencia de <varname>$HTTP_SESSION_VARS</varname>,
-    <varname>$_SESSION</varname> es siempre global. Por lo tanto, no se necesita
-    usar la palabra clave <link
-    linkend="language.variables.scope"><command>global</command></link>
-    para <varname>$_SESSION</varname>. Por favor, observe que esta
-    documentación ha sido modifiada para usar
-    <varname>$_SESSION</varname> en cualquier lugar. Puede sustituir
-    <varname>$HTTP_SESSION_VARS</varname> por
-    <varname>$_SESSION</varname>, si prefiere la antigua. Observe también
-    que se debe iniciar una sesión usando <function>session_start</function> 
-    antes de que el uso de <varname>$_SESSION</varname> esté disponible.
-   </para>
-   <para>
-    Las claves en la matriz asociativa <varname>$_SESSION</varname>
-    están sujetas a las mismas limitaciones que los nombres
-    de las variables normales de PHP, esto es, no pueden
-    comenzar con un número y deben comenzar con una letra o guión de subrayado.
-    Para más detalles vea la sección sobre
-    <link linkend="language.variables">variables</link> en este manual.
-   </para>
-  </note>
-  
   <para>
-   Si <link
-   linkend="ini.register-globals">register_globals</link>
-   está deshabilitado, sólo los miembros de la matriz asociativa global
-   <varname>$_SESSION</varname> pueden ser registrados como variables de
-   sesión. Las variables de sesión almacenadas sólo estarán disponibles
-   en la matriz <varname>$_SESSION</varname>.
+   Las sesiones son una forma sencilla de almacenar datos para usuarios de manera individual usando un ID de sesión único.
+   Esto se puede usar para hacer persistente la información de estado entre peticiones de páginas. Los ID de sesiones normalmente son
+   enviados al navegador mediante cookies de sesión, y el ID se usa para recuperar los datos de sesión existentes.
+   The absence of a ID or session cookie let's PHP know to create a new session, and generate a new
+   session ID.
   </para>
   <para>
-   Se recomienda el uso de <varname>$_SESSION</varname> (o
-   <varname>$HTTP_SESSION_VARS</varname> con PHP 4.0.6 o anterior) 
-   para mejorar la seguridad y la legibilidad del código. Con
-   <varname>$_SESSION</varname> no hay necesidad de usar las funciones
-   <function>session_register</function>,
-   <function>session_unregister</function> o
-   <function>session_is_registered</function>. Las variables de sesión
-   son accesibles como cualquier otra variable.
+   Las sesiones siguen un flujo de trabajo sencillo. Cuando una sesión se inicia, PHP recuperará una
+   sesión existente usando el ID pasado (normalmente desde una cookie de sesión) o, si no se pasa una sesión,
+   se creará una sesión nueva. PHP rellenará la variable superglobal <varname>$_SESSION</varname>
+   con cualesquiera datos de sesión de que se inicie la seisón. Cuando PHP se cierra, automáticamente
+   toma el contenido de la variable superglobal <varname>$_SESSION</varname>, la serializa, y la envía
+   para almacenarla usando el gestor de almacenamiento de sesiones.
+  </para>
+  <para>
+   Por omisión, PHP usa el gestor interno de almacenamiento <parameter>files</parameter>, el cual
+   se establece mediante <link linkend="ini.session.save-handler">session.save_handler</link>.
+   Éste guarda los datos de sesión en el servidor en la ubicación especificada por la
+   directiva de configuración <link linkend="ini.session.save-path">session.save_path</link>.
+  </para>
+  <para>
+   Las sesiones se puede iniciar manualmente usando la función <function>session_start</function>,
+   y si la directiva <link linkend="ini.session.auto-start">session.auto_start</link> se establece
+   a <parameter>1</parameter>, una sesión se iniciará automáticamente en el momento en que PHP envíe cualquier salida
+   al buffer de salida.
+  </para>
+  <para>
+   Las sesiones normalmente se cierran automáticamente cuando PHP termina de ejecutar un script, pero se pueden
+   cerrar manualmente usando la función <function>session_write_close</function>.
+  </para>
+  <para>
    <example>
     <title>
      Registrar una variable con <varname>$_SESSION</varname>.
@@ -58,7 +46,6 @@
 <![CDATA[
 <?php
 session_start();
-// Use $HTTP_SESSION_VARS con PHP 4.0.6 o anterior
 if (!isset($_SESSION['count'])) {
   $_SESSION['count'] = 0;
 } else {
@@ -67,23 +54,20 @@ if (!isset($_SESSION['count'])) {
 ?>
 ]]>
     </programlisting>
-   </example>
-   <example>
-    <title>
-     Dejar de registrar una variable con <varname>$_SESSION</varname> y
-     <link
-     linkend="ini.register-globals">register_globals</link> deshabilitado.
-    </title>
-    <programlisting role="php">
+    </example>
+    <example>
+     <title>
+      Dejar de registrar una variable con <varname>$_SESSION</varname>
+     </title>
+     <programlisting role="php">
 <![CDATA[
 <?php
 session_start();
-// Use $HTTP_SESSION_VARS con PHP 4.0.6 o anterior
 unset($_SESSION['count']);
 ?>
 ]]>
-      </programlisting>
-     </example>
+    </programlisting>
+    </example>
   </para>
   <para>
    <caution>
@@ -101,47 +85,6 @@ unset($_SESSION['count']);
     de restarurar una referencia a otra variable.
    </para>
   </warning>
-  <para>
-   Si <link
-   linkend="ini.register-globals">register_globals</link>
-   está habilitado, cada variable global puede ser segistrada como variable de
-   sesión. Sobre una restauración de una sesión, estas variables serán restauradas
-   a las variables globales correspondientes. Ya que PHP debe conocer qué variables
-   globales están registradas como variables de sesión, los usuarios necesitan registrar
-   las variables con la función <function>session_register</function>.
-   Se puede evitar esto estableciendo simplemente entradas en
-   <varname>$_SESSION</varname>.
-   <caution>
-    <para>
-     Antes de PHP 4.3.0, si está usando <varname>$_SESSION</varname> y tiene
-     deshabilitado <link linkend="ini.register-globals">register_globals</link>,
-     no use <function>session_register</function>,
-     <function>session_is_registered</function> o
-     <function>session_unregister</function>.
-     Se recomienda deshabilitar <link
-     linkend="ini.register-globals">register_globals</link>
-     por razones de seguridad y rendimiento.
-    </para>
-   </caution>
-  </para>
-  <para>
-   Si <link
-   linkend="ini.register-globals">register_globals</link>
-   está habilitado, las variables globales y las entradas de
-   <varname>$_SESSION</varname> referenciarán automáticamente los
-   mismos valores que fueron registrados en la instancia de sesión anterior.
-   Sin embargo, si la variable es registrada mediante <varname>$_SESSION</varname>,
-   la variable global está disponible desde la siguiente petición.
-  </para>
-  <para>
-   Existe un defecto en PHP 4.2.3 y anteriores. Si se registra una nueva
-   variable de sesión usando <function>session_register</function>, la
-   entrada en el ámbito global y la entrada de <varname>$_SESSION</varname>
-   no referenciarán el mismo valor hasta el siguiente uso de
-   <function>session_start</function>. Esto es, una modificación en la
-   variable global registrada más recientemenet no será reflejada por la entrada de
-   <varname>$_SESSION</varname>. Esto ha sido corregido en PHP 4.3.0.
-  </para>
  </section>
  
  <section xml:id="session.idpassing">
@@ -201,9 +144,9 @@ unset($_SESSION['count']);
 session_start();
 
 if (empty($_SESSION['count'])) {
- $_SESSION['count'] = 1;
+   $_SESSION['count'] = 1;
 } else {
- $_SESSION['count']++;
+   $_SESSION['count']++;
 }
 ?>
 
