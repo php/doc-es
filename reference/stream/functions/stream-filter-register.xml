@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 48e5dd1b7e9920436dd3b40e192d27c670e9679a Maintainer: seros Status: ready -->
 <refentry xml:id="function.stream-filter-register" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>stream_filter_register</refname>
@@ -38,133 +38,13 @@
      <listitem>
       <para>
        Para implementar un filtro se necesita definir una clase como una extensión de
-       <literal>php_user_filter</literal> con un número de funciones miembro
-       como se define abajo. Cuando se lleva a cabo operaciones de lectura/escritura en el flujo
+       <classname>php_user_filter</classname> con un número de funciones
+       miembro. Cuando se lleva a cabo operaciones de lectura/escritura en el flujo
        al cuál el filtro está enlazado, PHP pasará la información a través de este
        filtro (y cualquier otro filtro enlazado a ese flujo) por lo que la
        información puede ser modificada como se desee. Se deben implementar los métodos
-       exactamente como se describe abajo - hacerlo de otro modo conducirá a un comportamiento
-       indefinido.
-      </para>
-      <methodsynopsis>
-       <type>int</type><methodname>filter</methodname>
-       <methodparam><type>resource</type><parameter>in</parameter></methodparam>
-       <methodparam><type>resource</type><parameter>out</parameter></methodparam>
-       <methodparam><type>int</type><parameter role="reference">consumed</parameter></methodparam>
-       <methodparam><type>bool</type><parameter>closing</parameter></methodparam>
-      </methodsynopsis>
-      <para>
-       Este método es llamado siempre que la información es leída desde o escrita en
-       el flujo enlazado (como con <function>fread</function> o <function>fwrite</function>).
-       <parameter>in</parameter> es un recurso que apunta a una <literal>cadena de recipientes</literal>
-       que contiene uno o más objetos <literal>recipiente</literal> que contienen la información que va a
-       ser filtrada. <parameter>out</parameter> es un recurso que apunta a una segunda <literal>cadena
-       de recipientes</literal> dentro de la cual se deberían ubicar los recipientes modificados.
-       <parameter>consumed</parameter>, el cual <emphasis>siempre</emphasis> debe
-       ser declarado por referencia, debería ser incrementado por la longitud de la información
-       que el filtro lee y altera. En la mayoría de los casos esto significa que se incrementará
-       <parameter>consumed</parameter> por <literal>$recipiente->datalen</literal>
-       por cada <literal>$recipiente</literal>. Si el flujo está en el proceso de cierre
-       (y por lo tanto éste es el último pase a través de la cadena de filtros),
-       el parámetro <parameter>closing</parameter> será establecido a &true;.
-       El método <methodname>filter</methodname> debe devolver uno de estos
-       tres valores cuando se complete.
-       <informaltable>
-        <tgroup cols="2">
-         <thead>
-          <row>
-           <entry>Valor Devuelto</entry>
-           <entry>Significado</entry>
-          </row>
-         </thead>
-         <tbody>
-          <row>
-           <entry><constant>PSFS_PASS_ON</constant></entry>
-           <entry>
-            El filtró se procesó con éxito con información disponible en la
-            <literal>cadena de recipientes</literal> <parameter>out</parameter>.
-           </entry>
-          </row>
-          <row>
-           <entry><constant>PSFS_FEED_ME</constant></entry>
-           <entry>
-            El filtró se procesó con éxito, sin embargo no había información disponible que
-            devolver. Se requiere más información del flujo o del filtro previo.
-           </entry>
-          </row>
-          <row>
-           <entry><constant>PSFS_ERR_FATAL</constant> (predeterminado)</entry>
-           <entry>
-            El filtro experimentó un error irrecuperable y no puede continuar.
-           </entry>
-          </row>
-         </tbody>
-        </tgroup>
-       </informaltable>
-      </para>
-      <methodsynopsis>
-       <type>bool</type><methodname>onCreate</methodname>
-       <void/>
-      </methodsynopsis>
-      <simpara>
-       Este método se llama durante la instanciación del objeto de la clase del
-       filtro. Si el filtro asigna o inicializa cualquier otro recurso
-       (como un buffer), éste es el lugar para hacerlo. La implementación de
-       este método debería devolver &false; en caso de error, o &true; en caso de éxito.
-      </simpara>
-      <simpara>
-       Cuando primero se instancia el filtro, y
-       se llama a <literal>elfiltro-&gt;onCreate()</literal>, estarán disponibles
-       varias propiedades como se muestra en la tabla de abajo.
-      </simpara>
-      <para>
-       <informaltable>
-        <tgroup cols="2">
-         <thead>
-          <row>
-           <entry>Propiedad</entry>
-           <entry>Contenido</entry>
-          </row>
-         </thead>
-         <tbody>
-          <row>
-           <entry><literal>FilterClass-&gt;filtername</literal></entry>
-           <entry>
-            Una cadena que contiene el nombre del filtro con el que fue instanciado.
-            Los filtros pueden ser registrados bajo múltiples nombres o bajo comodines.
-            Use esta propiedad para determinar qué nombre fue usado.
-           </entry>
-          </row>
-          <row>
-           <entry><literal>FilterClass-&gt;params</literal></entry>
-           <entry>
-            El contenido del parámetro <parameter>params</parameter> pasado
-            a <function>stream_filter_append</function>
-            o a <function>stream_filter_prepend</function>.
-           </entry>
-          </row>
-          <row>
-           <entry><literal>FilterClass-&gt;stream</literal></entry>
-           <entry>
-            El recurso de flujo que va a ser filtrado. Quizás disponible sólo durante
-            las llamadas a <methodname>filter</methodname> cuando el
-            parámetro <literal>closing</literal> es &false;.
-           </entry>
-          </row>
-         </tbody>
-        </tgroup>
-       </informaltable>
-      </para>
-      <methodsynopsis>
-       <type>void</type><methodname>onClose</methodname>
-       <void/>
-      </methodsynopsis>
-      <para>
-       Este método es llamado bajo el cierre del filtro (normalmente también
-       durante el cierre del flujo), y se ejecuta <emphasis>después</emphasis>
-       de llamar al método <literal>flush</literal>. Si se asignó o inicializo
-       cualquier recurso durante <literal>onCreate()</literal>,
-       este sería el momento de destruirlo o deshacerse de él.
+       exactamente como se describe en <classname>php_user_filter</classname> - hacerlo
+       de otro modo conducirá a un comportamiento indefinido.
       </para>
      </listitem>
     </varlistentry>
