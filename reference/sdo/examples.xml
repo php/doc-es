@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: ba28df480003640b326c0cf5472e940983a374e1 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="sdo.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.examples;
+ <section xml:id="sdo.examples-basic">
+  <title>Uso básico</title>
+  <para>
+   En los ejemplos de abajo se asume un SDO creado con el esquema
+   y la información de la instancia mostrados abajo, usando el Servicio de Acceso a Datos de XML.
+  </para>
+  <para>
+   El documento de instancia de abajo describe una compañía única,
+   llamada 'MegaCorp', la cual contiene un único departamento,
+   llamado 'Tecnologías Avanzadas'.
+   El departamento de Tecnologías Avanzadas contiene tres empleados.
+   El empleadoDelMes de la compañía está referenciado por el segundo empleado,
+   'Jane Doe'.
+  </para>
+  <para>
+   <programlisting role="xml">
+<![CDATA[
+<?xml version="1.0" encoding="UTF-8" ?> 
+<company xmlns="companyNS" name="MegaCorp" 
+  empleadoDelMes="E0003">
+  <departments name="Tecnologías Avanzadas" location="NY" number="123">
+    <employees name="John Jones" SN="E0001"/>
+    <employees name="Jane Doe" SN="E0003"/>
+    <employees name="Al Smith" SN="E0004" manager="true"/>
+  </departments>
+</company>
+]]>
+   </programlisting>
+  </para>
+  <para> El elemento raíz del esquema es una compañía. La compañía contiene departamentos, y
+   cada departamento contiene empleados. Cada elemento tiene varios atributos para almacenar
+   cosas como el nombre, el número de serie, etc. Finalmente, la compañía también tiene un atributo
+   IDREF que identifica uno de los empleados como el 'empleadoDelMes'.
+  </para>
+  <para>
+   <programlisting role="xml">
+<![CDATA[
+<xsd:schema  
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:sdo="commonj.sdo"
+  xmlns:sdoxml="commonj.sdo/xml"
+  xmlns:company="companyNS"
+  targetNamespace="companyNS">
+  <xsd:element name="company" type="company:CompanyType"/>
+  <xsd:complexType name="CompanyType">
+    <xsd:sequence>
+      <xsd:element name="departments" type="company:DepartmentType" 
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string"/>
+    <xsd:attribute name="empleadoDelMes" type="xsd:IDREF" 
+      sdoxml:propertyType="company:EmployeeType"/> 
+  </xsd:complexType>
+  <xsd:complexType name="DepartmentType">
+    <xsd:sequence>
+      <xsd:element name="employees" type="company:EmployeeType"  
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string"/>
+    <xsd:attribute name="location" type="xsd:string"/>
+    <xsd:attribute name="number" type="xsd:int"/>
+  </xsd:complexType>
+  <xsd:complexType name="EmployeeType">
+    <xsd:attribute name="name" type="xsd:string"/>
+    <xsd:attribute name="SN" type="xsd:ID"/>
+    <xsd:attribute name="manager" type="xsd:boolean"/>
+  </xsd:complexType>
+</xsd:schema>
+]]>
+   </programlisting>
+  </para>
+  <para>El Servicio de Acceso a Datos de XML referencia el esquema a un SDO. Los atributos como "name"
+   se convierten en propiedades primitivas, la secuencia de empleados se convierte en una relación
+   de contención polievaluada, etc. Observe que las relaciones de contención están
+   expresadas como un tipo complejo dentro de otro, mientras que las referencias de no contención están
+   expresadas en términos de ID e IDREF, con un atributo especial
+   <command>sdoxml:propertyType</command> que especifica el tipo de la
+   referencia de no contención.
+  </para>
+ </section>
+ 
+ <section xml:id="sdo.sample.getset">
+  <title>Establecer y Obtener Valores de Propiedades</title>
+  <para> En los siguientes ejemplos se asume que
+   <command>$company</command> es la raíz de un árbol de objetos de datos creados desde el
+   esquema y el documento de instancia mostrado arriba.
+  </para>
+  <para>
+   <example>
+    <title>Acceso mediante el nombre de la propiedad</title>
+    <para>
+     Se puede acceder a las propiedades de los objetos de datos usando la sintaxis de acceso
+     de la propiedad del objeto. Lo siguiente esteblece el nombre de la compañía a 'Acme'.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.propname">
+<![CDATA[
+<?php
+$company->name = 'Acme';
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceso mediante el nombre de la propiedad como índice de array</title>
+    <para>También se puede acceder a las propiedades usando la sintaxis de array asociativos. La forma
+     más sencilla utiliza el nombre de la propiedad como el índice de array. Por ejemplo, lo siguiente establece
+     el nombre de la compañía y objtiene el empleadoDelMes.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.simplexpath">
+<![CDATA[
+<?php
+$company['name'] = 'UltraCorp';
+$eotm = $company['empleadoDelMes'];
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Iteración de Objetos de Datos</title>
+    <para>
+     Se puede iterar a través de las propiedades de un objeto de datos usando &foreach;.
+     Lo siguiente itera a través de las propiedades del empleado del mes.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.doiter">
+<![CDATA[
+<?php
+  $eotm = $company->employeeOfTheMonth;
+  foreach ($eotm as $name => $value) {
+      echo "$name: $value\n";
+  }
+?>
+]]>
+    </programlisting>
+    <para> 
+     lo que imprimirá:
+    </para>     
+    <programlisting xml:id="sdo.examples.doiter-output">
+<![CDATA[
+name: Jane Doe
+SN: E0003
+]]>
+    </programlisting>
+    <para> 
+     La propiedad 'manager' no se muestra a causa de que no ha sido establecida.
+    </para>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceso a propiedades polievaluadas mediante del nombre</title>
+    <para> Se puede acceder a las propiedaes de un objeto de datos polievaluado usando la sintaxis
+     del nombre de la propiedad del objeto. Lo siguiente obtiene la lista de departamentos.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.mvpname">
+<![CDATA[
+<?php
+$departments = $company->departments;
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceso a elementos de propiedades polievaluadas</title>
+    <para>
+     Se puede acceder a elementos de propiedades polievaluadas usando la sintaxis
+     de array. Lo siguiente accede al primer departamento de la compañía.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.mvaccess">
+<![CDATA[
+<?php
+$ad_tech_dept = $company->departments[0];
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Iteración de propiedades polievaluadas</title>
+    <para>
+     Las propiedades polievaluadas también se pueden iterar usando
+     &foreach;. Lo siguiente itera a través de los departamentos de la compañía.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.mvpiter">
+<![CDATA[
+<?php
+  foreach ($company->departments as $department) {
+    // ...
+  }
+?>
+]]>
+    </programlisting>
+    <para>
+     Cada iteración asignará el siguiente departamento de la
+     lista a la variable <command>$department</command>.
+    </para>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceso a propiedades encadenadas</title>
+    <para> Se pueden encadenar referencias de propiedades en una única línea.
+     Lo siguiente establece y obtiene el nombre del primer departamento.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.nestedprop">
+<![CDATA[
+<?php
+  $company->departments[0]->name = 'Tecnologías Emergentes';
+  $dept_name = $company->departments[0]->name;
+?>
+]]>
+    </programlisting>
+    <para>Usar la sintaxis de array asociativo, esto es equivalente a</para>
+    <programlisting role="php" xml:id="sdo.examples.chainarray">
+<![CDATA[
+<?php
+  $company['departments'][0]['name'] = 'Tecnologías Emergentes';
+  $dept_name = $company['departments'][0]['name'];
+?>
+]]>
+    </programlisting>
+    <para> En cualquier caso, la variable dept_name es establecida a 'Tecnologías Emergentes'.
+    </para>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Navegación XPath</title>    
+    <para> El índice del un array asociativo puede ser una expresión similar a XPath. Las expresiones
+     válidas están definidas por un subconjunto incrementado de XPath.
+    </para>
+    <para>
+     Las dos formas de indexar propiedades polievaluadas están soportadas.
+     La primera es la sintaxis de array estándar de XPath con el índice
+     comenzando por cero, la segunda es una extensión de SDO para XPath con un índice
+     comenzando por cero. La sintaxis estándar es:
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.xpath1nav">
+<![CDATA[
+<?php
+  $jane_doe = $company["departments[1]/employees[2]"];
+?>
+]]>
+    </programlisting>    
+    <para>y la sintaxis de extensión de XPath de SDO es:</para> 
+    <programlisting role="php" xml:id="sdo.examples.xpath0nav">
+<![CDATA[
+<?php
+  $jane_doe = $company["departments.0/employees.1"];
+?>
+]]>
+    </programlisting>
+    <para>
+     Ambos ejemplos obtienen el segundo empleado del primer departamento.
+    </para>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Consulta XPath</title>
+    <para>
+     Se puede usar XPath para consultar e identificar partes de un objeto de datos basado
+     en datos de instancia. Lo siguiente recupera el manager del
+     departamento 'Tecnologías Avanzadas' department.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.xpathquery">
+<![CDATA[
+<?php
+ $ad_tech_mgr = 
+  $company["departments[name='Tecnologías Avanzadas']/employees[manager=true]"];
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Crear objetos de datos hijos</title>
+    <para>
+     Un objeto de datos puede ser una fábrica para sus objetos de datos hijos.
+     Un objeto de datos hijo es automáticamente parte del grafo de datos.
+     Lo siguiente añade un nuevo empleado al departamento
+     'Tecnologías Avanzadas'.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.create">
+<![CDATA[
+<?php
+  $ad_tech_dept = $company["departments[name='Tecnologías Avanzadas']"];
+  $new_hire = $ad_tech_dept->createDataObject('employees');
+  $new_hire->name = 'John Johnson';
+  $new_hire->SN = 'E0005';
+  $new_hire->manager = false;
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Desestablecer una propiedad primitiva</title>
+    <para>
+     Se pueden usar las funciones <function>isset</function> y
+     <function>unset</function> para comprobar y eliminar elementos
+     de un objeto de datos.
+    </para>
+    <para>
+     Lo siguiente limpia el nombre del primer departamento.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.unsetprim">
+<![CDATA[ 
+<?php
+  unset($company->departments[0]->name);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Desestablecer un objeto de datos</title>
+    <para>
+     unset también se puede usar para eliminar un objeto de datos de un árbol.
+     El siguiente ejemplo muestra a John Jones abandonando la compañía.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.unsetdo">
+<![CDATA[ 
+<?php
+  unset($company->departments[0]->employees[0]);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Desestablecer un objeto de datos referenciado</title>
+    <para>
+     Lo siguiente elimina el 'empleadoDelMes' de la compañía.
+     Si esto fuera una relación de contención el
+     empleado sería removido de la compañía
+     (¡probablemente no es una buena idea echar al mejor empleado de cada mes!), 
+     pero ya que esta es una referencia de no contención,
+     el empleado que está siendo referenciado permanecerá en el
+     departamento de la compañía,
+     pero ya no será accesible mediante la propiedad empleadoDelMes.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.unsetrefdo">
+<![CDATA[ 
+<?php
+  if (isset($company->empleadoDelMes)) {
+    unset($company->empleadoDelMes);
+  }
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceso mediante índice de propiedad</title>
+    <para> Se puede acceder a las propiedades de objetos de datos mediante sus ídices de propiedad usando la sintaxis
+     de array. El índice de propiedad es la posición en la que la definición de la propiedad
+     aparece en el modelo (en este caso el esquema xml). Se puede ver en el esquema listado
+     arriba que el atributo nombre de la compañía es la segunda propiedad de la compañía (la interfaz
+     de SDO no hace distinción entre atributos XML y elementos). Lo siguiente
+     establece el nombre de la compañía a 'Acme', con el mismo resultado que en el
+     <link linkend="sdo.examples.propname">Acceso mediante el nombre de la propiedad</link>
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.propindex">
+<![CDATA[
+<?php
+  $company[1] = 'Acme';
+?>
+]]>
+    </programlisting>
+    <para> Usar directamente el índice de esta manera puede ser delicado. Normalmente se
+     debería prefereir la sintaxis de nombre de propiedad, aunque el índeice de propiedad puede ser necesario
+     en casos especiales.
+    </para>
+   </example>
+  </para>
+  
+ </section>
+ 
+ <section xml:id="sdo.sample.sequence">
+  <title>Trabajar con Objetos de Datos Secuenciados</title>
+  <para>
+   Los objetos de datos sencuenciados son SDOs que pueden rastrear el orden de
+   propiedades de un objeto de datos. También pueden
+   contener elementos de texto no estructurados (un elemento de texto que no
+   pertenece a ninguna de las propiedades del SDO). Los objetos de datos secuenciados son
+   útiles para trabajar con documentos XML que permiten texto no estructurado (es decir,
+   mixed=true) o si los elementos pueden ser intercalados (
+<![CDATA[<A/><B/><A/>]]>). Esto puede ocurrir, por ejemplo, cuando
+   el esquema define maxOccurs>1 en un
+   elemento que es un tipo complejo (complexType) con un indicador de orden de elección.
+  </para>
+  <para>
+   En los ejemplos de abajo se asume que existe un SDO creado con los siguientes esquema
+   e información de instancia, usando el Servicio de Acceso a Datos de XML.
+  </para>
+  <para>
+   El esquema de abajo describe el formato de una carta. La carta puede
+   contener opcionalmente tres propiedades: fecha (date), nombre (firstName), y apellido (lastName).
+   El estado del esquema es <command>mixed="true"</command>, lo que significa que
+   se puede interpretar texto no estructurado entre las tres propiedades.
+  </para>
+  <para>
+   <programlisting role="xml">
+<![CDATA[
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:letter="http://letterSchema"
+  targetNamespace="http://letterSchema">
+  <xsd:element name="letters" type="letter:FormLetter"/>
+  <xsd:complexType name="FormLetter" mixed="true">
+    <xsd:sequence>
+      <xsd:element name="date" minOccurs="0" type="xsd:string"/>
+      <xsd:element name="firstName" minOccurs="0" type="xsd:string"/>
+      <xsd:element name="lastName" minOccurs="0" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:schema>
+]]>
+   </programlisting>
+  </para>
+  
+  <para>
+   Lo siguiente es una instancia de un documento carta. Contiene las
+   tres propiedades de la carta; date, firstName y lastName, y tiene
+   elementos de texto no esctrucrado para la dirección y el cuerpo de la carta.
+  </para>
+  <para>
+   <programlisting role="xml">
+<![CDATA[
+<letter:letters xmlns:letter="http://letterSchema">
+  <date>March 1, 2005</date>
+  Mutual of Omaha
+  Wild Kingdom, USA
+  Dear
+  <firstName>Casy</firstName>
+  <lastName>Crocodile</lastName>
+  Por favor, compre más repelente de tiburones.
+  Su prima ha vencido.
+</letter:letters>
+]]>
+   </programlisting>
+  </para>
+  <para>
+   Cuando se carga, el objeto de datos carta tendrá la secuencia y
+   los índices de propiedades mostrados en la tabla de abajo:
+   <informaltable>
+    <tgroup cols="3">
+     <thead>
+      <row>
+       <entry>Índice de Secuencia</entry>
+       <entry>Índice de Propiedad:Nombre</entry>
+       <entry>Valor</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>0</entry>
+       <entry>0:date</entry>
+       <entry>March 1, 2005</entry>
+      </row>
+      <row>
+       <entry>1</entry>
+       <entry>-</entry>
+       <entry>Mutual of Omaha</entry>
+      </row>
+      <row>
+       <entry>2</entry>
+       <entry>-</entry>
+       <entry>Wild Kingdom, USA</entry>
+      </row>
+      <row>
+       <entry>3</entry>
+       <entry>-</entry>
+       <entry>Dear</entry>
+      </row>
+      <row>
+       <entry>4</entry>
+       <entry>1:firstName</entry>
+       <entry>Casy</entry>
+      </row>
+      <row>
+       <entry>5</entry>
+       <entry>2:lastName</entry>
+       <entry>Crocodile</entry>
+      </row>
+      <row>
+       <entry>6</entry>
+       <entry>-</entry>
+       <entry>Por favor, compre más repelente de tiburones.</entry>
+      </row>
+      <row>
+       <entry>7</entry>
+       <entry>-</entry>
+       <entry>Su prima ha vencido.</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+  
+  <para>
+   Para asegurarse de que los índices de secuencia se mantienen, los objetos de datos secuenciados
+   deberían ser manipulados mediante la interfaz SDO_Sequence.  
+   Esto permite que los datos de instancia de los objetos de datos sean manipulados
+   en términos del índice de secuencia en lugar de índice de propiedad
+   (mostrado en la tabla de arriba).  
+   En los siguientes ejemplos se asume que la instancia de carta ha sido
+   cargada en un objeto de datos referenciado por la variable
+   <command>$letter</command>.
+   <example>
+    <title>Obtener la interfaz SDO_Sequence</title>
+    <para>
+     Se obtiene la secuencia de objetos de datos usando el método
+     <function>getSequence</function>.
+     Lo siguiente obtiene la
+     secuencia para el objeto de datos carta.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.seqinterface">
+<![CDATA[ 
+<?php
+  $letter_seq = $letter->getSequence();
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   En todos los ejemplos subsiguientes se asume que la variable
+   <command>$letter_seq</command>
+   ha sido asignada a la secuencia del objeto de datos carta.
+  </para>
+  
+  <para>
+   <example>
+    <title>Obtener/establecer valores de secuencia</title>
+    <para>
+     Se pueden obtener y establecer valores individuales (incluyendo texto no estructurado)
+     usando el índice de secuencia.
+     Lo siguiente establece el nombre (firstName) a 'Snappy' y obtiene los últimos
+     valores de la secuencia (el texto no estructurado, 'Su prima ha vencido.').
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.getsetseq">
+<![CDATA[ 
+<?php
+  $letter_seq[4] = 'Snappy';
+  $text = $letter_seq[count($letter_seq) - 1];
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Iteración de secuencias</title>
+    <para>
+     Se puede iterar a través de valores de secuencia individuales usando &foreach;.
+     Lo siguiente recorre los valores individuales en el orden de secuencia.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.seqiter">
+<![CDATA[ 
+<?php
+foreach ($letter->getSequence() as $value) {
+    // ...
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Secuencias contra Objetos de Datos</title>
+    <para>
+     Al establecer valores a través de la interfaz del objeto de datos puede resultar en que el
+     valor no sea parte de la secuencia. Un valor establecido a través del objeto de
+     datos sólo será accesible a través de la secuencia si la propiedad ya
+     era parte de la secuencia. El siguiente ejemplo establece el
+     apellido (lastName) a través del objeto de datos y lo obtiene a través de la secuencia.
+     Esto es correcto ya que lastName ya existe en la secuencia. Si
+     no se hubiera establecido anteriormente, lastName sería establecido a
+     'Smith', pero no sería parte de la secuencia.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.seqvsdo">
+<![CDATA[ 
+<?php
+  $letter[2] = 'Smith';
+  $last_name = $letter_seq[5];
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Añadir elementos a una secuencia</title>
+    <para>
+     Se pueden añadir nuevos valores a una secuencia usando el método
+     <function>SDO_Sequence::insert</function>.
+     En los siguientes ejemplos se asume que las propiedades 'firstName' y 
+     'lastName' no estaban establecidas inicialmente.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.seqadd">
+<![CDATA[ 
+<?php
+  // Añadir un valor de firstName a la secuencia
+  // valor: 'Smith'
+  // índice de secuencia: NULL (añadido)
+  // identificador de propiedad: 1 (índice de la propiedad firtName)
+  $letter_seq->insert('Smith', NULL, 1);
+
+  // Añadir un valor de lastName a la secuencia
+  // valor: 'Jones'
+  // índice de secuencia: NULL (añadido)
+  // identificador de propiedad: 'lastName' (nombre de la propiedad lastName)
+  $letter_seq->insert('Jones', NULL, 'lastName');
+
+  // Añadir texto no estructurado
+  // valor: 'Cancelar Suscripción.'
+  // índice de secuencia: ausente (añadido)
+  // identificador de propiedad: ausente (texto no estructurado)
+  $letter_seq->insert('Cancelar Suscripción.');
+
+  // Insertar nuevo texto no estructurado. Los valores de secuencia subsiguientes
+  // son aumentados.                                       
+  // valor: 'Por medio de:'
+  // índice de secuencia: 1 (insertado como segundo elemento)
+  // identificador de propiedad: ausente (texto no estructurado)
+  $letter_seq->insert('Por medio de:', 1);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Eliminar elementos de una secuencia</title>
+    <para>
+     Se pueden usar las funciones <function>isset</function> y
+     <function>unset</function> para comprobar y eliminar elementos
+     de una secuencia (Nota: <function>unset</function> actualmente
+     deja los valores del objeto de datos, pero este comportamiento puede
+     cambiar para tambíen eliminar los datos del objeto de datos).
+     Una secuencia se comporta como una lista contigua; por lo tanto, eliminar
+     elementos de la mitad de la lista moverá hacia abajo las entradas en índices más
+     altos. El siguiente ejemplo comprueba si el primer elemento de la
+     secuencia está establecido y lo desestablece si lo está.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.seqremove">
+<![CDATA[ 
+<?php
+  if (isset($letter_seq[0])) {
+    unset($letter_seq[0]);
+  }
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+ </section>
+ 
+ 
+ <section xml:id="sdo.sample.reflection">
+  <title>Reflexión sobre Objetos de Datos de Servicio</title>
+  <para>
+   Los SDOs tienen conocimiento de la estructura en la que fueron creados a
+   representar (el modelo). Por ejemplo, un SDO Compañía crado usando
+   <link linkend="sdo.examples">el esqueme XML Compañía</link> de arriba
+   solamente le estaría permitido contener objetos de datos DepartmentType, 
+   los cuales a su vez sólo pueden contener objetos de datos EmployeeType.
+  </para>
+  <para>
+   A veces es útil poder acceder a la información del modelo en
+   tiempo de ejecución. Por ejemplo, esto podría usarse para generar automáticamente
+   una interfaz de usuario y rellenar un objeto de datos. A la información del modelo
+   se accede usando reflexión.
+  </para>
+  
+  <para>
+   <example>
+    <title>Reflexión sobre un Objeto de Datos</title>
+    <para>
+     El siguiente ejemplo muestra cómo se puede usar la reflexión en un objeto de datos
+     Empleado (Employee) vacío.
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.reflection">
+<![CDATA[ 
+<?php
+  // Crear el objeto de datos empleado (p.ej. desde un Servicio de Acceso a Datos de XML)
+  $employee = ...;
+  $reflection = new SDO_Model_ReflectionDataObject($employee);
+  print($reflection);
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    
+    <screen>
+<![CDATA[
+object(SDO_Model_ReflectionDataObject)#4 { - ROOT OBJECT - Type { 
+companyNS:EmployeeType[3] { commonj.sdo:String $name; 
+commonj.sdo:String $SN; commonj.sdo:Boolean $manager; } }
+]]>
+    </screen>
+    <para>
+     Al usar print con SDO_Model_ReflectionDataObject se escribe el modelo
+     del objeto de datos. Se puede observar que el tipo
+     companyNS:EmployeeType tiene tres propiedades y se pueden ver los nombres
+     de las propiedades junto con sus tipos. Observe que los tipos primitivos
+     están listados como tipos SDO (p.ej. espacio de nombres commonj.sdo, tipo String).  
+     Esto es nada más y nada menos que el modelo del SDO, y cuando estos tipos aparecen
+     en una aplicación, pueden ser tratados como sus tipos equivalentes de
+     PHP (p.ej. string y boolean).
+    </para>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Acceder a la información del tipo</title>
+    <para>
+     Se puede consultar la información del tipo de un objeto de datos usando reflexión.
+     El siguiente ejemplo comprueba el tipo que corresponde a un objetos de datos
+     en lugar de un tipo primitivo y luego itera a través de las propiedades de
+     tipo, escribiendo el nombre de cada propiedad ($type y $property 
+     son objetos SDO_Model_Type y SDO_Model_Property, respectivamente).
+    </para>
+    <programlisting role="php" xml:id="sdo.examples.reflection.type">
+<![CDATA[ 
+<?php
+  // Crear el objeto de datos empleado (p.ej. desde un Servicio de Acceso a Datos de XML)
+    $employee = ...;
+    $reflection = new SDO_Model_ReflectionDataObject($employee);
+    $type = $reflection->getType();
+    if (! $type->isDataType()) {
+        foreach ($type->getProperties() as $property) {
+            print $property->getName() . "\n";
+        }
+    }
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+name
+SN
+manager
+]]>
+    </screen>
+   </example>
+  </para>
+  
+ </section>
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+
