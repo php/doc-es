@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 63f0c045f92e4199499013621745b4ebcbe8e83e Maintainer: yago Status: ready -->
+<!-- EN-Revision: d8cb34e3cde63c0d329adcd83b9d6bc55c5a411c Maintainer: yago Status: ready -->
 <!-- Reviewed: no Maintainer: yago -->
 
 <sect1 xml:id="language.types.array">
@@ -45,6 +45,13 @@ array(
    <!-- Do not fix the whitespace for the synopsis end element. A limitation of PhD prevents proper trimming -->
 
    <para>
+    La coma después del elemento del array es opcional y se puede omitir. Esto normalmente se hace
+    para arrays de una sola línea, esto es, es preferible <literal>array(1, 2)</literal> que
+    <literal>array(1, 2, )</literal>. Por otra parte, para arrays multilínea, la coma final
+    se usa comnúnmente, ya que permite la adición sencilla de nuevos elementos al final.
+   </para>
+   
+   <para>
     A partir de PHP 5.4 también se puede usar la sintaxis de array corta, que reemplaza
     <literal>array()</literal> con <literal>[]</literal>.
    </para>
@@ -56,13 +63,13 @@ array(
 <?php
 $array = array(
     "foo" => "bar",
-    "bar" => "foo"
+    "bar" => "foo",
 );
 
 // a partir de PHP 5.4
 $array = [
     "foo" => "bar",
-    "bar" => "foo"
+    "bar" => "foo",
 ];
 ?>
 ]]>
@@ -114,6 +121,65 @@ $array = [
      </listitem>
     </itemizedlist>
    </para>
+   
+   <para>
+    Desde PHP 5.4, el acceso al índice de cadena se hace consistente. Como resultado, algunos valores de retorno pueden ser
+    diferentes de versiones anteriores. A partir de PHP 5.4, los índices de cadena deberían ser un integer o un integer como
+    string, de otro modo el resultado será una advertencia.
+   </para>
+
+   <example>
+    <title>String offset access example</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$str = 'abc';
+
+var_dump($str['1']);
+var_dump(isset($str['1']));
+
+var_dump($str['1.0']);
+var_dump(isset($str['1.0']));
+
+var_dump($str['x']);
+var_dump(isset($str['x']));
+
+var_dump($str['1x']);
+var_dump(isset($str['1x']));
+?>
+]]>
+    </programlisting>
+    &example.outputs.53;
+    <screen>
+<![CDATA[
+string(1) "b"
+bool(true)
+string(1) "b"
+bool(true)
+string(1) "a"
+bool(true)
+string(1) "b"
+bool(true)
+]]>
+    </screen>
+    &example.outputs.54;
+    <screen>
+<![CDATA[
+string(1) "b"
+bool(true)
+
+Warning: Illegal string offset '1.0' in /tmp/t.php on line 7
+string(1) "b"
+bool(false)
+
+Warning: Illegal string offset 'x' in /tmp/t.php on line 9
+string(1) "a"
+bool(false)
+string(1) "b"
+bool(false)
+]]>
+    </screen>
+   </example>
    
    <para>
     Si varios elementos en la declaración del array usan la misma clave, sólo la última 
@@ -359,7 +425,17 @@ list(, $secondElement) = getArray();
    
    <para>
     Si <varname>$arr</varname> aún no existe, se creará, así que esto es 
-    también una forma alternativa de crear un <type>array</type>. Para cambiar un valor determinado, 
+    también una forma alternativa de crear un <type>array</type>. Sin embargo, esta
+    práctica es desaconsejada ya que si <varname>$arr</varname> ya contiene
+    algún valor (p.ej. un <type>string</type> de una variable de petición), entonces este
+    valor estará en su lugar y <literal>[]</literal> puede significar realmente
+    el <link linkend="language.types.string.substr">operador de acceso a
+    cadenas</link>. Siempre es mejor inicializar variables mediante una asignación
+    directa.
+   </para>
+
+   <para>
+    Para cambiar un valor determinado, 
     se debe asignar un nuevo valor a ese elemento con su clave. Para quitar un par clave/valor, 
     se debe llamar la función <function>unset</function> en éste.
    </para>
@@ -386,9 +462,10 @@ unset($arr);    // Esto elimina el array completo
 
    <note>
     <para>
-     Como se mencionó anteriormente, si no se especifica una clave, el máximo de los 
-     índices <type>integer</type> es tomado, y la nueva clave será ese valor máximo más 1. 
-     Si todavía no existen índices <type>integer</type>, la clave será <literal>0</literal> (cero). 
+     Como se mencionó anteriormente, si no se especifica una clave, se toma el máximo
+     de los índices <type>integer</type> existentes, y la nueva clave será ese valor
+     máximo más 1 (aunque al menos 0). Si todavía no existen índices <type>integer</type>,
+     la clave será <literal>0</literal> (cero). 
     </para>
 
     <para>
