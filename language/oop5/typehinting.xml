@@ -1,30 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: chuso Status: ready -->
- <sect1 xml:id="language.oop5.typehinting" xmlns="http://docbook.org/ns/docbook">
-  <title>Type Hinting</title>
-  <para>
-   Desde PHP 5 se incorporan Type Hintings (Tipos Sugeridos). Ahora, las funciones pueden 
-   obligar a que sus parámetros sean objetos (especificando el nombre de la clase
-   en el prototipo de la función) o arrays (desde PHP 5.1). Sin embargo, si se
-   usa <type>NULL</type> como valor por omisión, podrá pasarse NULL como parámetro.
-  </para>
-  
-  <example>
-   <title>Ejemplos de Type Hinting</title>
-    <programlisting role="php">
+<!-- EN-Revision: 725924e665c85dc385346f0727babe988c73ae58 Maintainer: chuso Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
+<sect1 xml:id="language.oop5.typehinting" xmlns="http://docbook.org/ns/docbook">
+ <title>Implicación de Tipos</title>
+ <para>
+  Desde PHP 5 se incorpora la implicación de tipos. Ahora, las funciones pueden 
+  obligar a que sus parámetros sean objetos (especificando el nombre de la clase
+  en el prototipo de la función), interfaces, arrays (desde PHP 5.1) o tipos <type>callable</type>
+  (despe PHP 5.4). Sin embargo, si se usa <type>NULL</type>
+  como el valor predeterminado del parámetro, será permitido como un argumento para
+  llamada posterior.
+ </para>
+ 
+ <para>
+  Si se especifica una clase o una interfaz como tipo implicado también se
+  permitirán todos sus hijos o implementaciones too.
+ </para>
+ 
+ <para>
+  La implicación de tipos no puede usarse con tipos escalares como <type>int</type> o
+  <type>string</type>.
+  Tampoco están permitidos los <link linkend="language.oop5.traits">Traits</link>.
+ </para>
+ 
+ <example>
+  <title>Ejemplos de Implicación de Tipos</title>
+  <programlisting role="php">
 <![CDATA[
 <?php
 // Una clase de ejemplo
-class MyClass
+class MiClase
 {
     /**
      * Una función de prueba 
      *
-     * El primer parámetro debe ser un objeto del tipo OtherClass
+     * El primer parámetro debe ser un objeto del tipo OtraClase
      */
-    public function test(OtherClass $otherclass) {
-        echo $otherclass->var;
+    public function prueba(OtraClase $otraclase) {
+        echo $otraclase->var;
     }
 
 
@@ -33,13 +47,27 @@ class MyClass
      *
      * El primer parámetro debe ser un array
      */
-    public function test_array(array $input_array) {
-        print_r($input_array);
+    public function prueba_array(array $array_entrada) {
+        print_r($array_entrada);
+    }
+
+    /**
+     * El primer parámetro debe ser un iterador
+     */
+    public function prueba_interface(Traversable $iterador) {
+        echo get_class($iterador);
+    }
+    
+    /**
+     * El primer parámetro debe ser de tipo callable
+     */
+    public function prueba_callable(callable $callback, $data) {
+        call_user_func($callback, $data);
     }
 }
 
 // Otra clase de ejemplo
-class OtherClass {
+class OtraClase {
     public $var = 'Hola Mundo';
 }
 ?>
@@ -48,86 +76,87 @@ class OtherClass {
    <para>
     Si no se satisface el type hint, se produce un error fatal capturable
    </para>
-    <programlisting role="php">
+   <programlisting role="php">
 <![CDATA[
 <?php
 // Una instancia de cada clase
-$myclass = new MyClass;
-$otherclass = new OtherClass;
+$miclase = new MiClase;
+$otraclase = new OtraClase;
 
-// Error Fatal: El argumento 1 debe ser un objeto de la clase OtherClass
-$myclass->test('hello');
+// Error Fatal: El argumento 1 debe ser un objeto de la clase OtraClase
+$miclase->prueba('hola');
 
-// Error Fatal: El argumento 1 debe ser una instancia de OtherClass
+// Error Fatal: El argumento 1 debe ser una instancia de OtraClase
 $foo = new stdClass;
-$myclass->test($foo);
+$miclase->prueba($foo);
 
 // Error fatal: El argumento 1 no puede ser null
-$myclass->test(null);
+$miclase->prueba(null);
 
 // Funciona: Imprime en pantalla Hola Mundo
-$myclass->test($otherclass);
+$miclase->prueba($otraclase);
 
 // Error Fatal: El argumento 1 debe ser un array
-$myclass->test_array('a string');
+$miclase->prueba('una cadena');
 
 // Funciona: Imprime en pantalla el array
-$myclass->test_array(array('a', 'b', 'c'));
+$miclase->prueba(array('a', 'b', 'c'));
+
+// Funciona: Imprime en pantalla ArrayObject
+$miclase->prueba_interface(new ArrayObject(array()));
+
+// Funciona: Imprime en pantalla int(1)
+$miclase->prueba_callable('var_dump', 1);
 ?>
 ]]>
    </programlisting>
    <para>
-    También se puede usar con funciones:
+    Los tipos sugeridos tambíen se pueden usar con funciones:
    </para>
-    <programlisting role="php">
+   <programlisting role="php">
 <![CDATA[
 <?php
 // Una clase de ejemplo
-class MyClass {
+class MiClase {
     public $var = 'Hola Mundo';
 }
 
 /**
  * Una función de prueba
  *
- * El primer parámetro debe ser un objeto del tipo MyClass
+ * El primer parámetro debe ser un objeto del tipo MiClase
  */
-function MyFunction (MyClass $foo) {
+function miFunción (MiClase $foo) {
     echo $foo->var;
 }
 
 // Funciona
-$myclass = new MyClass;
-MyFunction($myclass);
+$miclase = new MiClase;
+miFunción($miclase);
 ?>
 ]]>
    </programlisting>
    <para>
-    Type hinting que acepta valores de tipo NULL:
+    Tipo implicado que acepta valores de tipo NULL:
    </para>
-    <programlisting role="php">
+   <programlisting role="php">
 <![CDATA[
 <?php
 
 /* Se acepta el valor NULL */
-function test(stdClass $obj = NULL) {
+function prueba(stdClass $obj = NULL) {
 
 }
 
-test(NULL);
-test(new stdClass);
+prueba(NULL);
+prueba(new stdClass);
 
 ?>
 ]]>
    </programlisting>
   </example>
-  <para>
-   Sólo se puede usar Type Hints con los tipos <type>object</type> y
-   (desde PHP 5.1) <type>array</type>. No se pueden usar tipos sugeridos tradicionales,
-   como <type>int</type> o <type>string</type>.
-  </para>
- </sect1>
- 
+</sect1>
+
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
