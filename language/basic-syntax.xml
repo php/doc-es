@@ -1,58 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 62d27014053411b67ff2c87de7e12d6a40c99dad Maintainer: yago Status: ready -->
-<!-- Reviewed: yes Maintainer: yago -->
+<!-- EN-Revision: 84b8fca68fc762fefe85acde180a38b2e77a28b9 Maintainer: yago Status: ready -->
+<!-- Reviewed: no Maintainer: yago -->
 <chapter xml:id="language.basic-syntax" xmlns="http://docbook.org/ns/docbook">
  <title>Sintaxis básica</title>
- <sect1 xml:id="language.basic-syntax.phpmode">
-  <title>Saliendo de HTML</title>
+ <sect1 xml:id="language.basic-syntax.phptags">
+  <title>Etiquetas de PHP</title>
   <para>
-   Cuando PHP interpreta un fichero, busca por las etiquetas de 
-   apertura y fin de bloque, que dicen a PHP donde empezar y finalizar la
+   Cuando PHP interpreta un fichero, busca por las etiquetas de apertura y cierre,
+   que son <literal>&lt;?php</literal> y <literal>?&gt;</literal>
+   las cuales indican a PHP dónde empezar y finalizar la
    interpretación del código. Este mecanismo permite a PHP ser 
    incrustado en todo tipo de documentos, todo lo que esté fuera
    de las etiquetas de PHP será ignorado por el interpretador.
-   La mayoría de veces se encontrará con PHP incrustado en 
-   documentos HTML, como se muestra en este ejemplo.
+  </para>
+  <para>
+   PHP también permite etiquetas lsa cortas <literal>&lt;?</literal> y <literal>?&gt;</literal>
+   (las que están desaconsejadas debido a que sólo están disponibles si se habilita con
+   la directiva del fichero de configuración &php.ini;
+   <link linkend="ini.short-open-tag">short_open_tag</link>,
+   o si PHP se configuró con la opción
+   <option>--enable-short-tags</option>.
+  </para>
+  <para>
+   Si un fichero contiene código PHP puro, es preferible omitir la etiqueta de cierre de PHP
+   al final del fichero. Esto previene de espacios en blanco o nuevas líneas después de la
+   etiqueta de cierre de PHP que pueden causar efectos no deseados debido a que PHP iniciará el
+   buffer de salida cuando no había intención por parte del programador de enviar ninguna salida
+   en ese punto del script.
    <informalexample>
     <programlisting role="php">
 <![CDATA[
-<p>Este texto va a ser ignorado.</p>
-<?php echo 'Mientras que esto va a ser interpretado.'; ?>
-<p>Esto también será ignorado.</p>
+<?php
+echo "Hola mundo";
+
+// ... más código
+
+echo "Última sentencia";
+
+// el script finaliza aquí sin etiqueta de cierre de PHP
 ]]>
     </programlisting>
    </informalexample>
   </para>
+ </sect1>
+ <sect1 xml:id="language.basic-syntax.phpmode">
+  <title>Salir de HTML</title>
   <para>
-   También se pueden usar estructuras más avanzadas:
+   Cualquier cosa fuera del par de etiquetas de apertura y cierre es ignorado por el
+   analizador de PHP, el cual permite los ficheros de PHP tengan contenido mixto. Esto permite
+   que PHP sea embebido en documentos HTML, por ejemplo para crear plantillas.
    <example>
-    <title>Escapar de HTML avanzado</title> 
     <programlisting role="php">
 <![CDATA[
-<?php
-if ($expression) {
-    ?>
-    <strong>Esto es verdadero.</strong>
-    <?php
-} else {
-    ?>
-    <strong>Esto es falso.</strong>
-    <?php
-}
-?>
+<p>Esto va a ser ignorado por PHP y mostrado por el navegador.</p>
+<?php echo 'Mientras que esto va a ser analizado.'; ?>
+<p>Esto también será ignorado por PHP y mostrado por el navegador.</p>
 ]]>
     </programlisting>
    </example>
-   Esto funciona como se espera, porque cuando PHP llega a las 
-   etiquetas de cerrado ?&gt;, simplemente muestra todo lo que encuentra
-   (excepto inmediatamente después de salto de línea - vea
-   <link linkend="language.basic-syntax.instruction-separation">separador de instrucción</link>
-   ) hasta que llega a una etiqueta de apertura. El ejemplo anterior es solo de muestra,
-   por su puesto, pero para mostrar largos bloques de texto, salir del
-   modo de interpretación de PHP es generalmente más eficiente que enviar todo
-   el texto a través de <function>echo</function> o
-   <function>print</function>.
+   Esto funciona como se espera, porque cuando PHP intercepta las etiquetas de cierre
+   ?&gt;, simplemente comienza a imprimir cualquier cosa que encuentre (a excepción de un
+   una nueva lína inmediatamente después - véase
+   <link linkend="language.basic-syntax.instruction-separation">separación de instrucciones</link>)
+   haste que dé con otra etiqueta de apertura a menos que se encuentre en mitad de una sentencia
+   condicional, en cuyo caso el intérprete determinará el resultado de la
+   condición antes de tomar una decisión de lo que tiene que saltar.
+   Véase el siguiente ejemplo.
+  </para>
+  <para>
+   Usar estructuras con condiciones
+   <example>
+    <title>Advanced escaping using conditions</title>
+    <programlisting role="php">
+<![CDATA[
+<?php if ($expresión == true): ?>
+  Esto se mostrará si la expresión es verdadera.
+<?php else: ?>
+  En caso contrario se mostrará esto.
+<?php endif; ?>
+]]>
+    </programlisting>
+   </example>
+   En este ejemplo PHP saltará los bloques donde la condición no se cumpla, incluso
+   si están fuera de las etiquetas de apertura/cierre de PHP, PHP los saltará según
+   la condición ya que el intérprete de saltará por encima de los bloques contenidos
+   dentro de una condición que no se cumpla.
+  </para>
+  <para>
+   Para salir de bloques de texto grandes, es más eficiente abandonar el modo
+   analítico de PHP que enviar todo el texto a través de
+   <function>echo</function> o <function>print</function>.
   </para>
   <para>
    Existen cuatro tipos de pares de etiquetas de apertura y de fin de bloque
@@ -89,50 +127,51 @@ if ($expression) {
 4.  <% echo 'Quizá use de forma opcional etiquetas de estilo ASP'; %>
     <%= $variable; # Esto es una forma corta para "<% echo . . ." %>
 ]]>
-    </programlisting>
-   </example>
-  </para>
-  <para>
-   Las etiquetas vistas en los ejemplos uno y dos están 
-   siempre disponibles, el ejemplo uno es el más común
-   y recomendado de los dos.
-  </para>
-  <para>
-   Las etiquetas cortas (ejemplo tres) están solo disponibles cuando
-   se activan mediante la directiva <link linkend="ini.short-open-tag">short_open_tag</link>
-   en el fichero de configuración &php.ini; o si PHP se configuró con la opción
-   <option>--enable-short-tags</option>.
-  </para>
-  <para>
-   Las etiquetas de estilo <productname>ASP</productname> (ejemplo cuatro) están solo
-   disponibles cuando se activan mediante la directiva <link linkend="ini.asp-tags">asp_tags</link>
-   en el fichero de configuración &php.ini;.
-  </para>
-  <para>
-   <note>
-    <para>
-     El uso de etiquetas cortas debe ser evitado cuando se desarrollan
-     aplicaciones o librerias que están pensadas para su redistribución,
-     o extender en servidores PHP que no están bajo su control, porque
-     quizá las etiquetas cortas no están soportadas en un servidor
-     determinado. Por portabilidad, redistribución de código,
-     asegúrese no usar etiquetas cortas.
-    </para>
-   </note>
-   <note>
-    <para>
-     En PHP 5.2 y anteriores, no se permite que un fichero contenga únicamente
-     la etiqueta de inicio de bloque <literal>&lt;?php</literal>.
-     En PHP 5.3 si se permite.      
-    </para>
-   </note>
-   <note>
-    <para>
-     Desde PHP 5.4, la etiqueta abreviada de echo <literal>&lt;?=</literal> siempre es reconocida y
-     válida, sin tener en cuenta la configuración de <link linkend="ini.short-open-tag">short_open_tag</link>.
-    </para>
-   </note>
-  </para>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Las etiquetas vistas en los ejemplos uno y dos están 
+    siempre disponibles, el ejemplo uno es el más común
+    y recomendado de los dos.
+   </para>
+   <para>
+    Las etiquetas cortas (ejemplo tres) están solo disponibles cuando
+    se activan mediante la directiva <link linkend="ini.short-open-tag">short_open_tag</link>
+    en el fichero de configuración &php.ini; o si PHP se configuró con la opción
+    <option>--enable-short-tags</option>.
+   </para>
+   <para>
+    Las etiquetas de estilo <productname>ASP</productname> (ejemplo cuatro) están solo
+    disponibles cuando se activan mediante la directiva <link linkend="ini.asp-tags">asp_tags</link>
+    en el fichero de configuración &php.ini;.
+   </para>
+   <para>
+    <note>
+     <para>
+      El uso de etiquetas cortas debe ser evitado cuando se desarrollan
+      aplicaciones o librerias que están pensadas para su redistribución,
+      o extender en servidores PHP que no están bajo su control, porque
+      quizá las etiquetas cortas no están soportadas en un servidor
+      determinado. Por portabilidad, redistribución de código,
+      asegúrese no usar etiquetas cortas.
+     </para>
+    </note>
+    <note>
+     <para>
+      En PHP 5.2 y anteriores, no se permite que un fichero contenga únicamente
+      la etiqueta de inicio de bloque <literal>&lt;?php</literal>.
+      En PHP 5.3 si se permite siempre que existan uno o más caracteres espacions en
+      blanco después de la etiqueta de apertura.
+     </para>
+    </note>
+    <note>
+     <para>
+      Desde PHP 5.4, la etiqueta abreviada de echo <literal>&lt;?=</literal> siempre es reconocida y
+      válida, sin tener en cuenta la configuración de <link linkend="ini.short-open-tag">short_open_tag</link>.
+     </para>
+    </note>
+   </para>
  </sect1>
  <sect1 xml:id="language.basic-syntax.instruction-separation">
   <title>Instrucción separador</title>
