@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 6c0500759f60f066a93f6f1bd8e2f163d82e1169 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="mysqlinfo.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Conceptos</title>
+ <para>
+  Estos conceptos son específicos para los controladores de MYSQL para PHP.
+ </para>
+
+ <section xml:id="mysqlinfo.concepts.buffering">
+  <title>Consultas almacenadas y no almacenadas en buffer</title>
+  
+  <para>
+   Las consultas usan el modo de almacenamiento en buffer por omisión. Esto significa que los resultados de
+   las consultas son transferidos inmediatamente del Servidor MySQL a PHP donde luego se mantienen en la memoria
+   del proceso de PHP. Esto permite operaciones adicionales como la cuenta del
+   número de filas y mover (buscar) el puntero actual del resultado. También permite
+   emitir más consultas en la misma conexión mientras se trabaja con el conjunto de resultados.
+   El lado negativo del modo de almacenamiento en buffer es que los conjuntos de resultados grandes requieren
+   bastante más memoria. La memoria se mantendrá ocupada hasta que todas las referencias al
+   conjunto de resultados sean desestablecidas o se libere explícitamente el conjunto de resultados, lo que
+   automáticamente ocurrirá durante la finalización de la última petición. La terminología "resultado almacenado" también se usa
+   para el modo de no almacenamiento en buffer, ya que el conjunto de resultados completo se almacena de una vez.
+  </para>
+
+  <note>
+   <para>
+    Cuando se usa libmysql como biblioteca, el límite de memoria de PHP no contará la memoria usada
+    por los conjuntos de resultados a menos que los datos sean puestos en variables de PHP. Con mysqlnd,
+    la memoria tenida en cuenta incluirá el conjunto de resultados completo.
+   </para>
+  </note>
+  
+  <para>
+   Las consultas de MySQL no almacenadas en buffer ejecutan la consulta y luego devuelven un <type>resource</type>
+   mientras los datos aún siguen esperado en el servidor MySQL a que sean extraidos. Esto utiliza menos memoria
+   por parte de PHP, pero puede incrementar la carga del servidor. A menos que se obtenga el conjunto de resultados
+   completo del servidor no se podrán enviar más consultas en la misma conexión. Las consultas no almacenada
+   en buffer también pueden ser descritas como "resultados de uso".
+  </para>
+
+  <para>
+   Siguiendo estas características, las consultas almacenadas en buffer deberían usarse en casos donde se espera
+   solamente un conjunto de resultados limitado o se necesite conocer la cantidad de filas devueltas antes de leer
+   todas las filas. El modo de no almacenamiento en buffer debería usarse cuando se esperesn resultados grandes.
+  </para>
+  
+  <!-- @TODO
+    - Add list of issues people run into with unbuffered queries
+    - Add list of specific use cases for when unbuffered queries are useful
+    - Question: Unbuffered queries still require all rows to be returned or resource free before executing another? Applies to all extensions?
+    - Show "free_result" functions / unset usage with buffered queries 8double-check with Andrey on mysqlnd optimizations
+   -->
+  
+  <para>
+   Ya que las consultas almacenadas en buffer son las predeterminadas, los ejemplos de abajo demuestran cómo
+   ejecutar consultas no almacenadas en buffer con cada API.
+  </para>
+
+  <example>
+   <title>Ejemplo de consulta no almacenada en buffer: mysqli</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli  = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+$res_sin_buffer = $mysqli->query("SELECT Name FROM City", MYSQLI_USE_RESULT);
+
+if ($res_sin_buffer) {
+   while ($fila = $res_sin_buffer->fetch_assoc()) {
+       echo $fila['Name'] . PHP_EOL;
+   }
+}
+$res_sin_buffer->close();
+?>
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Ejemplo de consulta no almacenada en buffer: pdo_mysql</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$pdo = new PDO("mysql:host=localhost;dbname=world", 'mi_usuario', 'mi_contraseña');
+$pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, TRUE);
+
+$res_sin_buffer = $pdo->query("SELECT Name FROM City");
+if ($res_sin_buffer) {
+   while ($fila = $res_sin_buffer->fetch(PDO::FETCH_ASSOC)) {
+       echo $fila['Name'] . PHP_EOL;
+   }
+}
+?>
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Ejemplo de consulta no almacenada en buffer: mysql</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$conexión = mysql_connect("localhost", "mi_usuario", "mi_contraseña");
+$bd = mysql_select_db("world");
+
+$res_sin_buffer = mysql_unbuffered_query("SELECT Name FROM City");
+if ($res_sin_buffer) {
+   while ($fila = mysql_fetch_assoc($res_sin_buffer)) {
+       echo $fila['Name'] . PHP_EOL;
+   }
+}
+?>
+]]>
+   </programlisting>
+  </example>
+ </section>
+
+</chapter>
