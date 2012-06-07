@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 4cb4824d5044a9bfefaf2b5932b60df25892e23e Maintainer: jpberdejo Status: ready -->
+<!-- EN-Revision: c53a5feeafe88d956f1ebd1247aabd37c582de7a Maintainer: jpberdejo Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.mysql-real-escape-string" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysql_real_escape_string</refname>
-  <refpurpose>Escapa caracteres especiales en una cadena para ser usado en una sentencia SQL</refpurpose>
+  <refpurpose>Escapa caracteres especiales en una cadena para ser usada en una sentencia SQL</refpurpose>
  </refnamediv>
-
+ 
+ <refsynopsisdiv role="soft-deprecation-notice">
+  <sidebar>
+   &mysql.alternative.note;
+   <simplelist role="alternatives">
+    <member><function>mysqli_real_escape_string</function></member>
+    <member><methodname>PDO::quote</methodname></member>
+   </simplelist>
+  </sidebar>
+ </refsynopsisdiv>
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -15,21 +26,24 @@
    <methodparam choice="opt"><type>resource</type><parameter>link_identifier</parameter><initializer>NULL</initializer></methodparam>
   </methodsynopsis>
   <para>
- Escapa caracteres especiales en la <parameter>cadena no escapada</parameter>,
- teniendo en cuenta el conjunto de caracteres actual de la conexión para que sea seguro usarla en <function>mysql_query</function>. Si se van a insertar datos binarios, esta función debe ser usada.
+   Escapa caracteres especiales en la cadena dada por <parameter>unescaped_string</parameter>,
+   teniendo en cuenta el conjunto de caracteres actual de la conexión para que
+   sea seguro usarla en <function>mysql_query</function>. Si se van a insertar
+   datos binarios, se debe usar esta función.
   </para>
   <para>
-   <function>mysql_real_escape_string</function> llama la función de la libreria de MySQL mysql_real_escape_string, la cual antepone backslashes a los siguientes caracteres:
+   <function>mysql_real_escape_string</function> llama a la función mysql_real_escape_string
+   de la biblioteca de MySQL, la cual antepone barras invertidas a los siguientes caracteres:
    <literal>\x00</literal>, <literal>\n</literal>,
    <literal>\r</literal>, <literal>\</literal>, <literal>'</literal>,
    <literal>"</literal> y <literal>\x1a</literal>.
   </para>
   <para>
-   
-Esta función siempre debe (con pocas excepciones) ser usada para hacer los datos seguros, antes de enviar una consulta a MySQL.
+   Esta función siempre debe usarse (con pocas excepciones) para hacer los datos
+   seguros antes de enviar una consulta a MySQL.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -38,7 +52,7 @@ Esta función siempre debe (con pocas excepciones) ser usada para hacer los dato
      <term><parameter>unescaped_string</parameter></term>
      <listitem>
       <para>
-       La cadena para ser escapada.
+       La cadena a ser escapada.
       </para>
      </listitem>
     </varlistentry>
@@ -46,14 +60,14 @@ Esta función siempre debe (con pocas excepciones) ser usada para hacer los dato
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    Devuelve una cadena escapada, o &false; en caso de error.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -62,14 +76,14 @@ Esta función siempre debe (con pocas excepciones) ser usada para hacer los dato
     <programlisting role="php">
 <![CDATA[
 <?php
-// Connect
-$link = mysql_connect('mysql_host', 'mysql_user', 'mysql_password')
+// Conexión
+$enlace = mysql_connect('anfitrión_mysql', 'usuario_mysql', 'contraseña_mysql')
     OR die(mysql_error());
 
-// Query
-$query = sprintf("SELECT * FROM users WHERE user='%s' AND password='%s'",
-            mysql_real_escape_string($user),
-            mysql_real_escape_string($password));
+// Consulta
+$consulta = sprintf("SELECT * FROM users WHERE user='%s' AND password='%s'",
+            mysql_real_escape_string($usuario),
+            mysql_real_escape_string($contraseña));
 ?>
 ]]>
     </programlisting>
@@ -77,26 +91,26 @@ $query = sprintf("SELECT * FROM users WHERE user='%s' AND password='%s'",
   </para>
   <para>
    <example>
-    <title>Un ejemplo de ataque SQL Injection</title>
+    <title>Un ejemplo de ataque de Inyección SQL</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// We didn't check $_POST['password'], it could be anything the user wanted! For example:
+// No hemos comprobado $_POST['password'], ¡podría ser cualquier cosa que el usuario quisiera! Por ejemplo:
 $_POST['username'] = 'aidan';
 $_POST['password'] = "' OR ''='";
 
-// Query database to check if there are any matching users
-$query = "SELECT * FROM users WHERE user='{$_POST['username']}' AND password='{$_POST['password']}'";
-mysql_query($query);
+// Consultar la base de datos para comprobar si existe algún usuario que coincida
+$consulta = "SELECT * FROM users WHERE user='{$_POST['username']}' AND password='{$_POST['password']}'";
+mysql_query($consulta);
 
-// This means the query sent to MySQL would be:
-echo $query;
+// Esto significa que la consulta enviada a MySQL sería:
+echo $consulta;
 ?>
 ]]>
     </programlisting>
-     <para>
-      La consulta enviada a MySQL:
-     </para>
+    <para>
+     La consulta enviada a MySQL:
+    </para>
     <screen>
 <![CDATA[
 SELECT * FROM users WHERE user='aidan' AND password='' OR ''=''
@@ -108,38 +122,41 @@ SELECT * FROM users WHERE user='aidan' AND password='' OR ''=''
    </example>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Se requiere una conexion MySQL antes de usar <function>mysql_real_escape_string</function> 
-    sino será generado un error de nivel <constant>E_WARNING</constant>, y se devolverá &false;. 
-    
-    Si <parameter>link_identifier</parameter> no está definido, se usará la última conexión MySQL.
+    Se requiere una conexión a MySQL antes de usar
+    <function>mysql_real_escape_string</function>, sino se generará
+    un error de nivel <constant>E_WARNING</constant>, y se devolverá &false;. 
+    Si <parameter>link_identifier</parameter> no está definido, se
+    usará la última conexión a MySQL.
    </para>
   </note>
   <note>
    <para>
-    Si <link linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> está habilitado, primero aplique <function>stripslashes</function>. 
-    Si se usa esta función en datos que ya han sido escapados, se escaparian dos veces los datos.
+    Si <link linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> está habilitado,
+    primero aplique <function>stripslashes</function> a los datos. Si se usa esta función
+    en datos que ya han sido escapados, se escaparán dos veces.
    </para>
   </note>
   <note>
    <para>
-    Si esta función no es usada para escapar los datos, la consulta es vulnerable a <link linkend="security.database.sql-injection">Ataques SQL Injection</link>.
+    Si esta función no es usada para escapar los datos, la consulta es vulnerable a
+    <link linkend="security.database.sql-injection">Ataques de Inyección SQL</link>.
    </para>
   </note>
   <note>
    <simpara>
     <function>mysql_real_escape_string</function> no escapa
-    <literal>%</literal> y <literal>_</literal>. Estos son comodines en
+    <literal>%</literal> ni <literal>_</literal>. Estos son comodines en
     MySQL que se combinan con <literal>LIKE</literal>, <literal>GRANT</literal>,
     o <literal>REVOKE</literal>.
    </simpara>
   </note>
  </refsect1>
-
+ 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -147,8 +164,8 @@ SELECT * FROM users WHERE user='aidan' AND password='' OR ''=''
     <member><function>mysql_client_encoding</function></member>
     <member><function>addslashes</function></member>
     <member><function>stripslashes</function></member>
-    <member>The <link linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> directive</member>
-    <member>The <link linkend="ini.magic-quotes-runtime">magic_quotes_runtime</link> directive</member>
+    <member>La directiva <link linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link></member>
+    <member>La directiva <link linkend="ini.magic-quotes-runtime">magic_quotes_runtime</link></member>
    </simplelist>
   </para>
  </refsect1>
