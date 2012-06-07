@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 70642d85d00cb893efced8e6e1ddf1d31085dc3b Maintainer: jesus_cova Status: ready -->
-
+<!-- EN-Revision: 7b41e56f19de996ceaee176e09644a361f92131e Maintainer: jesus_cova Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.mysql-affected-rows" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysql_affected_rows</refname>
   <refpurpose>Obtiene el número de filas afectadas en la anterior operación de MySQL</refpurpose>
  </refnamediv>
+ 
+ <refsynopsisdiv role="soft-deprecation-notice">
+  <sidebar>
+   &mysql.alternative.note;
+   <simplelist role="alternatives">
+    <member><function>mysqli_affected_rows</function></member>
+    <member><methodname>PDOStatement::rowCount</methodname></member>
+   </simplelist>
+  </sidebar>
+ </refsynopsisdiv>
 
  <refsect1 role="description">
   &reftitle.description;
@@ -33,24 +43,29 @@
   &reftitle.returnvalues;
   <para>
    Devuelve el número de filas afectadas en caso de éxito, y -1 si la última consulta
-   fallo.
+   falló.
   </para>
   <para>
-   Si la consulta anterior fue DELETE con ninguna clausula WHERE, todos
-   los registros han sido borrados de la tabla pero ésta función
+   Si la consulta anterior fue DELETE con ninguna cláusula WHERE, todos
+   los registros habrán sido borrados de la tabla, aunque ésta función
    devolverá cero con una versión anterior a MySQL 4.1.2.
   </para>
   <para>
-   Al utilizar UPDATE, MySQL no va a actualizar las columnas donde el nuevo valor es el
-   mismo que el anterior. Esto crea la posibilidad que  
+   Al utilizar UPDATE, MySQL no actualiza las columnas donde el nuevo valor es el
+   mismo que el anterior. Esto crea la posibilidad de que  
    <function>mysql_affected_rows</function> no pueda equivaler en realidad al número
-   de filas encontradas, solamente el número de filas que estuvo literalmente afectada por
+   de filas encontradas, solamente el número de filas que estuvieron literalmente afectadas por
    la consulta.
   </para>
   <para>
-   La declaración REPLACE primero borra el registro con la misma clave primaria
+   La sentencia REPLACE primero borra el registro con la misma clave primaria
    y luego inserta el nuevo registro. Esta función devuelve el número de
-   registros borrados mas el número de registros insertados.
+   registros borrados más el número de registros insertados.
+  </para>
+  <para>
+   En el caso de consultas "INSERT ... ON DUPLICATE KEY UPDATE", el 
+   valor devuelto será <literal>1</literal> si se realizó una inserción,
+   o <literal>2</literal> para una actualización de una fila existente.
   </para>
  </refsect1>
 
@@ -62,18 +77,18 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$link = mysql_connect('localhost', 'mysql_user', 'mysql_password');
-if (!$link) {
-    die('No pudo conectar: ' . mysql_error());
+$enlace = mysql_connect('localhost', 'usuario_mysql', 'contraseña_mysql');
+if (!$enlace) {
+    die('No se pudo conectar: ' . mysql_error());
 }
-mysql_select_db('mydb');
+mysql_select_db('mibd');
 
-/* Debería devolver el número correcto de registros borrados */
-mysql_query('DELETE FROM mytable WHERE id < 10');
+/* Esto debería devolver el número correcto de registros borrados */
+mysql_query('DELETE FROM mitabla WHERE id < 10');
 printf("Registros borrados: %d\n", mysql_affected_rows());
 
 /* con una clausula WHERE que nunca es verdad, debería devolver 0 */
-mysql_query('DELETE FROM mytable WHERE 0');
+mysql_query('DELETE FROM mitabla WHERE 0');
 printf("Registros borrados: %d\n", mysql_affected_rows());
 ?>
 ]]>
@@ -93,14 +108,14 @@ Registros borrados: 0
     <programlisting role="php">
 <![CDATA[
 <?php
-$link = mysql_connect('localhost', 'mysql_user', 'mysql_password');
-if (!$link) {
-    die('No pudo conectar: ' . mysql_error());
+$enlace = mysql_connect('localhost', 'usuario_mysql', 'contraseña_mysql');
+if (!$enlace) {
+    die('No se pudo conectar: ' . mysql_error());
 }
-mysql_select_db('mydb');
+mysql_select_db('mibd');
 
 /* Actualizar registros */
-mysql_query("UPDATE mytable SET used=1 WHERE id < 10");
+mysql_query("UPDATE mitabla SET usado=1 WHERE id < 10");
 printf ("Registros actualizados: %d\n", mysql_affected_rows());
 mysql_query("COMMIT");
 ?>
@@ -119,35 +134,25 @@ Registros actualizados: 10
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
-   &mysql.alternative.note;
-   <para>
-    &mysql.alternative.include;
-    <simplelist>
-     <member><function>mysqli_affected_rows</function></member>
-     <member><methodname>PDOStatement::rowCount</methodname></member>
-    </simplelist>
-   </para>
-  </note>
-  <note>
    <title>Transacciones</title>
    <para>
-    Si se usa transacciones, es necesario llamar
-    <function>mysql_affected_rows</function> después de la consulta INSERT, UPDATE, o
+    Si se usan transacciones, es necesario llamar a
+    <function>mysql_affected_rows</function> después de una consulta INSERT, UPDATE, o
     DELETE, no después del COMMIT.
    </para>
   </note>
   <note>
-   <title>Declaraciones SELECT</title>
+   <title>Sentencias SELECT</title>
    <para>
-    Para conocer el número de filas devueltas por un SELECT, se puede usar
+    Para conocer el número de filas devueltas por un SELECT, es posible
     usar <function>mysql_num_rows</function>.
    </para>
   </note>
   <note>
-   <title>Cascada de Claves Foráneas</title>
+   <title>Claves Foráneas en Cascada</title>
    <para>
      <function>mysql_affected_rows</function> no cuenta la filas afectadas
-     implícitamente aunque a través del uso de ON DELETE CASCADE and/or ON UPDATE CASCADE
+     implícitamente a través del uso de ON DELETE CASCADE y/o ON UPDATE CASCADE
      en las restricciones de las claves foráneas.
    </para>
   </note>
