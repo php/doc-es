@@ -1,0 +1,1652 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 8549e3a1b12d26d356b8afd9fa84750ef14a0dde Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Conceptos</title>
+ <para>
+  Aquí se explican la arquitectura y los conceptos relacionados con este complemento, y
+  se describe el impacto que la replicación MySQL y este complemento tienen en tareas de
+  desarrollo al usar un clúster de bases de datos. Es necesario leer y comprender
+  estos conceptos para poder utilizar este complemento satisfactoriamente.
+ </para>
+ <section xml:id="mysqlnd-ms.architecture">
+  <title>Arquitectura</title>
+  <para>
+   El complemento de replicación y equilibrado de carga de mysqlnd está
+   implementado como una extensión de PHP.
+   Está escrito en C y opera bajo PHP. Durante el
+   arranque del intérprete de PHP, en la fase de inicialización de módulos del
+   motor de PHP, es registrado como un complemento de
+   <link linkend="book.mysqlnd">mysqlnd</link> para reemplazar los métodos en C
+   de mysqlnd seleccionados.
+  </para>
+  <para>
+   Durante la ejecución de PHP, inspecciona las consultas enviadas desde
+   mysqlnd (PHP) al servidor MySQL. Si una consulta se reconoce como de solo lectura,
+   será enviada a uno de los servidores esclavos configurados. Una sentencia es
+   considerada de solo lectura si comienza con <literal>SELECT</literal>, con
+   la sugerencia SQL <literal>/*ms=slave*/</literal>, o se ha elegido un esclavo para
+   ejecutar la consulta anterior y la consulta comienza con la sugerencia SQL
+   <literal>/*ms=last_used*/</literal>. En los demás casos, la consulta será
+   enviada al servidor maestro de replicación MySQL.
+  </para>
+  <para>
+   Para una mejor portabilidad, las aplicacioines deberían usar las
+   <link linkend="mysqlnd-ms.constants">constantes predefinidas de mysqlnd_ms</link>
+   <constant>MYSQLND_MS_MASTER_SWITCH</constant>,
+   <constant>MYSQLND_MS_SLAVE_SWITCH</constant>, y
+   <constant>MYSQLND_MS_LAST_USED_SWITCH</constant>
+   en lugar de sus valores literales, tales como <literal>/*ms=slave*/</literal>.
+  </para>
+  <para>
+   El complemento maneja la apertura y el cerre de conexiones de bases de datos
+   a los servidores maestros y esclavos. Desde el punto de vista de
+   la aplicación, continua existiendo solamente un gestor de conexión. Sin embargo,
+   internamente, este gestor de conexión público representa una agrupación de
+   conexiones de red que son gestionadas por el complemento. Éste delega las consultas
+   al sevidor maestro y a los esclavos usando múltiples conexiones.
+  </para>
+  <para>
+   Las conexiones a la bases de datos tienen un estado que consiste en, por ejemplo, el estado
+   de las transacciones, configuración de las transacciones, configuración del conjunto de caracters, y tablas temporales.
+   El complemento intentará mantener el mismo estado entre todas las conexiones
+   internas, siempre que se pueda realizar de una forma automática y transparente.
+   En los casos donde sencillamente no es posible mantener el estado entre
+   conexiones, como al usar <literal>BEGIN TRANSACTION</literal>, el
+   complemento lo deja en manos del usuario.
+  </para>
+  
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.pooling">
+  <title>Agrupación e intercambio de conexiones</title>
+  <para>
+   El complemento de replicación y equilibrado de carga cambia la semántica de un gestor de
+   conexión de MySQL para PHP. Las APIs existentes de las extensiones de MySQL para PHP
+   (<link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link>, y
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>) no son cambiadas en la
+   manera de que no son añadidas ni eliminadas funciones. Pero su comportamiento
+   cambia al utilizar el complemento. Las aplicaciones existentes no necesitan
+   ser adaptadas a la nueva API, aunque podrían requerir ser modificadas a causa de
+   los cambios de comportamiento.
+  </para>
+  <para>
+   El complemento rompe la relación uno-a-uno entre un gestor de conexión de
+   <link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link>, y
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>
+   y una conexión de red MySQL. Un gestor de conexión de
+   <link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link>, y
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>
+   representa una agrupación local de conexiones para los servidores
+   maestros de replicación MySQL y esclavos de replicación MySQL configurados.
+   El complemento redirige las consultas a los servidores maestros y esclavos.
+   En algún momento, el mismo gestor de conexión de PHP
+   podría apuntar al servidor maestro de MySQL. Después, podría apuntar
+   a uno de los servidores esclavos o todavía al maestro. La manipulación
+   y el reemplazamiento de la conexión de red referida por un gestor de conexión de
+   MySQL para PHP no es una operación transparente.
+  </para>
+  <para>
+   Cada conexión MySQL tiene un estado. El estado de la conexión en
+   la agrupación de conexiones del complemento puede diferir. Siempre que el
+   complemento cambie de una conexión de cable a otra, el estado actual de
+   la conexión del usuario puede cambiar. Las aplicaciones deben considerar esto.
+  </para>
+  <para>
+   La siguiente lista muestra en qué consiste el estado de conexión. La lista
+   podría no ser completa.
+  </para>
+  <para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Estado de transacción
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Tablas temporales
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Bloqueos de tablas
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Variables de sistema de sesión y variables de usuario de sesión
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La base de datos actual establecida mediante <literal>USE</literal> y otros estados de comandos SQL encadenados
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Sentencias preparadas
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Variables <literal>HANDLER</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Bloqueos adquiridos con <literal>GET_LOCK()</literal>
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   EL intercambio de conexiones ocurre justo antes de la ejecución de las consultas. El complemento
+   no intercambia la conexión actual hasata que sea ejecutada la siguiente sentencia.
+  </para>
+  <note>
+   <title>Sobre la replicación</title>
+   <para>
+    Véase también el capítulo sobre las <link xlink:href="&url.mysql.docs.replication;">características de la replicación</link>
+    y temas relacionados del manual de referencia de MySQL.
+    Algunas restricciones pueden no estar relacionadas con el complemento de PHP, pero
+    son propiedades del sistema de replicación de MySQL.
+   </para>
+  </note>
+  <para>Mensajes de difusión</para>
+  <para>
+   La filosofía de complemento es alinear el estado de las conexiones en la
+   agrupación solamente si el estado está bajo el control total del complemento, o si fuera
+   necesario por razones de seguridad. Solamente una pocas acciones que cambian el
+   estado de la conexión caen en esta categoría.
+  </para>
+  <para>
+   La siguiente es una lista de las llamadas a la biblioteca cliente de conexiones que cambian el estado,
+   y son difundidas a todas las conexiones abiertas en la agrupación de conexiones.
+  </para>
+  <para>
+   Si va a ejecutar cualquier llamada enumerada abajo, el complemento iterará a través de todas
+   las conexiones maestras y esclavas abiertas. El bucle continua hasta que todos los servidores
+   hayan sido contactados, y no se detiene si un servidor indica un fallo.
+   Si es posible, el fallo se propagará a la función de la API de usuario llamada, la cual puede
+   ser detectada dependiendo de la función de la biblioteca subyacente que fue desencadenda.
+  </para>
+  <informaltable>
+   <tgroup cols="3">
+    <colspec colwidth="1*"/>
+    <colspec colwidth="7*"/>
+    <colspec colwidth="2*"/>
+    <thead>
+     <row>
+      <entry>Llamada a la bliblioteca</entry>
+      <entry>Notas</entry>
+      <entry>Versión</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>
+       <literal>change_user()</literal>
+      </entry>
+      <entry>
+       Invocada por la llamda a la API de usuario de <function>mysqli_change_user</function>.
+       También es desencadenada una vez que se reutiliza una conexión persistente
+       de <literal>mysqli</literal>.
+      </entry>
+      <entry>Desde 1.0.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>select_db</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysql_select_db</function>,
+       <function>mysql_list_tables</function>,
+       <function>mysql_db_query</function>,
+       <function>mysql_list_fields</function>,
+       <function>mysqli_select_db</function>.
+       Observe que <literal>USE</literal> de SQL no se monitoriza.
+      </entry>
+      <entry>Desde 1.0.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_charset()</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysql_set_charset</function>.
+       <function>mysqli_set_charset</function>.
+       Observe que <literal>SET NAMES</literal> de SQL no se monitoriza.
+      </entry>
+      <entry>Desde 1.0.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_server_option()</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysqli_multi_query</function>,
+       <function>mysqli_real_query</function>,
+       <function>mysqli_query</function>,
+       <function>mysql_query</function>.
+      </entry>
+      <entry>Desde 1.0.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_client_option()</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysqli_options</function>,
+       <function>mysqli_ssl_set</function>,
+       <function>mysqli_connect</function>,
+       <function>mysql_connect</function>,
+       <function>mysql_pconnect</function>.
+      </entry>
+      <entry>Desde 1.0.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_autocommit()</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysqli_autocommit</function>,
+       <literal>PDO::setAttribute(PDO::ATTR_AUTOCOMMIT)</literal>.
+      </entry>
+      <entry>Desde 1.0.0. PHP &gt;= 5.4.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>ssl_set()</literal>
+      </entry>
+      <entry>
+       Invocada por las sigientes llamadas a la API de usuario:
+       <function>mysqli_ssl_set</function>.
+      </entry>
+      <entry>Desde 1.1.0.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+  <para>Difusión y conexiones retardadas</para>
+  <para>
+   El complemento no delega o
+   <quote>recuerda</quote> todas las configuraciones para aplicarlas a conexiones
+   abiertas en el futuro. Es importante recordar esto si
+   se usan
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.lazy-connections">conexiones retardadas</link>.
+   Las conexiones retardadas son conexiones que no se
+   abren antes de que el cliente envíe la primera conexión.
+   El uso de conexiones retardadas es la acción predeterminada del complemento.
+  </para>
+  <para>
+   Cada una de las siguientes llamadas a la biblioteca de conexiones cambia el estado, y su ejecución es
+   recordada para un uso posterior cuando se abren las conexiones retardadas. Esto ayuda a asegurarse de que
+   los estados de conexión de todas las conexiones de la agrupación de conexiones sean equiparables.
+  </para>
+  <informaltable>
+   <tgroup cols="3">
+    <colspec colwidth="1*"/>
+    <colspec colwidth="7*"/>
+    <colspec colwidth="2*"/>
+    <thead>
+     <row>
+      <entry>Llamada a la biblioteca</entry>
+      <entry>Notas</entry>
+      <entry>Versión</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>
+       <literal>change_user()</literal>
+      </entry>
+      <entry>
+       Usuario, contraseña y base de datos recordados para un uso posterior.
+      </entry>
+      <entry>Desde 1.1.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>select_db</literal>
+      </entry>
+      <entry>
+       Bases de datos recordada par un uso posterior.
+      </entry>
+      <entry>Desde 1.1.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_charset()</literal>
+      </entry>
+      <entry>
+       Las llamadas a <literal>set_client_option(MYSQL_SET_CHARSET_NAME, charset)</literal>
+       sobre conexiones retardadas aseguran que <literal>charset</literal> será utilizado
+       una vez abierta la conexión retardada.
+      </entry>
+      <entry>Desde 1.1.0.</entry>
+     </row>
+     <row>
+      <entry>
+       <literal>set_autocommit()</literal>
+      </entry>
+      <entry>
+       Añade <literal>SET AUTOCOMMIT=0|1</literal> a la lista de comandos 'init'
+       en una conexión retardada usando
+       <literal>set_client_option(MYSQL_INIT_COMMAND, &quot;SET AUTOCOMMIT=...%quot;)</literal>.
+      </entry>
+      <entry>Desde 1.1.0. PHP &gt;= 5.4.0.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+  
+  <caution>
+   <title>Estado de la conexión</title>
+   <para>
+    El estado de la conexión no sólo se cambia mediante las llamadas a la API. Incluso si
+    PECL mysqlnd_ms monitoriza todas las llamadas a la API, la aplicación aún deben
+    considerarlo. En última instancia, es responsabilidad de las aplicaciones guardar
+    el estado de la conexión, si fuera necesario.
+   </para>
+  </caution>
+  
+  <para>Conjunto de caracteres y escape de cadenas</para>
+  <para>
+   Debido al uso de conexiones retardadas, las cuales se emplean predeterminadamente, puede ocurrir que
+   una aplicación intente escapar una cadena para usarla dentro de sentencias SQL antes
+   de que una conexión haya sido establecida. En este caso, no es posible escapar la cadena.
+   La función de escapado de cadenas no conoce el conjunto de caracteres a usar antes de que una
+   conexión haya sido establecida.
+  </para>
+  <para>
+   Para superar este problema, el nuevo ajuste de configuración
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.server-charset"><literal>server_charset</literal></link>
+   se introdujo en la versión 1.4.0.
+  </para>
+  <para>
+   Se debe prestar atención al escapar cadenas con ciertos conjuntos de caracteres si no es usando
+   el resultado en una conexión que utilice un conjunto de caracteres diferente. Observe
+   que PECL/mysqlnd_ms manipula las conexiones y que una conexión a nivel de aplicación
+   representa una agrupación de múltiples conexiones donde todas pueden tener diferentes conjuntos de caracteres predeterminados.
+   Se recomienda configurar los servidores involucrados para que utilicen el mismo conjunto de caracteres predeterminado.
+   El ajuste de configuración <literal>server_charset</literal> también ayuda con esta situación.
+   Si se usa <literal>server_charset</literal>, el complemento establecerá el conjunto de caracteres
+   dado en todas las conexiones recientemente abiertas.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.transaction">
+  <title>Manejo de transacciones</title>
+  <para>
+   El manejo de transacciones ha cambiado de manera fundamental.
+   Una transacción SQL es una unidad de trabajo que se ejecuta en un servidor de bases de datos. La
+   unidad de trabajo consiste en una o más sentencias SQL.
+  </para>
+  <para>
+   De manera predeterminada, el complemento no considera las transacciones SQL. El complemento puede
+   intercambiar conexiones para equilibrar la carga en cualquier momento. Los intercambios
+   de conexión puede ocurrir en mitad de una transacción. Esto va contra la naturaleza
+   de una transacción SQL. De manera predeterminada, el complemento no es seguro con transacciones.
+  </para>
+  <para>
+   En el momento de escribir esto, las aplicaciones que usan transacciones SQL junto con
+   el complemento deben utilizar <link linkend="mysqlnd-ms.quickstart.sqlhints">sugerencias SQL</link>
+   para deshabilitar el intercambio de conexiones en mitad de una transacción SQL. Véase también
+   la <link linkend="mysqlnd-ms.quickstart">sección de ejemplos</link>.
+  </para>
+  <!-- TODO Refactor PHP 5.4.0 references -->
+  <note>
+   <title>Características añadidas a partir de PHP 5.4.0</title>
+   <para>
+    La biblioteca <link linkend="book.mysqlnd">mysqlnd</link> permite que este complemento
+    derive la llamada <literal>set_autocommit()</literal> a la biblioteca de la API en C, para
+    detectar el estado del modo <literal>autocommit</literal>.
+   </para>
+   <para>
+    Se ha añadido el soporte para
+    <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">trx_stickiness=master</link>
+   </para>
+  </note>
+  <para>
+   Las extensiones de MySQL para PHP emiten una consulta (como <literal>SET AUTOCOMMIT=0|1</literal>),
+   o usan la llamada a la biblioteca mysqlnd <literal>set_autcommit()</literal> para controlar
+   el ajuste <literal>autocommit</literal>. Si una extensión hace uso de
+   <literal>set_autocommit()</literal>, el complemento puede considerar las transacciones.
+   Hacer que el complemento considere transacciones no se puede realizar si se usa SQL para establecer el modo
+   'autocommit'.
+   La función <literal>set_autocommit()</literal> de la biblioteca es invocada por las
+   llamadas a la API de <function>mysqli_autocommit</function> y
+   <literal>PDO::setAttribute(PDO::ATTR_AUTOCOMMIT)</literal>.
+  </para>
+  <para>
+   La opción de configuración del complemento
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">trx_stickiness=master</link>
+   se puede usar para hacer que el complemento considere las transacciones. De este modo, el complemento detiene el
+   equilibrado de cara si 'autocommit' se deshabilita, y dirige todas las sentencias al maestro hasta que
+   'autocommit' se habilite.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.errorhandling">
+  <title>Manejo de errores</title>
+  <para>
+   Las aplicaciones que usan PECL/mysqlnd_ms deberían implementar el manejo de errores apropiado
+   para todas las llamadas a la API del usuario. Ya que el complemento cambia la semántica
+   de un gestor de conexión, las llamadas a la API pueden devolver errores inesperados. Si se usa
+   el complemento sobre un gestor de conexión que ya no represeta una conexión de red
+   individual, sino una agrupación de conexiones, se establecerá un código de error y un
+   mensaje de error en el gestor de conexión siempre que ocurra un error en cualquier conexión
+   de red subyacente.
+  </para>
+  <para>
+   Si se usan conexiones retardadas, que es lo predeterminado, las conexiones no son
+   abiertas hasta que sean necesarias para ejecutar consultas. Por lo tanto,
+   una llamada a la API para la ejecución de una senetencia puede devolver un error de conexion.
+   En el ejemplo de abajo, se provoca un error al intentar ejecutar una sentencia en un esclavo.
+   La apertura de la conexión esclava fallará debido a que el fichero de configuración del complemento
+   incluye un nombre de anfitrión no válido para el esclavo.
+  </para>
+  <para>
+   <example>
+    <title>Provocar un error de conexión</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost",
+                "socket": "\/tmp\/mysql.sock"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "nombre_host_inváido",
+            }
+        },
+        "lazy_connections": 1
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   La activación explícita de conexiones retardadas sólo es con propósito de demostración.
+  </para>
+  <para>
+   <example>
+    <title>Error de conexión en la ejecución de una consulta</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+if (mysqli_connect_errno())
+  /* Por supuesto, su manejo de errores es más agradable... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+/* Conexión 1, la conexión vincula una variable SQL de usuario, no se ejecuta ningún SELECT en el maestro */
+if (!$mysqli->query("SET @myrole='master'")) {
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+}
+
+/* Conexión 2, se ejecuta en el esclavo a causa de SELECT, provoca un error de conexión */
+if (!($resultado = $mysqli->query("SELECT @myrole AS _role"))) {
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+} else {
+ $fila = $resultado->fetch_assoc();
+ $resultado->close();
+ printf("@myrole = '%s'\n", $fila['_role']);
+}
+$mysqli->close();
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+PHP Warning:  mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+PHP Warning:  mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via tcp://invalid_host_name:3306) in %s on line %d
+[2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   Se espera que la aplicaciones manejen los posibles errores de conexión mediante
+   la implementación del manejo de errores apropiado.
+  </para>
+  <para>
+   Dependiendo del caso en uso, las aplicaciones pueden optar por manejar errores de conexión
+   de forma diferente a otros errores. Los errores de conexión típicos son
+   <literal>2002 (CR_CONNECTION_ERROR) - Can't connect to local MySQL server through socket '%s' (%d)</literal>,
+   <literal>2003 (CR_CONN_HOST_ERROR) - Can't connect to MySQL server on '%s' (%d)</literal> y
+   <literal>2005 (CR_UNKNOWN_HOST) - Unknown MySQL server host '%s' (%d)</literal>.
+   Por ejemplo, la aplicación podría comprobar los códigos de error y realizar una
+   tolerancia a fallos manual. La filosofía del complemento no ofrece la tolerancia a fallos automática,
+   más allá de la tolerancia a fallos del maestro, ya que no es una operación transaparente.
+  </para>
+  <para>
+   <example>
+    <title>Provocar un error de conexión</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "invalid_host_name"
+            },
+            "slave_1": {
+                "host": "192.168.78.136"
+            }
+        },
+        "lazy_connections": 1,
+        "filters": {
+            "roundrobin": [
+
+            ]
+        }
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   La activación explícita de conexiones retardadas sólo es con propósito de demostración,
+   ya que el equilibrado de carga es de rotación en oposición al tipo predeterminado
+   <literal>aleatorio una vez</literal>.
+  </para>
+  <para>
+   <example>
+    <title>Tolerancia a fallos más básica</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+if (mysqli_connect_errno())
+  /* Por supuesto, su manejo de errores es más agradable... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+/* Conexión 1, la conexión vincula una variable SQL de usuario, no se ejecuta ningún SELECT en el maestro */
+if (!$mysqli->query("SET @myrole='master'")) {
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+}
+
+/* Conexión 2, primer esclavo */
+$resultado = $mysqli->query("SELECT VERSION() AS _version");
+/* Tolerancia a fallos manual */
+if (2002 == $mysqli->errno || 2003 == $mysqli->errno || 2004 == $mysqli->errno) {
+  /* Conexión 3, falló la conexión al primer esclavo, se intenta con el siguiente */
+  $resultado = $mysqli->query("SELECT VERSION() AS _version");
+}
+
+if (!$resultado) {
+  printf("ERROR, [%d] '%s'\n", $mysqli->errno, $mysqli->error);
+} else {
+ /* Los mensajes de error se toman de la conexión 3, por lo que no hay errores */
+ printf("SUCCESS, [%d] '%s'\n", $mysqli->errno, $mysqli->error);
+ $fila = $resultado->fetch_assoc();
+ $resultado->close();
+ printf("version = %s\n", $fila['_version']);
+}
+$mysqli->close();
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+[1045] Access denied for user 'nombre_usuario'@'localhost' (using password: YES)
+PHP Warning:  mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+PHP Warning:  mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via tcp://invalid_host_name:3306) in %s on line %d
+SUCCESS, [0] ''
+version = 5.6.2-m5-log
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   En algunos casos, puede no ser posible la recuperación de forma sencilla de todos los errores que
+   ocurran en todas las conexiones de red a través de un gestor de conexión. Por ejemplo, se asume que
+   un gestor de conexión representa una agrupación de tres conexiones abiertas. Una conexión
+   a un maestro y dos conexiones a los esclavos. La aplicación cambia la
+   base de datos actual usando la llamada a la API de usuario <function>mysqli_select_db</function>,
+   la cual luego llama a la función de la biblioteca mysqlnd para cambiar el esquema.
+   mysqlnd_ms monitoriza la función e intenta cambiar la base de datos
+   ctual en todas las conexiones para armonizar sus estados. Ahora, se asume que el maestro tiene
+   éxito al cambiar la base de datos, y ambos esclavos fallan. Durante el error inicial
+   del primer esclavo, el complemento establecerá un error apropiado sobre en el
+   gestor de conexión. Y lo mismo se hace cuando falla el segundo esclavo al cambiar la
+   base de datos. El mensaje de error del primer esclavo se pierde.
+  </para>
+  <para>
+   Tales casos pueden ser depurados comprobando los errores de tipo
+   <literal>E_WARNING</literal> (véase arriba) o, si no queda otra opción, investigar
+   el <link linkend="mysqlnd-ms.debugging">registro de depuración y rastreo de mysqlnd_ms</link>.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.failover">
+  <title>Tolerancia a fallos</title>
+  <para>
+   De forma predeterminada, el manejo de la toleracia a fallos de conexiones se le deja al usuario.
+   La aplicación es responsable
+   de comprobar los valores devueltos de las funciones de bases de datos a las que llama y
+   reaccionar a posibles errores. Si, por ejemplo, el complemento reconoce una consulta como de
+   solo lectura para ser enviada a los servidores esclavos, y el servidor esclavo seleccionado por
+   el complemento no está disponible, el complemento emitirá un error después de no ejecutar
+   la sentencia.
+  </para>
+  <para>
+   Es responsabilidad de
+   la aplicación manejar el error y, si fuera necesario, reemitir la consulta para
+   desencadenar la selección de otro servidor esclavo para la ejecución de la sentencia.
+   El complemento no intentará la tolerancia a fallos automáticamente, ya que
+   no puede estar seguro de que una tolerancia a fallos automática cambie el estado de
+   la conexión. Por ejemplo, la aplicación podría haber emitido una consulta
+   que depende de variables SQL del usuario, las cuales están vinculadas a una conexión específica.
+   Tal conexión podría devolver resultados incorrectos si el complemento intercambia la
+   conexión implícitamente como parte de la tolerancia a fallos automática. Para asegurase de obtener
+   resultados correctos, la aplicación debe ocuparse de la tolerancia a fallos, y reconstruir
+   el estado de conexión requerido. Por lo tanto, de forma predeterminada, el complemento no realiza la
+   tolerancia a fallos automática.
+  </para>
+  <para>
+   Un usuario que no cambie el estado de la conexión después de abrir una conexión
+   puede activar la tolerancia a fallos automática. Observe que la lógica de la tolerancia a fallos
+   automática está limitada a intentos de conexión. La tolerancia a fallos automática no se utiliza para
+   conexiones ya establecidas. No hay manera de ordenar al complemento que intente la
+   toleranca a fallos con una conexión que ya ha sido establecida con MySQL anteriormente.
+  </para>
+  <para>
+   La política de la tolerancia a fallos se configura en el fichero de configuración del complemento,
+   usando la directiva de configuración
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.failover">failover</link>.
+  </para>
+  <para>
+   Se proporciona un ejemplo básico de tolerancia a fallos manual en la sección
+   <link linkend="mysqlnd-ms.errorhandling">manejo de errores</link>.
+  </para>
+  <para>
+   Observe que si se utiliza un clúster de copia primario, tal como la Replicación MySQL, es
+   difícil realizar la tolerancia a fallos de conexión en caso de que falle un maestro.
+   De cualquier manera, sólo hay un maestro en el clúster para un conjunto de datos dado.
+   El maestro es un único punto de fallo. Si el maestro falla, los clientes no tienen un objetivo donde
+   realizar la tolerancia a fallos en peticiones de escritura. En caso de que un maestro apague la base de datos,
+   el administrador debe ocuparse de la situación y finalmente actualizar la configuración
+   del cliente, si fuera necesario.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.loadbalancing">
+  <title>Equilibrado de carga</title>
+  <para>
+   Se admiten cuatro estrategias de equilibrado de carga para distribuir
+   sentencias sobre los servidores esclavos de MySQL configurados:
+  </para>
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term>aleatorio</term>
+     <listitem>
+      <para>
+       Se elige un servidor aleatorio cada vez que se ejecute una sentencia.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>aleatorio una vez (predeterminado)</term>
+     <listitem>
+      <para>
+       Se elige un servidor aleatorio después de ejecutar la primera sentencia,
+       y se utiliza la decisión tomada para el resto de las peticiones de PHP.
+      </para>
+      <para>
+       Es lo predeterminado, y de menor impacto para el estado de conexión.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>rotación</term>
+     <listitem>
+      <para>
+       Se itera sobre la lista de servidores configurados.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>definido por el usuario mediante una llamada de retorno</term>
+     <listitem>
+      <para>
+       Se utiliza para implementar cualquier otra estrategia.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+  <para>
+   La política del equilibrado de carga se configura en el fichero de cofiguración
+   de los complementos usando los
+   <link linkend="mysqlnd-ms.filter">filtros</link>
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-random">random</link>,
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-roundrobin">roundrobin</link>,
+   y <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-user">user</link>.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.rwsplit">
+  <title>División de lectura-escritura</title>
+  <para>
+   El complemento ejecuta las senteciss de solo lectura en los esclavos MySQL cofigurados, y
+   las demás consultas en el maestro MySQL. Una sentencia se
+   considera de solo lectura si empieza con <literal>SELECT</literal>,
+   con la sugerencia SQL <literal>/*ms=slave*/</literal>, o si un esclavo ha sido elegido para
+   ejecutar la consulta anterior y la consulta empiza con la sugerencia SQL
+   <literal>/*ms=last_used*/</literal>. El los demás casos, la consulta
+   será enviada al servidor maestro de replicación MySQL. Se recomienda
+   usar las constantes <constant>MYSQLND_MS_SLAVE_SWITCH</constant>,
+   <constant>MYSQLND_MS_MASTER_SWITCH</constant> y <constant>MYSQLND_MS_LAST_USED_SWITCH</constant>
+   en lugar de <literal>/*ms=slave*/</literal>. Véase también la
+   <link linkend="mysqlnd-ms.constants">lista de constantes de mysqlnd_ms</link>.
+  </para>
+  <para>
+   Las sugerencias SQL son un tipo especial de comentarios que cumplen el estándar SQL. El
+   complemento revisa cada sentencia en busca de ciertas sugerencias SQL. Las sugerencias SQL están
+   descritas en la documentación de las <link linkend="mysqlnd-ms.constants">constantes de mysqlnd_ms</link>,
+   constantes que son exportadas por la extensión. Otros sistemas involucrados
+   en el procesamiento de sentencias, como el servidor MySQL, los cortafuegos SQL,
+   y los proxys SQL, no se ven afectados por las sugerencias SQL, ya que estos sistemas están
+   diseñados para ignorar los comentarios SQL.
+  </para>
+  <para>
+   El divisor de lectura-escritura interno puede ser reemplazado por un filtro definido por el usuario.
+   Véase también la documentación de
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-user">filtros de usuario</link>.
+  </para>
+  <para>
+   Un divisor de lectura-escritura definido por el usuario puede solicitar la lógica interna para
+   enviar una sentencia a una ubicación específica invocando a
+   <function>mysqlnd_ms_is_select</function>.
+  </para>
+  <note>
+   <para>
+    El divisor de lectura-escritura interno no considera las sentencias múltiples.
+    Éstas se ven como una sola sentencia. El divisor comprobará el
+    comienzo de una sentencia para decidir dónde ejecutarla. Si, por ejemplo,
+    una sentencia múltiple comienza con
+    <literal>SELECT 1 FROM DUAL; INSERT INTO test(id) VALUES (1); ...</literal>
+    el complemento la ejecutará en un esclavo aunque la sentencia no sea de solo lectura.
+   </para>
+  </note>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.filter">
+  <title>Filtro</title>
+  <note>
+   <title>Requisitos de versión</title>
+   <para>
+    Los filtros existen a partir de la versión 1.1.0-beta de mysqlnd_ms.
+   </para>
+  </note>
+  <para>
+   <link linkend="mysqlnd-ms.plugin-ini-json">filtros</link>.
+   Las aplicaciones de PHP que implementen un clúster de replicación MySQL deben identificar primero
+   un grupo de servidores en el clúster que podrían ejecutar una sentencia antes
+   de que ésta sea ejecutada por uno de los candidatos. En otras palabras: se debe filtrar
+   una lista de servidores definidos hasta que esté disponible solamente un servidor.
+  </para>
+  <para>
+   El proceso de filtrado puede incluir el uso de uno o más filtros, los cuales pueden estar
+   encadenados. Son ejecutados en el orden en el que están definidos en el fichero de configuración
+   del complemento.
+  </para>
+  <note>
+   <title>Aclaración: comparación entre cadena de filtros y tuberías</title>
+   <para>
+    El concepto de filtros encadenados puede ser comparado con el uso de tuberías para conectar
+    utilidades de línea de comandos en un sistema operativo intérprete de comandos. Por ejemplo,
+    un flujo de entrada se pasa al procesador, se filtra, y luego se transfiere
+    para su salida. Entonces, la salida se pasa al siguiente comando,
+    el cual está conectado al anterior mediante el operador de tubería.
+   </para>
+  </note>
+  <para>
+   Filtros disponibles:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Filtros de equilibrado de carga:
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filters">random</link> y
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filters">roundrobin</link>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Filtros de selección:
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filters">user</link>,
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filters">user_multi</link>,
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filters">quality_of_service</link>.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  
+  <para>
+   El filtro <literal>random</literal> implementa las políticas de equilibrado de carga
+   'aleatoria' y 'aleatorio una vez'. El equilibrado de carga 'rotacional' se puede configurar
+   a través del filtro <literal>roundrobin</literal>. Estblecer una 'llamada de retorno
+   definida por el usuario' para la selección del servidor es posible con filtro <literal>user</literal>.
+   El filtro <literal>quality_of_service</literal> busca nodos del clúster
+   capaces de cumplir con un cierto servicio, por ejemplo, la lectura de sus escrituras, o
+   no demorar más segundos de lo permitido con respecto al maestro.
+  </para>
+  <para>
+   Los filtros puede aceptar parámetros para cambiar su comportamiento.
+   El filtro <literal>random</literal> acepta el parámetro opcional
+   <literal>sticky</literal>. Si se establece a 'true', el filtro cambia
+   el equilibrado de carga de 'aleatorio' a 'aleatorio una vez'. 'Aleatorio' escoge un servidor aleatorio
+   cada vez qeu se vaya a ejecutar una sentencia. 'Aleatorio una vez' escoge un servidor aleatorio
+   cuando la primera sentencia va a ser ejecutada y utiliza el mismo
+   servidor para el resto de peticiones de PHP.
+  </para>
+  <para>
+   Una de los puntos fuertes del concepto de filtro es la posibilidad de
+   encadenar filtros. Este punto fuerte no se hace inmediatamente visible debido a que
+   los filtros <literal>random</literal>, <literal>roundrobin</literal> y
+   <literal>user</literal> deben de producir no más de un servidor.
+   Si un filtro reduce la lista de candidatos para la ejecución de una sentencia a
+   un único servidor, tiene poco sentido usar ese servidor como
+   entrada de otro filtro para reducir aún más la lista de candidatos.
+  </para>
+  <para>
+   Un ejemplo de una secuencia de filtros que fallará:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Sentencia a ejecutar: <literal>SELECT 1 FROM DUAL</literal>. Pasada a todos los filtros.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Todos los nodos configurados son pasados como entrada al primer filtro.
+      Nodos maestro: <literal>master_0</literal>.
+      Nodos esclavo:<literal>slave_0</literal>, <literal>slave_1</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Filtro: <literal>random</literal>, argumento <literal>sticky=1</literal>.
+      Elige un esclavo aleatorio una vez para utilizarlo para el resto de peticiones de PHP.
+      Salida: <literal>slave_0</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La salida de <literal>slave_0</literal> y la sentencia a ejecutar
+      son pasadas como entradas al siguiente filtro. Aquí: <literal>roundrobin</literal>,
+      la lista de servidores pasada para filtrar es: <literal>slave_0</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Filtro: <literal>roundrobin</literal>. La lista de servidores consisten en
+      un solo servidor, la rotación siempre devolverá el mismo servidor.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+   Si se intenta usar esta secuencia de filtros,
+   el complemento puede emitir una advertencia como <literal>(mysqlnd_ms) Error while creating
+   filter '%s' . Non-multi filter '%s' already created. Stopping in %s on
+   line %d</literal>. Además, se puede establecer un error apropiado para el gestor
+   de conexión.
+  </para>
+  <para>
+   Existe un segundo tipo de filtro: el filtro múltiple. Un filtro múltiple emite cero, uno o múltiples
+   servidores después del procesamiento. El filtro <literal>quality_of_service</literal>
+   es un ejemplo. Si la calidad de servicio solicitada establece un límite superior para la demora del
+   esclavo y más de un esclavo se demora menos que el número de segundos permitido,
+   el filtro devuelve más de un nodo del clúster. Un filtro múltiple debe ser seguido de otro
+   para reducir aún más la lista de candidatos para la ejecución de sentencias hasta que se encuentre
+   un candidato.
+  </para>
+  <para>
+   Una secuencia de filtros con el filtro múltiple <literal>quality_of_service</literal>
+   seguido por un filtro de equilibrado de carga.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Sentencia a ejecutar: <literal>SELECT sum(price) FROM orders WHERE order_id = 1</literal>.
+      Pasada a todos los filtros.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Todos los nodos configurados son pasados como entrada para el primer filtro.
+      Nodos maestro: <literal>master_0</literal>.
+      Nodos esclavo: <literal>slave_0</literal>, <literal>slave_1</literal>,
+      <literal>slave_2</literal>, <literal>slave_3</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Filtro: <literal>quality_of_service</literal>, conjunto de reglas: session_consistency (lectura de sus escrituras)
+      Salida: <literal>master_0</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La salida de <literal>master_0</literal>
+      y la sentencia a ejecutar
+      son pasadas como entrada al siguiente filtro, el cual es <literal>roundrobin</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Filtro: <literal>roundrobin</literal>. La lista de servidores consiste en un
+      servidor. La rotación selecciona <literal>master_0</literal>.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   Una secuencia de filtros no debe finalizar con un filtro múltiple. Si se intenta usar
+   una sencuencia de filtros que finaliza con un filtro múltiple, el complemento puede emitir
+   una advertencias como <literal>(mysqlnd_ms) Error in configuration. Last filter is multi
+   filter. Needs to be non-multi one. Stopping in %s on line %d</literal>.
+   Además, se puede establecer un error apropiado para el gestor
+   de conexión.
+  </para>
+  <para>
+   <note>
+    <title>Especulación sobre el futuro: filtrado de replicación MySQL</title>
+    <para>
+     En futuras versiones, pueden existir filtros múltiples adicionales.
+     Por ejemplo podría existir un filtro <literal>table</literal>
+     para soportar el filtrado de replicación MySQL. Esto podría permitir
+     la definición de reglas para qué base de datos o tabla van a ser replicadas a cual
+     nodo de un clúster de replicación. Se asume que el clúster de replicación
+     consiste en cuatro esclavos (<literal>slave_0</literal>, <literal>slave_1</literal>,
+     <literal>slave_2</literal>, <literal>slave_3</literal>), dos de los cuales replican una base de datos llamada
+     <literal>ventas</literal> (<literal>slave_0</literal>, <literal>slave_1</literal>).
+     Si la aplicación pregunta a la base de datos <literal>esclavos</literal>, el
+     hipotético filtro <literal>table</literal> reduciría la lista de posibles
+     servidores a <literal>slave_0</literal> y <literal>slave_1</literal>. Ya que
+     la salida y la lista de candidatos consiste en más de un servidor, es
+     posible y necesario añadir filtros adicionales a la lista de candidatos, por ejemplo, usando
+     un filtro de equilibrado de carga para identificar un servidor para la ejecución de sentencias.
+    </para>
+   </note>
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.qos-consistency">
+  <title>Nivel de servicio y consistencia</title>
+  <note>
+   <title>Requisitos de versión</title>
+   <para>
+    Los niveles de servicio han sido introducidos en la versión 1.2.0-alpha de mysqlnd_ms.
+    <function>mysqlnd_ms_set_qos</function>
+    requiere PHP 5.4.0 o posterior.
+   </para>
+  </note>
+  <para>
+   El complemento se puede usar con diferentes tipos de clústeres de bases de datos MySQL.
+   Los diferentes clústeres pueden proporcionar diferentes niveles de servicios a las aplicaciones.
+   Los niveles de servicios pueden ser agrupados por los niveles de consistencia de datos que
+   se puedan alcanzar. El complemento está al tanto de la:
+   <itemizedlist>
+    <listitem>
+     <simpara>consistencia final</simpara>
+    </listitem>
+    <listitem>
+     <simpara>consistencia de sesión</simpara>
+    </listitem>
+    <listitem>
+     <simpara>consistencia fuerte</simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   Dependiendo de cómo se use un clúster, puede ser posbile alcanzar niveles de servicios
+   más altos que el predeterminado. Por ejemplo, una lectura desde un esclavo de replicación
+   MySQL asíncrono es consistencia final. Así, uno podría decir que el nivel de consistencia
+   predeterminado de un clúster de replicación MySQL es consistencia final.
+   Sin embargo, si el maestro solamente es utilizado por un cliente para lectura y escritura durante una
+   sesión, entonces se da la consistencia de sesión (lectura de sus escrituras). PECL mysqlnd 1.2.0
+   abstrae al usuario los detalles de la elección de un nodo apropiado para cualquiera de los
+   niveles de servicios de arriba mencionados.
+  </para>
+  <para>
+   Los niveles de servicios se pueden establecer a través del filtro 'qualify-of-service' en el
+   <link linkend="mysqlnd-ms.plugin-ini-json">fichero de configuración del complemento</link>
+   y en tiempo de ejecución utilizando la función
+   <function>mysqlnd_ms_set_qos</function>.
+  </para>
+  <para>
+   El complemento define los diferentes niveles de servicios como sigue:
+  </para>
+  <para>
+   La consistencia final es el servicio predeterminado proporcionado por un clúster
+   asíncrono, como la clásica replicación MySQL. Una operación de lectura ejecutada
+   en un nodo arbitrario puede o no devolver datos antiguos. El punto de vista
+   de las aplicaciones de los datos es consistente final.
+  </para>
+  <para>
+   La consistencia de sesión se da si un cliente siempre puede leer sus propias escrituras.
+   Un clúster de replicación MySQL asíncrona puede proporcionar consistencia de sesión si los clientes
+   siempre usan el maestro después del la primera escritura, o nunca consultan un esclavo que aún
+   no ha replicado la operación de escritura de los clientes.
+  </para>
+  <para>
+   La interpretación del complemento de la consistencia fuerte es que todos los cliente siempre
+   ven las escrituras consignadas de todos los demás clientes. Esto es lo predeterminado cuando
+   se usa el Clúster MySQL o cualquier otro clúster que ofrezca
+   distribución de datos asíncrona.
+  </para>
+  <para>
+   <emphasis role="bold">Parámetros de los niveles de servicios</emphasis>
+  </para>
+  <para>
+   Los niveles de servicos de consistencia final y consistencia de sesión aceptan parámetros.
+  </para>
+  <para>
+   La consistencia final es el servicio proporcionado por la replicación MySQL clásica.
+   De forma predeterminada, todos los nodos tienen derecho a peticiones de lectura. El parámetro opcional
+   <literal>age</literal> puede ser proporcionado para filtrar nodos que se demoren más que un cierto número de
+   segundos con respecto al maestro. El complemento utiliza <literal>SHOW SLAVE STATUS</literal>
+   para medir la demora. Vea el manual de referencia de MySQL para aprender sobre la precición y
+   fiabilidad del comando <literal>SHOW SLAVE STATUS</literal>.
+  </para>
+  <para>
+   La consistencia de sesión (lectura de sus escritura) acepta el parámetro opcional <literal>GTID</literal>
+   para considerar la lectura no sólo desde el maestro, sino también desde los esclavos
+   que ya han replicado una escritura en particular descrita por su identificador de transacciones.
+   De esta forma, cuando se utiliza la replicación MySQL asíncrona, las peticiones de lectura pueden uar el
+   equilibrado de carga sobre los esclavos mientras todavía se asegura la consistencia de sesión.
+  </para>
+  <para>
+   Lo último requiere el uso de la
+   <link linkend="mysqlnd-ms.gtid">inyección de IDs de transacciones globales en el lado del cliente</link>.
+  </para>
+  <para>
+   <emphasis role="bold">Ventajas de este nuevo enfoque</emphasis>
+  </para>
+  <para>
+   El nuevo enfoque sustituye el uso de sugerencias SQL y de la opción de configuración
+   <literal>master_on_write</literal> en varios sentidos. Si una aplicicón
+   se ejecuta en lo más alto de un clúster de replicación MySQL asíncrono, no puede acceptar datos
+   antiguos para ciertas lecturas, es más sencillo indicarle al complemento que elija los nodos
+   apropiados que prefijar todas las sentencias de lectura en cuestión con sugerencias SQL
+   para forzar el uso del maestro. Además, el comlemento puede ser capaz de
+   utilizar esclavos seleccionados para la lectura.
+  </para>
+  <para>
+   La opción de configuración <literal>master_on_write</literal> hace que el complemento
+   use el maestro después de la primera escritura (consistencia de sesión, lectura de sus escrituras).
+   En algunos casos, la consistencia de sesión puede no ser necesaria para el resto de la sesión,
+   sólo para unas pocas operaciones de lectura. Así, <literal>master_on_write</literal>
+   puede resultar en más carga de lectura en el maestro de la necesaria. En estos casos,
+   es mejor solicitar un nivel de servicios superior al predeterminado solamente para aquellas lecturas
+   que realmente lo necesiten. Una vez que las lecturas se han realizado, la apliacion puede vovler
+   al nivel de servicios predetereminado. El cambio entre niveles de servicio solo es posible
+   con el uso de <function>mysqlnd_ms_set_qos</function>.
+  </para>
+  <para>
+   <emphasis role="bold">Consideraciones de rendimiento</emphasis>
+  </para>
+  <para>
+   Un clúster de replicación MySQL no puede indicarle a los clientes qué esclavos son capaces
+   de proporcionar cuales niveles de servicios. Por lo tanto, en algunos casos,
+   los clientes necesitan consultar a los esclavos para comprobar sus estados.
+   PECL mysqlnd_ms ejecuta de forma transparente el SQL necesario en segundo
+   plano. Sin embargo, es una operación cara y lenta. Las sentencias SQL
+   se ejecutan si se combina la consistencia final con una edad (demora del esclavo) límite y
+   si la consistencia de sesión se combina con un ID de transacciones global.
+  </para>
+  <para>
+   Si la consistencia final se combina con una edad (demora del esclavo) máxima, el complemento
+   selecciona candidatos para la ejecución de sentencias y equilibra la carga para cada sentencia
+   como sigue. Si la sentencia es una escritura, todos los maestros son considerados como candidato. Los esclavos
+   no se comprueban y no son considerados como candidatos. Si la sentencia es una escritura, el
+   complemento ejecuta de forma transparente <literal>SHOW SLAVE STATUS</literal> en cada conexión
+   esclava. Iterará sobre todas las conexiones, enviará la sentencia y luego iniciará
+   la comprobación de los resultados. Normalmente, esto es ligeramente más rápido qe iterar sobre todas las conexiones
+   en las que se envía una consulta para cada conexión y que el complemento espere sus resultados.
+   Un esclavo es considerado un candidato si <literal>SHOW SLAVE STATUS</literal> notifica que
+   <literal>Slave_IO_Running=Yes</literal>,
+   <literal>Slave_SQL_Running=Yes</literal> y
+   <literal>Seconds_Behind_Master</literal> es menor o igual que la edad máxima permitida.
+   En caso de que ocurra un error SQL, el complemento emite una advertencia, aunque no establece un error en
+   la conexión. El error no se establece para que se pueda usar el complemento como un drop-in.
+  </para>
+  <para>
+   Si la consistencia de sesión se combina con un ID de transacciones global, el complemento ejecutará
+   la sentencia establecida con la entrada <literal>fetch_last_gtid</literal> de la
+   sección <literal>global_transaction_id_injection</literal> del fichero de configuración del complemento.
+   Los demás detalles son idénticos a los descritos arriba.
+  </para>
+  <para>
+   En la versión 1.2.0 no se realizan optimizaciones adicionales para ejecutar consultas en segundo plano.
+   Futuras versiones pueden contener optimizaciones, dependiendo de la demanda de los usuarios.
+  </para>
+  <para>
+   Si no se establece ningún parámetro ni ninguna opción, no es necesaria ninguna sentencia SQL. En este caso,
+   el complemento considera que todos los nodos son del tipo mostrado abajo.
+   <itemizedlist>
+    <listitem>
+     <simpara>consistencia final, no se establecen opciones adicionales: todos los maestros, todos los esclavos</simpara>
+    </listitem>
+    <listitem>
+     <simpara>consistencia de sesión, no se establecen opciones adicionales: todos los maestros</simpara>
+    </listitem>
+    <listitem>
+     <simpara>consistencia fuerte (no se permiten opcioines): todos los maestros</simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.gtid">
+  <title>IDs de transacciones globales</title>
+  <note>
+   <title>Requisitos de versión</title>
+   <para>
+    La inyección de IDs de transacciones globales en el lado del cliente existe a partir de la versión 1.2.0-alpha de mysqlnd_ms.
+    Los límites de una transacción son detectados monitorizando las llamadas a la API. Esto es posible
+    a partir de PHP 5.4.0. Por favor, vea también <link linkend="mysqlnd-ms.transaction">Manejo de transacciones</link>.
+   </para>
+   <para>
+    A partir de MySQL 5.6.5-m8, el servidor MySQL introduce los identificadores de transacciones globales internos.
+    La característica del ID de transacciones global interno de MySQL es soportada por PECL/mysqlnd_ms 1.3.0-alpha o
+    posterior. No es necesario la monitorización de los límites de transacciones en el lado del cliente ni
+    ninguna configuración si se utiliza la característica del servidor.
+   </para>
+  </note>
+  <para>
+   <emphasis role="bold">Idea y emulación en el lado del cliente</emphasis>
+  </para>
+  <para>
+   PECL/mysqlnd_ms también realiza la inyección transparente de IDs de transacciones globales en el lado del cliente.
+   En su forma más básica, un identificador de transacciones global es un contador que se
+   incrementa en cada transacción ejecutada en el maestro. El contador se guarda
+   en una tabla del maestro. Los esclavos replican la tabla del contador.
+  </para>
+  <para>
+   En caso de que falle un maestro, el adminstrador de la base de datos puede identificar fácilmente el
+   esclavo más reciente promovido como nuevo maestro. El esclavo más reciente tiene
+   el identificador de transacciones más alto.
+  </para>
+  <para>
+   Los desarrolladores de aplicaciones pueden solicitar al complemento el identificador de transacciones global
+   (GTID) para su última operación de escritura que tuvo éxito. El complemento devolverá
+   un identificador que hace referencia a una transacción no más antigua que la última operación
+   de escritura del cliente. Entonces, el GTID puede ser pasado como parámetro
+   al filtro de calidad de servicio (QoS) como una opción para la consistencia de sesión.
+   La consistencia de sesión se asegura de la lectura de sus escrituras. El filtro se asegura de que
+   todas las lecturas son dirigidas al maestro o a un esclavo que haya replicado la escritura
+   referida por el GTID.
+  </para>
+  <para>
+   <emphasis role="bold">Cuándo se realiza la inyección</emphasis>
+  </para>
+  <para>
+   El complemento mantiene de forma transparente la tabla del GTID del maestro.
+   En el modo 'autocommit', el complemento inyecta una sentencia <literal>UPDATE</literal>
+   antes de ejecutar las sentencias del usuario por cada uso del maestro. En el modo
+   de transacción manual, la inyección se realiza antes de que la aplicación llame a
+   <literal>commit()</literal> para cerrar la transacción. La opción de configuración
+   <literal>report_error</literal> de la sección del GTID del fichero de configuración del
+   complemento se utiliza para controlar si una inyección fallida debería abortar la operación
+   actual o ser ignorada de forma silenciosa (lo predeterminado).
+  </para>
+  <para>
+   Por favor, observe los
+   requisitos de versión de PHP para la
+   <link linkend="mysqlnd-ms.transaction">monitorización de los límites de transacciones</link>
+   y sus limitaciones.
+  </para>
+  <para>
+   <emphasis role="bold">Limitaciones</emphasis>
+  </para>
+  <para>
+   La inyección de IDs de transacciones globales en el lado del cliente tiene defectos. Los problemas
+   potenciales no son específivos de PECL/mysqlnd_ms, sino que son de naturaleza general.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Las tablas de IDs de transacciones globales deben ser desplegadas en todos los maestros y en todas las réplicas.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      El GTID puede tener agujeros. Únicamente los clientes de PHP que utilicen el complemento
+      mantendrán la tabla. Los demás clientes no lo harán.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La detección de los límites de las transacciones en el lado del cliente solamente está basada en llamadas a la API.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      La detección de los límites de las transacciones en el lado del cliente no toma en cuenta
+      la consigna implícita. Algunas setnencias SQL de MySQL causan una consignación implícita,
+      por lo que no pueden ser revertidas.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   <emphasis role="bold">Utilizar el identificador de transacciones global en el lado del servidor</emphasis>
+  </para>
+  <para>
+   Desde PECL/mysqlnd_ms 1.3.0-alpha se admite la característica del identificador de
+   transacciones global interno de MySQL 5.6.5-m8 o posterior. El uso de esta característica del servidor
+   elimna todas las limitaciones enumeradas arriba. Por favor, lea el Manual de Referencia de MySQL
+   para conocer las limitaciones y las precondiciones del uso de identificadores de transacciones globales
+   internos.
+  </para>
+  <para>
+   Si se utiliza la emulación del lado del cliente o la funcionalidad interna del
+   servidor, es una cuestión que no está directamente relacionada con el complemento, por lo que no
+   se trata en profundidad. No hay planes para eliminar la emulación del lado del cliente, por lo que
+   se puede continuar usándola, si la solución del lado del servidor no es una opción. Éste podría
+   ser el caso de entornos heterogéneos con un servidor MySQL antiguo, o si cualquiera de las
+   limitaciones de la solución del lado del servidor no son acpetables.
+  </para>
+  <para>
+   Desde la perspectiva de las aplicaciones casi no hay diferencia en el uso de un enfoque
+   u otro. Difieren las siguientes propiedades.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      La emulación en el lado del cliente, como se muestra en el manual, utiliza un número de secuencia
+      de transacciones global fácil de comparar. Los maestros múltiples no se tratan para no complicar los ejemplos del manual.
+     </simpara>
+     <simpara>
+      La característica interna del lado del servidor utiliza una combinación de un identificador de servidor
+      y un número de secuencia como identificador de transacciones global. La comparación no
+      puede hacerse mediante álgebra numérica. En su lugar, se debe usar una función SQL. Por favor,
+      lea el Manual de referencia de MySQL para más detalles.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Las estadísticas de los IDs de transacciones globales están disponibles únicamente con la emulación
+      en el lado del cliente debido a que monitorizan dicha emulación.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <note>
+   <title>Identificadores de transacciones globales en sistemas distribuidos</title>
+   <para>
+    Los identificadores de transacciones globales pueden servir para múltiples propósitos en el contexto de
+    sistemas distribuidos, como un clúster de bases de datos. Los identificadores de transacciones globales se
+    pueden usar para, por ejemplo, la identificación de transacciones en todo el sistema,
+    el ordenameiento global de transacciones, el mecanismo de pulso, y
+    la comprobación del estado de replicación de las réplicas. PECL/mysqlnd_ms, un software basado
+    en un controlador del lado del cliente, enfoca el uso de GTIDs para tareas que puedan ser
+    tratadas en el cliente, como la comprobación del estado de replicación de las réplicas
+    para configuraciones de replicación asíncronas.
+   </para>
+  </note>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.concept_cache">
+  <title>Integración de una caché</title>
+  <note>
+   <title>Requisitos de versión</title>
+   <para>
+    Esta característica requiere el uso de PECL/mysqlnd_ms 1.3.0-beta o posterior
+    y de PECL/mysqlnd_qc 1.1.0-alpha o posterior. PECL/mysqlnd_ms debe ser
+    compilado para soportar esta característica. Se requiere PHP 5.4.0 o posterior.
+   </para>
+  </note>
+  <note>
+   <title>Clústeres MySQL apropiados</title>
+   <para>
+    Esta característica está pensada para usarla con la Repliación MySQL (copia primaria).
+    Actualmente, no se admiten otros tipos de clústeres MySQL. Los usuarios
+    de tales clústeres deben controlar PECL/mysqlnd_qc manualmente si están
+    insteresados en el almacenamiento en caché de consultas en el lado del servidor.
+   </para>
+  </note>
+  <para>
+   El enfoque principal de PECL/mysqlnd_ms es el soporte para los clústeres de replicación
+   MySQL (copia primaria asíncrona). Los esclavos de un clúster de replicación MySQL
+   pueden o no reflejar las últimas actualizaciones del servidor.
+   Los esclavos son asíncronos y pueden demorarse con respecto al maestro. Una lectura desde un esclavo
+   se considera que es consistencia final desde una perspectiva total del clúster.
+  </para>
+  <para>
+   El mismo nivel de consistencia es ofrecido por el almacenamiento en caché, usando la estrategia
+   de invalidación de tiempo de vida (TTL). Se pueden servir datos actuales o antiguos. Finalmente,
+   los datos buscados en la caché no estarán disponibles, por lo que es necesario acceder al origen
+   de la caché.
+  </para>
+  <para>
+   Dado que un esclavo de Replicación MySQL (secundario asíncrono) y una caché local que maneja
+   TTL proporcionan el mismo nivel de servicio, es posible reemplzar de forma transparente
+   un acceso a una base de datos remota con un acceso a la caché local para obtener mejores posibilidades.
+  </para>
+  <para>
+   A partir de PECL/mysqlnd_ms 1.3.0-beta, el complemento puede controlar de forma transparente
+   PECL/mysqlnd_ms 1.1.0-alpha o posterior para almacenar en caché una consulta de solo lectura, si está
+   explícitamente permitido, configurando una calidad de servicio apropiada a través de
+   <function>mysqlnd_ms_set_qos</function>. Por favor, lea la
+   <link linkend="mysqlnd-ms.quickstart.cache">guía rápida</link> para ver un ejemplo de código.
+   Ambos complementos deben estar instalados, PECL/mysqlnd_ms debe ser compilado para soportar la
+   característica de la caché y se ha de utilizar PHP 5.4.0 o posterior.
+  </para>
+  <para>
+   Las aplicaciones tienen control total sobre el uso de la caché y pueden solicitar datos actuales
+   en cualquier momento si fuera necesario. Se puede habilitar y deshabilitar el uso de la caché
+   durante la ejecución de un script. La caché se usará si
+   <function>mysqlnd_ms_set_qos</function> establece la calidad del servicio
+   a consistencia final y habilita el uso de la caché. El uso de la caché se deshabilita
+   solicitando niveles de consistencia superiores, por ejemplo,
+   consistencia de sesión (lectura de sus datos). Una vez que la calidad del servicio ha
+   vuelto a consistencia final, la caché se podrá usar de nuevo.
+  </para>
+  <para>
+   Si la caché está habilitada para sentencias de solo lectura, PECL/mysqlnd_ms podrá inyectar
+   <link linkend="mysqlnd-qc.quickstart.caching">sugerencias SQL para controlar la caché</link>
+   mediante PECL/mysqlnd_qc. Se puede modificar la sentencia SQL si se obtiene de la aplicación.
+   Se supone que los tratamientos de SQL subsiguientes ignorarán las sugerencias SQL. Una sugerencia
+   SQL es un comentario SQL. Los comentarios no deben ser ignorados, por ejemplo, por el servidor de la base de datos.
+  </para>
+  <para>
+   El TTL de una entrada de la caché se calcula en base a cada sentencia. Las aplicaciones
+   pueden establecer un máximo de edad para los datos que quieren recuperar mediante
+   <function>mysqlnd_ms_set_qos</function>. La edad establece un límite superior aproximado
+   de los segundos que los datos devueltos pueden demorarse con respecto al maestro.
+  </para>
+  <para>
+   La siguietne lógica se utiliza para calcular el TTL real si la caché está habilitada.
+   La lógica toma en cuenta la demora del esclavo aproximada para elegit un TTL. Si,
+   por ejemplo, hay dos esclavos que se retrasan 5 y 10 y la edad máxima
+   permitida es 60 segundos, el TTL se establece a 50 segundos. Observe que
+   el establecimiento de la edad no es más que una aproximación.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Se comprueba si la sentencia es de solo lectura. Si no lo es, no se almacenará en caché.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Si la caché está habilitada, se comprueba la demora de todos los esclavos configurados.
+      Se establecen las conexiones esclavas si no existieran hasta ahora y se utilizan conexiones
+      retardadas.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se envía la sentencia <literal>SHOW SLAVE STATUS</literal> a todos los esclavos. No se espera
+      a que el primer esclavo replique antes de enviarla al segundo esclavo. Los clientes
+      a menudo esperan bastante tiempo para las réplicas, por lo que se envían todas las peticiones de una vez antes
+      obtenerlas en un segudo escenario.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se itera sobre todos los esclavos. Para cada esclavo se espera su réplica. No se inicia
+      la comprobación de otro esclavo antes de que el esclavo actual haya replicado.
+      Se comprueba si <literal>Slave_IO_Running=Yes</literal> y <literal>Slave_SQL_Running=Yes</literal>.
+      Si ambas condiciones son verdaderas, se obtiene el valor de <literal>Seconds_Behind_Master</literal>.
+      En caso de cualquier error o de que las condiciones fallen, se establece un error en la conexión esclava.
+      Se salta cualquier conexión esclava para el resto del filtrado de conexiones.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se busca el valor máximo de <literal>Seconds_Behind_Master</literal> de
+      todos los esclavos que hayan pasado las condiciones previas. Se resta el valor de
+      la edad máxima de <function>mysqlnd_ms_set_qos</function> proporcionada por el usuario.
+      Se utiliza el resultado como un TTL.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      El filtrado puede ordenar todos los esclavos. Si se hace, se usa la edad máxima como
+      TTL, ya que la demora máxima encontrada es igual a cero. Es perfectamente válido
+      ordenar todos los esclavos. En adelante, depende de filtro subsiguiente
+      decidir qué hacer. El filtro de equilibrado de carga interno eligirá al
+      maestro.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se inyectan las sugerencias SQL apropiadas para habilitar el almacenamiento en caché por patre de PECL/mysqlnd_qc.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Se procede con el filtrado de conexiones, p.ej., se aplican las reglas del equilibrado de carga para
+      escoger un esclavo.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      PHP carga PECL/mysqlnd_qc después de PECL/mysqlnd_ms. Así, verá
+      todas las modificaciones de consultas hechas por PECL/mysqlnd_ms y almacenará en caché la consulta,
+      si se le ordenó hacerlo.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   El algoritmo puede parecer costoso. <literal>SHOW SLAVE STATUS</literal> es una
+   operación muy rápida. Dado un número suficiente de peticiones y de usos de la caché por segundo, el coste de
+   comprobar la demora de los esclavos puede superar fácilmente el coste de la decisiones de la caché.
+  </para>
+  <para>
+   Las sugerencias sobre un algoritmo mejor siempre son bienvenidas.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.supportedclusters">
+  <title>Clústeres admitidos</title>
+  <para>
+   Cualquier aplicación que utilice cualquier tipo de clúster MySQL tiene que enfrentarse con las mismas tareas:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Identificar los nodos que pueden ejecutar una sentencia dada con
+      el nivel de servicio requerido
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Equilibrar la carga de peticiones dentro de la lista de candidatos
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Usar la tolerancia a fallos automática dentro de los candidatos, si fuera necesario
+    </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   El complemento está optimizado para realizar estas tareas en el contexto de un clúster de
+   replicación MySQL asíncrono clásico que consiste en un único maestro y
+   varios esclavos (copiar primaria). Al utilizar la replicación MySQL asíncrona clásica
+   todas las tareas enumeradas arriba deben ser controladas en el lado del cliente.
+  </para>
+  <para>
+   Otros tipos de clústeres MySQL pueden cluster may have lower requirements on the application side.
+   Po ejemplo, si todos los nodos del clúster pueden responder a peticiones de lectura y de escritura, no
+   es necesario que se realice la división de lectura-escritura (multi-maestro, todos actualizan).
+   Si todos los nodos del clúster son sincrónicos, proporcionarán autmáticamente la mayor
+   calidad de servcio posible, lo que se hace eligiendo un nodo más sencillo.
+   En este caso, el complemento puede servir a la aplicación después de una reconfiguración
+   para deshabilitar ciertas características, como la división de lectura-escritura interna.
+  </para>
+  <note>
+   <title>El enfoque de la documentación</title>
+   <para>
+    El enfoque de la documentación describe el uso del complemento con los clústeres
+    de replicación MySQL asíncronos clásicos (copia primaria). El soporte para este
+    tipo de clústeres ha sido el objetivo de desarrollo original. El uso de otros
+    clústeres se describe brevemente abajo. Por favor, observe que
+    aún está en desarrollo.
+   </para>
+  </note>
+  <para>
+   <emphasis role="bold">Utilizar clústeres asíncronos con un único maestro</emphasis>
+  </para>
+  <para>
+   Caso de uso primario del complemento. Siga las sugerencias dadas en la descripción de cada característica.
+  </para>
+  <note>
+   <title>Requisitos de versión</title>
+   <para>
+    El siguiente clúster puede requerir el uso de ajustes no disponibles antes de mysqlnd_ms 1.2.0-alpha.
+   </para>
+  </note>
+  <para>
+   <emphasis role="bold">Utilizar clústeres asíncronos con múltiples maestros</emphasis>
+  </para>
+  <para>
+   Esta configuración actualmente no está soportada.
+  </para>
+  <para>
+   El complemento no posee funcionalidad interna para dirigir ciertas escrituras hacia ciertos
+   maestros. Está considerada la adición de un filtrado de tablas en versiones futuras. El filtrado de tablas
+   permitiría la restrincción de lecturas y escrituras para ciertos esclavos y maestros basada
+   en la base de datos (esquema) y en la tabla usadas por una sentencia.
+  </para>
+  <para>
+   La característica del filtrado de tablas está preparada en el código fuente del complemento. Sin embargo, es
+   inestable y no de debe usar. La notificación de fallos sobre el filtrado de tablas será rechazada.
+  </para>
+  <para>
+   <emphasis role="bold">Utilizar clúesteres sincrónicos como el Clúster MySQL</emphasis>
+  </para>
+  <para>
+   El Clúster MySQL es un solución de clúster sincrónico. Todos los nodos del clúster aceptan
+   peticiones de lectura y de escritura. En el contexto del complemento, todos los nodos
+   serían considerados como maestros.
+  </para>
+  <para>
+   Utilizar solamente las características del equilibrado de carga y de la tolerancia a fallos.
+  </para>
+  <para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Deshabilite la <link linkend="mysqlnd-ms.rwsplit">división de lectura-escritura interna</link> del complemento.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Configure únicamente los maestros.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Considere la estrategia de equilibrado de carga aleatorio, que es la predeterminada del complemento.
+      Si se usa la estrategia de aleatorio una vez, solamente se configuran los maestros y no se utilizan sugerencias
+      SQL para forzar el uso de un nodo en particular, ni ocurrirán intercambios de conexión durante
+      una petición web. Por lo tanto, no es necesario un trato especial con
+      las transacciones. El complemento eligirá un maestro al comienzo del
+      script de PHP y lo usará hasta que éste finalice.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      No establezca la calidad de servicio. Todos los nodos tienen todos los datos. Esto
+      proporciona autmáticamente el servicio de calidad más alto posible (consistencia fuerte).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      No habilite la inyección de transacciones global en el lado del cliente. No es
+      necesaria para apoyar la tolerancia a fallos en el lado del servidor ni para asistir al filtro de
+      calidad de servicio para que elija un nodo apropiado.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   Deshabilitar la división de lecutra-escritura interna.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Establezca
+      <link linkend="mysqlnd-ms.configuration"><literal>mysqlnd_ms.disable_rw_split=1</literal></link>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      No use <link linkend="mysqlnd-ms.rwsplit">sugerencias SQL</link>
+      para forzar el uso de esclavos
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
+   Configure masters only.
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Establezca
+      <link linkend="mysqlnd-ms.configuration"><literal>mysqlnd_ms.multi_master=1</literal></link>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>No configure ningún esclavo</simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Establezca
+      <literal><link linkend="mysqlnd-ms.plugin-ini-json">failover=master</link></literal>
+      en el fichero de configuración del complemento para evitar advertencias sobre la lista vacía de esclavos
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+ </section>
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
