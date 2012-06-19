@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 67921109e7460111f4e538e745b7d8a8b8dfca4f Maintainer: seros Status: ready -->
+<!-- EN-Revision: faa7c360f524b4c5475e97a823a2e8abd7cf1304 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <!-- splitted from ./en/functions/pcre.xml, last change in rev 1.2 -->
 <article xml:id="reference.pcre.pattern.modifiers" xmlns="http://docbook.org/ns/docbook">
@@ -97,13 +97,65 @@
         a literales. to literals. Sin embargo, los caracteres que son escapados, los cuales
         normalmente no serían convertidos, mantendrán sus barras. Esto hace que
         el uso de este modificador sea muy complicado.
-        </para>
+       </para>
       </caution>
       <caution>
        <para>
         Asegúrese de que <parameter>replacement</parameter> constituye una cadena de código PHP válida;
         de otro modo PHP responderá con un error de análisis en la línea que contiene
         <function>preg_replace</function>.
+       </para>
+      </caution>
+      <caution>
+       <para>
+        <simpara>
+         El uso de este modificador está <emphasis>desaconsejado</emphasis>, ya que puede introducir fácilmente
+         vulnerabilidades de seguridad:
+        </simpara>
+        <informalexample>
+         <programlisting role="php">
+<![CDATA[
+<?php
+$html = $_POST['html'];
+
+// cabeceras en mayúsculas
+$html = preg_replace(
+    '(<h([1-6])>(.*?)</h\1>)e',
+    '"<h$1>" . strtoupper("$2") . "</h$1>"',
+    $html
+);
+]]>
+          </programlisting>
+         </informalexample>
+         <simpara>
+          En el código de ejemplo de arriba puede ser explotado fácilmente pasando una cadena de texto como
+          <literal>&lt;h1&gt;{${eval($_GET[php_code])}}&lt;/h1&gt;</literal>. Esto proporciona
+          al atacante la capacidad de ejecutar código de PHP arbitrario y tener
+          acceso casi completo al servidor.
+         </simpara>
+         
+         <simpara>
+          Para evitar este tipo de vulnerabilidad de ejecución de código remoto, se
+          debería usar la función <function>preg_replace_callback</function> en su lugar:
+         </simpara>
+         
+         <informalexample>
+          <programlisting role="php">
+<![CDATA[
+<?php
+$html = $_POST['html'];
+
+// cabeceras en mayúsculas
+$html = preg_replace_callback(
+    '(<h([1-6])>(.*?)</h\1>)',
+    function ($m) {
+        return "<h$m[1]>" . strtoupper($m[2]) . "</h$m[1]>";
+    },
+    $html
+);
+]]>
+          </programlisting>
+         </informalexample>
        </para>
       </caution>
       <note>
@@ -169,7 +221,7 @@
       <note>
        <para>
         Normalmente no es posible hacer coincidir más de <link
-         linkend="ini.pcre.backtrack-limit">pcre.backtrack_limit</link>
+        linkend="ini.pcre.backtrack-limit">pcre.backtrack_limit</link>
         caracteres en el modo no codicioso.
        </para>
       </note>
@@ -200,7 +252,7 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-      <term><emphasis>u</emphasis> (<literal>PCRE_UTF8</literal>)</term>
+     <term><emphasis>u</emphasis> (<literal>PCRE_UTF8</literal>)</term>
      <listitem>
       <simpara>
        Este modificador pone en marcha funcionalidad adicional de PCRE que
