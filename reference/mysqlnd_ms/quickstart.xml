@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 649f89731ce6c51290172e2a2e716c093097bc12 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 579ed5184d3c61f2627552dace4206c2933872cd Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mysqlnd-ms.quickstart" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Guía rápida y ejemplos</title>
@@ -612,11 +612,14 @@ $mysqli->close();
   <title>Transacciones</title>
   <para>
    La versión actual del complemento no es segura con transacciones de forma predeterminada,
-   ya que no las considera. Las transacciones SQL son
-   unidades de trabajo para ser ejecutadas en un único servidor.
-   El complemento no sabe cuándo comienza y cuándo finaliza la unidad de trabajo.
-   Por lo tanto, el complemento puede decidir intercambiar conexiones en mitad
-   de una transacción.
+   ya que no considera su ejecución en ningún caso. Las transacciones SQL son
+   unidades de trabajo para ejecutarlas en un único servidor. El complemento no siempre sabe
+   cuándo comienza y cuándo finaliza una unidad de trabajo. Por lo tanto, el complemento podría
+   decidir intercambiar conexiones en mitad de una transacción.
+  </para>
+  <para>
+   Ningún tipo de equilibrador de carga de MySQL puede detectar los límites de una transacción sin ningún
+   tipo de sugerencia por parte de la aplicación.
   </para>
   <para>
    Se pueden usar sugerencias SQL para superar esta limitación. De forma alternativa,
@@ -700,7 +703,7 @@ $mysqli->close();
    complemento monitorizar el estado del modo <literal>autocommit</literal>, si
    el modo está establecido por llamadas a la API en lugar de usar sentencias SQL como
    <literal>SET AUTOCOMMIT=0</literal>. Esto permite que el complemento
-   considere las transacciones.
+   considere las transacciones. En este caso, es necesario usar sugerencias SQL.
   </para>
   <para>
    Si se está utlizando PHP 5.4.0 o superior, con las llamadas a la API que habilitan el modo <literal>autocommit</literal>,
@@ -1077,12 +1080,6 @@ PHP Warning:  mysqli::query(): (mysqlnd_ms) No connection selected by the last f
     </screen>
    </example>
   </para>
-  <note>
-   <title>La lógica de la tolerancia a fallos está sin terminar</title>
-   <para>
-    Los detalles de la lógica de la tolerancia a fallos pueden cambiar en versiones futuras.
-   </para>
-  </note>
  </section>
  <section xml:id="mysqlnd-ms.quickstart.gtid">
   <title>IDs de transacción globales</title>
@@ -1581,7 +1578,7 @@ var_dump($resultado->fetch_assoc());
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
 if (!$mysqli)
-  /* Por supuesto, su manejo de errores es más agradable... */
+  /* Por supuesto, su manejo de errores es mejor... */
   die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
 
 if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
@@ -1642,7 +1639,7 @@ $resultado = $mysqli->query("SELECT id FROM test");
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
 if (!$mysqli)
-  /* Por supuesto, su manejo de errores es más agradable... */
+  /* Por supuesto, su manejo de errores es mejor... */
   die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
 
 if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
@@ -1700,6 +1697,92 @@ var_dump($resultado->fetch_assoc());
    La calidad del servicio se puede cambiar en cualquier momento para evitar el uso de la caché.
    Si fuera necesario, se podría cambiar para leer sus escrituras (consistencia de sesión). En este caso,
    la caché no se usará y se leerán datos actuales.
+  </para>
+ </section>
+ <section xml:id="mysqlnd-ms.quickstart.failover">
+  <title>Tolerancia a fallos</title>
+  <para>
+   Por omisión, el complemento no intenta la tolerancia a fallos si falla al conectarse a un equipo
+   anfitrión. Esto evita los problemas relacionados con el
+   <link linkend="mysqlnd-ms.quickstart.connectionpooling">estado de la conexión</link>.
+   Se recomienda tratar de forma manual los errores de conexión de una manera similar a una transacción
+   fallida. Se debería capturar el error, reconstruir el estado de la conexión y volver a ejecutar la
+   consulta tal como se muestra abajo.
+  </para>
+  <para>
+   Si el estado de la conexión no es la cuestión, de forma alternativa se puede habilitar la tolerancia
+   a fallos automática y silenciosa. Dependiendo de la configuración, la tolerancia a fallos automática
+   y silenciosa se intentará en el maestro antes de emitir un error, o se intentará
+   conectar a otros esclavos, dada la consulta permitida para ello, antes de intentar conectarse
+   a un maestro.
+  </para>
+  <para>
+   <example>
+    <title>Tolerancia a fallos manual, opcional automáticia</title>
+    <programlisting role="ini">
+<![CDATA[
+  {
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost",
+                "socket": "\/tmp\/mysql.sock"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "simulate_slave_failure",
+                "port": "0"
+            },
+            "slave_1": {
+                "host": "127.0.0.1",
+                "port": 3311
+            }
+        },
+       "filters": { "roundrobin": [] }
+    }
+ }
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Tolerancia a fallos manual</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+if (!$mysqli)
+  /* Por supuesto, su manejo de errores es mejor... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+$sql = "SELECT 1 FROM DUAL";
+
+/* el manejo de errores debería realizarse sin tener en cuenta el complemento */
+if (!($res = $enlace->query($sql))) {
+  /* específico del complemento: comprobar errores de conexión */
+  switch ($enlace->errno) {
+    case 2002:
+    case 2003:
+    case 2005:
+      printf("Error de conexión - ¡intentando con el siguiente esclavo!\n");
+      /* el equilibrador de carga elegirá el siguiente esclavo */
+      $res = $enlace->query($sql);
+      break;
+    default:
+      /* no hay errores de conexión, la tolerancia a fallos es poco probable que ayude */
+      die(sprintf("SQL error: [%d] %s", $enlace->errno, $enlace->error));
+      break;
+  }
+}
+if ($res) {
+  var_dump($res->fetch_assoc());
+}
+?>
+]]>
+    </programlisting>
+   </example>
   </para>
  </section>
 </chapter>
