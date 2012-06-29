@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8549e3a1b12d26d356b8afd9fa84750ef14a0dde Maintainer: seros Status: ready -->
+<!-- EN-Revision: 219db352d7b37f9bc7bfe8b9e086d105e129872c Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -394,30 +394,34 @@
    unidad de trabajo consiste en una o más sentencias SQL.
   </para>
   <para>
-   De manera predeterminada, el complemento no considera las transacciones SQL. El complemento puede
+   De manera predeterminada, el complemento no considera las transacciones SQL. El complemento podría
    intercambiar conexiones para equilibrar la carga en cualquier momento. Los intercambios
    de conexión puede ocurrir en mitad de una transacción. Esto va contra la naturaleza
    de una transacción SQL. De manera predeterminada, el complemento no es seguro con transacciones.
   </para>
   <para>
-   En el momento de escribir esto, las aplicaciones que usan transacciones SQL junto con
-   el complemento deben utilizar <link linkend="mysqlnd-ms.quickstart.sqlhints">sugerencias SQL</link>
-   para deshabilitar el intercambio de conexiones en mitad de una transacción SQL. Véase también
-   la <link linkend="mysqlnd-ms.quickstart">sección de ejemplos</link>.
+   A cualquier tipo de equilibrador de carga de MySQL se le debe indicar el comienzo y el final de una
+   transacción. Esto se puede realizar implícitamente monitorizando las llamadas a la API
+   o usando sugerencias SQL. El complemento admite ambas opciones, dependiendo de la
+   versión de PHP. La monitorización de la API requiere PHP 5.4.0 o posterior. El complemento,
+   al igual que cualquier otro equilibrador de carga de MySQL, no puede detectar los límites de una transacción basada
+   en el Protocolo Cliente Servidor de MySQL. Por lo tanto, la consideración del equilibrado de carga de
+   transacciones totalmente transparente no es posible. La opción menos intrusiva es la monitorización
+   de la API, que requiere pocos o ningún cambio en la aplicación, dependiendo de
+   la misma.
   </para>
-  <!-- TODO Refactor PHP 5.4.0 references -->
-  <note>
-   <title>Características añadidas a partir de PHP 5.4.0</title>
-   <para>
-    La biblioteca <link linkend="book.mysqlnd">mysqlnd</link> permite que este complemento
-    derive la llamada <literal>set_autocommit()</literal> a la biblioteca de la API en C, para
-    detectar el estado del modo <literal>autocommit</literal>.
-   </para>
-   <para>
-    Se ha añadido el soporte para
-    <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">trx_stickiness=master</link>
-   </para>
-  </note>
+  <para>
+   Se pueden encontrar ejemplos del uso de sugerencias SQL o de la monitorización de la API en la
+   <link linkend="mysqlnd-ms.quickstart">sección de ejemplos</link>. Los
+   detalles trás la monitorización de la API, la cual hace que el complemento considere las
+   transacciones, están descritos abajo.
+  </para>
+  <para>
+   Desde PHP 5.4.0, la biblioteca <link linkend="book.mysqlnd">mysqlnd</link>
+   permite al complemento sobrescribir la llamada a <literal>set_autocommit()</literal>
+   de la API en C de la biblioteca, para detectar el estado del modo
+   <literal>autocommit</literal>.
+  </para>
   <para>
    Las extensiones de MySQL para PHP emiten una consulta (como <literal>SET AUTOCOMMIT=0|1</literal>),
    o usan la llamada a la biblioteca mysqlnd <literal>set_autcommit()</literal> para controlar
@@ -435,6 +439,12 @@
    se puede usar para hacer que el complemento considere las transacciones. De este modo, el complemento detiene el
    equilibrado de cara si 'autocommit' se deshabilita, y dirige todas las sentencias al maestro hasta que
    'autocommit' se habilite.
+  </para>
+  <para>
+   Una aplicación que no requiera establecer las sugerencias SQL para las transacciones pero que requiera
+   el uso de una monitorización transparente de la API para evitar cambios en la aplicación debe asegurarse
+   de que los ajustes del modo autocommit son cambiados exclusivamente a través de las llamadas
+   a la API enumeradas.
   </para>
  </section>
  
@@ -656,6 +666,9 @@ version = 5.6.2-m5-log
    la sentencia.
   </para>
   <para>
+   <emphasis role="bold">Predeterminado: tolerancia a fallos manual</emphasis>
+  </para>
+  <para>
    Es responsabilidad de
    la aplicación manejar el error y, si fuera necesario, reemitir la consulta para
    desencadenar la selección de otro servidor esclavo para la ejecución de la sentencia.
@@ -677,21 +690,66 @@ version = 5.6.2-m5-log
    toleranca a fallos con una conexión que ya ha sido establecida con MySQL anteriormente.
   </para>
   <para>
+   <emphasis role="bold">Tolerancia a fallos automática</emphasis>
+  </para>
+  <para>
    La política de la tolerancia a fallos se configura en el fichero de configuración del complemento,
    usando la directiva de configuración
    <link linkend="ini.mysqlnd-ms-plugin-config-v2.failover">failover</link>.
+  </para>
+  <para>
+   La tolerancia a fallos automática y silenciosa se puede habilitar a través de la directiva de
+   configuración <link linkend="ini.mysqlnd-ms-plugin-config-v2.failover">failover</link>.
+   La tolerancia a fallos automática se puede configurar para
+   intentarla en exactamente un maestro después del fallo de un esclavo, o, alternativamente, iterando
+   sobre los esclavos y maestros antes de devolver un error al usuario. El número
+   de intentos de conexión se puede limitar, y los equipos anfitriones fallidos se pueden excluir
+   de los intentos de equilibrado de carga futuros. La limitación del número de reintentos y
+   el recuerdo de los equipos anfitriones fallidos son considerados características experimentales, aunque son
+   razonablemente estables. La sintaxis y la semántica puede cambiar en versiones futuras.
   </para>
   <para>
    Se proporciona un ejemplo básico de tolerancia a fallos manual en la sección
    <link linkend="mysqlnd-ms.errorhandling">manejo de errores</link>.
   </para>
   <para>
+   <emphasis role="bold">Servidores de emergencia</emphasis>
+  </para>
+  <para>
+   Al usar el <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-random">equilibrado de carga ponderado</link>,
+   introducido en PECL/mysqlnd 1.4.0, es posible
+   configurar servidores de emergencia que son utilizados escasamente durante operaciones normales.
+   A un servidor de emergencia que se usa principalmente como objetivo en el peor de los casos de tolerancia a fallos de emergencia
+   se le puede asignar un peso o prioridad muy bajos en relación a los demás servidores.
+   Siempre y cuando todos los servidores estén activos y la ejecución de la mayoría del trabajo
+   sea asignada a los servidores que tienen valores de peso altos. Pocas peticiones
+   serán redirigidas a un sistema de emergencia que tenga un valor de peso muy bajo.
+  </para>
+  <para>
+   Cuando ocurre un fallo en los servidores con una prioridad alta, aún se puede realizar la tolerancia a fallos
+   en el sistema de emergencia, al cual se le ha dado una prioridad baja de equilibrado de carga asignándole un
+   peso bajo. La tolerancia a fallos puede ser manual o automática. Si se realiza
+   automáticamente se puede combinar con la
+   opción
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.failover"><literal>remember_failed</literal></link>.
+  </para>
+  <para>
+   En este punto, no es posible ordenar al equilibrador de carga que no dirija ninguna
+   petición al sistema de emergencia. Esto podría no ser una limitación dado que
+   el mayor peso que se puede asignar a un servidor es 65535. Dados dos esclavos,
+   uno de los cuales actuaría como de emergencia y al que se le ha asignado un peso de 1,
+   el sistema de emergencia tendrá que manejar mucho menos del 1 por ciento del total del trabajo.
+  </para>
+  <para>
+   <emphasis role="bold">Tolerancia a fallos y copia primaria</emphasis>
+  </para>
+  <para>
    Observe que si se utiliza un clúster de copia primario, tal como la Replicación MySQL, es
    difícil realizar la tolerancia a fallos de conexión en caso de que falle un maestro.
-   De cualquier manera, sólo hay un maestro en el clúster para un conjunto de datos dado.
+   En cualquier momento, sólo hay un maestro en el clúster para un conjunto de datos dado.
    El maestro es un único punto de fallo. Si el maestro falla, los clientes no tienen un objetivo donde
    realizar la tolerancia a fallos en peticiones de escritura. En caso de que un maestro apague la base de datos,
-   el administrador debe ocuparse de la situación y finalmente actualizar la configuración
+   el administrador debe ocuparse de la situación y actualizar la configuración
    del cliente, si fuera necesario.
   </para>
  </section>
@@ -749,6 +807,14 @@ version = 5.6.2-m5-log
    <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-roundrobin">roundrobin</link>,
    y <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-user">user</link>
    como <link linkend="mysqlnd-ms.filter">filtro</link>.
+  </para>
+  <para>
+   Los servidores se pueden priorizar asignándoles un peso. Un servidor al que se le haya dado
+   un peso de dos obtendrá el doble de peticiones que un servidor que se le haya dado el
+   peso predeterminado de uno. La prioridad puede ser muy útil en entornos
+   heterogéneos. Por ejemplo, si se quiere asignar más peticiones a
+   una máquina potente que una menos potente. O se pueden tener configurados
+   servidores que están cerca o lejos del cliente, y así exponer diferentes latencias.
   </para>
  </section>
  
@@ -1162,6 +1228,24 @@ version = 5.6.2-m5-log
     </listitem>
    </itemizedlist>
   </para>
+  <para>
+   <emphasis role="bold">Estrangulamiento</emphasis>
+  </para>
+  <para>
+   El filtro de calidad de servicio se puede combinar con
+   <link linkend="mysqlnd-ms.gtid">IDs de transacciones globales</link> para
+   estrangular clientes. El estrangulamiento reduce la carga de escritura en el maestro
+   desacelerando los clientes. Si se solicita la consistencia de sesión y
+   se usa el identificador de transacciones global para comprobar el estado de
+   un esclavo, esta comprobación se puede hacer de dos maneras. Por omisión, un esclavo
+   se comprueba y se salta inmediatamente si no concuerda con
+   el criterio de la consistencia de sesión. De forma alternativa, el
+   complemento puede esperar a que un esclavo se ponga al día con el maestro hasta
+   que la consistencia de sesión sea posible. Para habilitar el estrangulamiento
+   se debe establecer la
+   opción de configuración
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.gtid">wait_for_gtid_timeout</link>.
+  </para>
  </section>
  
  <section xml:id="mysqlnd-ms.gtid">
@@ -1484,7 +1568,7 @@ version = 5.6.2-m5-log
     <listitem>
      <simpara>
       Usar la tolerancia a fallos automática dentro de los candidatos, si fuera necesario
-    </simpara>
+     </simpara>
     </listitem>
    </itemizedlist>
   </para>
