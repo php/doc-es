@@ -1,0 +1,2797 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 219db352d7b37f9bc7bfe8b9e086d105e129872c Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="mysqlnd-ms.setup" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.setup;
+ 
+ <section xml:id="mysqlnd-ms.requirements">
+  &reftitle.required;
+  <para>
+   <literal>PHP 5.3.6</literal> o posterior.
+   Alguna funcionalidad avanzada requiere <literal>PHP 5.4.0</literal> o posterior.
+  </para>
+  <para>
+   El complemento de replicación y equilibrado de carga <literal>mysqlnd_ms</literal>
+   admite todas las aplicaciones de PHP y todas las extensiones de MySQL para PHP disponibles
+   (<link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link>,
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>).
+   La extensión de MySQL para PHP debe ser configurada para que utilice
+   <link linkend="book.mysqlnd">mysqlnd</link> para poder
+   usar el complemento <literal>mysqlnd_ms</literal> para
+   <link linkend="book.mysqlnd">mysqlnd</link>.
+  </para>
+ </section>
+ 
+ &reference.mysqlnd-ms.configure;
+ &reference.mysqlnd-ms.ini;
+ 
+ <section xml:id="mysqlnd-ms.plugin-ini-json">
+  <title xmlns="http://docbook.org/ns/docbook">Fichero de configuración del complemento (&gt;=1.1.x)</title>
+  <note>
+   <title>Registro de cambios: Característica añadida en PECL/mysqlnd_ms 1.1.0-beta</title>
+   <para>
+    La descripción de abajo se aplica a PECL/mysqlnd_ms &gt;= 1.1.0-beta.
+    No es válida para versiones anteriores.
+   </para>
+  </note>
+  <para>
+   El complemento usa su propio fichero de configuración. Éste
+   guarda información sobre el servidor maestro de replicación MySQL,
+   los servidores esclavos de replicación MySQL, la política de elección (equilibrado de carga),
+   la estrategia de tolerancia a fallos, y el uso de conexiones retardadas.
+  </para>
+  <para>
+   El complemento carga su fichero de configuración al comienzo de una petición web.
+   Entonces, es almacenado en la memoria caché y utilizado durante el resto de la petición web.
+   De esta forma, no hay necesidad de reiniciar PHP después de utilizar el fichero de
+   configuración. Los cambios de éste estarán activos casi instantáneamente.
+  </para>
+  <para>
+   La directiva de configuración de PHP
+   <link linkend="ini.mysqlnd-ms.ini-file"><literal>mysqlnd_ms.ini_file</literal></link>
+   se utiliza para establecer el fichero de configuración del complemento. Observe que
+   dicha direcitiva no puede ser evaluada para cada petición web.
+   Por lo tanto, el cambio del nombre del fichero de configuración del complemento o de su ubicación puede
+   requerir el reinicio de PHP. Sin embargo, no es necesario tal reinicio para leer los cambios si
+   se actualiza un fichero de configuración del complemento ya existente.
+  </para>
+  <para>
+   El uso y el análisis de <acronym>JSON</acronym> es eficiente, ya que con <acronym>JSON</acronym>
+   es más sencillo expresar estructuras de datos jerárquicas que con el formato estándar de
+   <filename>php.ini</filename>.
+  </para>
+  <para>
+   <example>
+    <title>Convertir un array de PHP (hash) al formato JSON</title>
+    <para>
+     O alternativamente, un desarrollador puede preferir la sintaxis de <type>array</type>s por estar
+     más familiarizado con ella. Este ejemplo demuestra cómo un desarrolador podría convertir un
+     array de PHP a <acronym>JSON</acronym>.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$config = array(
+  "myapp" => array(
+    "master" => array(
+      "master_0" => array(
+        "host"   => "localhost",
+        "socket" => "/tmp/mysql.sock",
+      ),
+    ),
+    "slave" => array(),
+  ),
+);
+
+file_put_contents("mysqlnd_ms.ini", json_encode($config, JSON_PRETTY_PRINT));
+printf("mysqlnd_ms.ini file created...\n");
+printf("Dumping file contents...\n");
+printf("%s\n", str_repeat("-", 80));
+echo file_get_contents("mysqlnd_ms.ini");
+printf("\n%s\n", str_repeat("-", 80));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+mysqlnd_ms.ini file created...
+Dumping file contents...
+--------------------------------------------------------------------------------
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost",
+                "socket": "\/tmp\/mysql.sock"
+            }
+        },
+        "slave": [
+
+        ]
+    }
+}
+--------------------------------------------------------------------------------
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   Un fichero de configuración del complemento consta de una o más secciones. Éstas
+   están representadas por las propiedades de nivel superior del
+   objeto codificado en el fichero <acronym>JSON</acronym>. Las secciones también podrían
+   llamarse <emphasis>nombres de configuración</emphasis>.
+  </para>
+  <para>
+   Las aplicciones hacen referencia a las secciones por su nombre. Las aplicaciones usan los nombres de las
+   secciones como el parámetro 'host' (servidor) de los distintos métodos de conexión de las extensiones
+   <link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link> y
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>. Durante la conexión,
+   el complemento de <link linkend="book.mysqlnd">mysqlnd</link> compara el nombre del equipo anfitrión
+   con todos los nombres de las secciones del fichero de configuración del complemento. Si el nombre del
+   equipo anfitrión y el nombre de la sección coinciden, el complemento cargará la configuración de esa sección.
+  </para>
+  <para xml:id="mysqlnd-ms.plugin-ini-json.using-section">
+   <example>
+    <title>Ejemplo del uso de nombres de sección</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.2.27"
+            },
+            "slave_1": {
+                "host": "192.168.2.27",
+                "port": 3306
+            }
+        }
+    },
+    "localhost": {
+        "master": [
+            {
+                "host": "localhost",
+                "socket": "\/path\/to\/mysql.sock"
+            }
+        ],
+        "slave": [
+            {
+                "host": "192.168.3.24",
+                "port": "3305"
+            },
+            {
+                "host": "192.168.3.65",
+                "port": "3309"
+            }
+        ]
+    }
+}
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* Todas las conexiones siguientes tendrán equilibrado de carga */
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+$pdo = new PDO('mysql:host=myapp;dbname=base_datos', 'nombre_usuario', 'contraseña');
+$mysql = mysql_connect("myapp", "nombre_usuario", "contraseña");
+
+$mysqli = new mysqli("localhost", "nombre_usuario", "contraseña", "base_datos");
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Los nombres de sección son cadenas de texto. Es válido usar nombres de sección como
+   <literal>192.168.2.1</literal>, <literal>127.0.0.1</literal> o
+   <literal>localhost</literal>. Si, por ejemplo, una aplicación
+   se conexta a <literal>localhost</literal> y existe una sección de configuración
+   del complemento llamada <literal>localhost</literal>, la
+   semántica de la operación de conexión se cambia. La aplicación ya
+   no usará únicamente el servidor MySQL que se ejecuta en el equipo anfitrión
+   <literal>localhost</literal>, sino que el complemento iniciará el equilibrado de carga
+   de las consultas MySQL siguiendo las reglas de la sección de configuración
+   <literal>localhost</literal>. De esta manera se puede realizar el equilibrado de carga de consultas
+   desde una aplicación sin cambiar el código fuente de la misma.
+   Recuerde que tal configuración puede no contribuir a la
+   legibilidad global del código fuente de las aplicaciones. El uso de nombres de sección
+   combinado con nombres de equipos anfitriones debería ser el último recurso.
+  </para>
+  <para xml:id="mysqlnd-ms.plugin-ini-json.server-list-syntax">
+   Cada sección de configuración contiene, como mínimo, una lista de sevidores maestros
+   y una lista de servidores esclavos. La lista de maestros se configura con la palabra clave
+   <literal>master</literal>, mientras que la lista de esclavos se configura con la
+   palabra clave <literal>slave</literal>. El no proporcionar una lista de esclavos resultará
+   en un error fatal de nivel <constant>E_ERROR</constant>, aunque la lista de esclavos
+   puede estar vacía. Es posible prohibir esclavos. Sin embargo, esto solo se recomienda
+   para clústeres sincrónicos. Véanse también los
+   <link linkend="mysqlnd-ms.supportedclusters">clústeres admitidos</link>.
+   La parte principal de esta documentación se centra en el uso de
+   clústeres de replicación MySQL asíncronos.
+  </para>
+  <para>
+   Las listas de servidores maestros y esclavos se pueden indexar opcionalmente mediante nombres
+   simbólicos para los servidores que describen. De forma alternativa, se puede utlizar un array
+   con descripciones de los servidores esclavos y maestros.
+  </para>
+  <para>
+   <example>
+    <title>Lista de esclavos anónimos</title>
+    <programlisting role="ini">
+<![CDATA[
+"slave": [
+    {
+        "host": "192.168.3.24",
+        "port": "3305"
+    },
+    {
+        "host": "192.168.3.65",
+        "port": "3309"
+    }
+]
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Una lista de servidores anónimos está codificada por el tipo <literal>array de JSON</literal>.
+   Opcionalmente, se pueden usar los nombres simbólicos para indexar los servidores esclavos o maestros
+   de una lista de servidores, realizándolo mediante el tipo <literal>objeto de JSON</literal>.
+  </para>
+  <para>
+   <example>
+    <title>Lista de maestros usando nombres simbólicos</title>
+    <programlisting role="ini">
+<![CDATA[
+"master": {
+    "master_0": {
+        "host": "localhost"
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Se recomienda indexar las listas de servidores con nombres de servidores simbólicos.
+   Los sobrenombres se mostrarán en los mensajes de error.
+  </para>
+  <para>
+   mysqlnd_ms preserva el orden de los servidores y lo toma en cuenta.
+   Si, por ejemplo, se configura una estrategia de equilibrado de carga de rotación, la
+   primera sentencia <literal>SELECT</literal> será ejecutada en el esclavo
+   que aparece en primer lugar en la lista de servidores esclavos.
+  </para>
+  <para>
+   Un servidor configurado puede ser descrito con <literal>host</literal>,
+   <literal>port</literal>, <literal>socket</literal>, <literal>db</literal>,
+   <literal>user</literal>, <literal>password</literal> y <literal>connect_flags</literal>.
+   Es obligatorio establecer el equipo anfitrión del servidor de la base de datos mediante la palabra clave
+   <literal>host</literal>. Todos los demás ajustes son opcionales.
+  </para>
+  <para>
+   <example>
+    <title>Palabras clave para configurar un servidor</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "db_server_host",
+                "port": "db_server_port",
+                "socket": "db_server_socket",
+                "db": "database_resp_schema",
+                "user": "user",
+                "password": "password",
+                "connect_flags": 0
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "db_server_host",
+                "port": "db_server_port",
+                "socket": "db_server_socket"
+            }
+        }
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Si se omite un ajuste, el complemento usará el valor proporcionado por la llamada a la API
+   hecha por el usuario utilizada para abrir la conexión. Véase el
+   <link linkend="mysqlnd-ms.plugin-ini-json.using-section">ejemplo de uso de nombres de sección</link> de arriba.
+  </para>
+  <para>
+   El formato del fichero de configuración ha sido cambiado en la versión 1.1.0-beta para permitir
+   los filtros encadencados. Los filtros son los responsables de filtrar la lista de servidores configurados
+   para identificar un servidor para que ejecute una sentencia dada.
+   Los filtros se configuran con la palabra clave <literal>filter</literal>. Éstos
+   son ejecutados por mysqlnd_ms en el orden en que aparecen.
+   La definción de filtros es opcional. Una sección de configuración del fichero de
+   configuración del complemento no necesita tener una entrada <literal>filters</literal>.
+  </para>
+  <para>
+   Los filtros reemplazan al ajuste
+   <link linkend="ini.mysqlnd-ms-plugin-config.pick"><literal>pick[]</literal></link>
+   de versiones anteriores. Los nuevos filtros <literal>random</literal> y
+   <literal>roundrobin</literal> proporcionan la misma funcionalidad.
+  </para>
+  <para>
+   <example>
+    <title>El nuevo filtro <literal>roundrobin</literal>, funcionalidad antigua</title>
+    <programlisting role="ini">
+<![CDATA[
+   {
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            },
+            "slave_1": {
+                "host": "192.168.78.137",
+                "port": "3306"
+            }
+        },
+        "filters": {
+            "roundrobin": [
+
+            ]
+        }
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   La función
+   <function>mysqlnd_ms_set_user_pick_server</function>
+   ha sido eliminada. El establecimiento de una llamada de retorno ahora se realiza con el filtro
+   <literal>user</literal>. Algunos filtros aceptan parámetros. El filtro <literal>user</literal>
+   requiere y acepta el parámetro obligatorio <literal>callback</literal>
+   para establecer la llamada de retorno que antes se establecía a través de la función <function>mysqlnd_ms_set_user_pick_server</function>.
+   <example>
+    <title>El filtro <literal>user</literal> reemplaza a <function>mysqlnd_ms_set_user_pick_server</function></title>
+    <programlisting role="ini">
+<![CDATA[
+"filters": {
+    "user": {
+        "callback": "pick_server"
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   He aquí una breve explicación de las directivas de configuración que se pueden usar.
+  </para>
+  <para>
+   <variablelist>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.master">
+     <term>
+      <parameter>master</parameter>
+      <type>array o object</type>
+     </term>
+     <listitem>
+      <para>
+       Lista de los servidores maestros de replicación MySQL. La lista es
+       del tipo <literal>array de JSON</literal>, para declarar una lista anónima
+       de servidores, o del tipo <literal>objeto de JSON</literal>.
+       Por favor, véanse los
+       <link linkend="mysqlnd-ms.plugin-ini-json.server-list-syntax">ejemplos de arriba</link>.
+      </para>
+      <para>
+       Es obligatorio establecer al menos un servidor maestro. El complemento emitirá un
+       error de tipo <literal>E_ERROR</literal> si el usuario no ha proporcionado
+       una lista de servidores maestros en una sección de configuración.
+       El error fatal puede ser
+       <literal>(mysqlnd_ms) Section [master] doesn't exist for host [name_of_a_config_section] in %s on line %d</literal>
+       ((mysqlnd_ms) La sección [master] no existe para el equipo anfitrión [nombre_de_una_sección_de_configurción] en %s en la línea %d).
+      </para>
+      <para>
+       Un servidor se describe con las palabras clave
+       <literal>host</literal>, <literal>port</literal>,
+       <literal>socket</literal>, <literal>db</literal>,
+       <literal>user</literal>, <literal>password</literal> y
+       <literal>connect_flags</literal>. Es obligatorio
+       proporcionar al menos un valor para <literal>host</literal>. Si no se proporcionan
+       cualesquiera de los otros valores, se tomarán de la llamada de conexión del usuario
+       a la API, véase también:
+       <link linkend="mysqlnd-ms.plugin-ini-json.using-section">ejemplo de uso de nombres de sección</link>.
+      </para>
+      <para xml:id="mysqlnd-ms.plugin-ini-json.server-config-keywords">
+       Tabla de las palabras clave de configuración del servidor.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>host</literal>
+          </entry>
+          <entry>
+           <para>
+            El equipo anfitrión servidor de las bases de datos. Es un ajuste obligatorio.
+            Si no se proporcina causará un error de tipo <literal>E_RECOVERABLE_ERROR</literal>
+            cuando el complemento intente conectarse al servidor. El mensaje de error puede ser
+            <literal>(mysqlnd_ms) Cannot find [host] in [%s] section in config in %s on line %d</literal>
+            ((mysqlnd_ms) No se pudo encontrar [host] en la sección [%s] de configuración en %s en la línea %d).
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>port</literal>
+          </entry>
+          <entry>
+           <para>
+            El puerto TCP/IP del servidor de las bases de datos.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>socket</literal>
+          </entry>
+          <entry>
+           <para>
+            El socket de dominio Unix del servidor de las bases de datos.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>db</literal>
+          </entry>
+          <entry>
+           <para>
+            La base de datos (esquema).
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>user</literal>
+          </entry>
+          <entry>
+           <para>
+            El usuario de la base de datos MySQL.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>password</literal>
+          </entry>
+          <entry>
+           <para>
+            La constraseña del usuario de la base de datos MySQL.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>connect_flags</literal>
+          </entry>
+          <entry>
+           <para>
+            Banderas de conexión.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+      <para>
+       El complemento únicamente admite el uso de un servidor maestro. Existe un ajuste
+       experimental para habilitar el soporte de múltiples maestros. Los detalles no
+       están documentados. El ajuste sólo se menciona para desarrollo.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.slave">
+     <term>
+      <parameter>slave</parameter>
+      <type>array o object</type>
+     </term>
+     <listitem>
+      <para>
+       Lista de uno o más servidores esclavos de replicación MySQL. La sintaxis es
+       idéntica a la de lo servidores maestros, véase
+       <link linkend="ini.mysqlnd-ms-plugin-config-v2.master"><literal>master</literal></link>
+       más arriba para más detalles.
+      </para>
+      <para>
+       El complemento admite el uso de uno o más servidores esclavos.
+      </para>
+      <para>
+       Es obligatorio establecer una lista de servidores esclavos. El complemento notificará
+       un error de tipo <literal>E_ERROR</literal> si no se proporciona
+       <literal>slave</literal> para una sección de configuración. El mensaje de error fatal puede ser
+       <literal>(mysqlnd_ms) Section [slave] doesn't exist for host [%s] in %s on line %d</literal>
+       ((mysqlnd_ms) La sección [slave] no existe para el equipo anfitrión [%s] en %s en la línea %d).
+       Observe que es válido usar una lista de servidores esclavos vacía.
+       Este error ha sido introducido para evitar que no se establezcan esclavos de forma accidental si se olvida el ajuste <literal>slave</literal>.
+       Es posible configurar un único maestro si se utiliza una lista de servidores esclavos vacía.
+      </para>
+      <para>
+       Si se configura una lista de esclavos vacía y se intenta
+       ejecutar una sentencia en un esclavo, el complemento podría emitir una advertencia como
+       <literal>(mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from.</literal>
+       ((mysqlnd_ms) No se pudo encontrar la conexión esclava apropiada. 0 esclavos de donde elegir) durante la ejecución de la sentencia.
+       Es posible que le siga otra advertencia, como <literal>(mysqlnd_ms) No connection selected by the last filter</literal>
+       ((mysqlnd_ms) El último filtro no seleccionó ninguna conexión).
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.gtid">
+     <term>
+      <parameter>global_transaction_id_injection</parameter>
+      <type>array o object</type>
+     </term>
+     <listitem>
+      <para>
+       La configuración del identificador de transacciones global está relacionada tanto con
+       el uso de la característica del ID de transacciones global interno del servidor como con la
+       emulación en el lado del cliente.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>fetch_last_gtid</literal>
+          </entry>
+          <entry>
+           <para>
+            Senetencia SQL para acceder al último identificador de transaccioens global.
+            La sentencia SQL se ejecuta si el complemento necesita conocer el identificador de
+            transacciones global más reciente. Este puede ser el caso cuando, por ejemplo, se comprueba
+            el estado de un esclavo de Replicación MySQL.
+            También se usa con <function>mysqlnd_ms_get_last_gtid</function>.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>check_for_gtid</literal>
+          </entry>
+          <entry>
+           <para>
+            Sentencia SQL para comprobar si una réplica ha replicado
+            todas las transacciones hasta, e incluyendo a, la buscada. La
+            sentencia SQL se ejecuta cuando se buscan réplicas que pueden ofrecer
+            un nivel mayor de consistencia que la consistencia final.
+            La sentencia puede contener el parámetro de sustitución <literal>#GTID</literal>,
+            el cual es reemplazado con el identificador de transacciones global buscado
+            por el complemento. Por favor, revise los ejemplos de la
+            <link linkend="mysqlnd-ms.quickstart.gtid">guía rápica</link>.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>report_errors</literal>
+          </entry>
+          <entry>
+           <para>
+            Si se ha de emitir un error de tipo 'warning' si ocurriera un problema mientras
+            se ejecuta cualquiera de las sentencias SQL configuradas.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>on_commit</literal>
+          </entry>
+          <entry>
+           <para>
+            (Solamente para la emulación del ID de transacciones global en el lado del cliente). Sentencia SQL
+            a ejecutar cuando una transacción finaliza y acutaliza el número de secuencia del
+            identificador de transacciones global en el maestro. Por favor, vea los ejemplo de la
+            <link linkend="mysqlnd-ms.quickstart.gtid">guía rápida</link>.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>wait_for_gtid_timeout</literal>
+          </entry>
+          <entry>
+           <para>
+            Ordena al complemento que espere hasta <literal>wait_for_gtid_timeout</literal>
+            segundos para que un esclavo se ponga al día cuando se busquen esclavos que puedan
+            proporcionar la consistencia de sesión. Este ajuste limita el tiempo empleado en
+            obtener el estados de los esclavos. Si dicha obtención toma mucho tiempo, el tiempo de
+            espera total empleado puede exceder <literal>wait_for_gtid_timeout</literal>.
+            El complemento llama a <literal>sleep(1)</literal> para dormir un segundo entre
+            cada dos obtenciones.
+           </para>
+           <para>
+            El ajuste se puede usar junto con la emulación en el lado del cliente del complemento
+            y la característica del identificador de transacciones global del lado del servidore de MySQL 5.6.
+           </para>
+           <para>
+            La espera de que un esclavo replique un GTID en particular necesario para la consistencia
+            de sesión también signifiva estrangular el cliente. El estrangulamiento del
+            cliente reduce indirectamente la carga de escrigura del maestro. A un
+            sistema de replicación basado en copia primaria,, como la Replicación MySQL,
+            se le da más tiempo para alcanzar un estado consistente. Esto puede ser útil,
+            por ejemplo, para aumentar el número de copias de datos para
+            consideraciones de alta disponibilidad, o para prevenir que el maestro sea
+            sobrecargado.
+           </para>
+          </entry>
+          <entry>Desde 1.4.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filters">
+     <term>
+      <parameter>filters</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       Lista de filtros. Un filtro es el responsable de filtrar la lista de servidores
+       disponibles que puedan ejecutar una setentcia dada. Los filtros se pueden encadenar.
+       Los filtros <literal>random</literal> y <literal>roundrobin</literal>
+       reemplazan a la directiva
+       <link linkend="ini.mysqlnd-ms-plugin-config.pick"><literal>pick[]</literal></link>
+       usada en versiones anteriores para seleccionar una política de equilibrado de carga.
+       El filtro <literal>user</literal> reemplaza a la función
+       <function>mysqlnd_ms_set_user_pick_server</function>.
+      </para>
+      <para>
+       Los filtros pueden aceptar parámetros para refinar sus acciones.
+      </para>
+      <para>
+       Si no está establecida una política de equilibrado de carga, el complemento asumirá el valor predeterminado
+       <literal>random_once</literal>. La política <literal>random_once</literal>
+       elige un servidor aleatorio al ejecutar la primera sentencia de solo lectura.
+       Este servidor esclavo se usará para todas las sentencias de solo lectura
+       hasta que finalice la ejecución del script de PHP. No se establece ninguna política
+       de equilibrado de carga y, por lo tanto, toma lugar el valor predeterminado
+       si ni <literal>random</literal> ni
+       <literal>roundrobin</literal> son parte de la sección de configuración.
+      </para>
+      <para>
+       Si una cadena de filtros es configurada de modo que la salida de un filtro que no
+       produzca más de un servidor sea usada como entrada para otro filtro al que se le debería proporcionar
+       más de un servidor, el complemento podría emitir una advertencia sobre una
+       conexión abierta. La advertencia podría ser: <literal>(mysqlnd_ms) Error while creating filter '%s' . Non-multi filter '%s' already created.
+       Stopping in %s on line %d</literal>
+       ((mysqlnd_ms) Error al crear el filtro '%s' . No se ha creado aún el filtro múltiple '%s'.
+       Detenido en %s en la línea %d). Además, se puede establecer un error
+       de código <literal>2000</literal>, el estado sql <literal>HY000</literal>,
+       y un mensaje de error similar a la advertencia, sobre el gestor de conexión.
+      </para>
+      <para>
+       <example>
+        <title>Secuencia de filtros inválida</title>
+        <programlisting role="ini">
+<![CDATA[
+       {
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "filters": [
+            "roundrobin",
+            "random"
+        ]
+    }
+}
+]]>
+        </programlisting>
+        <programlisting role="php">
+<![CDATA[
+<?php
+$enlace = new mysqli("myapp", "root", "", "test");
+printf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+$enlace->query("SELECT 1 FROM DUAL");
+?>
+]]>
+        </programlisting>
+        &example.outputs;
+        <screen>
+<![CDATA[
+PHP Warning:  mysqli::mysqli(): (HY000/2000): (mysqlnd_ms) Error while creating filter 'random' . Non-multi filter 'roundrobin' already created. Stopping in filter_warning.php on line 1
+[2000] (mysqlnd_ms) Error while creating filter 'random' . Non-multi filter 'roundrobin' already created. Stopping
+PHP Warning:  mysqli::query(): Couldn't fetch mysqli in filter_warning.php on line 3
+]]>
+        </screen>
+       </example>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filter-random">
+     <term>
+      Filtro: <parameter>random</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       El filtro <literal>random</literal> introduce las políticas de equilibrado de carga
+       "aleatoria" y "aleatoria una vez", establecidas a través de la directiva
+       <link linkend="ini.mysqlnd-ms-plugin-config.pick"><literal>pick[]</literal></link>
+       en versiones anteriores.
+      </para>
+      <para>
+       La política "aleatoria" eligirá un servidor aleatorio siempre que
+       se vaya a ejecutar una sentencia de solo lectura. La estrategia "aleatoria una vez"
+       elige un servidor esclavo aleatorio una vez y continuará usándolo para el
+       resto de la petición web. "Aleatoria una vez" es la predeterminada,
+       si el equilibrado de carga no está configurado a través de un filtro.
+      </para>
+      <para>
+       Si al filtro <literal>random</literal> no se le proporciona ningún argumento,
+       permanecerá la política de equilibrado de carga aleatoria.
+      </para>
+      <para>
+       <example>
+        <title>Equilibrado de carga aleatorio con el filtro <literal>random</literal></title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            },
+            "slave_1": {
+                "host": "192.168.78.137",
+                "port": "3306"
+            }
+        },
+        "filters": [
+            "random"
+        ]
+    }
+}
+
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Opcionalmente, se puede pasar el argumento <literal>sticky</literal> al
+       filtro. Si se establece el parámetro <literal>sticky</literal> al string
+       <literal>1</literal>, el filtro seguirá la estrategia de equilibrado de carga
+       "aleatoria una vez".
+      </para>
+      <para>
+       <example>
+        <title>Equilibrado de carga "aleatoria una vez" con el filtro <literal>random</literal></title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "filters": {
+        "random": {
+            "sticky": "1"
+        }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Los filtros <literal>random</literal> y <literal>roundrobin</literal>
+       admiten el establecimiento de una prioridad, un peso para un servidor, desde
+       PECL/mysqlnd_ms 1.4.0. Si se pasa el argumento <literal>weight</literal> 
+       al filtro, debe asginar un peso para todos los servidores. A los servidores se les
+       debe proporcionar un sobrenombre en las listas de servidores <literal>slave</literal> y
+       <literal>master</literal> respectivamente. El alias debe usarse
+       para hacer referencia a servidores para asignarles una prioridad con <literal>weight</literal>.
+      </para>
+      <para>
+       <example>
+        <title>Error de referencia</title>
+        <screen>
+<![CDATA[
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown server 'slave3' in 'random' filter configuration. Stopping in %s on line %d
+]]>
+        </screen>
+       </example>
+      </para>
+      <para>
+       Usar un sobrenombre erróneo con <literal>weight</literal> podría resultar en
+       un error similar al mostrado arriba.
+      </para>
+      <para>
+       Si se omite <literal>weight</literal>, el peso predeterminado de
+       todos los servidores es uno.
+      </para>
+      <para>
+       <example>
+        <title>Asignar <literal>weight</literal> para el equilibrado de carga</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+   "myapp": {
+       "master": {
+           "master1":{
+               "host":"localhost",
+               "socket":"\/var\/run\/mysql\/mysql.sock"
+           }
+       },
+       "slave": {
+           "slave1": {
+               "host":"192.168.2.28",
+               "port":3306
+           },
+           "slave2": {
+               "host":"192.168.2.29",
+               "port":3306
+           },
+           "slave3": {
+               "host":"192.0.43.10",
+               "port":3306
+           },
+       },
+       "filters": {
+           "random": {
+               "weights": {
+                   "slave1":8,
+                   "slave2":4,
+                   "slave3":1,
+                   "master1":1
+               }
+           }
+       }
+   }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Como promedio, un servidor al que se le asigne un peso de dos será seleccionado el doble
+       que un servidor al que se la haya asignado un peso de uno. Se pueden asignar diferentes
+       pesos para reflejar diferentes tipos de máquinas, para preferir coubicar esclavos
+       que tienen una latencia de red baja o para configurar un servidor de tolerancia a fallos de emergencia.
+       En este último caso, se podría asignar al servidor de emergencia un peso muy bajo
+       en relación con los demás servidores. Por ejemplo, dada la
+       configuración de arriba, <literal>slave3</literal> obtendrá solamente el ocho
+       por ciento de las peticiones como media. Mientras que <literal>slave1</literal>
+       y <literal>slave2</literal> estén ejecutándose, se usarán con poca frecuencia,
+       de forma similar a un servidor de tolerancia a fallos de emergencia. Si ocurre un fallo de <literal>slave1</literal>
+       y de <literal>slave2</literal>, el uso de <literal>slave3</literal>
+       aumenta. Por favor, revise las notas sobre la tolerancia a fallos antes de usar
+       <literal>weight</literal> de esta manera.
+      </para>
+      <para>
+       El rango de valores válidos del peso es de 1 a 65535.
+      </para>
+      <para>
+       Los argumentos desconocidos son ingnorados. No se dan advertencias ni errores.
+      </para>
+      <para>
+       Espera uno o más servidores como entrada. Produce un servidor.
+       Una secuencia de filtros como
+       <literal>random</literal>, <literal>roundrobin</literal>, puede
+       causar una advertencia y establecer un mensaje de error sobre el gestor de
+       conexión cuando se ejecute una sentencia.
+      </para>
+      <para>
+       Listado de los argumentos del filtro.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>sticky</literal>
+          </entry>
+          <entry>
+           <para>
+            Habilita o deshabilita la política de equilibrado de carga
+            "aleatoria una vez". Véase más arriba.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>weight</literal>
+          </entry>
+          <entry>
+           <para>
+            Asigna un peso o prioridad de equilibrado de carga a
+            un servidor. Por favor, véase la descripción de arriba.
+           </para>
+          </entry>
+          <entry>Desde 1.4.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filter-roundrobin">
+     <term>
+      Filtro: <parameter>roundrobin</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       Si se utiliza el filtro <literal>roundrobin</literal>, el complemento
+       iterará sobre la lista de servidores esclavos configurados para elegir un servidor
+       para que ejecute una sentencia. Si el complemento alcanza el final de la lista,
+       volverá al inicio de la misma y eligirá el primer
+       servidor esclavo configurado.
+      </para>
+      <para>
+       <example>
+        <title>Filtro <literal>roundrobin</literal></title>
+        <programlisting role="ini">
+<![CDATA[
+       {
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "filters": [
+            "roundrobin"
+        ]
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Espera uno o más servidores como entrada. Produce un servidor.
+       Una secuencia de filtros como
+       <literal>roundrobin</literal>, <literal>random</literal>, puede
+       causar una advertencia y establecer un mensaje de error sobre el gestor de
+       conexión cuando se ejecute una sentencia.
+      </para>
+      <para>
+       Listado de los argumentos del filtro.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>weight</literal>
+          </entry>
+          <entry>
+           <para>
+            Asigna un peso o prioridad de equilibrado de carga a
+            un servidor. Por favor, véase la descipción de
+            <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-random">arriba</link>.
+           </para>
+          </entry>
+          <entry>Desde 1.4.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filter-user">
+     <term>
+      Filtro: <parameter>user</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       El filtro <literal>user</literal> reemplaza a la función
+       <function>mysqlnd_ms_set_user_pick_server</function>,
+       la cual ha sido eliminada en la versión 1.1.0-beta. El filtro establece una llamada de retorno para la
+       división de lectura-escritura y la selección del servidor definidas por el usuario.
+      </para>
+      <para>
+       Las decisiones del mecanismo de división de consultas de lecura-escritura interno pueden ser
+       sobrescritas de dos maneras. La más sencilla es anteponer a una consulta
+       las sugerentecias SQL <constant>MYSQLND_MS_MASTER_SWITCH</constant>,
+       <constant>MYSQLND_MS_SLAVE_SWITCH</constant> o
+       <constant>MYSQLND_MS_LAST_USED_SWITCH</constant>. Al utilizar sugerencias SQL se puede
+       controlar, por ejemplo, si una consulta debería ser enviada al servidor maestro de replicación
+       MySQL o a uno de los servidores esclavos. Mediante la ayuda de sugenrencias SQL no es
+       posible elegir un esclavo en particular para que ejecute una consulta.
+      </para>
+      <para>
+       Se puede obtener control total en la selección del servidor usando una función de llamada de retorno.
+       Solamente se recomienda el uso de una llamada de retorno para usuarios expertos, ya que ésta
+       ha de cubrir todos los casos de otro modo manejados por el complemento.
+      </para>
+      <para>
+       El complemento invorcará a la función de llamada de retorno para seleccionar un servidor de las
+       listas de servidores maestros y esclavos configurados. La función de llamada de retorno
+       inspeccionará la consulta a ejecutar y eligirá un servidor para que ejecute dicha consulta, devolviendo
+       el URI del equipo anfitrión, tal como lo encontró en la lista de maestros y esclavos.
+      </para>
+      <para>
+       Si las conexiones retardadas están habilitadas y la llamada de retorno elige un servidor esclavo para
+       el que hasta ahora no se ha establecido una conexión, y el establecimiento de la conexión
+       al esclavo falla, el complemento devolverá un error sobre la siguiente acción
+       en la conexión fallida, por ejemplo, al ejecutar una consulta. Es
+       responsabilidad del desarrollador de la aplicación manejar el error. Por ejemplo,
+       la aplicación podría re-ejecutar la consulta para desencadenar una nueva selección de un servidor y una nueva
+       invocación a la llamada de retorno. Si lo hace, la llamada de retorno debe asegurarse de seleccionar
+       un esclavo diferente, o comprobar la disponibilidad del esclavo, antes de devolver el resultado al
+       complemento para evitar un bucle infinito.
+      </para>
+      <para>
+       <example>
+        <title>Establecer una llamada de retorno</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "filters": {
+            "user": {
+                "callback": "pick_server"
+            }
+        }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Se espera que la llamada devuelva un equipo anfitrión donde ejecutar la consulta.
+       El URI del equipo anfitrión se tomará de las listas de conexión maestras y esclavas
+       pasadas a la función de llamada de retorno. Si ésta devuelve un valor
+       que no se encuentra el las listas de conexión maestras ni en las esclavas, el
+       complemento emitirá un error de tipo <literal>E_RECOVERABLE_ERROR</literal>. El error puede ser
+       <literal>(mysqlnd_ms) User filter callback has returned an unknown server.
+        The server 'server that is not in master or slave list' can neither be found in the master list nor in the slave list</literal>
+       ((mysqlnd_ms) La llamada de retorno del filtro de usuario ha devuelto un servidor desconocido.
+       El servidor 'servidor que no está en la lista de maestros o esclavos' no se puede encontrar en ni en la lista de maestros ni en la de esclavos).
+       Si la aplicación captura el error para ignorarlo, los errores siguientes
+       pueden ser establecidos en el gestor de conexión, por ejemplo,
+       <literal>(mysqlnd_ms) No connection selected by the last filter</literal>
+       ((mysqlnd_ms) El último filtro no seleccionó ninguna conexión) con el código de error <literal>2000</literal>
+       y el estado sql <literal>HY000</literal>. Además se puede emitir una advertencia.
+      </para>
+      <para>
+       Si se hace referencia a una función inexistente como llamada de retorno, resultará
+       en cualquier error de tipo <literal>E_RECOVERABLE_ERROR</literal> siempre que
+       el complemento intente invocar a dicha función. El mensaje de error puede ser como:
+       <literal>(mysqlnd_ms) Specified callback (pick_server) is not a valid callback</literal>
+       ((mysqlnd_ms) La llamada de retorno (pick_server) no es una llamada de retorno válida).
+       Si la aplicación captura el error para ignorarlo, los errores siguientes pueden ser
+       establecidos en el gestor de conexión, por ejemplo,
+       <literal>(mysqlnd_ms) Specified callback (pick_server) is
+        not a valid callback</literal> con el código de error <literal>2000</literal>
+       y el estado sql <literal>HY000</literal>. Admás se puede emitir una advertencia.
+      </para>
+      <para>
+       Los siguientes parámetros son pasados desde el complemento a la llamada de retorno.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Parámetro</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>connected_host</literal>
+          </entry>
+          <entry>
+           <para>
+            El URI del servidor de las bases de datos conectado actualmente.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>query</literal>
+          </entry>
+          <entry>
+           <para>
+            La consulta de la sentencia para la cual un servidor necesita
+            ser elegido.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>masters</literal>
+          </entry>
+          <entry>
+           <para>
+            La lista de servidores maestros de donde elegir. Observe que la lista de servidores
+            maestros puede no ser idéntica a la lista de servidores maestros
+            configurados si el filtro no es el primero en la cadena de filtros.
+            Los filtros ejecutados anteriormente puede haber reducido la lista de
+            maestros.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>slaves</literal>
+          </entry>
+          <entry>
+           <para>
+            La lista de servidores esclavos de donde elegir. Observe que la lista de servidores
+            maestros puede no ser idéntica a la lista de servidores maestros
+            configurados si el filtro no es el primero en la cadena de filtros.
+            Los filtros ejecutados anteriormente puede haber reducido la lista de
+            maestros.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>last_used_connection</literal>
+          </entry>
+          <entry>
+           <para>
+            El URI del servidor de la conexión usada donde ejecutar la sentencia
+            anterior.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>in_transaction</literal>
+          </entry>
+          <entry>
+           <para>
+            Bandera booleana que indica si la sentencia es
+            parte de una transacción abierta. Si el modo 'autocommit' está desactivado,
+            se establecerá a &true;. Si no,
+            se establecerá a &false;.
+           </para>
+           <para>
+            La detección de transacciones está basada en la monitorización de la
+            llamada a <literal>set_autocommit</literal> de la biblioteca mysqlnd .
+            La monitorización no era posible antes de PHP 5.4.0. Por favor, vea la argumentación de los conceptos sobre
+            <link linkend="mysqlnd-ms.pooling">agrupación e intercambio de conexiones</link>
+            para más detalles.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+      <para>
+       <example>
+        <title>Utilizar una llamada de retorno</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.2.27",
+                "port": "3306"
+            },
+            "slave_1": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "filters": {
+            "user": {
+                "callback": "pick_server"
+            }
+        }
+    }
+}
+]]>
+        </programlisting>
+        <programlisting role="php">
+<![CDATA[
+<?php
+function pick_server($connected, $query, $masters, $slaves, $last_used_connection, $in_transaction)
+{
+ static $slave_idx = 0;
+ static $num_slaves = NULL;
+ if (is_null($num_slaves))
+  $num_slaves = count($slaves);
+
+ /* predeterminado: volver a la lógica interna del comlemento */
+ $ret = NULL;
+
+ printf("El usuario se ha conectado a '%s'...\n", $connected);
+ printf("... decidiendo dónde ejecutar '%s'\n", $query);
+
+ $where = mysqlnd_ms_query_is_select($query);
+ switch ($where)
+ {
+  case MYSQLND_MS_QUERY_USE_MASTER:
+   printf("... usando el maestro\n");
+   $ret = $masters[0];
+   break;
+  case MYSQLND_MS_QUERY_USE_SLAVE:
+   /* SELECT or SQL hint for using slave */
+   if (stristr($query, "FROM table_on_slave_a_only"))
+   {
+    /* una tabla que está únicamente en el primer esclavo configurado  */
+    printf("... detectado un acceso a la tabla únicamente disponible en el esclavo A\n");
+    $ret = $slaves[0];
+   }
+   else
+   {
+    /* round robin */
+    printf("... alguna consulta de solo lectura para un esclavo\n");
+    $ret = $slaves[$slave_idx++ % $num_slaves];
+   }
+   break;
+  case MYSQLND_MS_QUERY_LAST_USED:
+   printf("... usando el último esclavo utilizado\n");
+   $ret = $last_used_connection;
+   break;
+ }
+
+ printf("... ret = '%s'\n", $ret);
+ return $ret;
+}
+
+$mysqli = new mysqli("myapp", "root", "", "test");
+
+if (!($res = $mysqli->query("SELECT 1 FROM DUAL")))
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+else
+ $res->close();
+
+if (!($res = $mysqli->query("SELECT 2 FROM DUAL")))
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+else
+ $res->close();
+
+
+if (!($res = $mysqli->query("SELECT * FROM table_on_slave_a_only")))
+ printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+else
+ $res->close();
+
+$mysqli->close();
+?>
+]]>
+       </programlisting>
+       &example.outputs;
+       <screen>
+<![CDATA[
+El usuario se ha conectado a 'myapp'...
+... decidiendo dónde ejecutar 'SELECT 1 FROM DUAL'
+... alguna consulta de solo lectura para un esclavo
+... ret = 'tcp://192.168.2.27:3306'
+El usuario se ha conectado a 'myapp'...
+... decidiendo dónde ejecutar 'SELECT 2 FROM DUAL'
+... alguna consulta de solo lectura para un esclavo
+... ret = 'tcp://192.168.78.136:3306'
+El usuario se ha conectado a 'myapp'...
+... decidiendo dónde ejecutar 'SELECT * FROM table_on_slave_a_only'
+... detectado un acceso a la tabla únicamente disponible en el esclavo A
+... ret = 'tcp://192.168.2.27:3306'
+]]>
+       </screen>
+      </example>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filter-user-multi">
+     <term>
+      Filtro: <parameter>user_multi</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       El filtro <literal>user_multi</literal> se diferencia de <literal>user</literal>
+       en un único aspecto. De otro modo su sintaxix sería idéntica.
+       El filtro <literal>user</literal> debe elegir
+       y devolver exactamente un nodo para la ejecución de sentecias. Una cadena de filtros
+       normalmente finaliza con un filtro que emite un único nodo. La cadena de filtros
+       reduciría la lista de candidatos para la ejecución de sentencias a
+       uno. Este es el caso, sólo queda un nodo, después de haber ejecutado
+       el filtro <literal>user</literal>.
+      </para>
+      <para>
+       El filtro <literal>user_multi</literal> es un filtro múltiple. Devuelve una
+       lista de servidors esclavos y una lista de servidores maestros. La lista necesita más filtración
+       para identificar exactamente un nodo para la ejecución de sentencias. Un filtro múltiple normalmente se
+       coloca al principio de la cadenda de filtros. El filtro <literal>quality_of_service</literal>
+       es otro ejemplo de filtro múltiple.
+      </para>
+      <para>
+       El valor devuelto por la llamada de retorno establecido por <literal>user_multi</literal> debe
+       ser un array con dos elementos. El primero contiene una lista de los servidores maestros
+       seleccionados. El segundo contiene una lista de los servidores esclavos seleccionados.
+       Las listas contendrán las claves de los servidores maestros y esclavos tal como se encontraron en
+       las listas de esclavos y maestros pasadas a la llamada de retorno. El ejemplo de abajo devuelve
+       listas de maestros y esclavos aleatorios extraídas de la entrada de la función.
+      </para>
+      <para>
+       <example>
+        <title>Devolver maestros y esclavos aleatorios</title>
+        <programlisting role="php">
+<![CDATA[
+<?php
+function pick_server($connected, $query, $masters, $slaves, $last_used_connection, $in_transaction)
+{
+  $maestros_elegidos = array()
+  foreach ($masters as $clave => $valor) {
+    if (mt_rand(0, 2) > 1)
+      $maestros_elegidos[] = $key;
+  }
+  $esclavos_elegidos = array()
+  foreach ($slaves as $clave => $valor) {
+    if (mt_rand(0, 2) > 1)
+      $esclavos_elegidos[] = $clave;
+  }
+  return array($maestros_elegidos, $esclavos_elegidos);
+}
+?>
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       El complemento emitirá un error de tipo <literal>E_RECOVERABLE</literal> si la llamada de retorno falla al devolver
+       la lista de servidores. El error puede ser <literal>(mysqlnd_ms) User multi filter
+       callback has not returned a list of servers to use. The callback must return an array in %s on line %d</literal>
+       ((mysqlnd_ms) La llamada de retorno del filtro de usuario no ha devuelto una lista de servidores a usar.
+       La llamada de retorno debe devolver un array en %s en la línea %d).
+       En caso de que la lista de servidores no esté vacía pero contenga claves/ids de servidores no válidos,
+       e lanzaráun error de tipo <literal>E_RECOVERABLE</literal> con un mensaje de error como
+       <literal>(mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use.
+        Server id is negative in %s on line %d</literal>
+       ((mysqlnd_ms) La llamada de retorno del filtro de usuario ha devuelto una lista de servidores a usar no válida. El id del servidor es negativo en %s en la línea %d), o similar.
+      </para>
+      <para>
+       La emisión de un error en caso de que la lista de esclavos o de maestros esté vacía
+       depende de la configuración. Si se devuelve una lista de maestros vacía
+       para una operación de escritura, es probable que el complemento emita una advertencia como
+       <literal>(mysqlnd_ms) Couldn't find the appropriate master connection. 0 masters to choose from. Something is wrong in %s on line %d</literal>
+       ((mysqlnd_ms) No se pudo encontrar la conexión maestra apropiada. 0 maestros donde elegir. Algo está mal en %s en la línea %d).
+       Normalmente también es seguida de un error de tipo <literal>E_ERROR</literal>.
+       En el caso de una operación de lectura con una lista de servidores vacía, el comportamiento depende de la configuración
+       de la tolerancia a fallos. Si ésta está habilitada en el maestro, no debería aparecer ningún error. Si está desactivada
+       en el maestro, el complemento emitirá una advertencia como <literal>(mysqlnd_ms) Couldn't find the appropriate
+       slave connection. 0 slaves to choose from. Something is wrong in %s on line %d</literal>
+       ((mysqlnd_ms) No se pudo encontrar la conexión esclava apropiada. 0 esclavos donde elegir. Algo está mal en %s en la línea %d).
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filter-qos">
+     <term>
+      Filtro: <parameter>quality_of_service</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       El filtro <literal>quality_of_service</literal> identifica nodos del clúster
+       capaces de proporcionar una calidad de servicio en particular. Es un filtro múltiple
+       que devuelve cero, uno o múltiples de los servidores que se le proporcionen. Por lo tanto,
+       deben seguirle otros filtros para reducir el número de candidatos
+       a uno para la ejecución de sentecnias.
+      </para>
+      <para>
+       El filtro <literal>quality_of_service</literal> ha sido introducido en la versión 1.2.0-alpha.
+       En las serires 1.2, el filtro se centra en el aspecto de la consistencia de
+       la calidad del servicio. Diferentes tipos de clústeres ofrecen diferentes
+       consistencias de datos predeterminadas. Por ejemplo, un esclavo de replicación MySQL
+       asíncrono ofrece consistencia final. El esclavo podría
+       no proporcionar los datos solicitados debido a que no ha replicado la escritura,
+       podría servir una base de datos antigua debido a su demora, o podría servir
+       información actual. A menudo, esto es aceptable. En algunos casos
+       son necesarios niveles de consistencia mayor para que la aplicación funcione correctamente.
+       En tales casos, <literal>quality_of_service</literal> puede ignorar los nodos del clúster
+       que no proporcionen la calidad de servicio necesaria.
+      </para>
+      <para>
+       El filtro <literal>quality_of_service</literal> puede ser reemplazado o creado
+       en tiempo de ejecución. Una llamada exitosa a
+       <function>mysqlnd_ms_set_qos</function>
+       elimina todas las entradas de los filtros <literal>qos</literal> existentes de la
+       lista de filtros e instala uno nuevo al principo de la misma. Todas los ajustes
+       que se pueden hacer a través de
+       <function>mysqlnd_ms_set_qos</function>
+       también pueden realizarse en el fichero de configuración del complemento. Sin embargo, el uso de la función
+       es de lejos el caso más común. En lugar de establecer los niveles de servicios de
+       consistencia de sesión y de consistencia fuerte en el fichero de configuración del complemento, se
+       recomienda definir solamente maestros, y no esclavos. Ambos niveles de servicio
+       forzarán el uso de maestros solamente. Usar una lista de esclavos vacía abrevia el
+       fichero de configuración, y así se mejora su legibilidad. El único nivel de servicio en el que
+       existe un caso para la definición en el fichero de configuración del complemento es la combinación de
+       consistencia final y demora máxima de esclavos.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>eventual_consistency</literal>
+          </entry>
+          <entry>
+           <para>
+            Solicita la consistencia final. Permite el uso de todos los
+            servidores maestros y esclavos. Los datos devueltos pueden o no ser actuales.
+           </para>
+           <para>
+            La consistencia final acepta el parámetro opcional <literal>age</literal>.
+            Si se proporciona <literal>age</literal>, el complemento considerará
+            para la lectura solamente los esclavos que la replicación MySQL notifique
+            que tengan una demora menor o igual a <literal>age</literal>.
+            La demora de replicación se mide usando <literal>SHOW SLAVE STATUS</literal>.
+            Si el complemento falla al recuperar la demora de replicación, saltará el esclavo
+            comprobado. Los detalles de implementación y algunos consejos se proporcionan en la
+            <link linkend="mysqlnd-ms.qos-consistency">sección de conceptos de calidad de servicio</link>.
+           </para>
+           <para>
+            Por favor, observe que si una cadena de filtros
+            genera un lista vacía de esclavos y se usa la directiva de configuración de PHP
+            <literal>mysqlnd_ms.multi_master=0</literal>, el complemento podría
+            emitir una advertencia.
+           </para>
+           <para>
+            <example>
+             <title>Límite global de la demora de los esclavos</title>
+             <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.2.27",
+                "port": "3306"
+            },
+            "slave_1": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "filters": {
+            "quality_of_service": {
+                "eventual_consistency": {
+                    "age":123
+                }
+            }
+        }
+    }
+}
+]]>
+             </programlisting>
+            </example>
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>session_consistency</literal>
+          </entry>
+          <entry>
+           <para>
+            Solicita la consistencia de sesión (lectura de sus escrituras). Permite el uso de todos los maestros
+            y todos los esclavos que están sincronizados con el maestro.
+            Si no se proporcionan más parámetros, los esclavos son filtrados
+            debido a que no existe una manera fiable de comprobar si un esclavo se a puesto al día con
+            respecto al maestro o si está retrasado. Por favor, observe que si una cadena de filtros
+            genera una lista de esclavos vacía y se usa la directiva de configuración de PHP
+            <literal>mysqlnd_ms.multi_master=0</literal>, el complemento podría
+            emitir una advertencia.
+           </para>
+           <para>
+            La solicitud temporal de la consistencia de sesión usando
+            <function>mysqlnd_ms_set_qos</function> es una alternativa
+            a usar <literal>master_on_write</literal>.
+            <literal>master_on_write</literal> probablemente envía más sentencias
+            al maestro de las necesarias. La aplicación puede continuar
+            la operación en un nivel de consistencia más bajo después de haber realizado
+            algunas lecturas críticas.
+           </para>
+          </entry>
+          <entry>Desde 1.1.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>strong_consistency</literal>
+          </entry>
+          <entry>
+           <para>
+            Solitica la consistencia fuerte. Solamente serán usados los maestros.
+           </para>
+          </entry>
+          <entry>Desde 1.2.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.failover">
+     <term>
+      <parameter>failover</parameter>
+      Hasta, e incluyendo 1.3.x: <type>string</type>.
+      Desde 1.4.0: <type>object</type>.
+     </term>
+     <listitem>
+      <para>
+       Política de la tolerancia a fallos. Políticas admitidas:
+       <literal>disabled</literal> (predeterminada), <literal>master</literal>,
+       <literal>loop_before_master</literal> (desde 1.4.0).
+      </para>
+      <para>
+       Si no se establece ninguna política de tolerancia a fallos, el complemento no realizará ninguna
+       tolerancia a fallos automática (<literal>failover=disabled</literal>). Siempre que
+       el complemento falle al conectarse a un servidor, emitirá una advertencia y
+       establecerá el código y el mensaje del error de conexión. A partir de entonces, es responsabilidad
+       de la aplicación manejar el error y, por ejemplo, reenviar la
+       última sentencia para provocar la selección de otro servidor.
+      </para>
+      <para>
+       Observe que la lógica de tolerancia a fallos automática se aplica al abrir
+       conexiones solamente. Una vez que una conexión ha sido abierta, no se realizan intentos
+       automáticos para reabrirla en caso de error. Si, por ejemplo, si la conexión
+       a un servidor se cierra y el usuario intenta
+       ejecutar una sentencia sobre dicha conexión, no se intentará la tolerancia a fallos
+       automática. En su lugar se notificará un error.
+      </para>
+      <para>
+       Si se usa <literal>failover=master</literal>, el complemento implícitamente
+       usará la tolerancia a fallos del maestro. Por favor, revise la
+       documentación de conceptos para informarse sobre los problemas y
+       riesgos potenciales del uso de <literal>failover=master</literal>.
+      </para>
+      <para>
+       <example>
+        <title>Tolerancia a fallos opcional en el maestro al fallar una conexión a un esclavo</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "failover": "master"
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Desde PECL/mysqlnd_ms 1.4.0 la palabra clave de la configuración de la tolerancia a fallos
+       se refiere a un objeto.
+      </para>
+      <para>
+       <example>
+        <title>Nueva sintaxis desde 1.4.0</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "failover": {"strategy": "master" }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>strategy</literal>
+          </entry>
+          <entry>
+           <para>
+            Política de tolerancia a fallos. Valores posibles:
+            <literal>disabled</literal> (predeterminado), <literal>master</literal>,
+            <literal>loop_before_master</literal>
+           </para>
+           <para>
+            El valor <literal>disabled</literal> deshabilita la tolerancia a fallos automática.
+           </para>
+           <para>
+            Establecer <literal>master</literal> ordena al complemento a intentar
+            conectarse a un maestro en caso de un error de conexión esclava. Si el
+            intento de conexión maestra falla, el comlemento se saldrá del bucle de tolerancia a
+            fallos y devolverá un error al usuario.
+           </para>
+           <para>
+            Si se usa <literal>loop_before_master</literal> y se realiza una petición a
+            un esclavo, el complemento intentará conectarse a otro esclavo antes realizar la tolerancia
+            a fallos en un maestro. Si se dan múltiples maestros y está habilitado el multimaestro,
+            el complemento también iterará sobre la lista de maestros e intentará conectarse
+            antes de devolver un error al usuario.
+           </para>
+          </entry>
+          <entry>Desde 1.4.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>remember_failed</literal>
+          </entry>
+          <entry>
+           <para>
+            Recuerda los fallos durante una petición web. Predeterminado:
+            <literal>false</literal>.
+           </para>
+           <para>
+            Si se establece a <literal>true</literal> el complemento recordará los equipos
+            anfitriones fallidos y los saltará en todos los equilibrados de carga futuros realizados
+            para la duración de la petición web actual.
+           </para>
+          </entry>
+          <entry>
+           Desde 1.4.0. Característica experimental. La característica solamente está disponible junto con
+           los filtros de equilibrado de carga <literal>random</literal> y
+           <literal>roundrobin</literal>. Es posible que el funcionamiento y la sintaxis cambien
+           en el futuro.
+          </entry>
+         </row>
+         <row>
+          <entry>
+           <literal>max_retries</literal>
+          </entry>
+          <entry>
+           <para>
+            Número máximo de intentos de conexión antes de saltarse un equipo anfitrión.
+            Predeterminado: <literal>0</literal> (sin límite).
+           </para>
+           <para>
+            Este ajuste se usa para prevenir que los equipos anfitriones sean elegidos de la
+            lista host si ocurre un primer fallo. Si se establece a <literal>n > 0</literal>,
+            el complemento guardará el nodo en la lista de nodos incluso después de un intento
+            de conexión fallido. El nodo no será eliminado inmediatamente de las lista de esclavos y
+            maestros respectivamente después del primer fallo de conexión, pero en su lugar se intentará
+            conectar hasta <literal>n</literal> veces en las rondas de equilibrado de carga futuras
+            antes de ser eliminado.
+           </para>
+          </entry>
+          <entry>
+           Desde 1.4.0. Característica experimental. La característica solamente está disponible junto con
+           los filtros de equilibrado de carga <literal>random</literal> y
+           <literal>roundrobin</literal>. Es posible que el funcionamiento y la sintaxis cambien
+           en el futuro.
+          </entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+      <para>
+       Establecer <literal>failover</literal> a cualquier valor distinto de
+       <literal>disabled</literal>, <literal>master</literal> o
+       <literal>loop_before_master</literal>
+       no emitirá ninguna advertencia o error.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.lazy-connections">
+     <term>
+      <parameter>lazy_connections</parameter>
+      <type>bool</type>
+     </term>
+     <listitem>
+      <para>
+       Controla el uso de conexiones retardadas. Las conexiones retardadas
+       son conexiones que no se abren antes de que un cliente envíe la primera
+       conexión. Las conexiones retardadas son las predeterminadas.
+      </para>
+      <para>
+       Se recomeinda encarecidamente usar conexiones retardadas.
+       Éstas ayudan a mantener bajo el número de conexiones abiertas.
+       Si se desabilitan las conexiones retardas y, por ejemplo, se configura un servidor
+       maestro de replicación MySQL y dos esclavos de replicación MySQL, el
+       complemento abrirá tres conexiones en la primera llamada a la
+       función de conexión, aunque la aplicación podría usar solamente la conexión
+       maestra.
+      </para>
+      <para>
+       Las conexiones retardadas revelan un riesgo si se realizan un gran uso de acciones
+       que cambian el estado de una conexión. El complemento no resolverá
+       todas las acciones de cambio de estado de todas las conexiones de la agrupación de conexiones.
+       Las pocas acciones resueltas son aplicadas solamente a conexiones ya
+       abiertas. Las conexiones retardadas abiertas en el futuro no son afectadas.
+       Solamente algunos ajustes son &quot;recordados&quot; y aplicados cuando las
+       conexiones retardadas son abiertas.
+      </para>
+      <para>
+       <example>
+        <title>Deshabilitar las conexiones retardadas</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "lazy_connections": 0
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Por favor, véase también <literal>server_charset</literal> para superar problemas
+       potenciales con el escapado de cadenas de texto y con servidores que utilicen conjuntos de
+       caracteres diferentes del predeterminado.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.server-charset">
+     <term>
+      <parameter>server_charset</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       Este ajuste ha sido introducido en la versión 1.4.0. Se recomienda establecerlo
+       si se van a usar conexiones retardadas.
+      </para>
+      <para>
+       El ajuste <literal>server_charset</literal> sirve para dos propósitos.
+       Actúa como conjunto de caracteres alternativo para su uso con el escapado de cadenas de texo
+       realizado antes de que se haya establecido una conexión, y ayuda a evitar problemas de escapado
+       en entornos heterogéneos con servidores que utilizan diferentes conjuntos de caracteres predeterminados.
+      </para>
+      <para>
+       El escapado de cadenas de texto toma en cuenta el conjunto de caracteres de una conexión. El escapado de cadenas de texto
+       no es posible antes de que una conexión haya sido abierta y se conozca el conjunto de caracteres de
+       de la conexión. El uso de conexiones retardadas demora la apertura real
+       de conexiones hasta que se envíe una sentencia.
+      </para>
+      <para>
+       Una aplicación que utilice conexiones retardadas puede intentar escapar una cadena de texto antes de
+       nviar una setencia. De hecho, esto debería ser un caso común, ya que la sentencia podría contener la
+       cadena de texto que va a ser escapada. Sin embargo, debido a la característica de conexiones retardadas,
+       aún no se ha abierto ninguna conexión y el escapado falla. El complemento podría notificar un error de tipo
+       <literal>E_WARNING</literal> y un mensaje como <literal>(mysqlnd_ms)
+       string escaping doesn't work without established connection.
+       Possible solution is to add server_charset to your configuration</literal>
+       ((mysqlnd_ms) el escapado de cadenas de texto no funciona sin establecer una conexión.
+       Una posible solución es añadir server_charset a la configuración) para informar del problema.
+      </para>
+      <para>
+       Establecer <literal>server_charset</literal> hace que el complemento use
+       el conjunto de caracteres dado para el escapado de cadenas de texto realizado sobre gestores de conexines retardadas
+       antes de establecer una conexión de red a MySQL. Además, el
+       complemento forzará el uso del conjunto de caracteres cuando la conexión
+       sea establecida.
+      </para>
+      <para>
+       El forzado del uso del conjunto de caracteres utilizado para el escapado se realiza
+       para prevenir los problemas de usar un conjunto de caracteres diferente para el escapado
+       que el usado después para la conexión. Esto tiene el benificio adicional
+       de eliminar la necesidad de ajustar la configuración del conjunto de caracteres de todos
+       los servidores usados. No importa cuál sea el conjunto de caracteres predeterminado de cualquier servidor,
+       el complemento establecerá el configurado como el predeterminado.
+      </para>
+      <para>
+       El complemento no impide al usuario cambiar el conjunto de caracteres en cualquier momento
+       mediante la llamada a <function>set_charset</function> o las setencias SQL correspondientes.
+       Por favor, observe que el uso de SQL no se recomienda ya que no puede ser monitorizado
+       por el complemento. El usuario puede, por ejemplo, cambiar el conjunto de caracteres sobre un
+       gestor de conexiones retaradadas después de escapar una cadena de texto y antes de abrir la conexión
+       real. El conjunto de caracteres establecido por el usuario será usado para cualquier escapado subsiguiente
+       antes de que se establezca la conexión. Ésta será establecida usando
+       el conjunto de caracteres configurado, sin importar cuál es el conjunto de caracteres del servidor ni
+       cuál ha establecido el usuario antes. Una vez que una conexión ha sido abierta,
+       <literal>set_charset</literal> ya no tiene sentido.
+      </para>
+      <para>
+       <example>
+        <title>Escapado de cadenas de texto sobre un gestor de conexiones retardadas</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "lazy_connections": 1,
+        "server_charset" : "utf8"
+    }
+}
+]]>
+        </programlisting>
+        <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+$mysqli->real_escape("esto será escapado usando el ajuste server_charset - utf8");
+$mysqli->set_charset("latin1");
+$mysqli->real_escape("esto será escapado usando latin1");
+/* conjunto de caracteres del servidor implícitamente establecido - conexión utf8 */
+$mysqli->query("SELECT 'Esta conexión será fijada a server_charset durante su establecimiento' AS _msg FROM DUAL");
+/* latin1 se usará de aquí en adelante */
+$mysqli->set_charset("latin1");
+?>
+]]>
+        </programlisting>
+       </example>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.master-on-write">
+     <term>
+      <parameter>master_on_write</parameter>
+      <type>bool</type>
+     </term>
+     <listitem>
+      <para>
+       Si se establece, el complemento usará únicamente el servidor maestro después de que
+       se haya ejecutado la primera sentencia en el maestro. Las aplicaciones
+       aún pueden enviar sentencias a los esclavos usando sugerencias SQL para
+       invalidar la decisión automática.
+      </para>
+      <para>
+       Este ajuste puede ser útil con la demora de replicación. Si una aplicación ejecuta
+       un <literal>INSERT</literal>, el complemento usará, de manera predeterminada, el
+       maestro para ejecutar todas las sentencias siguientes, incluidas las
+       sentencias <literal>SELECT</literal>. Esto ayuda a evitar problemas con
+       las lecturas desde los esclavos que no hayan replicado aún el
+       <literal>INSERT</literal>.
+      </para>
+      <para>
+       <example>
+        <title>master_on_write para lecturas consistentes</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "master_on_write": 1
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Por favor, observe que el filtro <literal>quality_of_service</literal> fue introducido
+       en la versión 1.2.0-alpha. Proporciona mayor control sobre, por ejemplo, la realización de
+       la lectura se sus escrituras y ofrece funcionalidad adicional introduciendo los
+       <link linkend="mysqlnd-ms.qos-consistency">niveles de servicio</link>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">
+     <term>
+      <parameter>trx_stickiness</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       Política de adhesión de transacciones. Las políticas admitidas son:
+       <literal>disabled</literal> (predeterminada), <literal>master</literal>.
+      </para>
+      <para>
+       Este ajuste requiere la versión 5.4.0 o posterior. Si se usa con una versión de PHP anterior a la 5.4.0,
+       el complemetno emitirá una advertencia como <literal>(mysqlnd_ms) trx_stickiness strategy is not supported before PHP 5.3.99</literal>
+       ((mysqlnd_ms) La estrategia trx_stickiness no está soportada antes de PHP 5.3.99).
+      </para>
+      <para>
+       Si no se establece ningun política de adhesión de transacciones o
+       si se establece <literal>trx_stickiness=disabled</literal>,
+       el complemento no considerará las transacciones. Por lo tanto, el complemento podrá realizar
+       el equilibrado de carga de conexiones y el intercambio de conexiones en mitad de una trasacción.
+       El complemento no es seguro con las transacciones. Se deben usar sugerencias SQL para
+       evitar el intercambio de conexiones durante una transacción.
+      </para>
+      <para>
+       A partir de PHP 5.4.0, la bibliteca mysqlnd permite al complemento monitorizar
+       el modo <literal>autocommit</literal> mediante las llamadas a la función
+       <literal>set_autocommit()</literal> de la biblioteca.
+       Si se establece <literal>set_stickiness=master</literal> y se deshabilita
+       <literal>autocommit</literal> mediante una extensión de MySQL para PHP que
+       invoque la llamada a la función interna <literal>set_autocommit()</literal>
+       de la biblioteca <literal>mysqlnd</literal>, hará que el complemento
+       considere el comienzo de una transacción. Luego, el complemento detiene el equilibrado de carga
+       y dirige todas las setencias al servidor maestro hasta que
+       <literal>autocommit</literal> sea habilitado. Por lo tanto, no son necesarias las sugerencias SQL.
+      </para>
+      <para>
+       Un ejemplo de una función de la API de MySQL para PHP que llama a la función interna
+       <literal>set_autocommit()</literal> de la biblioteca <literal>mysqlnd</literal> es
+       <function>mysqli_autocommit</function>.
+      </para>
+      <para>
+       Aunque se establezca <literal>ser_stickiness=master</literal>, el complemento
+       no puede considerar los cambios del modo <literal>autocommit</literal> causados
+       por setnencias SQL como <literal>SET AUTOCOMMIT=0</literal>.
+      </para>
+      <para>
+       <example>
+        <title>Utilizar el maestro para ejecutar transacciones</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+        },
+        "trx_stickiness": "master"
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.plugin-ini-v1">
+  <title xmlns="http://docbook.org/ns/docbook">Fichero de configuración del complemento (&lt;= 1.0.x)</title>
+  <note>
+   <para>
+    La descripción de abajo se aplica a PECL/mysqlnd_ms &lt; 1.1.0-beta.
+    No es válida para versiones posteriores.
+   </para>
+  </note>
+  <para>
+   El complemento usa su propio fichero de configuración. Éste
+   guarda información sobre el servidor maestro de replicación MySQL,
+   los servidores esclavos de replicación MySQL, la política de elección (equilibrado de carga),
+   la estrategia de tolerancia a fallos, y el uso de conexiones retardadas.
+  </para>
+  <para>
+   La directiva de configuración de PHP
+   <link linkend="ini.mysqlnd-ms.ini-file"><literal>mysqlnd_ms.ini_file</literal></link>
+   se usa para establecer el fichero de configuración del complemento.
+  </para>
+  <para>
+   El fichero de configuración imita el estándar del formato de <literal>php.ini</literal>.
+   Consiste en una o más secciones. Cada sección define su propia unidad
+   de ajustes. No existe una sección global para ajustes globales.
+  </para>
+  <para>
+   Las aplicciones hacen referencia a las secciones por su nombre. Las aplicaciones usan los nombres de las
+   secciones como el parámetro 'host' (servidor) de los distintos métodos de conexión de las extensiones
+   <link linkend="ref.mysqli">mysqli</link>,
+   <link linkend="ref.mysql">mysql</link> y
+   <link linkend="ref.pdo-mysql">PDO_MYSQL</link>. Durante la conexión,
+   el complemento de <link linkend="book.mysqlnd">mysqlnd</link> compara el nombre del equipo anfitrión
+   con todos los nombres de las secciones del fichero de configuración del complemento. Si el nombre del
+   equipo anfitrión y el nombre de la sección coinciden, el complemento cargará la configuración de esa sección.
+  </para>
+  <para>
+   <example>
+    <title>Ejemplo del uso de nombres de sección</title>
+    <programlisting role="ini">
+<![CDATA[
+[myapp]
+master[] = localhost
+slave[] = 192.168.2.27
+slave[] = 192.168.2.28:3306
+[localhost]
+master[] = localhost:/tmp/mysql/mysql.sock
+slave[] = 192.168.3.24:3305
+slave[] = 192.168.3.65:3309
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* Todas las conexiones siguientes tendrán equilibrado de carga */
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+$pdo = new PDO('mysql:host=myapp;dbname=base_datos', 'nombre_usuario', 'contraseña');
+$mysql = mysql_connect("myapp", "nombre_usuario", "contraseña");
+
+$mysqli = new mysqli("localhost", "nombre_usuario", "contraseña", "base_datos");
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Los nombres de sección son cadenas de texto. Es válido usar nombres de sección como
+   <literal>192.168.2.1</literal>, <literal>127.0.0.1</literal> o
+   <literal>localhost</literal>. Si, por ejemplo, una aplicación
+   se conexta a <literal>localhost</literal> y existe una sección de configuración
+   del complemento llamada <literal>[localhost]</literal>, la
+   semántica de la operación de conexión se cambia. La aplicación ya
+   no usará únicamente el servidor MySQL que se ejecuta en el equipo anfitrión
+   <literal>localhost</literal>, sino que el complemento iniciará el equilibrado de carga
+   de las consultas MySQL siguiendo las reglas de la sección de configuración
+   <literal>[localhost]</literal>. De esta manera se puede realizar el equilibrado de carga de consultas
+   desde una aplicación sin cambiar el código fuente de la misma.
+  </para>
+  <para>
+   Las directivas de configuración <literal>master[]</literal>, <literal>slave[]</literal>
+   y <literal>pick[]</literal> usan una sintaxis similar a una lista.
+   Las directivas de configuración que admiten la sintaxis de lista pueden aparecer varias
+   veces en la sección de configuración. El complemento mantiene el orden en el
+   que aparecen las entradas cuando las interpreta. Por ejemplo,
+   el ejemplo de abajo muestra dos directivas de configuración <literal>slave[]</literal>
+   en la sección de configuración <literal>[myapp]</literal>.
+   Si se realiza el equilibrado de carga rotativo para consultas de solo lectura, el complemento
+   enviará la primera consulta de solo lectura al servidor MySQL
+   <literal>mysql_slave_1</literal> ya que es el primero de la lista.
+   La segunda consulta de solo lectura será enviada al servidor MySQL
+   <literal>mysql_slave_2</literal> ya que es el segundo de la lista.
+   Los resultados de las directivas de configuración que admiten la sintaxis de lista están ordenados
+   de arriba a abajo según su aparación dentro de la sección de
+   configuración.
+  </para>
+  <para>
+   <example>
+    <title>Sintaxis de lista</title>
+    <programlisting role="ini">
+<![CDATA[
+[myapp]
+master[] = mysql_master_server
+slave[] = mysql_slave_1
+slave[] = mysql_slave_2
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   He aquí una breve explicación de las directivas de configuración que se pueden usar.
+  </para>
+  <para>
+   <variablelist>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.master">
+     <term>
+      <parameter>master[]</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       URI de un servidor maestro de replicación MySQL. El URI sigue la sintaxis
+       <literal>hostname[:port|unix_domain_socket]</literal>.
+      </para>
+      <para>
+       El complemento admite el uso de un único servidor maestro.
+      </para>
+      <para>
+       Es obligatorio establece un servidor esclavo. El complemento notificará una
+       advertencia sobre la conexión si el usuario ha fallado al proporcionar un servidor
+       esclavo en la sección de configuración.
+       La advertencia podría ser <literal>(mysqlnd_ms) Cannot find master section in config</literal>
+       ((mysqlnd_ms) No se pudo encontrar una sección de maestros en la configuración).
+       Además, el complemento puede establecer un código de error para el gestor de conexión tal como
+       <literal>HY000/2000 (CR_UNKNOWN_ERROR)</literal>. El mensaje de error
+       correspondiente depende de la configuración del lenguaje.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.slave">
+     <term>
+      <parameter>slave[]</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       URI de uno o más servidores esclavos de replicación MySQL. El URI sigue la sintaxis
+       <literal>hostname[:port|unix_domain_socket]</literal>.
+      </para>
+      <para>
+       El complemento admite el uso de uno o más servidores esclavos.
+      </para>
+      <para>
+       Es oblligatorio establecer un servidor esclavo. El complemento notificará una
+       advertencia sobre la conexión si el usuario ha fallado al proporcionar al menos un servidor
+       esclavo en la sección de configuración.
+       La advertencia podría ser <literal>(mysqlnd_ms) Cannot find slaves section in config</literal>
+       ((mysqlnd_ms) No se pudo encontrar una sección de esclavos en la configuración).
+       Además, el complemento puede establecer un código de error para el gestor de conexión tal como
+       <literal>HY000/2000 (CR_UNKNOWN_ERROR)</literal>. El mensaje de error
+       correspondiente depende de la configuración del lenguaje.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.pick">
+     <term>
+      <parameter>pick[]</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       La política de equilibrado de carga (selección de servidores). Políticas soportadas:
+       <literal>random</literal>, <literal>random_once</literal> (predeterminada),
+       <literal>roundrobin</literal>, <literal>user</literal>.
+      </para>
+      <para>
+       Si no se establece ninguna política de equilibrado de carga, el complemento usará como predeterminada
+       <literal>random_once</literal>. La política <literal>random_once</literal>
+       elige un servidor esclavo aleatorio al ejecutar la primera sentencia de
+       solo lectura. Este servidor esclavo será utilizado para todas las sentencias de
+       solo lectura hasta que finalice la ejecución del script de PHP.
+      </para>
+      <para>
+       La política <literal>random</literal> eligirá un servidor aleatorio siempre que
+       se ejecute una sentencia de solo lectura.
+      </para>
+      <para>
+       Si se usa
+       <literal>roundrobin</literal> el complemento iterará sobre la lista de
+       servidores esclavos configurados para elegir uno para la ejecución de sentencias.
+       Si el complemento alcanza el final de la lista, volverá al comienzo de la
+       misma y eligirá el primer servidor esclavo configurado.
+      </para>
+      <para>
+       El establecimiento de más de una política de equilibrado de carga en una sección
+       de configuración solamente tiene sentido si se usa <literal>user</literal>
+       y <function>mysqlnd_ms_set_user_pick_server</function> juntos. Si la llamada
+       de retorno del usuario falla al elegir un servidor, el complemento volverá
+       a la segunda política de equilibrado de carga cofigurada.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.failover">
+     <term>
+      <parameter>failover</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       Política de tolerancia de fallos. Políticas admitidas:
+       <literal>disabled</literal> (predeterminada), <literal>master</literal>.
+      </para>
+      <para>
+       Si no se establece ninguna política de tolerancia a fallos, el complemento no realizará ninguna
+       tolerancia a fallos automática (<literal>failover=disabled</literal>). Siempre que
+       el complemento falle al conectarse a un servidor, emitirá una advertencia y
+       establecerá el código y el mensaje del error de conexión. A partir de entonces, es responsabilidad
+       de la aplicación manejar el error y, por ejemplo, reenviar la
+       última sentencia para provocar la selección de otro servidor.
+      </para>
+      <para>
+       Si se usa <literal>failover=master</literal>, el complemento implícitamente
+       usará la tolerancia a fallos de un esclavo. Por favor, revise la
+       documentación de conceptos para informarse sobre los problemas y
+       riesgos potenciales del uso de <literal>failover=master</literal>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.lazy-connections">
+     <term>
+      <parameter>lazy_connections</parameter>
+      <type>bool</type>
+     </term>
+     <listitem>
+      <para>
+       Controla el uso de conexiones retardadas. Las conexiones retardadas
+       son conexiones que no se abren antes de que un cliente envíe la primera
+       conexión. Las conexiones retardadas son las predeterminadas.
+      </para>
+      <para>
+       Se recomeinda encarecidamente usar conexiones retardadas.
+       Éstas ayudan a mantener bajo el número de conexiones abiertas.
+       Si se desabilitan las conexiones retardas y, por ejemplo, se configura un servidor
+       maestro de replicación MySQL y dos esclavos de replicación MySQL, el
+       complemento abrirá tres conexiones en la primera llamada a la
+       función de conexión, aunque la aplicación podría usar solamente la conexión
+       maestra.
+      </para>
+      <para>
+       Las conexiones retardadas revelan un riesgo si se realizan un gran uso de acciones
+       que cambian el estado de una conexión. El complemento no resolverá
+       todas las acciones de cambio de estado de todas las conexiones de la agrupación de conexiones.
+       Las pocas acciones resueltas son aplicadas solamente a conexiones ya
+       abiertas. Las conexiones retardadas abiertas en el futuro no son afectadas.
+       Si, por ejemplo, se cambia el conjunto de caracteres de la conexión usando una
+       llamada a la API de MySQL para PHP, el complemento cambiará el conjunto de caracteres de todas
+       las conexiones abiertas en uso. No recordraá el cambio del conjunto de caracteres
+       para aplicarlo en las conexiones retardadas abiertas en el futuro. Como
+       resultado, la agrupación de conexiones interna guardaría conexiones que usarían
+       diferencites conjuntos de caracteres. Esto no es lo deseado. Recuerde que los conuntos
+       de caracteres se toman en cuenta para el escapado.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.master-on-write">
+     <term>
+      <parameter>master_on_write</parameter>
+      <type>bool</type>
+     </term>
+     <listitem>
+      <para>
+       Si se establece, el complemento usará únicamente el servidor maestro después de que
+       se haya ejecutado la primera sentencia en el maestro. Las aplicaciones
+       aún pueden enviar sentencias a los esclavos usando sugerencias SQL para
+       invalidar la decisión automática.
+      </para>
+      <para>
+       Este ajuste puede ser útil con la demora de replicación. Si una aplicación ejecuta
+       un <literal>INSERT</literal>, el complemento usará, de manera predeterminada, el
+       maestro para ejecutar todas las sentencias siguientes, incluidas las
+       sentencias <literal>SELECT</literal>. Esto ayuda a evitar problemas con
+       las lecturas desde los esclavos que no hayan replicado aún el
+       <literal>INSERT</literal>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config.trx-stickiness">
+     <term>
+      <parameter>trx_stickiness</parameter>
+      <type>string</type>
+     </term>
+     <listitem>
+      <para>
+       Política de adhesión de transacciones. Las políticas admitidas son:
+       <literal>disabled</literal> (predeterminada), <literal>master</literal>.
+      </para>
+      <para>
+       Característica experimental.
+      </para>
+      <para>
+       Este ajuste requiere la versión 5.4.0 o posterior. Si se usa con una versión de PHP anterior a la 5.4.0,
+       el complemetno emitirá una advertencia como <literal>(mysqlnd_ms) trx_stickiness strategy is not supported before PHP 5.3.99</literal>
+       ((mysqlnd_ms) La estrategia trx_stickiness no está soportada antes de PHP 5.3.99).
+      </para>
+      <para>
+       Si no se establece ningun política de adhesión de transacciones o
+       si se establece <literal>trx_stickiness=disabled</literal>,
+       el complemento no considerará las transacciones. Por lo tanto, el complemento podrá realizar
+       el equilibrado de carga de conexiones y el intercambio de conexiones en mitad de una trasacción.
+       El complemento no es seguro con las transacciones. Se deben usar sugerencias SQL para
+       evitar el intercambio de conexiones durante una transacción.
+      </para>
+      <para>
+       A partir de PHP 5.4.0, la bibliteca mysqlnd permite al complemento monitorizar
+       el modo <literal>autocommit</literal> mediante las llamadas a la función
+       <literal>set_autocommit()</literal> de la biblioteca.
+       Si se establece <literal>set_stickiness=master</literal> y se deshabilita
+       <literal>autocommit</literal> mediante una extensión de MySQL para PHP que
+       invoque la llamada a la función interna <literal>set_autocommit()</literal>
+       de la biblioteca <literal>mysqlnd</literal>, hará que el complemento
+       considere el comienzo de una transacción. Luego, el complemento detiene el equilibrado de carga
+       y dirige todas las setencias al servidor maestro hasta que
+       <literal>autocommit</literal> sea habilitado. Por lo tanto, no son necesarias las sugerencias SQL.
+      </para>
+      <para>
+       Un ejemplo de una función de la API de MySQL para PHP que llama a la función interna
+       <literal>trx_autocommit()</literal> de la biblioteca <literal>mysqlnd</literal> es
+       <function>mysqli_autocommit</function>.
+      </para>
+      <para>
+       Aunque se establezca <literal>ser_stickiness=master</literal>, el complemento
+       no puede considerar los cambios del modo <literal>autocommit</literal> causados
+       por setnencias SQL como <literal>SET AUTOCOMMIT=0</literal>.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.testing">
+  <title xmlns="http://docbook.org/ns/docbook">Probando el complemento</title>
+  <note>
+   <para>
+    Esta sección se aplica a la versión myslqnd_ms 1.1.0 o posterior, no a las series 1.0.
+   </para>
+  </note>
+  <para>
+   El conjunto de pruebas de PECL/mysqlnd_ms se encuentra en el directorio <filename>tests/</filename>
+   de la distribución del código fuente. El conjunto de pruebas consiste en unas pruebas
+   phpt estándar, que están descriptas en la página web de PHP Quality Assurance Teams.
+  </para>
+  <para>
+   La ejecución de las pruebas requiere configurar de uno a cuatro servidores MySQL. Algunas pruebas no se
+   conectan a MySQL de ningún mofo. Otras requieren un servidor. Algunas requieren
+   dos servidores distintos. En algunos casos se usan dos servidores para emular una
+   configuración de replicación. En otros casos se requieren un maestro y un esclavo existentes de una
+   configuración de replicación MySQL. Las pruebas intentarán detectar cuántos servidores
+   y qué tipo de servidores se dan. Si no se encuentran los servidores requeridos, la
+   prueba será saltada automáticamente.
+  </para>
+  <para>
+   Antes de ejecutar las pruebas, edite <filename>tests/config.inc</filename> para
+   configurar los servidores MySQL a usar durante las mismas.
+  </para>
+  <para>
+   La configuracion más básica es como sigue.
+   <programlisting>
+<![CDATA[
+ putenv("MYSQL_TEST_HOST=localhost");
+ putenv("MYSQL_TEST_PORT=3306");
+ putenv("MYSQL_TEST_USER=root");
+ putenv("MYSQL_TEST_PASSWD=");
+ putenv("MYSQL_TEST_DB=test");
+ putenv("MYSQL_TEST_ENGINE=MyISAM");
+ putenv("MYSQL_TEST_SOCKET=");
+
+ putenv("MYSQL_TEST_SKIP_CONNECT_FAILURE=1");
+ putenv("MYSQL_TEST_CONNECT_FLAGS=0");
+ putenv("MYSQL_TEST_EXPERIMENTAL=0");
+
+ /* replication cluster emulation */
+ putenv("MYSQL_TEST_EMULATED_MASTER_HOST=". getenv("MYSQL_TEST_HOST"));
+ putenv("MYSQL_TEST_EMULATED_SLAVE_HOST=". getenv("MYSQL_TEST_HOST"));
+
+ /* real replication cluster */
+ putenv("MYSQL_TEST_MASTER_HOST=". getenv("MYSQL_TEST_EMULATED_MASTER_HOST"));
+ putenv("MYSQL_TEST_SLAVE_HOST=". getenv("MYSQL_TEST_EMULATED_SLAVE_HOST"));
+]]>
+   </programlisting>
+  </para>
+  <para>
+   <literal>MYSQL_TEST_HOST</literal>, <literal>MYSQL_TEST_PORT</literal> y
+   <literal>MYSQL_TEST_SOCKET</literal> definen el nombre del equipo anfitrión,
+   el puerto TCP/IP y el socket de dominio Unix del servidor de la base de datos predeterminado.
+   <literal>MYSQL_TEST_USER</literal> y <literal>MYSQL_TEST_PASSWD</literal>
+   contienen el usuario y la contraseña necesarios para conectarse a la base de datos o esquema
+   configurado con <literal>MYSQL_TEST_DB</literal>. Todos los servidores
+   configurados han de tener el mismo usuario de base de datos configurado para proporcionar el acceso a
+   la base de datos de prueba.
+  </para>
+  <para>
+   Con la sintaxis <literal>host</literal>, <literal>host:puerto</literal> o <literal>host:/ruta/al/socket</literal>
+   se puede establecer un equipo anfitrión, un equipo anfitrión y un puerto o un equipo anfitrión y un socket suplentes para
+   cualquier servidor.
+   <programlisting>
+<![CDATA[
+putenv("MYSQL_TEST_SLAVE_HOST=192.168.78.136:3307"));
+putenv("MYSQL_TEST_MASTER_HOST=myserver_hostname:/path/to/socket"));
+]]>
+   </programlisting>
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.debugging">
+  <title xmlns="http://docbook.org/ns/docbook">Depuración y rastreo</title>
+  <para>
+   El registro de depuración de mysqlnd se puede usar para depurar y rastrear las actividades de
+   PECL/mysqlnd_ms. Al igual que mysqlnd, PECL/mysqlnd_ms añade información de rastreo al
+   fichero de depuración de la bibliteca mysqlnd. Por favor, lea la directiva de configuración
+   <link linkend="mysqlnd.debug"><literal>mysqlnd.debug</literal></link>
+   de PHP para una descripción detallada
+   de cómo configurar el registro de depuración.
+  </para>
+  <para>
+   Ejemplo de ajuste de configuración para activar el registro de depuración:
+   <programlisting>
+<![CDATA[
+mysqlnd.debug=d:t:x:O,/tmp/mysqlnd.trace
+]]>
+   </programlisting>
+   <note>
+    <para>
+     Esta característica solamente está disponible con una construcción de depuración de PHP. Funciona
+     en Microsoft Windows si se usa una construcción de depuración de PHP y PHP fue
+     compilado usando Microsoft Visual C versión 9 y superior.
+    </para>
+   </note>
+  </para>
+  <para>
+   El registro de depuración muestra las llamadas a las funciones de la biblioteca mysqlnd y del complemento PECL/mysqlnd_ms,
+   similar a un registro de rastreo. Las llamadas de la biblioteca mysqlnd normalmente están prefijadas con
+   <literal>mysqlnd_</literal>. Las llamadas internas a PECL/mysqlnd comienzan con
+   <literal>mysqlnd_ms</literal>.
+  </para>
+  <para>
+   Extracto de ejemplo del registro de depuración (conectar):
+   <programlisting>
+<![CDATA[
+[...]
+>mysqlnd_connect
+| info : host=myapp user=root db=test port=3306 flags=131072
+| >mysqlnd_ms::connect
+| | >mysqlnd_ms_config_json_section_exists
+| | | info : section=[myapp] len=[5]
+| | | >mysqlnd_ms_config_json_sub_section_exists
+| | | | info : section=[myapp] len=[5]
+| | | | info : ret=1
+| | | <mysqlnd_ms_config_json_sub_section_exists
+| | | info : ret=1
+| | <mysqlnd_ms_config_json_section_exists
+[...]
+]]>
+   </programlisting>
+  </para>
+  <para>
+   El registro de depuración no sólo es útila para los desarrolladores del complemento, sino también para encontrar la
+   causa de los errores ocurridos. Por ejemplo, si una aplicación no maneja apropiadamente
+   los errores y falla al registrar mensajes de error, la revisión del registro de depuración
+   y rastreo podría ayudar a encontrar la causa. El uso del registro de depuración
+   para depurar problemas de una aplicación debería considerarse solamente si no está
+   disponible ninguna otra opción. Escribir el registro de depuración en el disco es una operación
+   lenta y podría tener un impacto negativo sobre el rendimiento de
+   la aplicación.
+  </para>
+  <para>
+   Extracto de ejemplo del registro de depuración (fallo de conexión):
+   <programlisting>
+<![CDATA[
+[...]
+| | | | | | | info : adding error [Access denied for user 'root'@'localhost' (using password: YES)] to the list
+| | | | | | | info : PACKET_FREE(0)
+| | | | | | | info : PACKET_FREE(0x7f3ef6323f50)
+| | | | | | | info : PACKET_FREE(0x7f3ef6324080)
+| | | | | | <mysqlnd_auth_handshake
+| | | | | | info : switch_to_auth_protocol=n/a
+| | | | | | info : conn->error_info.error_no = 1045
+| | | | | <mysqlnd_connect_run_authentication
+| | | | | info : PACKET_FREE(0x7f3ef63236d8)
+| | | | | >mysqlnd_conn::free_contents
+| | | | | | >mysqlnd_net::free_contents
+| | | | | | <mysqlnd_net::free_contents
+| | | | | | info : Freeing memory of members
+| | | | | | info : scheme=unix:///tmp/mysql.sock
+| | | | | | >mysqlnd_error_list_pdtor
+| | | | | | <mysqlnd_error_list_pdtor
+| | | | | <mysqlnd_conn::free_contents
+| | | | <mysqlnd_conn::connect
+[...]
+]]>
+   </programlisting>
+  </para>
+  <para>
+   El registro de rastreo también se puede usar para verificar el comportamiento correcto
+   del mismo PECL/mysqlnd_ms, por ejemplo, para comprobar qué servidor ha sido
+   seleccionado para la ejecución de una consulta y por qué.
+  </para>
+  <para>
+   Extracto de ejemplo del registro de depuración (decisión del complemento):
+   <programlisting>
+<![CDATA[
+[...]
+>mysqlnd_ms::query
+| info : query=DROP TABLE IF EXISTS test
+| >_mysqlnd_plugin_get_plugin_connection_data
+| | info : plugin_id=5
+| <_mysqlnd_plugin_get_plugin_connection_data
+| >mysqlnd_ms_pick_server_ex
+| | info : conn_data=0x7fb6a7d3e5a0 *conn_data=0x7fb6a7d410d0
+| | >mysqlnd_ms_select_servers_all
+| | <mysqlnd_ms_select_servers_all
+| | >mysqlnd_ms_choose_connection_rr
+| | | >mysqlnd_ms_query_is_select
+[...]
+| | | <mysqlnd_ms_query_is_select
+[...]
+| | | info : Init the master context
+| | | info : list(0x7fb6a7d3f598) has 1
+| | | info : Using master connection
+| | | >mysqlnd_ms_advanced_connect
+| | | | >mysqlnd_conn::connect
+| | | | | info : host=localhost user=root db=test port=3306 flags=131072 persistent=0 state=0
+]]>
+   </programlisting>
+  </para>
+  <para>
+   En este caso, la sentencia <literal>DROP TABLE IF EXISTS test</literal> ha sido
+   ejecutada. Observe que el string de la sentencia se muestra en el fichero de registro. Se podrían
+   tomar medidas para restringir el acceso al registro por consideraciones de seguridad.
+  </para>
+  <para>
+   La sentencia ha sido equilibrada en carga usando la política de rotación ('round robin'),
+   como se puede adivinar fácilmente del nombre de la función <literal>>mysqlnd_ms_choose_connection_rr</literal>.
+   Ha sido enviada a un servidor maestro que se ejecuta en
+   <literal>host=localhost user=root db=test port=3306 flags=131072 persistent=0 state=0</literal>.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.monitoring">
+  <title xmlns="http://docbook.org/ns/docbook">Monitorización</title>
+  <para>
+   La actividad del complemento se puede monitorizar usando el registro de rastreo de mysqlnd,
+   las estadísticas de mysqlnd, las estadísticas del complemento mysqlnd_ms y herramientas de depuración externas de PHP.
+   El uso del registro de rastreo debería limitarse a la depuración. Se recomienda
+   usar las estadísticas del complemento para la monitorización.
+  </para>
+  <para>
+   La escritura de un registro de rastreo es una operación lenta. Si se usa una herramiento de depuración externa de PHP,
+   consulte el manual del proveedor para el impacto de rendimiento y el
+   tipo de información recopilada. En la mayoría de los casos, las herramientas de depuración externas
+   proporcionarán pilas de llamadas. A menudo, es más difícil interpretar una pila de llamadas o un registro de rastreo
+   que las estadísticas proporcionadas por el complemento.
+  </para>
+  <para>
+   Las estadísticas del complemento indican con qué frecuencia se ha usado un tipo de clúster (esclavo o maestro),
+   por qué se ha usado el nodo, si se han usado conexiones retardadas y si se ha realizado una inyección de
+   ID de transacciones global. La información de la monitorización proporcionada permite al
+   usuario verificar las decisiones del complemento y planear los recursos del clúster basándose en el patrón de uso.
+   La función <function>mysqlnd_ms_get_stats</function>
+   se usa para acceder a las estadísticas. Por favor, vea las descripciones de las funciones para obtener una lista
+   de las estadísticas disponibles.
+  </para>
+  <para>
+   Las estadísticas se recopilan en base a cada proceso de PHP. Su alcance es un proceso de PHP.
+   Dependiendo del modelo de desarrollo de PHP, un proceso puede servir una o múltiples peticiones web.
+   Si se usa el modelo CGI, un proceso de PHP sirve una petición web. Si se usa FastCGI o
+   modelos de servidores web prebifurcados, un modelo de PHP normalmente servirá múltiples peticiones web.
+   Lo mismo ocurre en el caso de un servidor web con subprocesos. Observe que los hilos ejecutados
+   en paralelo podrían actualizar las estadísticas en paralelo. Por lo tanto, si se usa un modelo de desarrolo
+   de PHP con hilos, las estadísticas podrían ser modificadas por más de un script al mismo tiempo. Un
+   script no puede depender del hecho de que vea solamente sus propios cambios realizados a las estadísticas.
+  </para>
+  <para>
+   <example>
+    <title>Comprobar la actividad del complemento en un modelo de desarrollo sin hilos</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.collect_statistics=1
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* Equilibrado de carga siguiendo las reglas de la sección "myapp" del fichero de configuración del complemento (no se muestra) */
+$mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
+if (mysqli_connect_errno())
+  /* Por supuesto, su manejo de errores es más agradable... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+$stats_before = mysqlnd_ms_get_stats();
+if ($res = $mysqli->query("SELECT 'Read request' FROM DUAL")) {
+  var_dump($res->fetch_all());
+}
+$stats_after = mysqlnd_ms_get_stats();
+if ($stats_after['use_slave'] <= $stats_before['use_slave']) {
+  echo "Según las estadísticas, ¡la petición de lectura no se ha ejecutado en un esclavo!";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Las estadísticas se agregan para todas las actividades del complemento y todas las conexión manejadas por
+   el mismo. No es posible indicar cuánto contribuye un gestor de conexión en particular
+   para el total de las estadísticas.
+  </para>
+  <para>
+   Utilizar la función de PHP <function>register_shutdown_function</function> o la
+   directiva de configuración de PHP <literal>auto_append_file</literal> es
+   posiblemente más sencillo para volcar las estadísticas, por ejemplo, a un fichero de registro cuando un script
+   finaliza. En lugar de usar un fichero de registro, también es posible enviar las estadísticas
+   a una herramienta externa de monitorización para su registro y visualización.
+  </para>
+  <para>
+   <example>
+    <title>Registrar las estadístcias durante el cierre</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.collect_statistics=1
+error_log=/tmp/php_errors.log
+]]>
+    </programlisting>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function check_stats() {
+  $msg = str_repeat("-", 80) . "\n";
+  $msg .= var_export(mysqlnd_ms_get_stats(), true) . "\n";
+  $msg .= str_repeat("-", 80) . "\n";
+  error_log($msg);
+}
+register_shutdown_function("check_stats");
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </section>
+ 
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
