@@ -1608,25 +1608,32 @@ php > $foo[TAB]EsteEsUnNombreDeVariableMuyLargo
    Este servidor web está diseñado solamente para propósitos de desarrollo, y no debería
    ser utilizado en ambientes en producción.
   </para>
+  
+  <para>
+   Las peticiones se sirven secuencialmente.
+  </para> 
 
   <para>
    Las peticiones de URI se sirven desde el actual directorio de trabajo donde
    PHP se inició, a menos que la opción -t sea utilizada para especificar una
-   raíz de documentos explícita.
+   raíz de documentos explícita. Si una petición de URI no especifica un fichero,
+   entonces el index.php o index.html que estén en el directorio dado serán
+   devueltos. Si ninguno de los ficheros existen en el directorio, entonces será
+   devuelto una respuesta de código 404.
   </para>
 
   <para>
-   Si una petición de URI no especifica un fichero, entonces index.php
-   o index.html se devuelven en el directorio proporcionado.  Si ninguno de los ficheros
-   existen, entonces se devuelve una respuesta con código 404.
+   Si un fichero PHP es proporcionado en la línea de comandos cuando se inicia el
+   servidor web éste es tratado como un script "enrutador". El script es ejecutado
+   al inicio de cada petición HTTP. Si este script devuelve &false;, entonces el
+   recurso solicitado se devuelve tal cual está. De otra forma la salida del script
+   se devuelve en el navegador.
   </para>
 
   <para>
-   Si un fichero PHP proporcionado en la línea de comandos cuando el servidor web es
-   iniciado este es tratado como un script "enrutador" por el servidor web.
-   El script es ejecutado al inicio de cada petición HTTP.  Si este
-   script devuelve &false;, entonces el recurso requerido es devuelto
-   tal cual está. De otra manera la salida del script es devuelta al navegador.
+   Los tipos MIME estándar son devueltos por ficheros con extensiones: .css,
+   .gif, .htm, .html, .jpe, .jpeg, .jpg, .js, .png, .svg, y .txt.
+   Las extensiones .htm y .svg son reconocidas desde PHP 5.4.4 en adelante.
   </para>
 
   <example>
@@ -1692,15 +1699,16 @@ Presione Ctrl-C para salir
   <example>
    <title>Utilizando un Script enrutador</title>
 <para>
-  Las peticiones a las imágenes se mostrarán, pero las peticiones a ficheros HTML mostrarán "Bienvenido a PHP"
+  En este ejemplo, las peticiones a las imágenes se mostrarán, pero las peticiones a
+ ficheros HTML mostrarán "Bienvenido a PHP":
 </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 // router.php
-if (preg_match('/\.(?:png|jpg|jpeg|gif)$/', $_SERVER["REQUEST_URI"]))
+if (preg_match('/\.(?:png|jpg|jpeg|gif)$/', $_SERVER["REQUEST_URI"])){
     return false;    // servir la petición tal cual es.
-else {
+}else {
     echo "<p>Bienvenido a PHP</p>";
 }
 
@@ -1711,22 +1719,68 @@ else {
 $ php -S localhost:8000 router.php
 ]]>
    </programlisting>
-   <para>
-     Después de varias peticiones de URI la terminal mostrará algo similar a:
-   </para>
-   <screen>
+  </example>
+  
+  <example>
+   <title>Revisión del uso de la CLI del servidor web</title>
+<para>
+  Para reutilizar un framework de script enrutador durante el desarrollo con la CLI del servidor web server y luego con un servidor web en producción:
+</para>
+   <programlisting role="php">
 <![CDATA[
-PHP 5.4.0 Servidor de desarrollo iniciado en Jueves Julio 21 10:53:19 2011
-Escuchando en localhost:8000
-La raíz de documentos es /home/usuario/html_público
-Presione Ctrl-C para salir.
-[Thu Jul 21 10:53:45 2011] ::1:55801 GET /mi_logo.jpg - Petición leída
-[Thu Jul 21 10:53:52 2011] ::1:55803 GET /abc.html - Petición leída
-[Thu Jul 21 10:53:52 2011] ::1:55804 GET /favicon.ico - Petición leída
+<?php
+// router.php
+if (php_sapi_name() == 'cli-server') {
+    /* los activos de ruta estática y devolver falso */
+}
+/* seguir adelante con operaciones normales de index.php */
+?>]]>
+   </programlisting>
+   <programlisting role="shell">
+<![CDATA[
+$ php -S localhost:8000 router.php
 ]]>
-   </screen>
+    </programlisting>
   </example>
 
+    <example>
+   <title>Manejando tipos de ficheros no soportados</title> 
+<para>
+  Si necesita servir un recurso estático cuyo tipo MIME no es manejado por la CLI del servidor web, utilice:
+</para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// router.php
+$path = pathinfo($_SERVER["SCRIPT_FILENAME"]);
+if ($path["extension"] == "ogg") {
+    header("Content-Type: video/ogg");
+    readfile($_SERVER["SCRIPT_FILENAME"]);
+}
+else {
+    return FALSE;
+}
+?>]]>
+   </programlisting>
+   <programlisting role="shell">
+<![CDATA[
+$ php -S localhost:8000 router.php
+]]>
+   </programlisting>
+  </example>
+
+  <example>
+   <title>Accediendo a la CLI del servidor web desde máquinas remotas</title> 
+<para>
+  Puede hacer que el servidor web sea accesible en el puerto 8000 a cualquier interfaz con:
+</para>
+   <programlisting role="shell">
+<![CDATA[
+$ php -S 0.0.0.0:8000
+]]>
+   </programlisting>
+  </example>
+  
  </section>
  <!--}}}-->
  
