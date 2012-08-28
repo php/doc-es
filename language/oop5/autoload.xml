@@ -1,89 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d6105d5f559885cd3ecc6d03586bc90151d29ab6 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-
- <sect1 xml:id="language.oop5.autoload" xmlns="http://docbook.org/ns/docbook">
-  <title>Auto-carga de Clases</title>
+<!-- EN-Revision: 5b5ab43c78ecf2d9b8c678569afceff8b5e79c5f Maintainer: andresdzphp Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
+<sect1 xml:id="language.oop5.autoload" xmlns="http://docbook.org/ns/docbook">
+ <title>Autocarga de clases</title>
+ <para>
+  Muchos desarrolladores que escriben aplicaciones orientadas a objetos
+  crean un fichero fuente PHP para cada definición de clase. Una de las
+  mayores molestias es tener que hacer una larga lista de includes
+  al comienzo de cada script (uno por cada clase).
+ </para>
+ <para>
+  En PHP 5 esto ya no es necesario. Se puede definir una función
+  <function>__autoload</function> que es automáticamente invocada en caso de que
+  se esté intentando utilizar una clase/interfaz que todavía no haya sido definida.
+  Al invocar a esta función el motor de scripting da una última
+  oportunidad para cargar la clase antes que PHP falle con un error.
+ </para>
+ <tip>
   <para>
-   Muchos desarrolladores que escriben aplicaciones orientadas a objetos
-   crean un archivo fuente PHP para cada definición de clase. Una de las
-   mayores molestias es tener que hacer una larga lista de includes
-   al comienzo de cada script (uno por cada clase).
+   <function>spl_autoload_register</function> proporciona una alternativa más 
+   flexible para la carga automática de clases. Por esta razón, el uso de 
+   <function>__autoload</function> no se recomienda y puede quedar obsoleta o 
+   ser eliminada en el futuro.
   </para>
+ </tip>
+ <note>
   <para>
-   En PHP 5, esto ya no es más necesario. Se puede definir una función
-   <function>__autoload</function> la cual es automáticamente invocada en caso de que esté
-   intentando utilizar una clase/interfaz que todavía no haya sido definida.
-   Al invocar a esta función el motor de scripting está dando una última
-   oportunidad de cargar la clase antes que PHP falle con un error.
+   Antes de 5.3.0, las excepciones lanzadas en la función __autoload no podían ser
+   capturadas en el bloque <link linkend="language.exceptions">catch</link> y
+   resultaba en un error fatal. Desde 5.3.0+ las excepciones lanzadas en la función
+   __autoload pueden ser capturadas en el bloque <link linkend="language.exceptions">catch</link>,
+   con 1 disposición. Si se lanza una excepción personalizada, la clase de dicha excepción
+   debe estar disponible. La función __autoload puede ser usada recursivamente
+   para autocargar la clase de la excepción personalizada.
   </para>
-    <tip>
-   <para>
-    <function>spl_autoload_register</function> proporciona una alternativa más 
-    flexible para la carga automática de clases. Por esta razón, el uso de 
-    <function>__autoload</function> no se recomienda y puede ser obsoleta o 
-    eliminada en el futuro.
-   </para>
-  </tip>
-  <note>
-   <para>
-    Antes de 5.3.0, las excepciones lanzadas en la función __autoload no
-    podían ser capturadas en el bloque <link linkend="language.exceptions">catch</link>
-    y eso resultaba en un error fatal. Desde 5.3.0+ las excepciones lanzadas
-    en la función __autoload pueden ser capturadas en el bloque
-    <link linkend="language.exceptions">catch</link>, con 1 disposición. Si se
-    lanza una excepción personalizada, entonces la clase de excepción personalizada
-    debe estar disponible. La función __autoload puede ser usada recursivamente
-    para auto-cargar la clase de excepción personalizada.
-   </para>
-  </note>
-  <note>
-   <para>
-    La auto-carga no está disponible si utiliza PHP en
-    <link linkend="features.commandline">modo interactivo</link> CLI.
-   </para>
-  </note>
-  <note>
-   <para>
-    Si el nombre de la clase es usado, por ejemplo, en <function>call_user_func</function>
-    entonces puede contener algunos caracteres peligrosos tal como <literal>../</literal>.
-    Se recomienda no utilizar la entrada del usuario en tales funciones o al menos
-    verifique dicha entrada en <function>__autoload</function>.
-   </para>
-  </note>
+ </note>
+ <note>
   <para>
-   <example>
-    <title>Ejemplo de auto-carga</title>
-    <para>
-     Este ejemplo intenta cargar las clases <literal>MyClass1</literal>
-     y <literal>MyClass2</literal> de los archivos <filename>MyClass1.php</filename>
-     y <filename>MyClass2.php</filename> respectivamente.
-    </para>
-    <programlisting role="php">
+   La autocarga no está disponible si se utiliza PHP en el
+   <link linkend="features.commandline">modo interactivo</link> CLI.
+  </para>
+ </note>
+ <note>
+  <para>
+   Si el nombre de la clase se utiliza, por ejemplo, en <function>call_user_func</function>,
+   puede contener algunos caracteres peligrosos tales como <literal>../</literal>.
+   Se recomienda no utilizar la entrada del usuario en tales funciones o al menos
+   verificar dicha entrada en <function>__autoload</function>.
+  </para>
+ </note>
+ <para>
+  <example>
+   <title>Ejemplo de autocarga</title>
+   <para>
+    Este ejemplo intenta cargar las clases <literal>MiClase1</literal>
+    y <literal>MiClase2</literal> desde los ficheros <filename>MiClase1.php</filename>
+    y <filename>MiClase2.php</filename> respectivamente.
+   </para>
+   <programlisting role="php">
 <![CDATA[
 <?php
-function __autoload($class_name) {
-    include $class_name . '.php';
+function __autoload($nombre_clase) {
+    include $nombre_clase . '.php';
 }
 
-$obj  = new MyClass1();
-$obj2 = new MyClass2();
+$obj  = new MiClase1();
+$obj2 = new MiClase2();
 ?>
 ]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>Otro ejemplo de auto-carga</title>
-    <para>
-     Este ejemplo intenta cargar la interfaz <literal>ITest</literal>.
-    </para>
-    <programlisting role="php">
+   </programlisting>
+  </example>
+  <example>
+   <title>Otro ejemplo de autocarga</title>
+   <para>
+    Este ejemplo intenta cargar la interfaz <literal>ITest</literal>.
+   </para>
+   <programlisting role="php">
 <![CDATA[
 <?php
 
-function __autoload($name) {
-    var_dump($name);
+function __autoload($nombre) {
+    var_dump($nombre);
 }
 
 class Foo implements ITest {
@@ -96,52 +94,52 @@ Fatal error: Interface 'ITest' not found in ...
 */
 ?>
 ]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>Auto-carga con manejo de excepciones para 5.3.0+</title>
-    <para>
-     Este ejemplo lanza una excepción y demuestra los bloques try/catch.
-    </para>
-    <programlisting role="php">
+   </programlisting>
+  </example>
+  <example>
+   <title>Autocarga con manejo de excepciones para 5.3.0+</title>
+   <para>
+    Este ejemplo lanza una excepción y demuestra los bloques try/catch.
+   </para>
+   <programlisting role="php">
 <![CDATA[
 <?php
-function __autoload($name) {
-    echo "Intentando cargar $name.\n";
-    throw new Exception("Imposible cargar $name.");
+function __autoload($nombre) {
+    echo "Intentando cargar $nombre.\n";
+    throw new Exception("Imposible cargar $nombre.");
 }
 
 try {
-    $obj = new NonLoadableClass();
+    $obj = new ClaseNoCargable();
 } catch (Exception $e) {
     echo $e->getMessage(), "\n";
 }
 ?>
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
-Intentando cargar NonLoadableClass.
-Imposible cargar NonLoadableClass.
+Intentando cargar ClaseNoCargable.
+Imposible cargar ClaseNoCargable.
 ]]>
     </screen>
    </example>
    <example>
-    <title>Auto-carga con manejo de excepciones para 5.3.0+ - Omitiendo excepción personalizada</title>
+    <title>Autocarga con manejo de excepciones para 5.3.0+ - Omitiendo la excepción personalizada</title>
     <para>
      Este ejemplo lanza una excepción para una excepción personalizada no cargable.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-function __autoload($name) {
-    echo "Intentando cargar $name.\n";
-    throw new MissingException("Imposible cargar $name.");
+function __autoload($nombre) {
+    echo "Intentando cargar $nombre.\n";
+    throw new MissingException("Imposible cargar $nombre.");
 }
 
 try {
-    $obj = new NonLoadableClass();
+    $obj = new ClaseNoCargable();
 } catch (Exception $e) {
     echo $e->getMessage(), "\n";
 }
@@ -151,7 +149,7 @@ try {
     &example.outputs;
     <screen>
 <![CDATA[
-Intentando cargar NonLoadableClass.
+Intentando cargar ClaseNoCargable.
 Intentando cargar MissingException.
 
 Fatal error: Class 'MissingException' not found in testMissingException.php on line 4
@@ -159,7 +157,7 @@ Fatal error: Class 'MissingException' not found in testMissingException.php on l
     </screen>
    </example>
   </para>
-
+  
   <simplesect role="seealso">
    &reftitle.seealso;
    <para>
@@ -171,9 +169,9 @@ Fatal error: Class 'MissingException' not found in testMissingException.php on l
     </simplelist>
    </para>
   </simplesect>
+  
+</sect1>
 
- </sect1>
- 
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
