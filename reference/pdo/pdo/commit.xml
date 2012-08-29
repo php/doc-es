@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a56106f69198dfe88c6084593c78a71c26b24353 Maintainer: alejandrorodas Status: ready -->
-<!-- Reviewed: yes -->
-
+<!-- EN-Revision: ef51bbad9554137f7784be22150dc98e51a4300d Maintainer: alejandrorodas Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="pdo.commit" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDO::commit</refname>
   <refpurpose>
-   Realiza un "commit" de una transacción
+   Consigna ('commit') una transacción
   </refpurpose>
  </refnamediv>
-
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -18,55 +17,97 @@
    <void/>
   </methodsynopsis>
   <para>
-   Realiza un "commit" de una transacción, devolviendo la conexión a la base de datos
-   a modo "autocommit" hasta que la siguiente llamada a <function>PDO::beginTransaction</function>
+   Consigna una transacción, devolviendo la conexión a la base de datos al modo
+   'autocommit' hasta que la siguiente llamada a <function>PDO::beginTransaction</function>
    comience una nueva transacción.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   <example><title>Realiza un "commit" de una transacción</title>
+   <example>
+    <title>Consignar una transacción básica</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Inicia una transacción, desactiva autocommit */
-$dbh->beginTransaction();
+/* Comenzar una transacción, desactivando 'autocommit' */
+$gbd->beginTransaction();
 
-/* Cambia el esquema de la base de datos */
-$sth = $dbh->exec("DROP TABLE fruit");
+/* Insertar múltiples registros sobre una base "todo o nada" */
+$sql = 'INSERT INTO fruit
+    (name, colour, calories)
+    VALUES (?, ?, ?)';
 
-/* Realiza un commit de los cambios */
-$dbh->commit();
+$sth = $gbd->prepare($sql);
 
-/* La conexión a la base de datos vuelve al modo autocommit */
+foreach ($frutas as $fruta) {
+    $sth->execute(array(
+        $fruta->name,
+        $fruta->colour,
+        $fruta->calories,
+    ));
+}
+
+/* Consignar los cambios */
+$gbd->commit();
+
+/* La conexión a la base de datos ahora a vuelto al modo 'autocommit' */
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
- </refsect1>
+  <para>
+   <example>
+    <title>Consignar una transacción DDL</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* Comenzar una transacción, desactivando 'autocommit' */
+$gbd->beginTransaction();
 
+/* Cambiar el esquema de la base de datos */
+$sth = $gbd->exec("DROP TABLE fruit");
+
+/* Consignar los cambios */
+$gbd->commit();
+
+/* La conexión a la base de datos ahora a vuelto al modo 'autocommit' */
+?>
+]]>
+    </programlisting>
+   </example>
+   <note>
+    <simpara>
+     No todas las bases de datos permitirán que las transacciones operen sobre sentencias DDL:
+     algunas generarán errores, mientras que otras (incluida MySQL) automáticamente
+     consignarán la transacción después de encontrar la primera
+     sentencia DDL.
+    </simpara>
+   </note>
+  </para>
+ </refsect1>
+ 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>PDO::beginTransaction</function></member>
     <member><function>PDO::rollBack</function></member>
-    <member><link linkend="pdo.transactions">Transacciones y auto-commits</link></member>
+    <member><link linkend="pdo.transactions">Transacciones y auto-commit</link></member>
    </simplelist>
   </para>
  </refsect1>
-
-
+ 
+ 
 </refentry>
 
 <!-- Keep this comment at the end of the file
