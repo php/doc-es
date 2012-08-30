@@ -1,59 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a56106f69198dfe88c6084593c78a71c26b24353 Maintainer: chuso Status: ready -->
- <chapter xml:id="features.gc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <title>Recolección de Basura</title>
-
+<!-- EN-Revision: 7a5929d9dd2384ab497b998e5fed6d6719460e91 Maintainer: chuso Status: ready -->
+<!-- Reviewed: no -->
+<chapter xml:id="features.gc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Recolección de Basura</title>
+ 
+ <para>
+  Esta sección explica los méritos del nuevo mecanismo del Recolector de Basuras (o también
+  conocido como GC) de la versión 5.3 de PHP.
+ </para>
+ 
+ <sect1 xml:id="features.gc.refcounting-basics">
+  <title>Introducción a la Cuenta de Referencias</title>
   <para>
-   Esta sección explica los méritos del nuevo mecanismo del Recolector de Basuras (o también
-   conocido como GC) de la versión 5.3 de PHP.
+   Una variable en PHP se almacena en un contender llamado "zval". Un contenedor zval
+   contiene, además del tipo de la variable y su valor, dos bits de información
+   adicional. Al primero se le llama "is_ref" y contiene un boolean que indica
+   si la variable es parte o no de con "conjunto de referencias". Con
+   este bit, el motor de PHP sabe diferenciar entre variables normales
+   y referencias. Puesto que PHP permite las referencias definidas por el usuario, tal y
+   como se crean con el operador &amp;, un contenedor zval tiene también un mecanismo
+   contador de referencias para optimizar el uso de memoria. Esta segunda pieza adicional de
+   información, llamada "refcount", contiene el número de variables (también llamadas
+   símbolos) que apuntan a este contenedor zval. Todos los símbolos se almacenan en
+   una tabla de símbolos, de las cuales hay una por cada ámbito. Hay un ámbito para el
+   script principal (es decir, al que el navegador realizó la petición), además de uno por
+   cada función o método.
   </para>
-
-  <sect1 xml:id="features.gc.refcounting-basics">
-   <title>Introducción a la Cuenta de Referencias</title>
-   <para>
-    Una variable en PHP se almacena en un contender llamado "zval". Un contenedor zval
-    contiene, además del tipo de la variable y su valor, dos bits de información
-    adicional. Al primero se le llama "is_ref" y contiene un boolean que indica
-    si la variable es parte o no de con "conjunto de referencias". Con
-    este bit, el motor de PHP sabe diferenciar entre variables normales
-    y referencias. Puesto que PHP permite las referencias definidas por el usuario, tal y
-    como se crean con el operador &amp;, un contenedor zval tiene también un mecanismo
-    contador de referencias para optimizar el uso de memoria. Esta segunda pieza adicional de
-    información, llamada "refcount", contiene el número de variables (también llamadas
-    símbolos) que apuntan a este contenedor zval. Todos los símbolos se almacenan en
-    una tabla de símbolos, de las cuales hay una por cada ámbito. Hay un ámbito para el
-    script principal (es decir, al que el navegador realizó la petición), además de uno por
-    cada función o método.
-   </para>
-   <para>
-    Se crea un contenedor zval cuando se crea una variable con un valor constante, 
-    como por ejemplo:
-    <example>
-     <title>Creación de un nuevo contenedor zval</title>
-     <programlisting role="php">
+  <para>
+   Se crea un contenedor zval cuando se crea una variable con un valor constante, 
+   como por ejemplo:
+   <example>
+    <title>Creación de un nuevo contenedor zval</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 $a = "nuevo string";
 ?>
 ]]>
-     </programlisting>
-    </example>
-   </para>
-   <para>
-    En este caso, el nuevo nombre de símbolo, <literal>a</literal>, se crea en el ámbito actual,
-    y se crea un nuevo contenedor de variable con el tipo <type>string</type> y el valor
-    <literal>nuevo string</literal>. El bit "is_ref" por omisión contiene &false; dado que no se
-    ha creado ninguna referencia. "refcount" contiene <literal>1</literal> pues
-    sólo hay un símbolo que haga uso de este contenedor de variables. Tenga en cuenta
-    que si "refcount" es <literal>1</literal>, "is_ref" siempre valdrá &false;. Si tiene <link
-    xlink:href="&url.xdebug;">Xdebug</link> instalado, puede mostrar esta
-    información llamando a <function>xdebug_debug_zval</function>.
-   </para>
-   <para>
-    <example>
-     <title>Mostrar información zval</title>
-     <programlisting role="php">
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   En este caso, el nuevo nombre de símbolo, <literal>a</literal>, se crea en el ámbito actual,
+   y se crea un nuevo contenedor de variable con el tipo <type>string</type> y el valor
+   <literal>nuevo string</literal>. El bit "is_ref" por omisión contiene &false; dado que no se
+   ha creado ninguna referencia. "refcount" contiene <literal>1</literal> pues
+   sólo hay un símbolo que haga uso de este contenedor de variables. Tenga en cuenta
+   que si "refcount" es <literal>1</literal>, "is_ref" siempre valdrá &false;. Si tiene <link
+   xlink:href="&url.xdebug;">Xdebug</link> instalado, puede mostrar esta
+   información llamando a <function>xdebug_debug_zval</function>.
+  </para>
+  <para>
+   <example>
+    <title>Mostrar información zval</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 xdebug_debug_zval('a');
@@ -128,10 +129,10 @@ a: (refcount=1, is_ref=0)='nuevo string'
     Si ahora llamáramos a <literal>unset($a);</literal>, el contenedor de variable, incluyendo tanto
     el tipo como el valor, se eliminarían de la memoría.
    </para>
-
+   
    <sect2 xml:id="features.gc.compound-types">
     <title>Tipos Compuestos</title>
-
+    
     <para>
      Las cosas se complican con tipos compuestos tales como <type>array</type>s o
      <type>object</type>s. En lugar de un valor de tipo <type>scalar</type>, los <type>array</type>s
@@ -312,7 +313,7 @@ a: (refcount=2, is_ref=1)=array (
      </example>
     </para>
    </sect2>
-
+   
    <sect2 xml:id="features.gc.cleanup-problems">
     <title>Problemas de limpieza</title>
     <para>
@@ -340,7 +341,7 @@ a: (refcount=2, is_ref=1)=array (
     </para>
    </sect2>
   </sect1>
-
+  
   <sect1 xml:id="features.gc.collecting-cycles">
    <title>Recolección de referencias Cíclicas</title>
    <para>
@@ -362,12 +363,12 @@ a: (refcount=2, is_ref=1)=array (
     después comprobar cuáles han alcanzado a cero.
    </para>
    <para>
-     <mediaobject>
-      <alt>Algoritmo de recolección de basura</alt>
-      <imageobject>
-       <imagedata fileref="en/features/figures/gc-algorithm.png" format="PNG"/>
-      </imageobject>
-     </mediaobject>
+    <mediaobject>
+     <alt>Algoritmo de recolección de basura</alt>
+     <imageobject>
+      <imagedata fileref="en/features/figures/gc-algorithm.png" format="PNG"/>
+     </imageobject>
+    </mediaobject>
    </para>
    <para>
     Para evitar llamar al comprobador de ciclos de basura en cada
@@ -394,7 +395,8 @@ a: (refcount=2, is_ref=1)=array (
     Ahora que ya tiene un conocimiento básico de cómo funciona el algoritmo,
     volveremos atrás para ver cómo se integra esto en PHP. Por omisión, el recolector
     de basuras de PHP está habilitado. Hay, sin embargo, una directiva en &php.ini;
-    que permite cambiar est: <option>zend.enable_gc</option>.
+    que permite cambiar esto:
+    <link linkend="ini.zend.enable-gc">zend.enable_gc</link>.
    </para>
    <para>
     Cuando el recolector de basura está habilitado, el algoritmo que busca ciclos,
@@ -421,7 +423,7 @@ a: (refcount=2, is_ref=1)=array (
     puede conllevar una cantidad de tiempo considerable.
    </para>
    <para>
-    Ademas de poder cambiar la configuración de <option>zend.enable_gc</option>,
+    Ademas de poder cambiar la configuración <link linkend="ini.zend.enable-gc">zend.enable_gc</link>,
     también es posible habilitar o deshabilitar el mecanismo recolector de basura
     llamando a <function>gc_enable</function> o
     <function>gc_disable</function> respectivamente. La llamada a estas funciones tiene
@@ -446,7 +448,7 @@ a: (refcount=2, is_ref=1)=array (
     posibles raíces en el tiempo en que el mecanismo recolector de ciclos está deshabilitado.
    </para>
   </sect1>
-
+  
   <sect1 xml:id="features.gc.performance-considerations">
    <title>Consideraciones acerca del Rendimiento</title>
    <para>
@@ -463,7 +465,7 @@ a: (refcount=2, is_ref=1)=array (
     cuando el mecanismo recolector de basura lleva a cabo la limpieza de memoria. Revisaremos
     estos dos asuntos.
    </para>
-
+   
    <sect2 xml:id="features.gc.performance-considerations.reduced-mem">
     <title>Uso Reducido de Memoria</title>
     <para>
@@ -526,7 +528,7 @@ for ( $i = 0; $i <= 100000; $i++ )
      9 Mb, mientras que en PHP 5.2 el uso de memoria no para de aumentar.
     </para>
    </sect2>
-
+   
    <sect2 xml:id="features.gc.performance-considerations.slowdowns">
     <title>Reducción en Tiempo de Ejecución</title>
     <para>
@@ -562,7 +564,7 @@ echo memory_get_peak_usage(), "\n";
     </para>
     <para>
      Ejecutaremos dos veces este script, una con el ajuste
-     <option>zend.enable_gc</option> habilitado, y en la otra
+     <link linkend="ini.zend.enable-gc">zend.enable_gc</link> habilitado, y en la otra
      deshabilitado:
     </para>
     <para>
@@ -590,7 +592,7 @@ time php -dzend.enable_gc=1 -dmemory_limit=-1 -n example2.php
      la ejecución del script.
     </para>
    </sect2>
-
+   
    <sect2 xml:id="features.gc.performance-considerations.internal-stats">
     <title>Estadísticas Internas de PHP del Recolector de Basuras</title>
     <para>
@@ -649,7 +651,7 @@ ZOBJ  28506264   1527980     677581   1025731
      al menos una vez, el "pico del buffer raíz" es siempre 10.000.
     </para>
    </sect2>
-
+   
    <sect2 xml:id="features.gc.performance-considerations.conclusion">
     <title>Conclusión</title>
     <para>
@@ -673,7 +675,7 @@ ZOBJ  28506264   1527980     677581   1025731
     </para>
    </sect2>
   </sect1>
- </chapter>
+</chapter>
 
 <!-- Keep this comment at the end of the file
 vim600: syn=xml fen fdm=syntax fdl=2 si
