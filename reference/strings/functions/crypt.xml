@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 55d88a8d9cdc6b9ac991e7bdc397e565dd204c93 Maintainer: jpberdejo Status: ready -->
+<!-- EN-Revision: 54bcc14facb0947568ad38a9c0ee4daf7d742be8 Maintainer: jpberdejo Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://docbook.org/ns/docbook" xml:id="function.crypt">
  <refnamediv>
   <refname>crypt</refname>
@@ -46,7 +47,8 @@
    <listitem>
     <simpara>
      <constant>CRYPT_STD_DES</constant> - Hash estándar basado en DES con un salt de dos caracteres
-       del alfabeto "./0-9A-Za-z". Utilizar caracteres no válidos en el salt causará que crypt() falle.
+     del alfabeto "./0-9A-Za-z". Utilizar caracteres no válidos en el salt causará que crypt()
+     falle.
     </simpara>
    </listitem>
    <listitem>
@@ -66,12 +68,19 @@
    </listitem>
    <listitem>
     <simpara>
-     <constant>CRYPT_BLOWFISH</constant> - Hash Blowfish con un salt como sigue:
-     "$2a$", un parámetro de costo de dos dígitos, "$" y 22 dígitos del alfabeto
-     "./0-9A-Za-z". Utilizar caracteres fuera de este rango en el salt causará que crypt()
-     devuelva un string de longitud cero. Los dos dígitos del parámetro de costo es el logaritmo en base-2 del
-     conteo de iteración para el algoritmetro hash subyacente basado en Blowfish y debe estar en el
-     rango de 04-31, valores por fuera de este rango causarán que crypt() falle.
+     <constant>CRYPT_BLOWFISH</constant> - Hash con Blowfish con un salt como
+     sigue: "$2a$", "$2x$" o "$2y$", un parámetro de coste de dos dígitos, "$", y
+     22 dígitos del alfabeto "./0-9A-Za-z". Utilizar caracteres fuera de este
+     rango en el salt causará que crypt() devuelva una cadena de longitud cero.
+     El parámetro de coste de dos dígitos es el logaritmo en base 2 de la cuenta de la
+     iteración del algoritmo hach basado en Blowfish subyacente, y debe estar
+     en el rango 04-31; los valores fuera de este rango causarán que crypt() falle.
+     Las versiones de PHP anteriores a 5.3.7 únicamente admitían "$2a$" como el prefijo para salt: PHP
+     5.3.7 introdujo los nuevos prefijos para corregir un problema de seguridad en la
+     implementación de Blowfish. Por favor, consulte
+     <link xlink:href="&url.crypt.blowfish;">este documento</link> para detalles
+     copletos de la corrección de seguridad, pero para resumir, los desarrolladores que se
+     oriente por PHP 5.3.7 y posteriores deberían usar "$2y$" en vez de "$2a$".
     </simpara>
    </listitem>
    <listitem>
@@ -150,6 +159,13 @@
      </thead>
      <tbody>
       <row>
+       <entry>5.3.7</entry>
+       <entry>
+        Se añadieron los modos de Blowfish <literal>$2x$</literal> y <literal>$2y$</literal>
+        para tratar con ataques de bit alto potenciales.
+       </entry>
+      </row>
+      <row>
        <entry>5.3.2</entry>
        <entry>
         Agregado el crypt SHA-256 y SHA-512 basado en la
@@ -185,14 +201,14 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$password = crypt('mypassword'); // deja que el salt se genera automáticamente
+$hashed_password = crypt('mypassword'); // dejar que el salt se genera automáticamente
 
 /* Se deben pasar todos los resultados de crypt() como el salt para la comparación de una
    contraseña, para evitar problemas cuando diferentes algoritmos hash son utilizados. (Como
    se dice arriba, el hash estándar basado en DES utiliza un salt de 2 
    caracteres, pero el hash basado en MD5 utiliza 12.) */
-if (crypt($user_input, $password) == $password) {
-   echo "Password verified!";
+if (crypt($user_input, $hashed_password) == $hashed_password) {
+   echo "¡Contraseña verificada!";
 }
 ?>
 ]]>
@@ -221,6 +237,9 @@ $hash = crypt($password);
     <programlisting role="php">
 <![CDATA[
 <?php
+/* Estas sales son solamente ejemplos, y no deberían usarse textualmente en su código.
+   Debería generar una sal distinta correctamente formada para cada contraseña.
+*/
 if (CRYPT_STD_DES == 1) {
     echo 'Standard DES: ' . crypt('rasmuslerdorf', 'rl') . "\n";
 }
