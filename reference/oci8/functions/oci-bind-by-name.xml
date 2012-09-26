@@ -1,0 +1,864 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: f453f7036c74f5f8ce5e15d3d5abbaf8dfd599e2 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.oci-bind-by-name" xmlns="http://docbook.org/ns/docbook">
+ <refnamediv>
+  <refname>oci_bind_by_name</refname>
+  <refpurpose>Vincula una variable de PHP a un parámetro de sustitución de Oracle</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>oci_bind_by_name</methodname>
+   <methodparam><type>resource</type><parameter>statement</parameter></methodparam>
+   <methodparam><type>string</type><parameter>bv_name</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter role="reference">variable</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>maxlength</parameter><initializer>-1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer>SQLT_CHR</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   Vincula la variable de PHP <parameter>variable</parameter> al parámetro de
+   sustitución de variable vinculada de Oracle <parameter>bv_name</parameter>. La vinculación
+   es importante para el rendimiento de la base de datos de Oracle y también como un forma de
+   evitar problemas de seguridad de Inyecciones SQL.
+  </para>
+  
+  <para>
+   La vinculación permite que la base de datos reutilice el contexto de la sentencia y
+   use la caché desde ejecuciones previas de dicha sentencia, incluso si otro
+   usuario o proceos la ejecutó inicialmente. La vinculación reduce las
+   inquietudes con Inyecciones SQL ya que los datos asociados con una variable
+   vinculada nunca son tratados como parte de la sentencia SQL. Hace que no sea
+   necesario las entrecomillación o el escape.
+  </para>
+  
+  <para>
+   Las variables de PHP que han sido vinculadas variables se pueden cambiar, por lo que
+   la sentencia se reejecutará sin necesidad de reanalizarla o
+   revincularla.
+  </para>
+  
+  <para>
+   En Oracle, la vinculaión de variables se divide normalmente
+   en vínculos <literal>IN</literal> para valores que son pasados a
+   la base de datos, y vínculos <literal>OUT</literal> para valores que son
+   devueltos a PHP. Una variable vinculada podría ser tanto
+   <literal>IN</literal> como <literal>OUT</literal>. Si una
+   variable vinculada será usada para entrada o salida se determina en
+   en tiempo de ejecución.
+  </para>
+  
+  <para>
+   Se debe especificar <parameter>maxlength</parameter> al utilizar
+   un vínculo <literal>OUT</literal> para que PHP asigne suficiente memoria
+   para contener el valor devuelto.
+  </para>
+  
+  <para>
+   Para los vínculos <literal>IN</literal>, se recomienda establecer
+   la longitud <parameter>maxlength</parameter> si la sentencia es
+   reejecutada múltiples veces con diferentes valores para la variable de
+   PHP. Si no, Oracle podría truncar los datos a la longitud del
+   valor inicial de la variable de PHP. Si no se conoce cuál será la longitud
+   máxima, reinvoque a <function>oci_bind_by_name</function>
+   con el tamaño de los datos actuales antes de
+   cada llamada a <function>oci_execute</function>. Vincular una
+   longitud grande innecesariamente tendrá un impacto en la memoria del proceso
+   de la base de datos.
+  </para>
+  
+  <para>
+   Una llamada vinculada le indica a Oracle desde qué dirección de memoria debe leer datos.
+   Para vínculos <literal>IN</literal>, esta dirección necesita contener
+   datos válido cuando se invoque a <function>oci_execute</function>. Esto
+   significa que la variable vinculada debe permanecer en el ámbito hasta
+   la ejecución. Si no lo hace, pueden ocurrir errores inesperados como
+   "ORA-01460: unimplemented or unreasonable conversion requested".
+   Para vínculos <literal>OUT</literal> un síntoma es que no
+   se ha establecido un valor en la variable de PHP.
+  </para>
+  
+  <para>
+   Para una sentencia que sea ejecutada repetidamente, los valores vinculados que
+   nunca cambiam podrían reducir la capacidad del optimizador de Oracle para
+   elegir el mejor plan de ejecución de sentencias. Las sentencias que tarden en ejecutarse
+   y que sean reejecutadas raramente podrían no beneficiarse de la vinculación. Sin embargo,
+   en ambos casos, la vinculación podría ser más segura que unir cadenas en una
+   sentencia SQL, ya que esto puede ser un riesgo para la seguridad si el texto no filtrado
+   de un usuario se concatena.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>statement</parameter></term>
+     <listitem>
+      <para>
+       Un identificador de sentencias válido de OCI8.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>bv_name</parameter></term>
+     <listitem>
+      <para>
+       El parámetro de sustitución de la variable vinculada prefijado por dos puntos (:) usado
+       en la sentencia. Los dos puntos son opcionales
+       en <parameter>bv_name</parameter>. Oracle no usa los signos de interrogación
+       en los parámetros de sustitución.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>variable</parameter></term> 
+     <listitem>
+      <para>
+       La variable de PHP que va a ser asociada con <parameter>bv_name</parameter>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>maxlength</parameter></term>
+     <listitem>
+      <para>
+       Establece la longitud máxima para los datos. Si se establece a -1, esta
+       función utilizará la longitud actual
+       de <parameter>variable</parameter> para establecer la longitud
+       máxima. En este caso, el parámetro <parameter>variable</parameter> debe
+       existir y contener datos
+       se invoque a <function>oci_bind_by_name</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>type</parameter></term>
+     <listitem>
+      <para>
+       El tipo de datos con el que Oracle trartará los datos. El tipo usado
+       predeterminado dado por <parameter>type</parameter>
+       es <constant>SQLT_CHR</constant>. Oracle convertirá los datos
+       entre este tipo y la columna de la base de datos (o un tipo de variable de
+       PL/SQL), cuando sea posible.
+      </para>
+      <para>
+       Si fuera necesario vincular un tipo de datos abstractos (LOB/ROWID/BFILE) se
+       debe asignarlo primero usando la función
+       <function>oci_new_descriptor</function>. La longitud
+       <parameter>length</parameter> no se usa para tipos de datos abstractos
+       y debería establecerse a -1.
+      </para>
+      <para>
+       Los posibles valores para <parameter>type</parameter> son:
+       <itemizedlist>
+        <listitem>
+         <para>
+          <constant>SQLT_BFILEE</constant> or <constant>OCI_B_BFILE</constant>
+          <!-- really only single E --> - para BFILEs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_CFILEE</constant> o <constant>OCI_B_CFILEE</constant>
+          - para CFILEs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_CLOB</constant> o <constant>OCI_B_CLOB</constant>
+          - para CLOBs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_BLOB</constant> o <constant>OCI_B_BLOB</constant>
+          - para BLOBs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_RDD</constant> o <constant>OCI_B_ROWID</constant>
+          - para ROWIDs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_NTY</constant> o <constant>OCI_B_NTY</constant>
+          - para tipos de datos con nombre;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_INT</constant> o <constant>OCI_B_INT</constant> - para integers;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_CHR</constant> - para VARCHARs;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_BIN</constant> o <constant>OCI_B_BIN</constant>
+          - para columnas RAW;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_LNG</constant> - para columnas LONG;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_LBI</constant> - para columnas LONG RAW;
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <constant>SQLT_RSET</constant> - para cursores creados
+          con <function>oci_new_cursor</function>.
+         </para>
+        </listitem>
+       </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Insertar datos con <function>oci_bind_by_name</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Cree la tabla con:
+//   CREATE TABLE mytab (id NUMBER, text VARCHAR2(40));
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$stid = oci_parse($conn,"INSERT INTO mytab (id, text) VALUES(:id_bv, :text_bv)");
+
+$id = 1;
+$text = "Datos a insertar     ";
+oci_bind_by_name($stid, ":id_bv", $id);
+oci_bind_by_name($stid, ":text_bv", $text);
+oci_execute($stid);
+
+// La tabla ahora contiene: 1, 'Datos a insertar     '
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vincular una vez para múltiples ejecuciones</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Cree la tabla con:
+//   CREATE TABLE mytab (id NUMBER);
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$a = array(1,3,5,7,11);  // data to insert
+
+$stid = oci_parse($conn, 'INSERT INTO mytab (id) VALUES (:bv)');
+oci_bind_by_name($stid, ':bv', $v, 20);
+foreach ($a as $v) {
+    $r = oci_execute($stid, OCI_DEFAULT);  // no autoconsigna
+}
+oci_commit($conn); // consigna todo una vez
+
+// La tabla contiene cinco filas: 1, 3, 5, 7, 11
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación con un bucle <function>foreach</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$sql = 'SELECT * FROM departments WHERE department_name = :dname AND location_id = :loc';
+$stid = oci_parse($conn, $sql);
+
+$ba = array(':dname' => 'IT Support', ':loc' => 1700);
+
+foreach ($ba as $key => $val) {
+
+    // oci_bind_by_name($stid, $key, $val) no funciona debido a
+    // que vincula cada parámetro de sustitución a la misma ubicación: $val
+    // en su lugar, use la ubicación real de los datos: $ba[$key]
+    oci_bind_by_name($stid, $key, $ba[$key]);
+}
+
+oci_execute($stid);
+$row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS);
+foreach ($row as $item) {
+    print $item."<br>\n";
+}
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación en una cláusula WHERE</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect("hr", "hrpwd", "localhost/XE");
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$sql = 'SELECT last_name FROM employees WHERE employee_id = :eidbv';
+$stid = oci_parse($conn, $sql);
+$myeid = 101;
+oci_bind_by_name($stid, ':eidbv', $myeid);
+oci_execute($stid);
+$row = oci_fetch_array($stid, OCI_ASSOC);
+echo $row['LAST_NAME'] ."<br>\n";
+
+// La salida es
+//    Kochhar
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación con una cláusula LIKE</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+// Busca todas las ciudades que empiecen por 'South'
+$stid = oci_parse($conn, "SELECT city FROM locations WHERE city LIKE :bv");
+$city = 'South%';  // '%' is a wildcard in SQL
+oci_bind_by_name($stid, ":bv", $city);
+oci_execute($stid);
+oci_fetch_all($stid, $res);
+
+foreach ($res['CITY'] as $c) {
+    print $c . "<br>\n";
+}
+// La salida es
+//   South Brunswick
+//   South San Francisco
+//   Southlake
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación con REGEXP_LIKE</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+// Busca todas las ciudades que contengan 'ing'
+$stid = oci_parse($conn, "SELECT city FROM locations WHERE REGEXP_LIKE(city, :bv)");
+$city = '.*ing.*';
+oci_bind_by_name($stid, ":bv", $city);
+oci_execute($stid);
+oci_fetch_all($stid, $res);
+
+foreach ($res['CITY'] as $c) {
+    print $c . "<br>\n";
+}
+// La salida es
+//   Beijing
+//   Singapore
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   Para un número fijo pequeño de condiciones de la cláusula IN, use variables vinculadas
+   individuales. Los valores desconocidos en tiempo de ejecución pueden ser establecidos a NULL.
+   Esto permite que una única sentencia sea usada por todas los usuarios de una
+   aplicación, maximizando la enficiencia de la caché de la base de datos de Oracle.
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación de  múltiples valores en una cláusula IN</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$sql = 'SELECT last_name FROM employees WHERE employee_id in (:e1, :e2, :e3)';
+$stid = oci_parse($conn, $sql);
+$mye1 = 103;
+$mye2 = 104;
+$mye3 = NULL; // se pretende que no se proporcione este valor
+oci_bind_by_name($stid, ':e1', $mye1);
+oci_bind_by_name($stid, ':e2', $mye2);
+oci_bind_by_name($stid, ':e3', $mye3);
+oci_execute($stid);
+oci_fetch_all($stid, $res);
+foreach ($res['LAST_NAME'] as $name) {
+    print $name ."<br>\n";
+}
+
+// La salida es
+//   Ernst
+//   Hunold
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación de un ROWID devuelto por una consulta</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Cree la tabla con:
+//   CREATE TABLE mytab (id NUMBER, salary NUMBER, name VARCHAR2(40));
+//   INSERT INTO mytab (id, salary, name) VALUES (1, 100, 'Chris');
+//   COMMIT;
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$stid = oci_parse($conn, 'SELECT ROWID, name FROM mytab WHERE id = :id_bv FOR UPDATE');
+$id = 1;
+oci_bind_by_name($stid, ':id_bv', $id);
+oci_execute($stid);
+$row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS);
+$rid = $row['ROWID'];
+$name = $row['NAME'];
+
+// Cambiar el nombre a mayúsculas y guardar los cambios
+$name = strtoupper($name);
+$stid = oci_parse($conn, 'UPDATE mytab SET name = :n_bv WHERE ROWID = :r_bv');
+oci_bind_by_name($stid, ':n_bv', $name);
+oci_bind_by_name($stid, ':r_bv', $rid, -1, OCI_B_ROWID);
+oci_execute($stid);
+
+// La tabla contiene ahora 1, 100, CHRIS
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación de un ROWID sobre INSERT</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Este ejemplo inserta un id y un nombre, y luego actualiza el salario
+// Cree la tabla con:
+//   CREATE TABLE mytab (id NUMBER, salary NUMBER, name VARCHAR2(40));
+//
+// Basado en el ejemplo original de ROWID de thies at thieso dot net (980221)
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$sql = "INSERT INTO mytab (id, name) VALUES(:id_bv, :name_bv)
+        RETURNING ROWID INTO :rid";
+
+$ins_stid = oci_parse($conn, $sql);
+
+$rowid = oci_new_descriptor($conn, OCI_D_ROWID);
+oci_bind_by_name($ins_stid, ":id_bv",   $id,    10);
+oci_bind_by_name($ins_stid, ":name_bv", $name,  32);
+oci_bind_by_name($ins_stid, ":rid",     $rowid, -1, OCI_B_ROWID);
+
+$sql = "UPDATE mytab SET salary = :salary WHERE ROWID = :rid";
+$upd_stid = oci_parse($conn, $sql);
+oci_bind_by_name($upd_stid, ":rid", $rowid, -1, OCI_B_ROWID);
+oci_bind_by_name($upd_stid, ":salary", $salary,   32);
+
+// Los identificadores y los nombres a insertar
+$data = array(1111 => "Larry",
+              2222 => "Bill",
+              3333 => "Jim");
+
+// El salario para cada persona
+$salary = 10000;
+
+// Insertar e inmediatamente actualizar cada fila
+foreach ($data as $id => $name) {
+    oci_execute($ins_stid);
+    oci_execute($upd_stid);
+}
+
+$rowid->free();
+oci_free_statement($upd_stid);
+oci_free_statement($ins_stid);
+
+// Mostrar las nuevas filas
+$stid = oci_parse($conn, "SELECT * FROM mytab");
+oci_execute($stid);
+while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
+    var_dump($row);
+}
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación para una función almacenada de PL/SQL</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+//  Antes de ejecutar este programa de PHP, cree una función almacenada en
+//  SQL*Plus o SQL Developer:
+//
+//  CREATE OR REPLACE FUNCTION myfunc(p IN NUMBER) RETURN NUMBER AS
+//  BEGIN
+//      RETURN p * 3;
+//  END;
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $e = oci_error();
+    trigger_error(htmlentities($e['message']), E_USER_ERROR);
+}
+
+$p = 8;
+
+$stid = oci_parse($conn, 'begin :r := myfunc(:p); end;');
+oci_bind_by_name($stid, ':p', $p);
+
+// El valor devuelto es un vínculo OUT. El tipo predeterminado será una cadena,
+// por lo que vincular 40 significa que serán devueltos 40 dígitos
+// como máximo.
+oci_bind_by_name($stid, ':r', $r, 40);
+
+oci_execute($stid);
+
+print "$r\n";   // imprime 24
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación de parámetros para un procedimiento almacenado de PL/SQL</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+//  Antes de ejecutar este programa de PHP, cree una función almacenada en
+//  SQL*Plus o SQL Developer:
+//
+//  CREATE OR REPLACE PROCEDURE myproc(p1 IN NUMBER, p2 OUT NUMBER) AS
+//  BEGIN
+//      p2 := p1 * 2;
+//  END;
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $e = oci_error();
+    trigger_error(htmlentities($e['message']), E_USER_ERROR);
+}
+
+$p1 = 8;
+
+$stid = oci_parse($conn, 'begin myproc(:p1, :p2); end;');
+oci_bind_by_name($stid, ':p1', $p1);
+
+// El segundo parámetro del procedimiento es un vínculo OUT. El tipo predeterminado
+// será una cadena, por lo que vincular 40 significa que serán devueltos 40 dígitos
+// como máximo.
+oci_bind_by_name($stid, ':p2', $p2, 40);
+
+oci_execute($stid);
+
+print "$p2\n";   // imprime 16
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   <example>
+    <title>Vinculación de una columna CLOB</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Antes de ejecutarlo, cree la tabla:
+//     CREATE TABLE mytab (mykey NUMBER, myclob CLOB);
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $e = oci_error();
+    trigger_error(htmlentities($e['message']), E_USER_ERROR);
+}
+
+$mykey = 12343;  // clave arbitraria para este ejemplo;
+
+$sql = "INSERT INTO mytab (mykey, myclob)
+        VALUES (:mykey, EMPTY_CLOB())
+        RETURNING myclob INTO :myclob";
+
+$stid = oci_parse($conn, $sql);
+$clob = oci_new_descriptor($conn, OCI_D_LOB);
+oci_bind_by_name($stid, ":mykey", $mykey, 5);
+oci_bind_by_name($stid, ":myclob", $clob, -1, OCI_B_CLOB);
+oci_execute($stid, OCI_DEFAULT);
+$clob->save("A very long string");
+
+oci_commit($conn);
+
+// Obtener los datos CLOB
+
+$query = 'SELECT myclob FROM mytab WHERE mykey = :mykey';
+
+$stid = oci_parse ($conn, $query);
+oci_bind_by_name($stid, ":mykey", $mykey, 5);
+oci_execute($stid);
+
+print '<table border="1">';
+while ($row = oci_fetch_array($stid, OCI_ASSOC)) {
+  $result = $row['MYCLOB']->load();
+  print '<tr><td>'.$result.'</td></tr>';
+}
+print '</table>';
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <warning>
+   <para>
+    No use <link
+    linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> o
+    <function>addslashes</function>
+    y <function>oci_bind_by_name</function> simultáneamente, ya que no es necesaria
+    el entrecomillado. Cualquier comilla aplicada mágicamente será escrita
+    en la base de datos debido a que <function>oci_bind_by_name</function>
+    inserta los datos textualmente y no elimina las comillas o los caracteres
+    de escape.
+   </para>
+  </warning>
+  <note>
+   <para>
+    Si se vincula una cadena con una columna <literal>CHAR</literal> en
+    una cláusula <literal>WHERE</literal>, recuerde que Oracle utiliza
+    una semántica de comparación de relleno en blanco para columnas
+    <literal>CHAR</literal>. La variable de PHP debería estar rellena con espacios en blanco a la
+    misma longitud que la columna para que la cláusula <literal>WHERE</literal> tenga
+    éxito.
+   </para>
+  </note>
+  <note>
+   <para>
+    El argumento <parameter>variable</parameter> de PHP es una referencia. Algunas
+    formas de bucles no funcionan como era de esperar:
+   </para>
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+foreach ($array as $clave => $valor)  {
+    oci_bind_by_name($stid, $clave, $valor);
+}
+?>
+]]>
+    </programlisting>
+   </informalexample>
+   <para>
+    Esto vincula cada clave a la ubicación de $valor, por lo que todas las variables
+    vinculadas terminaran apuntando al valor de la última interación del bucle.
+    En su lugar, se ha de utilizar lo siguiente:
+   </para>
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+foreach ($array as $clave => $valor) {
+    oci_bind_by_name($stid, $clave, $array[$clave]);
+}
+?>
+]]>
+    </programlisting>
+   </informalexample>
+  </note>
+  <note>
+   <para>
+    En versiones de PHP anteriores a la 5.0.0 se debe
+    usar <function>ocibindbyname</function>
+    en su lugar. &oci.name.compat.note;
+   </para>
+  </note>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>oci_bind_array_by_name</function></member>
+    <member><function>oci_parse</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+

@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.oci-close" xmlns="http://docbook.org/ns/docbook">
+ <refnamediv>
+  <refname>oci_close</refname>
+  <refpurpose>Cierra una conexión a Oracle</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>oci_close</methodname>
+   <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Desestablece <parameter>connection</parameter>. La conexión subyacentte
+   a la base de datos se cierra si otros recursos no la están utilizando y si
+   fue creada con <function>oci_connect</function>
+   o <function>oci_new_connect</function>.
+  </para>
+  <para>
+   Se recomienda cerrar las conexiones que no sean necesarias
+   ya que esto hace que los recursos de la base de datos  estén disponbles para otros usuarios.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>connection</parameter></term>
+     <listitem>
+      <para>
+       Un identificador de conexión de Oracle devuelto por
+       <function>oci_connect</function>, <function>oci_pconnect</function>
+       o <function>oci_new_connect</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Cerrar una conexión</title>
+   <para>
+    Los recursos asociados con una conexión debería cerrarse para asegurarse
+    de que la conexión subyacente a la base de datos sea finalizada apropiadamente y sean
+    liberados los recursos de la base de datos.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $e = oci_error();
+    trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
+}
+
+$stid = oci_parse($conn, 'SELECT * FROM departments');
+$r = oci_execute($stid);
+oci_fetch_all($stid, $res);
+var_dump($res);
+
+// Liberar el identificador de sentencias al cerrar la conexión
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example>
+   <title>Las conexiones a bases de datos no se cierran hasta que todas las referencias sean cerradas</title>
+   <para>
+    La cuenta de referencias interna de un identificador de conexión debe ser cero
+    antes de de que sea cerrada la conexión subyacente de la base de datos.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
+    $e = oci_error();
+    trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
+}
+
+$stid = oci_parse($conn, 'SELECT * FROM departments');  // esto incrementa la cuenta de referencias de $conn
+oci_execute($stid);
+oci_fetch_all($stid, $res);
+var_dump($res);
+
+oci_close($conn);
+
+// $conn ya no puede ser utilizada en el script, pero la conexión subyacente
+// a la base de datos aún se mantiene abierta, hasta que $stid sea liberado.
+var_dump($conn);  // imprime NULL  
+
+// Mientras PHP duerme, consultar la vista V$SESSION de Oracle en una
+// ventana terminal mostrará que el ususario de la base de datos que aún está conectado.
+sleep(10);
+
+// Cuando $stid es liberado, la conexión a la base de datos se cierra físicamente
+oci_free_statement($stid);  
+
+// Mientras PHP duerme, consultar la vista V$SESSION de Oracle en una
+// ventana terminal mostrará que el ususario de la base de datos se ha desconectado.
+sleep(10);
+
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example>
+   <title>Cerrar una conexión abierta más de una vez</title>
+   <para>
+    When database credentials are reused, both connections must be closed
+    before the underlying database connection is closed.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn1 = oci_connect('hr', 'welcome', 'localhost/XE');
+
+// Al usar las mismas credenciales se reutiliza la misma conexión subyacente a la base de datos
+// Cualquier cambio no consignado realizado a $conn1 será visible en $conn2
+$conn2 = oci_connect('hr', 'welcome', 'localhost/XE');
+
+// Mientras PHP duerme, consultar la vista V$SESSION de Oracle en una
+// ventana terminal mostrará que solamente está conectado un ususario de la base de datos.
+sleep(10);
+
+oci_close($conn1); // no cierra la conexión subyacente a la base de datos
+var_dump($conn1);  // imprime NULL debido a que la variable $conn1 ya no se puede utilizar
+var_dump($conn2);  // muestra que $conn2 aún es un recurso de conexión válido
+
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example>
+   <title>Las conexsiones se cierran cuando las variables salen de su ámbito</title>
+   <para>
+    Cuando todas las variables que hacen referencia a una conexión salen de su ámbito y
+    son liberadas por PHP, ocurra una restitución (rollback), si fuera necesaria, y la
+    conexión subyacente a la base de datos se cierra.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+function myfunc() {
+    $conn = oci_connect('hr', 'hrpwd', 'localhost/XE');
+    if (!$conn) {
+        $e = oci_error();
+        trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
+    }
+
+    $stid = oci_parse($conn, 'UPDATE mytab SET id = 100');
+    oci_execute($stid, OCI_NO_AUTO_COMMIT);
+    return "Finalizado";
+}
+
+$r = myfunc();
+// En este punto sucede la restitución y la conexión subyacente a la base de datos queda cerrada.
+
+print $r;  // muestra el valor de retorno "Finalizado" de la función.
+
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+ 
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Las variables que poseen una dependencia sobre el identificador de conexión,
+    tales como los identificadores de sentencias devueltos
+    por <function>oci_parse</function>, también deben ser liberadas antes de
+    cerra la conexión subyacente a la base de datos.
+   </para>
+  </note>
+  <note>
+   <para>
+    Antes de la versión 5.1.2 de PHP (PECL OCI8
+    1.1) <function>oci_close</function> no operaba. En versiones más
+    recientes cierra correctamente la conexión a Oracle.
+    Use la opción <link linkend="ini.oci8.old-oci-close-semantics">oci8.old_oci_close_semantics</link>
+    para restablecer el comportamento antiguo de esta función.
+   </para>
+  </note>
+  <note>
+   <para>
+    La fucnión <function>oci_close</function> no cierra las
+    conexiones subyacentes de la bases de datos creadas
+    con <function>oci_pconnect</function>.
+   </para>
+  </note>
+  <note>
+   <para>
+    En versiones de PHP anteriores a la 5.0.0, se debe
+    usar en su lugar <function>ocilogoff</function>. &oci.name.compat.note;
+   </para>
+  </note>
+  
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>oci_connect</function></member>
+    <member><function>oci_free_statement</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
