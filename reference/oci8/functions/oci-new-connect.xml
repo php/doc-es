@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.oci-new-connect" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>oci_new_connect</refname>
+  <refpurpose>Conecta al servidor de Oracle usando una conexión única</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>resource</type><methodname>oci_new_connect</methodname>
+   <methodparam><type>string</type><parameter>username</parameter></methodparam>
+   <methodparam><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>connection_string</parameter></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>character_set</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>session_mode</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Establece una nueva conexión a un servidor de Oracle y se identifica.
+  </para>
+  <para>
+   A diferencia de <function>oci_connect</function> y 
+   <function>oci_pconnect</function>, <function>oci_new_connect</function>
+   no almacena en caché conexiones y siempre devolverá un gestor de conexión
+   recién abierto. Esto es útil si la aplicación necesita
+   aislamiento transaccional entre dos conjuntos de consultas.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>username</parameter></term>
+     <listitem>
+      <para>
+       El nombre de usuario de Oracle.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>password</parameter></term>
+     <listitem>
+      <para>
+       La contraseña para <parameter>username</parameter>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>connection_string</parameter></term>
+     <listitem>
+      &oci.db;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>character_set</parameter></term>
+     <listitem>
+      &oci.charset;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>session_mode</parameter></term>
+     <listitem>
+      &oci.sessionmode;
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un identificador de conexión, o &false; en caso de error.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   El siguiente demuestra cómo se pueden separar conexiones.
+   <example>
+    <title>Ejemplo de <function>oci_new_connect</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+echo "<html><pre>";
+$db = "";
+
+$c1 = oci_connect("scott", "tiger", $db);
+$c2 = oci_new_connect("scott", "tiger", $db);
+
+function create_table($conn)
+{
+  $stmt = oci_parse($conn, "create table scott.hallo (test
+varchar2(64))");
+  oci_execute($stmt);
+  echo $conn . " created table\n\n";
+}
+
+function drop_table($conn)
+{
+  $stmt = oci_parse($conn, "drop table scott.hallo");
+  oci_execute($stmt);
+  echo $conn . " dropped table\n\n";
+}
+
+function insert_data($conn)
+{
+  $stmt = oci_parse($conn, "insert into scott.hallo
+            values('$conn' || ' ' || to_char(sysdate,'DD-MON-YY HH24:MI:SS'))");
+  oci_execute($stmt, OCI_DEFAULT);
+  echo $conn . " inserted hallo\n\n";
+}
+
+function delete_data($conn)
+{
+  $stmt = oci_parse($conn, "delete from scott.hallo");
+  oci_execute($stmt, OCI_DEFAULT);
+  echo $conn . " deleted hallo\n\n";
+}
+
+function commit($conn)
+{
+  oci_commit($conn);
+  echo $conn . " committed\n\n";
+}
+
+function rollback($conn)
+{
+  oci_rollback($conn);
+  echo $conn . " rollback\n\n";
+}
+
+function select_data($conn)
+{
+  $stmt = oci_parse($conn, "select * from scott.hallo");
+  oci_execute($stmt, OCI_DEFAULT);
+  echo $conn . "----selecting\n\n";
+  while (oci_fetch($stmt)) {
+    echo $conn . " <" . oci_result($stmt, "TEST") . ">\n\n";
+  }
+  echo $conn . "----done\n\n";
+}
+
+create_table($c1);
+insert_data($c1);
+
+select_data($c1);
+select_data($c2);
+
+rollback($c1);
+
+select_data($c1);
+select_data($c2);
+
+insert_data($c2);
+commit($c2);
+
+select_data($c1);
+
+delete_data($c1);
+select_data($c1);
+select_data($c2);
+commit($c1);
+
+select_data($c1);
+select_data($c2);
+
+drop_table($c1);
+echo "</pre></html>";
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    En versiones de PHP anteriores a la 5.0.0 se debe
+    usar <function>ocinlogon</function> en su lugar.
+    &oci.name.compat.note;
+   </para>
+  </note>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>oci_connect</function></member>
+    <member><function>oci_pconnect</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
