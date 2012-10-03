@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: cfe5b5214a1e70f5551f3576821ee95b5545f3a9 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.oci-set-prefetch">
+ <refnamediv>
+  <refname>oci_set_prefetch</refname>
+  <refpurpose>Establece el número de filas a precargar mediante consultas</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>oci_set_prefetch</methodname>
+   <methodparam><type>resource</type><parameter>statement</parameter></methodparam>
+   <methodparam><type>int</type><parameter>rows</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Establece el número de filas que las bibliotecas de Oracle Client almacenará
+   en búfer después de una llamada exitosa
+   a <function>oci_execute</function> y por cada petición de obtención
+   interna subsigiente a la base de datos. Para consultas que devuelven un
+   gran número de filas, se puede mejorar significativaemten el rendimiento
+   aumentando el número de precargar sobre el
+   valor predeterminado de
+   <link linkend="ini.oci8.default-prefetch">oci8.default_prefetch</link>.
+  </para>
+  <para>
+   La precarga es la forma eficiente de Oracle de devolver más de una
+   fila de datos desde la base de datos en cada petición de red. Esto puede
+   resultar en un uso mejor de la red y la CPU. El almacenamiento en búder de
+   filas es interno a OCI8 y el comportamiento de las funciones de obtención
+   de OCI8 no se modifica a pesar del número de precargas. For
+   ejemplo, <function>oci_fetch_row</function> siempre devolverá una
+   fila. El almancenamiento en búfer de las precargas se realiza en base a cada sentencia y
+   no es utilizado por sentencias reejecutadas o por otras conexiones.
+  </para>
+  <para>
+   Se ha de llamar a <function>oci_set_prefetch</function> antes
+   de invocar a <function>oci_execute</function>.
+  </para>
+  <para>
+   Un objetivo para el ajuste es establecer el valor de precarga a un tamaño razonable que
+   pueda manejar la red y la base de datos. Para consultas que devuelven un número de
+   filas muy grande, se podría mejorar la eficiencia total del sistema si
+   las filas son obtenidas de la base de datos en varios trozos (esto es, establecer el
+   valor de precarga menor que el número de filas). Esto permite que la
+   base de datos maneje otras sentencias de usuarios mientras que el script de PHP está
+   procesando el conjunto de filas actual.
+  </para>
+  <para>
+   La precarga de consultas se introdujo en Oracle 8i. La precarga de
+   REF CURSOR se introdujo en Oracle 11gR2 y sucede cuando PHP está
+   vinculado con las bibliotecas cliente de Oracle 11gR2 y conectado a bases de datos
+   versión 11gR2 anterior. La precarga de cursores anidados fue
+   introducida en Oracle 11gR2 y requiere que las bibliotecas de Oracle Client
+   y las bases de datos sean la versión 11gR2.  
+  </para>
+  <para>
+   La precarga no está soportada cuando las consultas contienen columnas
+   LONG o LOB. El valor de la precarga será ignorado y se usará la obtención de
+   una única fila en todas las situaciones donde no esté soportada la precarga.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>statement</parameter></term>
+     <listitem>
+      &oci.arg.statement.id;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>rows</parameter></term>
+     <listitem>
+      <para>
+       El número de filas que van a se precargadas, &gt;= 0
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>5.3.2 (PECL OCI8 1.4)</entry>
+       <entry>
+        Antes de esta versión, <parameter>rows</parameter> debe se &gt;= 1.
+       </entry>
+      </row>
+      <row>
+       <entry>5.3.0 (PECL OCI8 1.3.4)</entry>
+       <entry>
+        Antes de esta versión, la precarga estaba limitada al menor valor
+        de <parameter>rows</parameter> filas y 1024
+        * <parameter>rows</parameter> bytes. La restricción del
+        tamaño de bytes ahora ha sido eliminada.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Cambiar el valor de precarga predeterminado para una consulta</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+
+$stid = oci_parse($conn, 'SELECT * FROM myverybigtable');
+oci_set_prefetch($stid, 300);  // Establecer antes de llamar a oci_execute()
+oci_execute($stid);
+
+echo "<table border='1'>\n";
+while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
+    echo "<tr>\n";
+    foreach ($row as $item) {
+        echo "    <td>".($item !== null ? htmlentities($item, ENT_QUOTES) : "")."</td>\n";
+    }
+    echo "</tr>\n";
+}
+echo "</table>\n";
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Cambiar la precarga predeterminada para la obtención de un REF CURSOR</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/*
+  Crear el procedimiento almacenado PL/SQL:
+
+  CREATE OR REPLACE PROCEDURE myproc(p1 OUT SYS_REFCURSOR) AS
+  BEGIN
+    OPEN p1 FOR SELECT * FROM all_objects WHERE ROWNUM < 5000;
+  END;
+*/
+
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+
+$stid = oci_parse($conn, 'BEGIN myproc(:rc); END;');
+$refcur = oci_new_cursor($conn);
+oci_bind_by_name($stid, ':rc', $refcur, -1, OCI_B_CURSOR);
+oci_execute($stid);
+
+// Cambiar la precarga antes de ejecutar el cursor.
+// La precarga de REF CURSOR funciona cuando PHP está vinculado con las bibliotecas cliente de Oracle 11gR2
+oci_set_prefetch($refcur, 200);
+oci_execute($refcur);
+
+echo "<table border='1'>\n";
+while ($row = oci_fetch_array($refcur, OCI_ASSOC+OCI_RETURN_NULLS)) {
+    echo "<tr>\n";
+    foreach ($row as $item) {
+        echo "    <td>".($item !== null ? htmlentities($item, ENT_QUOTES) : "")."</td>\n";
+    }
+    echo "</tr>\n";
+}
+echo "</table>\n";
+
+oci_free_statement($refcur);
+oci_free_statement($stid);
+oci_close($conn);
+
+?> 
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Si OCI8 de PHP realiza la obtención desde un REF CURSOR y luego para el REF
+   CURSOR a un segundo procedimiento de PL/SQL para su procesamiento posterior,
+   establezca el número de precargas de REF CURSOR a <constant>0</constant> para
+   evitar que las filas se "pierdan" en el conjunto de resultados. El valor de la precarga
+   es el número de filas extra obtenidas en cada petición interna de OCI8 para
+   la base de datos, por lo que establecerlo a <constant>0</constant> significa que únicamente
+   se obtiene una fila cada vez.
+   <example>
+    <title>Establecer el valor de precarga cuando se vuelve a pasar un REF CURSOR a Oracle</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$conn = oci_connect('hr', 'welcome', 'localhost/orcl');
+
+// obtener el REF CURSOR
+$stid = oci_parse($conn, 'BEGIN myproc(:rc_out); END;');
+$refcur = oci_new_cursor($conn);
+oci_bind_by_name($stid, ':rc_out', $refcur, -1, OCI_B_CURSOR);
+oci_execute($stid);
+
+// Mostrar dos filas, pero no precargar ninguna fila extra, si no,
+// esas filas extra no se pasarán de nuevo a myproc_use_rc().
+// Un valor de precarfa de 0 está permitido en PHP 5.3.2 y PECL OCI8 1.4
+oci_set_prefetch($refcur, 0);
+oci_execute($refcur);
+$row = oci_fetch_array($refcur);
+var_dump($row);
+$row = oci_fetch_array($refcur);
+var_dump($row);
+
+// pasar el REF CURSOR a myproc_use_rc() para porcesar más datos
+// con el conjunto de resultados
+$stid = oci_parse($conn, 'begin myproc_use_rc(:rc_in); end;'); 
+oci_bind_by_name($stid, ':rc_in', $refcur, -1, OCI_B_CURSOR);
+oci_execute($stid);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    En versiones de PHP anteriores a la 5.0.0 use <function>ocisetprefetch</function> en su lugar. &oci.name.compat.note;
+   </para>
+  </note>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member>
+     La opción ini
+     <link linkend="ini.oci8.default-prefetch">oci8.default_prefetch</link>
+    </member>
+   </simplelist>
+  </para>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
