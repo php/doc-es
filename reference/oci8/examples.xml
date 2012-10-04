@@ -21,27 +21,27 @@
  <example>
   <title>Consulta básica</title>
   <para>
-   Este ejemplo muetra la realización de consultas y la visualización de resultados. Las sentencias
-   en OCI8 usan la secuencia de pasos preparar-ejecutar-obtener.
+   Este ejemplo muestra la realización de consultas y la visualización de resultados. Las sentencias
+   en OCI8 usan la secuencia de pasos 'preparación-ejecución-obtención'.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
 // Preparar la sentencia
-$stid = oci_parse($conn, 'SELECT * FROM departments');
+$stid = oci_parse($conexión, 'SELECT * FROM departments');
 if (!$stid) {
-    $e = oci_error($conn);
+    $e = oci_error($conexión);
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-// Llevar a cabo la lógica de la consulta
+// Realizar la lógica de la consulta
 $r = oci_execute($stid);
 if (!$r) {
     $e = oci_error($stid);
@@ -50,17 +50,17 @@ if (!$r) {
 
 // Obtener los resultados de la consulta
 print "<table border='1'>\n";
-while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
+while ($fila = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
     print "<tr>\n";
-    foreach ($row as $item) {
-        print "    <td>" . ($item !== null ? htmlentities($item, ENT_QUOTES) : "") . "</td>\n";
+    foreach ($fila as $elemento) {
+        print "    <td>" . ($elemento !== null ? htmlentities($elemento, ENT_QUOTES) : "") . "</td>\n";
     }
     print "</tr>\n";
 }
 print "</table>\n";
 
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
@@ -71,38 +71,38 @@ oci_close($conn);
   <title>Inserción con variables vinculadas</title>
   <para>
    Las variables vinculadas mejoran el rendimiento permitiendo la reutilización de contextos
-   y cachés ejecutados. Las variables vinculadas mejoran la seguridad previniendo
+   ejecutados y cachés. Las variables vinculadas mejoran la seguridad previniendo
    algunos tipos de problemas de Inyecciones SQL.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutar, cree la tabla:
+// Antes de ejecutarlo, cree la tabla:
 //   CREATE TABLE MYTABLE (mid NUMBER, myd VARCHAR2(20));
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$stid = oci_parse($conn, 'INSERT INTO MYTABLE (mid, myd) VALUES(:myid, :mydata)');
+$stid = oci_parse($conexión, 'INSERT INTO MYTABLE (mid, myd) VALUES(:myid, :mydata)');
 
 $id = 60;
-$data = 'Some data';
+$datos = 'Algunos datos';
 
 oci_bind_by_name($stid, ':myid', $id);
-oci_bind_by_name($stid, ':mydata', $data);
+oci_bind_by_name($stid, ':mydata', $datos);
 
 $r = oci_execute($stid);  // ejecuta y consigna
 
 if ($r) {
-    print "One row inserted";
+    print "Una fila insertada";
 }
 
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
@@ -112,18 +112,18 @@ oci_close($conn);
  <example>
   <title>Insertar datos en una columna CLOB</title>
   <para>
-   PAra datos grandes use los tipos objeto grande binario (BLOB) u objeto
+   Para datos grandes use los tipos objeto grande binario (BLOB) u objeto
    grande de caracteres (CLOB). Este ejemplo usa CLOB.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutar, cree la tabla:
+// Antes de ejecutarlo, cree la tabla:
 //     CREATE TABLE MYTABLE (mykey NUMBER, myclob CLOB);
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
@@ -134,27 +134,27 @@ $sql = "INSERT INTO mytable (mykey, myclob)
         VALUES (:mykey, EMPTY_CLOB())
         RETURNING myclob INTO :myclob";
 
-$stid = oci_parse($conn, $sql);
-$clob = oci_new_descriptor($conn, OCI_D_LOB);
+$stid = oci_parse($conexión, $sql);
+$clob = oci_new_descriptor($conexión, OCI_D_LOB);
 oci_bind_by_name($stid, ":mykey", $mykey, 5);
 oci_bind_by_name($stid, ":myclob", $clob, -1, OCI_B_CLOB);
 oci_execute($stid, OCI_NO_AUTO_COMMIT); // utilice OCI_DEFAULT para PHP <= 5.3.1
-$clob->save("A very long string");
+$clob->save("Una cadena muy grande");
 
-oci_commit($conn);
+oci_commit($conexión);
 
 // Obtener los datos CLOB
 
-$query = 'SELECT myclob FROM mytable WHERE mykey = :mykey';
+$consulta = 'SELECT myclob FROM mytable WHERE mykey = :mykey';
 
-$stid = oci_parse ($conn, $query);
+$stid = oci_parse ($conexión, $consulta);
 oci_bind_by_name($stid, ":mykey", $mykey, 5);
 oci_execute($stid);
 
 print '<table border="1">';
-while ($row = oci_fetch_array($stid, OCI_ASSOC)) {
-    $result = $row['MYCLOB']->load();
-    print '<tr><td>'.$result.'</td></tr>';
+while ($fila = oci_fetch_array($stid, OCI_ASSOC)) {
+    $resultado = $fila['MYCLOB']->load();
+    print '<tr><td>'.$resultado.'</td></tr>';
 }
 print '</table>';
 
@@ -184,15 +184,15 @@ print '</table>';
 
 */
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
 $p = 8;
 
-$stid = oci_parse($conn, 'begin :r := myfunc(:p); end;');
+$stid = oci_parse($conexión, 'begin :r := myfunc(:p); end;');
 oci_bind_by_name($stid, ':p', $p);
 oci_bind_by_name($stid, ':r', $r, 40);
 
@@ -201,7 +201,7 @@ oci_execute($stid);
 print "$r\n";   // imprime 24
 
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
@@ -228,15 +228,15 @@ oci_close($conn);
 
 */
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
 $p1 = 8;
 
-$stid = oci_parse($conn, 'begin myproc(:p1, :p2); end;');
+$stid = oci_parse($conexión, 'begin myproc(:p1, :p2); end;');
 oci_bind_by_name($stid, ':p1', $p1);
 oci_bind_by_name($stid, ':p2', $p2, 40);
 
@@ -245,7 +245,7 @@ oci_execute($stid);
 print "$p2\n";   // imprime 16
 
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
@@ -256,7 +256,7 @@ oci_close($conn);
   <title>Llamar a una función de PL/SQL que devuelve un <literal>REF CURSOR</literal></title>
   <para>
    Cada valor devuelto por la consulta es un <literal>REF
-   CURSOR</literal> desde el que se puede obtener datos.
+   CURSOR</literal> desde el que se pueden obtener datos.
   </para>
   <programlisting role="php">
 <![CDATA[
@@ -272,18 +272,18 @@ oci_close($conn);
   END;
 */
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
 
-$stid = oci_parse($conn, 'SELECT myfunc(5) AS mfrc FROM dual');
+$stid = oci_parse($conexión, 'SELECT myfunc(5) AS mfrc FROM dual');
 oci_execute($stid);
 
 echo "<table border='1'>\n";
-while (($row = oci_fetch_array($stid, OCI_ASSOC))) {
+while (($fila = oci_fetch_array($stid, OCI_ASSOC))) {
     echo "<tr>\n";
-    $rc = $row['MFRC'];
+    $rc = $fila['MFRC'];
     oci_execute($rc);  // el valor de la columna devuelta por la consulta es un ref cursor
-    while (($rc_row = oci_fetch_array($rc, OCI_ASSOC))) {   
-        echo "    <td>" . $rc_row['CITY'] . "</td>\n";
+    while (($fila_rc = oci_fetch_array($rc, OCI_ASSOC))) {   
+        echo "    <td>" . $fila_rc['CITY'] . "</td>\n";
     }
     oci_free_statement($rc);
     echo "</tr>\n";
@@ -297,7 +297,7 @@ echo "</table>\n";
 //   Geneva
 
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
