@@ -56,7 +56,7 @@
   <example>
    <title>Cerrar una conexión</title>
    <para>
-    Los recursos asociados con una conexión debería cerrarse para asegurarse
+    Los recursos asociados con una conexión deberían cerrarse para asegurarse
     de que la conexión subyacente a la base de datos sea finalizada apropiadamente y sean
     liberados los recursos de la base de datos.
    </para>
@@ -64,20 +64,20 @@
 <![CDATA[
 <?php
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$stid = oci_parse($conn, 'SELECT * FROM departments');
+$stid = oci_parse($conexión, 'SELECT * FROM departments');
 $r = oci_execute($stid);
 oci_fetch_all($stid, $res);
 var_dump($res);
 
-// Liberar el identificador de sentencias al cerrar la conexión
+// Liberar el identificador de sentencia al cerrar la conexión
 oci_free_statement($stid);
-oci_close($conn);
+oci_close($conexión);
 
 ?>
 ]]>
@@ -88,28 +88,28 @@ oci_close($conn);
    <title>Las conexiones a bases de datos no se cierran hasta que todas las referencias sean cerradas</title>
    <para>
     La cuenta de referencias interna de un identificador de conexión debe ser cero
-    antes de de que sea cerrada la conexión subyacente de la base de datos.
+    antes de que sea cerrada la conexión subyacente a la base de datos.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$conn = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conn) {
+$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conexión) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$stid = oci_parse($conn, 'SELECT * FROM departments');  // esto incrementa la cuenta de referencias de $conn
+$stid = oci_parse($conexión, 'SELECT * FROM departments');  // esto incrementa la cuenta de referencias de $conn
 oci_execute($stid);
 oci_fetch_all($stid, $res);
 var_dump($res);
 
-oci_close($conn);
+oci_close($conexión);
 
-// $conn ya no puede ser utilizada en el script, pero la conexión subyacente
+// $conexión ya no puede ser utilizada en el script, pero la conexión subyacente
 // a la base de datos aún se mantiene abierta, hasta que $stid sea liberado.
-var_dump($conn);  // imprime NULL  
+var_dump($conexión);  // imprime NULL  
 
 // Mientras PHP duerme, consultar la vista V$SESSION de Oracle en una
 // ventana terminal mostrará que el ususario de la base de datos que aún está conectado.
@@ -130,26 +130,26 @@ sleep(10);
   <example>
    <title>Cerrar una conexión abierta más de una vez</title>
    <para>
-    When database credentials are reused, both connections must be closed
-    before the underlying database connection is closed.
+    Cuando se reutilizan las credenciales de la base de datos, ambas conexiones deben cerrarse
+    antes de que se cierre la conexión subyacente a la base de datos.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$conn1 = oci_connect('hr', 'welcome', 'localhost/XE');
+$conexión1 = oci_connect('hr', 'welcome', 'localhost/XE');
 
 // Al usar las mismas credenciales se reutiliza la misma conexión subyacente a la base de datos
-// Cualquier cambio no consignado realizado a $conn1 será visible en $conn2
-$conn2 = oci_connect('hr', 'welcome', 'localhost/XE');
+// Cualquier cambio no consignado realizado a $conexión1 será visible en $conexión2
+$conexión2 = oci_connect('hr', 'welcome', 'localhost/XE');
 
 // Mientras PHP duerme, consultar la vista V$SESSION de Oracle en una
 // ventana terminal mostrará que solamente está conectado un ususario de la base de datos.
 sleep(10);
 
-oci_close($conn1); // no cierra la conexión subyacente a la base de datos
-var_dump($conn1);  // imprime NULL debido a que la variable $conn1 ya no se puede utilizar
-var_dump($conn2);  // muestra que $conn2 aún es un recurso de conexión válido
+oci_close($conexión1); // no cierra la conexión subyacente a la base de datos
+var_dump($conexión1);  // imprime NULL debido a que la variable $conexión1 ya no se puede utilizar
+var_dump($conexión2);  // muestra que $conexión2 aún es un recurso de conexión válido
 
 ?>
 ]]>
@@ -160,7 +160,7 @@ var_dump($conn2);  // muestra que $conn2 aún es un recurso de conexión válido
    <title>Las conexsiones se cierran cuando las variables salen de su ámbito</title>
    <para>
     Cuando todas las variables que hacen referencia a una conexión salen de su ámbito y
-    son liberadas por PHP, ocurra una restitución (rollback), si fuera necesaria, y la
+    son liberadas por PHP, se produce una reversión (rollback), si fuera necesaria, y la
     conexión subyacente a la base de datos se cierra.
    </para>
    <programlisting role="php">
@@ -168,19 +168,19 @@ var_dump($conn2);  // muestra que $conn2 aún es un recurso de conexión válido
 <?php
 
 function myfunc() {
-    $conn = oci_connect('hr', 'hrpwd', 'localhost/XE');
-    if (!$conn) {
+    $conexión = oci_connect('hr', 'hrpwd', 'localhost/XE');
+    if (!$conexión) {
         $e = oci_error();
         trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
     }
 
-    $stid = oci_parse($conn, 'UPDATE mytab SET id = 100');
+    $stid = oci_parse($conexión, 'UPDATE mytab SET id = 100');
     oci_execute($stid, OCI_NO_AUTO_COMMIT);
     return "Finalizado";
 }
 
 $r = myfunc();
-// En este punto sucede la restitución y la conexión subyacente a la base de datos queda cerrada.
+// En este punto sucede la reversión y la conexión subyacente a la base de datos queda cerrada.
 
 print $r;  // muestra el valor de retorno "Finalizado" de la función.
 
@@ -211,7 +211,7 @@ print $r;  // muestra el valor de retorno "Finalizado" de la función.
   </note>
   <note>
    <para>
-    La fucnión <function>oci_close</function> no cierra las
+    La función <function>oci_close</function> no cierra las
     conexiones subyacentes de la bases de datos creadas
     con <function>oci_pconnect</function>.
    </para>
