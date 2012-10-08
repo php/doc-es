@@ -1,106 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
 <!-- EN-Revision: a56106f69198dfe88c6084593c78a71c26b24353 Maintainer: alejandrorodas Status: ready -->
-<!-- Reviewed: no -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <chapter xml:id="pdo.transactions" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Transacciones y auto-commits</title>
+ <title>Transacciones y 'auto-commits'</title>
  <para>
-  Una vez conectado a través de PDO, es necesario comprender cómo PDO
-  gestiona las transacciones antes de que se comience a ejecutar consultas. Si no se 
-  ha manejado anteriormente transacciones, ofrecen 4 principales características: Atomicidad,
-  Consistencia, Aislamiento y Durabilidad (siglas ACID, en inglés). En términos sencillos, cualquier
-  trabajo llevado a cabo en una transacción, incluso si se lleva a cabo por etapas, se
-  garantiza que serán aplicado en la base de datos de forma segura, y sin interferencia
-  de otras conexiones, cuando se realice un "commit". El trabajo transaccional puede también ser
-  deshecho automáticamente bajo petición (siempre y cuando no se haya realizado un "commit"),
-  lo que hace el manejo de errores en los scripts más fácil.
+  Una vez realizada una conexión a través de PDO, es necesario comprender cómo PDO
+  gestiona las transacciones antes de comenzar a realizar consultas. Si no se 
+  han manejado anteriormente transacciones, estas ofrecen cuatro características principales: Atomicidad,
+  Consistencia, Aislamiento y Durabilidad (ACID). En términos sencillos, cualquier
+  trabajo llevado a cabo en una transacción, incluso si se hace por etapas, se
+  garantiza que será aplicado a la base de datos de forma segura, y sin interferencia
+  de otras conexiones, cuando sea consignado ('commit'). El trabajo transaccional puede también
+  ser deshecho automáticamente bajo petición (siempre y cuando no se haya
+  consignado), lo que hace el manejo de errores en los scripts más sencillo.
  </para>
  <para>
-  Las transacciones son implementadas típicamente para ahorrar el lote de
-  cambios que se aplicarán a la vez; esto tiene un buen efecto secundario que
-  mejora drásticamente la eficiencia de las actualizaciones. En otras palabras,
+  Las transacciones son implementadas típicamente para hacer que el lote de
+  cambios se apliquen a la vez; esto tiene el buen efecto secundario de
+  mejorar drásticamente la eficiencia de las actualizaciones. En otras palabras,
   las transacciones pueden hacer los scripts más rápidos y potencialmente más robustos
-  (aún así es necesario usarlos correctamente para obtener ese beneficio).
+  (aún así es necesario usarlas correctamente para obtener ese beneficio).
  </para>
  <para>
-  Desafortunadamente, no todas las bases de datos soportan transacciones, con lo cual PDO necesita
-  ejecutar lo que es conocido como el modo "auto-commit" cuando se abra por primera vez la 
-  conexión. El modo auto-commit implica que toda consulta que se ejecute tiene su 
-  propia transacción implícita, si la base de datos lo soporta, o ninguna transacción
-  si la base de datos no las soporta. Si se necesitan transacciones,
+  Desafortunadamente, no todas las bases de datos admiten transacciones, por lo que PDO necesita
+  ser ejecutado en lo es conocido como el modo "auto-commit" cuando se abra por primera vez la 
+  conexión. El modo auto-commit significa que toda consulta que se ejecute tiene su 
+  propia transacción implícita, si la base de datos lo admite, o ninguna transacción
+  si la base de datos no las admite. Si fuera necesario el uso de transacciones,
   se debe usar el método <function>PDO::beginTransaction</function> para
-  iniciar una. Si el driver subyacente no soporta transacciones, se lanzará
-  una PDOException (independientemente de las preferencias del manejo de errores:
-  esto es una condición de error serio siempre). Una vez que se esté en una transacción,
-  se puede usar <function>PDO::commit</function> o <function>PDO::rollBack</function>
-  para finalizarla, dependiendo del éxito del código que se ejecute durante la transacción.
+  iniciar una. Si el controlador subyacente no admite transacciones, se lanzará
+  una PDOException (independientemente de la configuración del manejo de errores:
+  esto es siempre una condición de error serio). Una vez que se esté en una transacción,
+  se puede usar <function>PDO::commit</function> o
+  <function>PDO::rollBack</function> para finalizarla, dependiendo del éxito del
+  código que se ejecute durante la transacción.
  </para>
  <warning>
   <para>
-   PDO sólo compruebas las capacidades de la transacción a nivel de driver. Si una
-   cierta condición en tiempo de ejecución significa que las transacciones no están disponibles,
+   PDO sólo comprueba las capacidades de la transacción al nivel del controlador. Si una
+   cierta condición en tiempo de ejecución implica que las transacciones no estén disponibles,
    <methodname>PDO::beginTransaction</methodname> seguirá devolviendo &true;
-   sin error si el servidor de base de datos acepta la solicitud de iniciar una
+   sin ninún error si el servidor de bases de datos acepta la solicitud de iniciar una
    transacción.
   </para>
   <para>
-   Un ejemplo de esto puede ser intentar usar transacciones en tablas MyISAM en
+   Un ejemplo de esto podría ser el intentar usar transacciones en tablas MyISAM en
    una base de datos MySQL.
   </para>
  </warning>
  <para>
   Cuando el script finaliza o cuando una conexión está a punto de ser cerrada, si 
-  se tiene una transacción pendiente, PDO la deshará automáticamente.
+  existe una transacción pendiente, PDO la revertirá automáticamente.
   Esto es una medida de seguridad que ayuda a evitar inconsistencia en los casos donde
-  el script finaliza inesperadamente--si no se ha realizado explícitamente un "commit" de
-  la transacción, se asuma que algo salió mal, con lo cual se vuelve al estado anterior
-  para la seguridad de los datos.
+  el script finaliza inesperadamente (si no consignó la
+  transacción, se asume que algo salió mal, con lo cual se realiza la reversión
+  para la seguridad de los datos).
  </para>
  <warning>
   <para>
-   La vuelta automática al estado anterior sólo ocurre si se inicia una transacción a través de
+   La reversión automática sólo ocurre si se inicia una transacción a través de
    <function>PDO::beginTransaction</function>. Si se ejecuta manualmente una
-   consulta que inicia una transacción, PDO no tiene forma de conocer algo acerca de ésta y
-   por tanto no puede revertirla si algo sale mal.
+   consulta que inicie una transacción, PDO no tiene forma de conocer algo acerca de ésta y,
+   por tanto, no puede revertirla si algo sale mal.
   </para>
  </warning>
  <para>
   <example><title>Ejecución de un lote en una transacción</title>
    <para>
-    Para el siguiente ejemplo, se asume que se crea un conjunto de
-    entradas para un nuevo empleado, al cual se le ha asignado un ID de 23.
+    En el siguiente ejemplo, se asume que se ha creado un conjunto de
+    entradas para un nuevo empleado, al cual se le ha asignado el número de ID 23.
     Además de introducir los datos básicos de una persona, también es necesario
-    almacenar su sueldo. Es bastante simple hacer dos actualizaciones independientes,
-    pero envolviéndolas en las llamadas <function>PDO::beginTransaction</function>
-    y <function>PDO::commit</function>, estamos garantizando que nadie más
-    será capaz de ver los cambios hasta que se haya completado. Si algo sale
-    mal, el bloque catch revierte los cambios realizados desde que se creó la transacción,
-    y luego imprime un mensaje de error.
+    registrar su sueldo. Es bastante simple hacer dos actualizaciones independientes,
+    pero encerrándolas en las llamadas
+    <function>PDO::beginTransaction</function> y
+    <function>PDO::commit</function>, se garantiza que nadie más
+    será capaz de ver los cambios hasta que se hayan completado. Si
+    algo sale mal, el bloque catch revierte los cambios realizados
+    desde que se creó la transacción, y luego imprime un mensaje de
+    error.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 try {
-  $dbh = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2', 
+  $gbd = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2', 
       array(PDO::ATTR_PERSISTENT => true));
   echo "Connected\n";
 } catch (Exception $e) {
-  die("Unable to connect: " . $e->getMessage());
+  die("No se pudo conectar: " . $e->getMessage());
 }
 
 try {  
-  $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  $gbd->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-  $dbh->beginTransaction();
-  $dbh->exec("insert into staff (id, first, last) values (23, 'Joe', 'Bloggs')");
-  $dbh->exec("insert into salarychange (id, amount, changedate) 
+  $gbd->beginTransaction();
+  $gbd->exec("insert into staff (id, first, last) values (23, 'Joe', 'Bloggs')");
+  $gbd->exec("insert into salarychange (id, amount, changedate) 
       values (23, 50000, NOW())");
-  $dbh->commit();
+  $gbd->commit();
   
 } catch (Exception $e) {
-  $dbh->rollBack();
-  echo "Failed: " . $e->getMessage();
+  $gbd->rollBack();
+  echo "Fallo: " . $e->getMessage();
 }
 ?>
 ]]>
@@ -108,12 +111,12 @@ try {
   </example>
  </para>
  <para>
-  No se está limitado a la realización de actualizaciones en una transacción;
-  también es posible ejecutar consultas complejas para extraer datos, y posiblemente usar
-  usa información para construir más actualizaciones y consultas; mientras que 
-  la transacción esté activa se garantiza que nadie más puede realizar cambios 
-  mientras se esté en mitad del trabajo. Para leer más sobre transacciones, consulte
-  la documentación proporcionada por su servidor de base de datos.
+  No hay límite en la realización de actualizaciones en una transacción; también es posible
+  ejecutar consultas complejas para extraer datos, y posiblemente usar esa información para
+  construir más actualizaciones y consultas; mientras que la transacción esté activa,
+  se garantiza que nadie más puede realizar cambios  mientras se esté en mitad del
+  trabajo. Para más información sobre transacciones, consulte la
+  documentación proporcionada por su servidor de base de datos.
  </para>
 </chapter>
 
