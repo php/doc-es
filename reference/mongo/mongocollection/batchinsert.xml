@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 2983ed9c5015b3bda27e2dafff947c8532093164 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ec6cb30f0e84618fb4a79d2d58d14126a8a071ba Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongocollection.batchinsert" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -40,34 +40,9 @@
       <para>
        Opciones de inserción.
        <itemizedlist>
-        <listitem>
-         <para>
-          <literal>"safe"</literal>
-         </para>
-         <para>
-          Puede ser un booleano o un entero, por omisión &false;. Si &false;, el programa
-          continua su ejecución sin esperar respuesta por parte de la base de datos.
-          Si &true;, el programa esperará la respuesta de la base de datos, y en caso
-          de que la inserción no tenga éxito, emitirá una excepción de tipo
-          <classname>MongoCursorException</classname>.
-         </para>
-         <para>
-          Si <literal>safe</literal> fuera un entero, replicará la inserción a ese
-          número de máquinas antes de notificar un éxito (o lanzaría una excepción
-          si al replicar se excediera el tiempo de espra; consulte wtimeout). Sobreescribe
-          la variable w asignada a la colección.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"fsync"</literal>
-         </para>
-         <para>
-          Booleano, por omisión &false;. Obliga a que la inserción se sincronice en disco
-          antes de notificar éxito. Si &true;, se realiza de manera implícita una inserción segura (safe)
-          y sobrescribirá el ajuste <literal>safe</literal> a &false;.
-         </para>
-        </listitem>
+        &mongo.writes.parameters.writeconcern; 
+        &mongo.writes.parameters.fsync; 
+        &mongo.writes.parameters.timeout; 
         <listitem>
          <para>
           <literal>"continueOnError"</literal>
@@ -82,6 +57,7 @@
           <function>MongoDB::lastError</function>.
          </para>
         </listitem>
+        &mongo.writes.parameters.safe; 
        </itemizedlist>
       </para>
      </listitem>
@@ -93,23 +69,16 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;  
   <para>
-   Si "safe" está habilitado, devuelve un array asociativo con el estado de las inserciones ("ok")
-   y con cualquier error que pudiera haber sucedido ("err"). En cualquier otro caso, devuelve
-   &true; si la operación por lotes se envió con éxito, o &false; en caso contrario.
+   Si el parámetro <literal>w</literal> está establecido para aceptar la escritura,
+   devuelve un array asociativo con el estado de las inserciones ("ok") y cualquier
+   error que pudiera ocurrir ("err"). De lo contrario, devuelve &true; si la
+   inserción por lotes fue enviada con éxito, &false; si no.
   </para>
  </refsect1>
  
  <refsect1 role="errors">
   &reftitle.errors;
-  <para>
-   Lanza <classname>MongoCursorException</classname> si la opción "safe" estuviera habilitada
-   y la inserción fallara.
-  </para>
-  <para>
-   Lanza <classname>MongoCursorTimeoutException</classname> si la opción "safe" 
-   tuviera un valor mayor que uno, y la base de datos no pudiera replicar la operación
-   en <literal>MongoCollection::$wtimeout</literal> milisegundos.
-  </para>
+  &mongo.errors.exceptions.writeconcern;
  </refsect1>
  
  <refsect1 role="changelog">
@@ -166,7 +135,7 @@ for ($i = 0; $i<100; $i++) {
   $users[] = array('username' => 'user'.$i, 'i' => $i);
 }
 
-$mongo = new Mongo();
+$mongo = new MongoClient();
 $collection = $mongo->my_db->users;
 $collection->drop();
 
