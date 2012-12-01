@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 1e46ca946428a63404e5f9ed32f59cc81c1fc694 Maintainer: chuso Status: ready -->
+<!-- EN-Revision: df8a0aceefb60b5b66da4a6ffa030419767ec339 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
 
-<section xml:id="mongo.tutorial" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+<chapter xml:id="mongo.tutorial" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Tutorial</title>
- <section>
-  <title>Introducción</title>
-  <para>
-   Gracias al driver de PHP para MongoDB de 10gen.
-  </para>
-  <para>Código de ejemplo para conectar, insertar documentos, consultar documentos,
-   recorrer el resultado de una consulta, y desconectar de MongoDB.
-   Encontrará más detalles en cada uno de los pasos del siguiente tutorial.
-  </para>
+ <para>
+  Este es el controlador de PHP admitido de 10gen para MongoDB.
+ </para>
+ <para>He aquí un código de ejemplo que contecta, inserta documentos, consulta a
+  documentos, itera sobre resultados de consultas, y desconecta de MongoDB.
+  Hay más detalles de cada paso del tutorial más abajo.
+ </para>
+ <example xml:id="mongo.tutorial.basics">
   <programlisting role="php">
 <![CDATA[
 <?php
 
 // conectar
-$m = new Mongo();
+$m = new MongoClient();
 
 // seleccionar una base de datos
 $db = $m->comedy;
@@ -27,224 +27,241 @@ $db = $m->comedy;
 $collection = $db->cartoons;
 
 // añadir un registro
-$obj = array( "title" => "Calvin and Hobbes", "author" => "Bill Watterson" );
-$collection->insert($obj);
+$document = array( "title" => "Calvin and Hobbes", "author" => "Bill Watterson" );
+$collection->insert($document);
 
 // añadir un nuevo registro, con un distinto "perfil"
-$obj = array( "title" => "XKCD", "online" => true );
-$collection->insert($obj);
+$document = array( "title" => "XKCD", "online" => true );
+$collection->insert($document);
 
 // encontrar todo lo que haya en la colección
 $cursor = $collection->find();
 
 // recorrer el resultado
-foreach ($cursor as $obj) {
-    echo $obj["title"] . "\n";
+foreach ($cursor as $document) {
+    echo $document["title"] . "\n";
 }
 
 ?>
 ]]>
   </programlisting>
-  <para>
-   Mostrará:
-  </para>
+  &example.outputs;
   <screen>
 <![CDATA[
 Calvin and Hobbes
 XKCD
 ]]>
   </screen>
- </section>
- <section>
+ </example>
+ 
+ 
+ <section xml:id="mongo.tutorial.connecting">
   <title>Estableciendo una Conexión</title>
   <para>
    Para conectar al servidor de bases de datos, utilice alguna de las siguientes formas:
   </para>
   
-  <programlisting role="php">
-    <![CDATA[
+  <example xml:id="mongo.tutorial.connecting-example">
+   <programlisting role="php">
+<![CDATA[
 <?php
-
-$connection = new Mongo(); // conecta a localhost:27017
-$connection = new Mongo( "example.com" ); // conecta a un host remoto (puerto por omisión: 27017)
-$connection = new Mongo( "example.com:65432" ); // conecta a un host remoto en el puerto facilitado
-
+$connection = new MongoClient(); // connects to localhost:27017
+$connection = new MongoClient( "mongodb://example.com" ); // connect to a remote host (default port: 27017)
+$connection = new MongoClient( "mongodb://example.com:65432" ); // connect to a remote host at a given port
 ?>
 ]]>
-  </programlisting>
+   </programlisting>
+  </example>
   <para>
-   No es necesario desconectar explícitamente de la base de datos. Cuando
-   <literal>$connection</literal> queda fuera de ámbito, la conexión se cierra
-   automáticamente y todos sus recursos se liberan.
+   No es necesario desconectar explícitamente de la base de datos. El controlador usa
+   conexiones persistentes y reutilzará las conexiones ya establecidas.
   </para>
-  <section>
+  <section xml:id="mongo.tutorial.connecting.seealso">
    <title>Ver también</title>
    <para>
     El capítulo <link linkend="mongo.connecting">connecting</link>
     cubre los distintos tipos de conexiones.
    </para>
    <para>
-    Tanto la documentación de la API de la clase <classname>Mongo</classname> como
-    <function>Mongo::__construct</function> proporcionan un exhaustivo repaso a todas
+    Tanto la documentación de la API de la clase <classname>MongoClient</classname> como
+    <function>MongoClient::__construct</function> proporcionan un exhaustivo repaso a todas
     las opciones disponibles, y un gran número de ejemplos.
    </para>
   </section>
-
-  <section>
-   <title>Obteniendo una Base de Datos</title>
-   <para>
-    Para seleccionar una base de datos, utilice.
-   </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.selectdb">
+  <title>Obteniendo una Base de Datos</title>
+  <para>
+   Para seleccionar una base de datos, utilice.
+  </para>
+  <example xml:id="mongo.tutorial.selectdb-example">
    <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
-
+$connection = new MongoClient();
 $db = $connection->dbname;
-
 ?>
 ]]>
-   </programlisting>
+       </programlisting>
+   </example>
    <para>
     La base de datos no debe necesariamente haber sido ya creada, sino que
     pueden crearse con sólo seleccionarlas.
    </para>
    <para>
-    ¡Tenga cuidado con los errores tipográficos! Podría,
-    por inadvertencia, crear una nueva base de datos, provocando errores:
-
-    <programlisting role="php">
-     <![CDATA[
+    ¡Tenga cuidado con los errores tipográficos! Podría, por inadvertencia, crear una
+    nueva base de datos, provocando errores  (aquí, <literal>name</literal> está mal escrito
+    como <literal>anme</literal> en la segunda selección:
+    
+    <example xml:id="mongo.tutorial.selectdb.typo">
+     <programlisting role="php">
+<![CDATA[
 <?php
+$connection = new MongoClient();
 
 $db = $connection->mybiglongdbname;
 // hacemos algo
-$db = $connection->mybiglongdbname;
-// ¡ahora estamos conectando a una nueva base de datos!
 
+$db = $connection->mybiglongdbanme;
+// ¡ahora estamos conectando a una nueva base de datos!
 ?>
 ]]>
-    </programlisting>
+     </programlisting>
+    </example>
    </para>
-   <section>
+   <section xml:id="mongo.tutorial.selectdb.seealso">
     <title>Ver También</title>
     <para>
      La documentación API de la clase <classname>MongoDB</classname> contiene más
      información sobre los objetos de bases de datos.
     </para>
    </section>
-  </section>
-
-  <section>
-   <title>Obteniendo Una Colección</title>
-   <para>
-    Para obtener una conexión se utiliza la misma sintaxis que para obtener una base de datos:
-   </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.collection">
+  <title>Obteniendo Una Colección</title>
+  <para>
+   Para obtener una conexión se utiliza la misma sintaxis que para obtener una base de datos:
+  </para>
+  <example xml:id="mongo.tutorial.collection-example">
    <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
-
+$connection = new MongoClient();
 $db = $connection->baz;
+
+// seleccionar una colección:
 $collection = $db->foobar;
 
-// o de forma resumida:
+// o, directamente una base de datos y una colección:
 $collection = $connection->baz->foobar;
-
 ?>
 ]]>
    </programlisting>
+  </example>
+  <para>
+   Las colecciones son análogos a las tablas (para aquéllos que estén
+   familiarizados con bases de datos relacionales).
+  </para>
+  <section xml:id="mongo.tutorial.collection.seealso">
+   <title>Ver También</title>
    <para>
-    Las colecciones son análogos a las tablas (para aquéllos que estén
-    familiarizados con bases de datos relacionales).
+    La documentación API de la clase <classname>MongoCollection</classname> contiene más
+    información sobre objetos de colecciones.
    </para>
-   <section>
-    <title>Ver También</title>
-    <para>
-     La documentación API de la clase <classname>MongoCollection</classname> contiene más
-     información sobre objetos de colecciones.
-    </para>
-   </section>
   </section>
-
-  <section>
-   <title>Insertando un Documento</title>
-   <para>
-    Los objetos básicos para almacenar en una colección de una base de datos son los
-    arrays asociativos. Un "documento" cualquiera podría ser:
-   </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.insert">
+  <title>Insertando un Documento</title>
+  <para>
+   Los objetos básicos para almacenar en una colección de una base de datos son los
+   arrays asociativos. Un "documento" cualquiera podría ser:
+  </para>
+  <example xml:id="mongo.tutorial.insert-data-example">
    <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
-
-$doc = array( "nombre" => "MongoDB",
-   "tipo" => "database",
-   "contador" => 1,
-   "info" => (object)array( "x" => 203, "y" => 102),
-   "versiones" => array("0.9.7", "0.9.8", "0.9.9")
+$doc = array(
+    "name" => "MongoDB",
+    "type" => "database",
+    "count" => 1,
+    "info" => (object)array( "x" => 203, "y" => 102),
+    "versions" => array("0.9.7", "0.9.8", "0.9.9")
 );
-
 ?>
 ]]>
-    </programlisting>
-   <para>
-    Tenga en cuenta que puede tener array y objetos anidados.
-   </para>
-   <para>
-    Para insertar este documento, utilice <function>MongoCollection::insert</function>:
-   </para>
+   </programlisting>
+  </example>
+  <para>
+   Observe que se pueden tener arrays y objetos anidados. El controlador siempre
+   almacenará un array asociativo como un objeto en la base de datos. Un array
+   indexado numéricamente es almacenado como un array en caso de que las claves empiecen en
+   0 y no estén interrumpidas, y como un objeto si las claves del array no empiezan
+   en 0 o tienen huecos (esto es: <literal>0, 1, 4, 5</literal>).
+  </para>
+  <para>
+   Para insertar este documento, utilice <function>MongoCollection::insert</function>:
+  </para>
+  <example xml:id="mongo.tutorial.insert-example-2">
    <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
 $collection->insert( $doc );
-
 ?>
 ]]>
    </programlisting>
-   <section>
-    <title>Ver También</title>
-    <para>
-     La documentación API de <function>MongoCollection::insert</function>
-     contiene más información sobre la inserción de datos.
-    </para>
-   </section>
+  </example>
+  <section xml:id="mongo.tutorial.insert.seealso">
+   <title>Ver También</title>
+   <para>
+    La documentación API de <function>MongoCollection::insert</function>
+    contiene más información sobre la inserción de datos.
+   </para>
   </section>
-
-  <section>
-   <title>
-    Localizando documentos usando <function>MongoCollection::findOne</function>
-   </title>
-   <para>
-    Para comprobar que el documento que insertamos en el paso anterior se encuentra ahí, podemos
-    realizar una operación <function>MongoCollection::findOne</function> para obtener un
-    único documento de la colección. Este método es útil cuando sólo hay un documento que concuerde
-    con la consulta, o cuando sólo se está interesado en un resultado.
-   </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.findone">
+  <title>
+   Localizando documentos usando <function>MongoCollection::findOne</function>
+  </title>
+  <para>
+   Para comprobar que el documento que insertamos en el paso anterior está almacenado en
+   la base de datos, podemos realizar una operación
+   <function>MongoCollection::findOne</function> para obtener un único
+   documento de la colección. Este método es útil cuando sólo hay un documento que
+   concuerde con la consulta, o cuando sólo se está interesado en un resultado.
+  </para>
+  <example xml:id="mongo.tutorial.findone-example">
    <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
-$obj = $collection->findOne();
-var_dump( $obj );
-
+$document = $collection->findOne();
+var_dump( $document );
 ?>
 ]]>
    </programlisting>
-   <para>
-    Mostrará:
-   </para>
-   <programlisting>
-     <![CDATA[
+   &example.outputs;
+   <screen>
+<![CDATA[
 array(6) {
   ["_id"]=>
   object(MongoId)#8 (1) {
     ["$id"]=>
     string(24) "4e2995576803fab768000000"
   }
-  ["nombre"]
+  ["name"]=>
   string(7) "MongoDB"
-  ["tipo"]=>
+  ["type"]=>
   string(8) "database"
-  ["contador"]=>
+  ["count"]=>
   int(1)
   ["info"]=>
   array(2) {
@@ -253,7 +270,7 @@ array(6) {
     ["y"]=>
     int(102)
   }
-  ["versiones"]=>
+  ["versions"]=>
   array(3) {
     [0]=>
     string(5) "0.9.7"
@@ -264,168 +281,182 @@ array(6) {
   }
 }
 ]]>
-   </programlisting>
-   <para>
-    Hay un campo <literal>_id</literal> que se ha añadido
-    automáticamente al documento. <literal>_id</literal> es el campo de la
-    "clave primaria". Si el documento no especifica una, el driver la añadirá
-    automáticamente.
-   </para>
-   <para>
-    Si se ha especificado un campo <literal>_id</literal>, debe ser único en toda
-    la colección. Por ejemplo:
-   </para>
+   </screen>
+  </example>
+  <para>
+   Hay un campo <literal>_id</literal> que se ha añadido
+   automáticamente al documento. <literal>_id</literal> es el campo de la
+   "clave primaria". Si el documento no especifica una, el driver la añadirá
+   automáticamente.
+  </para>
+  <para>
+   Si se ha especificado un campo <literal>_id</literal>, debe ser único en toda
+   la colección. Por ejemplo:
+  </para>
+  <example xml:id="mongo.tutorial.findone-example-2">
    <programlisting role="php">
 <![CDATA[
 <?php
+$connection = new MongoClient();
+$db = $connection->database;
 
-$db->foo->insert(array("_id" => 1), array("safe" => true));
-// esto emitirá una excepción
-$db->foo->insert(array("_id" => 1), array("safe" => true));
+$db->foo->insert(array("_id" => 1));
+// esto lanzará una excepción
+$db->foo->insert(array("_id" => 1));
 
-// aquí no habría problemas, ya que es otra colección
-$db->bar->insert(array("_id" => 1), array("safe" => true));
-
+// esto está bien, ya que es una colección diferente
+$db->bar->insert(array("_id" => 1));
 ?>
 ]]>
    </programlisting>
+  </example>
+  <para>
+   Por omisión, el controlador se asegurará de que el servidor ha aceptado la escritura
+   antes de devolver. Opcionalmente se puede desactivar este comportamiento pasando
+   <literal>array("w" => 0)</literal> como segundo argumento. Esto significa que
+   el contrlador debería no esperar a que la base de datos acepte la escritura y
+   no lanzar la excpeción de <literal>_id</literal> duplicado.
+  </para>
+  <section xml:id="mongo.tutorial.findone.seealso">
+   <title>Ver También</title>
    <para>
-    Tenga en cuenta que estas inserciones proporcionan un segundo array:
-    <literal>array("safe" => true)</literal>. Este campo especifica las opciones
-    de inserción. Por omisión, el driver no espera para escribir a que la base de
-    datos responda, por lo que el driver no capturaría el
-    <literal>_id</literal>. Como se ha especificado una escritura "safe" (segura), el
-    driver esperará la respuesta de la base de datos y verá que la escritura no se ha
-    llevado a cabo. En general, todas las escrituras deben usar la opción "safe" (en los
-    ejemplos anteriores se ha omitido para simplificarlos).
+    <function>MongoCollection::findOne</function>
+    contiene más información sobre cómo localizar datos.
    </para>
-   <section>
-    <title>Ver También</title>
-    <para>
-     <function>MongoCollection::findOne</function>
-     contiene más información sobre cómo localizar datos.
-    </para>
-    <para>
-     <classname>MongoId</classname> ofrece más detalles de los identificadores únicos.
-    </para>
-    <para>
-     La sección <link linkend="mongo.writes">writes</link> trata las escrituras seguras
-     en mayor profundidad, así como las funciones de escritura como
-     <function>MongoCollection::insert</function>,
-     <function>MongoCollection::update</function>, o
-     <function>MongoCollection::remove</function>.
-    </para>
-   </section>
+   <para>
+    <classname>MongoId</classname> ofrece más detalles de los identificadores únicos.
+   </para>
+   <para>
+    La sección <link linkend="mongo.writes">writes</link> trata
+    las escrituras en mayor profundidad, y el capítlo <xref linkend="mongo.writeconcerns" />
+    entra en detalles sobre las diferentes opciones de Write Concern.
+   </para>
   </section>
-
-  <section>
-   <title>Añadiendo Múltiples Documentos</title>
-   <para>
-    Para hacer más interesante el tema de las consultas, vamos a añadir
-    varios documentos a la colección. Estos documentos serán simplemente de la forma
-    <literal>array( "i" => <replaceable>value</replaceable> );</literal> y podemos
-    hacerlo de un modo muy eficiente en un bucle:
-   </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.insert.multiple">
+  <title>Añadiendo Múltiples Documentos</title>
+  <para>
+   Para hacer más interesante el tema de las consultas, vamos a añadir
+   varios documentos a la colección. Estos documentos serán simplemente de la forma
+   <literal>array( "i" => <replaceable>value</replaceable> );</literal> y podemos
+   hacerlo de un modo muy eficiente en un bucle:
+  </para>
+  <example xml:id="mongo.tutorial.insert.multiple-example">
    <programlisting role="php">
 <![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
-for($i=0; $i<100; $i++) {
-    $collection->insert( array( "i" => $i ) );
+for ( $i = 0; $i < 100; $i++ )
+{
+    $collection->insert( array( 'i' => $i, "field{$i}" => $i * 2 ) );
 }
-
 ?>
 ]]>
    </programlisting>
-
-   <para>
-    Tenga en cuenta que podemos insertar en una misma colección arrays con conjuntos de
-    claves diferente. A esta característica nos refereemos cuando decimos que MongoDB
-    es independiente de esquemas.
-   </para>
-  </section>
-
-  <section>
-   <title>Contando los Documentos de una Colección</title>
-   <para>
-    Ahora que hemos insertado 101 documentos (los 100 del bucle, junto con el
-    primero), podemos comprobar si los tenemos todos usando el método
-    <function>MongoCollection::count</function>.
+  </example>
+  
+  <para>
+   Tenga en cuenta que podemos insertar en una misma colección arrays
+   con claves diferentes. A esta característica nos refereemos cuando decimos que MongoDB
+   es independiente de esquemas. En el ejemplo de arriba cada documento tiene un
+   campo <literal>i</literal>, aunque también un nombre de campo en la forma
+   <literal>field</literal> + <literal>$i</literal>.
+  </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.counting">
+  <title>Contando los Documentos de una Colección</title>
+  <para>
+   Ahora que hemos insertado 101 documentos (los 100 del bucle, junto con el
+   primero), podemos comprobar si los tenemos todos usando el método
+   <function>MongoCollection::count</function>.
+   <example xml:id="mongo.tutorial.counting-example">
     <programlisting role="php">
 <![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
 echo $collection->count();
-
 ?>
 ]]>
     </programlisting>
-    y debe mostrar 101.
-   </para>
-  </section>
-
-  <section>
-   <title>Usando un Cursor para Obtener Todo de los Documentos</title>
-   <para>
-    Paraa obtener todos los documentos, usaremos
-    <function>MongoCollection::find</function>. El método find() devuelve un objeto
-    <classname>MongoCursor</classname> que nos permite recorrer el conjunto de documentos
-    que concuerdan con nuestra consulta. De ese modo, para consultar todos los documentos
-    y mostrarlos por pantalla:
-
+   </example>
+   y debería mostrar 101.
+  </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.cursor">
+  <title>Usando un Cursor para Obtener Todo de los Documentos</title>
+  <para>
+   Paraa obtener todos los documentos, usaremos
+   <function>MongoCollection::find</function>. El método find() devuelve un objeto
+   <classname>MongoCursor</classname> que nos permite recorrer el conjunto de documentos
+   que concuerdan con nuestra consulta. De ese modo, para consultar todos los documentos
+   y mostrarlos por pantalla:
+   
+   <example xml:id="mongo.tutorial.cursor-example">
     <programlisting role="php">
 <![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
 $cursor = $collection->find();
-foreach ($cursor as $id => $value) {
+foreach ( $cursor as $id => $value )
+{
     echo "$id: ";
     var_dump( $value );
 }
-
 ?>
 ]]>
     </programlisting>
-
-    y mostrará los 101 documentos de la colección.
-    <literal>$id</literal> es el campo <literal>_id</literal> del documento
-    (transformado a string) y <literal>$value</literal> es el documento en sí.
-   </para>
-   <section>
-    <title>Ver También</title>
-    <para>
-     La documentación API de <function>MongoCollection::find</function>
-     contiene más información sobre cómo localizar datos.
-    </para>
-   </section>
-  </section>
-
-  <section>
-   <title>Estableciendo el Criterio de la Consulta</title>
+   </example>
+   
+   y mostrará los 101 documentos de la colección.
+   <literal>$id</literal> es el campo <literal>_id</literal> del documento
+   (transformado a string) y <literal>$value</literal> es el documento en sí.
+  </para>
+  <section xml:id="mongo.tutorial.cursor.seealso">
+   <title>Ver También</title>
    <para>
-    Podemos crear una consulta para pasar al método
-    <function>MongoCollection::find</function> y así obtener un subconjunto de documentos
-    de nuestra colección. Por ejemplo, si quisiéramos encontrar el documento cuyo valor en el
-    campo "i" es 71, haríamos lo siguiente:
+    La documentación API de <function>MongoCollection::find</function>
+    contiene más información sobre cómo localizar datos.
    </para>
+  </section>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.criteria">
+  <title>Estableciendo el Criterio de la Consulta</title>
+  <para>
+   Podemos crear una consulta para pasar al método
+   <function>MongoCollection::find</function> y así obtener un subconjunto de documentos
+   de nuestra colección. Por ejemplo, si quisiéramos encontrar el documento cuyo valor en el
+   campo <literal>"i"</literal> es <literal>71</literal>,
+   haríamos lo siguiente:
+  </para>
+  <example xml:id="mongo.tutorial.criteria-example">
    <programlisting role="php">
 <![CDATA[
 <?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
 
-$query = array( "i" => 71 );
+$query = array( 'i' => 71 );
 $cursor = $collection->find( $query );
 
-while( $cursor->hasNext() ) {
+while ( $cursor->hasNext() )
+{
     var_dump( $cursor->getNext() );
 }
-
 ?>
 ]]>
    </programlisting>
-   <para>
-    y debería mostrar un único documento
-   </para>
-   <programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 array(2) {
   ["_id"]=>
@@ -437,76 +468,108 @@ array(2) {
   "testCollection"
 }
 ]]>
-   </programlisting>
-  </section>
-
-  <section>
-   <title>Consultando un Conjunto de Documentos con una Consulta</title>
-   <para>
-    Podemos usar la consulta para obtener un conjunto de documentos de nuestra colección. Por ejemplo,
-    si quisiéramos obtener todos los documentos en los que "i" &gt; 50, podríamos poner:
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$query = array( "i" => array( '$gt' => 50 ) ); //fíjese en las comillas simples de '$gt'
-$cursor = $coll->find( $query );
-
-while( $cursor->hasNext() ) {
-    var_dump( $cursor->getNext() );
-}
-
-?>
-]]>
-   </programlisting>
-   <para>
-    lo cual mostraría los documentos en que i &gt; 50. Podemos también consultar un rango, digamos
-    20 &lt; i &lt;= 30:
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$query = array( "i" => array( "\$gt" => 20, "\$lte" => 30 ) );
-$cursor = $coll->find( $query );
-
-while( $cursor->hasNext() ) {
-    var_dump( $cursor->getNext() );
-}
-
-?>
-]]>
-   </programlisting>
-   <para>
-    Recuerde escapar siempre el símbolo $ o utilizar comillas simples. Si no, PHP
-    lo interpretará como la variable <varname>$gt</varname>.
-   </para>
-  </section>
-
-  <section>
-   <title>Creando un Índice</title>
-   <para>
-    MongoDB soporta índices, y es muy fácil añadirlos a una colección. Para
-    crear un Índice, debe indicar el nombre del campo y la dirección: ascendente (1) o
-    descendente (-1). A continuación, creamos un índice ascendente en el campo "i":
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$coll->ensureIndex( array( "i" => 1 ) );  // creamos un índice en "i"
-$coll->ensureIndex( array( "i" => -1, "j" => 1 ) );  // índice de "i" descendente, "j" ascendente
-
-?>
-]]>
-   </programlisting>
-   <para>
-    A medida que los datos crecen, la indexación se vuelve crítica para un buen rendimiento de lectura. Si no está
-    familiarizado con las indexaciones, revise la documentación de 
-    <function>MongoCollection::ensureIndex</function> y  l a
-    <link xlink:href="&url.mongodb.dochub.indexes;">documentación de indexación de MongoDB</link>.
-   </para>
-  </section>
+   </screen>
+  </example>
  </section>
-</section>
+ 
+ <section xml:id="mongo.tutorial.multi.query">
+  <title>Consultando un Conjunto de Documentos con una Consulta</title>
+  <para>
+   Podemos usar la consulta para obtener un conjunto de documentos de nuestra colección. Por ejemplo,
+   si quisiéramos obtener todos los documentos en los que <literal>"i"</literal>
+   &gt; <literal>50</literal>, podríamos poner:
+  </para>
+  <example xml:id="mongo.tutorial.multi.query-example">
+   <programlisting role="php">
+<![CDATA[
+<?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
+
+$query = array( "i" => array( '$gt' => 50 ) ); //note the single quotes around '$gt'
+$cursor = $coll->find( $query );
+
+while ( $cursor->hasNext() )
+{
+    var_dump( $cursor->getNext() );
+}
+?>
+]]>
+   </programlisting>
+   <para>
+    lo cual mostraría los documentos en que <literal>"i"</literal> &gt;
+    <literal>50</literal>. Podemos también consultar un rango, digamos
+    <literal>20 &lt; i &lt;= 30</literal>:
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
+
+$query = array( 'i' => array( '$gt' => 20, "\$lte" => 30 ) );
+$cursor = $coll->find( $query );
+
+while ( $cursor->hasNext() )
+{
+    var_dump( $cursor->getNext() );
+}
+?>
+]]>
+   </programlisting>
+  </example>
+  <para>
+   Recuerde escapar siempre el símbolo $ o utilizar comillas simples. Si no, PHP
+   lo interpretará como la variable <varname>$gt</varname>.
+  </para>
+ </section>
+ 
+ <section xml:id="mongo.tutorial.indexes">
+  <title>Creando un Índice</title>
+  <para>
+   MongoDB soporta índices, y es muy fácil añadirlos a una colección. Para
+   crear un Índice, debe indicar el nombre del campo y la dirección: ascendente (1) o
+   descendente (-1). A continuación, creamos un índice ascendente en el campo "i":
+  </para>
+  <example xml:id="mongo.tutorial.indexes-example">
+   <programlisting role="php">
+<![CDATA[
+<?php
+$connection = new MongoClient();
+$collection = $connection->database->collectionName;
+
+$coll->ensureIndex( array( "i" => 1 ) );  // create index on "i"
+$coll->ensureIndex( array( "i" => -1, "j" => 1 ) );  // index on "i" descending, "j" ascending
+?>
+]]>
+   </programlisting>
+  </example>
+  <para>
+   A medida que los datos crecen, la indexación se vuelve crítica para un buen rendimiento de lectura. Si no está
+   familiarizado con las indexaciones, revise la documentación de 
+   <function>MongoCollection::ensureIndex</function> y  l a
+   <link xlink:href="&url.mongodb.dochub.indexes;">documentación de indexación de MongoDB</link>.
+  </para>
+ </section>
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
