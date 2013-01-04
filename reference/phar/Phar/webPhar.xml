@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8f42f2024dc429e222bb191a6f90f56a10a16432 Maintainer: seros Status: ready -->
+<!-- EN-Revision: c59dadcc33133f4963531ff715109e7002c421d7 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="phar.webphar" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -16,7 +16,7 @@
    <methodparam choice="opt"><type>string</type><parameter>index</parameter><initializer>"index.php"</initializer></methodparam>
    <methodparam choice="opt"><type>string</type><parameter>f404</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>mimetypes</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>rewrites</parameter></methodparam>
+   <methodparam choice="opt"><type>callable</type><parameter>rewrites</parameter></methodparam>
   </methodsynopsis>
   <para>
    <function>Phar::mapPhar</function> para archivos phar basados en web. Este método procesa
@@ -127,21 +127,16 @@ $mimes = array(
      <term><parameter>rewrites</parameter></term>
      <listitem>
       <para>
-       Un array que mapea URI al fichero interno, simulando la directiva mod_rewrite de apache.
-       Por ejemplo:
-       <programlisting role="php">
-<![CDATA[
-<?php
-array(
-    'mi_info' => 'mi_info.php'
-);
-?>
-        ]]>
-       </programlisting>
-       direccionaría las llamadas a <literal>http://&lt;host&gt;/miphar.phar/mi_info</literal>
-       al fichero <literal>phar:///path/to/miphar.phar/mi_info.php</literal>, conservando
-       GET/POST. Eso no funciona completamente como mod_rewrite, ya que no coincidiría
-       con <literal>http://&lt;host&gt;/miphar.phar/mi_info/otro</literal>.
+       A la función rewrites se le proporciona un string como único parámetro y debe devolver un <type>string</type> o &false;.
+      </para>
+      <para>
+       Si se está utilizando fast-cgi o cgi, el parámetro pasado a la función es el valor de la
+       variable <varname>$_SERVER['PATH_INFO']</varname>. De otro modo, el parámetro pasado a la función es el valor
+       de la variable <varname>$_SERVER['REQUEST_URI']</varname>.
+      </para>
+      <para>
+       Si se devuelve un string, este se usa como la ruta de fichero interno. Si se devuelve &false;, webPhar()
+       enviará un código de rechazo HTTP 403.
       </para>
      </listitem>
     </varlistentry>
@@ -161,9 +156,9 @@ array(
   <para>
    Lanza una excepción de tipo <classname>PharException</classname> cuando no se puede abrir el fichero
    interno para salida, o si se llama desde un lugar que no sea
-   una rutina de interoperabilidad.  Si se pasa un array no válido a
-   <parameter>mimetypes</parameter> o a <parameter>rewrites</parameter>, se
-   lanza una excepción de tipo <classname>UnexpectedValueException</classname>.
+   una rutina de interoperabilidad. Si se pasa un array no válido a
+   <parameter>mimetypes</parameter> o se proporciona una llamada de retorno no válida a <parameter>rewrites</parameter>,
+   se lanza una excepción de tipo <classname>UnexpectedValueException</classname>.
   </para>
  </refsect1>
  
