@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <!-- $Revision$ -->
-<!-- EN-Revision: 1c5e7d35ce83f2d98489cd6380f15237c8521a0a Maintainer: chuso Status: ready -->
+<!-- EN-Revision: ec6cb30f0e84618fb4a79d2d58d14126a8a071ba Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
+
 <refentry xml:id="mongocollection.insert" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoCollection::insert</refname>
@@ -45,58 +45,10 @@
       <para>
        Opciones de inserción.
        <itemizedlist>
-        <listitem>
-         <para>
-          <literal>"safe"</literal>
-         </para>
-         <para>
-          Puede ser un booleano o un entero, por omisión &false;. Si &false;, el programa
-          continua su ejecución sin esperar respuesta por parte de la base de datos.
-          Si &true;, el programa esperará la respuesta de la base de datos, y en caso
-          de que la inserción no tenga éxito, emitirá una excepción de tipo
-          <classname>MongoCursorException</classname>.
-         </para>
-         <para>
-          Si se estuvieran utilizando réplicas, y el maestro cambiara, al usar "safe"
-          se provocaría que el driver desconectaría del maestro, emitiría una excepción,
-          y en la siguiente operación se tratría de encontrar un nuevo maestro (su aplicación
-          debe decidir si reintentará realizar de nuevo la operación sobre un nuevo
-          maestro).
-         </para>
-         <para>
-          Si <emphasis>no</emphasis> utiliza "safe" con conjuntos de réplicas y el maestro
-          cambia, no habrá forma de que el driver conozca el cambio. En este caso, continuará
-          la ejecución y la escritura, silenciosamente, fallará.
-         </para>
-         <para>
-          Si <literal>safe</literal> fuera un entero, replicará la inserción a ese
-          número de máquinas antes de notificar un éxito (o lanzaría una excepción
-          si al replicar se excediera el tiempo de espera; consulte wtimeout). Sobreescribe
-          la variable w asignada a la colección.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"fsync"</literal>
-         </para>
-         <para>
-          Booleano, por omisión &false;. Obliga a que la inserción se sincronice en disco
-          antes de notificar éxito. Si &true;, se realiza de manera implícita una inserción segura (safe)
-          y sobrescribirá el ajuste <literal>safe</literal> a &false;.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"timeout"</literal>
-         </para>
-         <para>
-          Entero, por omisión <literal>MongoCursor::$timeout</literal>. Si
-          "safe" está habilitado, este valor indica por cuánto tiempo (en milisegundos)
-          esperará el cliente la respuesta de la base de datos. Si la base de datos no respondiera
-          en ese periodo de tiempo, se lanzaría una excepción de tipo
-          <classname>MongoCursorTimeoutException</classname>.
-         </para>
-        </listitem>
+        &mongo.writes.parameters.writeconcern;
+        &mongo.writes.parameters.fsync;
+        &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.safe;
        </itemizedlist>
       </para>
      </listitem>
@@ -108,12 +60,13 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si <parameter>safe</parameter> está habilitado, devuelve un array con el
-   estado de la inserción. En cualquier otro caso, devuelve un booleano indicando si
-   el array no estaba vacío (un array vacío no se insertará).
+   Devuelve un array que contiene el estado de la inserción si la
+   opción <literal>"w"</literal> está establecida. De lo contrario, devuelve &true; si el
+   array insertado no está vacío (se lanzará una <classname>MongoException</classname>
+   si el array insertado está vacío).
   </para>
   <para>
-   Si se devuelve un array, las siguientes claves pueden estar presentes:
+   Si se devuelve un array, las siguientes claves podrían estar presentes:
    <variablelist>
     <varlistentry>
      <term>
@@ -236,15 +189,9 @@
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Lanza <classname>MongoCursorException</classname> si la opción "safe" estuviera
-   habilitada y fallara la inserción. (Versión 1.0.1+)
+   Lanza una <classname>MongoCursorException</classname> si el array insertado está vacío.
   </para>
-  <para>
-   Lanza <classname>MongoCursorTimeoutException</classname> si la opción "safe" estuviera
-   habilitada y la operación llevara más de
-   <varname>MongoCursor::$timeout</varname> milisegundos para completarse. No detiene el
-   proceso en el servidor; es sólo un tiempo de espera en el lado del cliente.
-  </para>
+  &mongo.errors.exceptions.writeconcern;
  </refsect1>
  
  <refsect1 role="changelog">
@@ -260,45 +207,54 @@
      </thead>
      <tbody>
       <row>
-       <entry>1.0.5</entry>
+       <entry>1.3.0</entry>
        <entry>
-        Cambiado el segundo parámetro a un array de opciones. Antes de 1.0.5, el segundo
-        parámetro era un booleano indicando la opción "safe".
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.9</entry>
-       <entry>
-        Añadido soporte para pasar enteros a la opción "safe" (antes sólo aceptaba
-        booleanos) y añadida la opción "fsync".
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.9</entry>
-       <entry>
-        Cambiado el tipo devuelto por un array que contiene información del
-        error si se utiliza la opción "safe", de otro modo es un booleano como
-        antes.
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.11</entry>
-       <entry>
-        Si "safe" está habilitado y hay un error que no sea en el maestro, se desconecta.
+        El parámetro <parameter>options</parameter> ya no acepta un booleano
+        para indicar una escritura aceptada. En su lugar, ahora esto tiene que hacerse con
+        <literal>array('w' => 1)</literal> (El comportamiento predeterminado de
+        <classname>MongoClient</classname>).
        </entry>
       </row>
       <row>
        <entry>1.2.0</entry>
+       <entry>Se añadió el parámetro <literal>"timeout"</literal>.</entry>
+      </row>
+      <row>
+       <entry>1.0.11</entry>
        <entry>
-        Añadida la opción "timeout".
+        Se desconecta en errores "not master" si <literal>"safe"</literal> está establecido.
        </entry>
       </row>
       <row>
-       <entry>1.3.0</entry>
+       <entry>1.0.9</entry>
        <entry>
-        El parámetro <parameter>options</parameter> ya no solo acepta un booleano
-        que indique inserción segura. En su lugar, ahora se debe hacer
-        con <literal>array('safe' => true)</literal>.
+        <para>
+         Añadida la capacidad de pasar enteros a la opción <literal>"safe"</literal>,
+         la cual anteriormente únicamente aceptaba booleanos.
+        </para>
+        <para>
+         Añadida la opción <literal>"fsync"</literal>.
+        </para>
+        <para>
+         Cambiado el tipo devuelto por un array que contiene información
+         si se utiliza la opción <literal>"safe"</literal>. De otro modo, se devuelve
+         un booleano como antes.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.5</entry>
+       <entry>
+        Cambiado el segundo parámetro a un array de opciones. Antes de 1.0.5, el
+        segundo parámetro era un booleano indicando la opción
+        <literal>"safe"</literal>.
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.1</entry>
+       <entry>
+        Lanza una <classname>MongoCursorException</classname> si la
+        opción <literal>"safe"</literal> está establecida y la inserción falla.
        </entry>
       </row>
      </tbody>
@@ -318,7 +274,7 @@
 <![CDATA[
 <?php
 
-$m = new Mongo();
+$m = new MongoClient();
 $db = $m->selectDB('test');
 $colección = new MongoCollection($db, 'phpmanual');
 
@@ -353,23 +309,23 @@ array(12) {
   </example>
   
   <example>
-   <title>Ejemplo de <function>MongoCollection::insert</function> safe</title>
+   <title>Ejemplo de escritura aceptada con <function>MongoCollection::insert</function></title>
    <para>
     Este ejemplo muestra cómo al insertar dos elementos con el mismo _id, se provoca
     que se lance una excepción <classname>MongoCursorException</classname>, ya que
-    <parameter>safe</parameter> está habilitado.
+    <parameter>w</parameter> está habilitado.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
 $persona = array("nombre" => "Joe", "edad" => 20);
-$colección->insert($persona, true);
+$colección->insert($persona);
 
-// ahora $person tiene un campo _id, así que si intentamos guardarlo
+// ahora $persona tiene un campo _id, así que si intentamos guardarlo
 // de nuevo, obtendremos una excepción
 try {
-    $colección->insert($persona, true);
+    $collection->insert($persona, array("w" => 1));
 } catch(MongoCursorException $e) {
     echo "No se puede guardar dos veces la misma persona!\n";
 }

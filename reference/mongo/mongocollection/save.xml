@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 7b95acba7cb67879373cbc659d9ef140e96e43b0 Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 48e1717a75a72c11438caeac29bb0fd0b0c02107 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
-<!-- $Revision$ -->
+
 <refentry xml:id="mongocollection.save" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoCollection::save</refname>
   <refpurpose>Guarda un objeto en esta colección</refpurpose>
  </refnamediv>
-
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -21,7 +21,7 @@
    insertaría.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;    
   <para>
@@ -44,58 +44,10 @@
       <para>
        Opciones de guardado.
        <itemizedlist>
-        <listitem>
-         <para>
-          <literal>"safe"</literal>
-         </para>
-         <para>
-          Puede ser un booleano o un entero, por omisión &false;. Si &false;, el programa
-          continua su ejecución sin esperar respuesta por parte de la base de datos.
-          Si &true;, el programa esperará la respuesta de la base de datos y emitira una
-          excepcion <classname>MongoCursorException</classname> si la inserción
-          no tuviera éxito.
-         </para>
-         <para>
-          Si se estuvieran utilizando réplicas, y el maestro cambiara, al usar "safe"
-          se provocaría que el driver desconectaría del maestro, emitiría una excepción,
-          y en la siguiente operación se tratría de encontrar un nuevo maestro (su aplicación
-          debe decidir si reintentará realizar de nuevo la operación sobre un nuevo
-          maestro).
-         </para>
-         <para>
-          Si <emphasis>no</emphasis> utiliza "safe" con conjuntos de réplicas y el maestro
-          cambia, no habrá forma de que el driver conozca el cambio. En este caso, continuará
-          la ejecución y la escritura, silenciosamente, fallará.
-         </para>
-         <para>
-          Si <literal>safe</literal> fuera un entero, replicará la inserción a ese
-          número de máquinas antes de notificar un éxito (o lanzaría una excepción
-          si al replicar se excediera el tiempo de espera; consulte wtimeout). Sobreescribe
-          la variable w asignada a la colección.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"fsync"</literal>
-         </para>
-         <para>
-          Booleano, por omisión &false;. Obliga a que la inserción se sincronice en disco
-          antes de notificar éxito. Si &true;, se realiza de manera implícita una inserción segura (safe)
-          y sobrescribirá el ajuste <literal>safe</literal> a &false;.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"timeout"</literal>
-         </para>
-         <para>
-          Entero, por omisión <literal>MongoCursor::$timeout</literal>. Si
-          "safe" está habilitado, este valor indica por cuánto tiempo (en milisegundos)
-          esperará el cliente la respuesta de la base de datos. Si la base de datos no respondiera
-          en ese periodo de tiempo, se lanzaría una excepción de tipo
-          <classname>MongoCursorTimeoutException</classname>.
-         </para>
-        </listitem>
+        &mongo.writes.parameters.writeconcern;
+        &mongo.writes.parameters.fsync;
+        &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.safe;
        </itemizedlist>
       </para>
      </listitem>
@@ -103,30 +55,21 @@
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si <parameter>safe</parameter> estuviera habilitado, devolvería un array que contiene el estado de la
+   Si <parameter>w</parameter> estuviera habilitado, devolvería un array que contiene el estado de la
    escritura. En cualquier otro caso, devuelve un booleano que representa si el array no estaba vacío
    (un array vacío no se insertará).
   </para>
  </refsect1>
-
+ 
  <refsect1 role="errors">
   &reftitle.errors;
-  <para>
-   Lanza <classname>MongoCursorException</classname> si la opción "safe" está habilitada
-   y fallara al guardar.
-  </para>
-  <para>
-   Lanza <classname>MongoCursorTimeoutException</classname> si la opción "safe" 
-   estuviera habilitada y a la operación llevara más de
-   <varname>MongoCursor::$timeout</varname> milisegundos completarse. No detiene el
-   proceso en el servidor; es sólo un tiempo de espera en el lado del cliente.
-  </para>
+  &mongo.errors.exceptions.writeconcern;
  </refsect1>
-
+ 
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -140,36 +83,37 @@
      </thead>
      <tbody>
       <row>
-       <entry>1.0.5</entry>
+       <entry>1.2.0</entry>
+       <entry>Añadida la opción <literal>"timeout"</literal>.</entry>
+      </row>
+      <row>
+       <entry>1.0.11</entry>
        <entry>
-        Añadido el parámetro "options".
+        Se desconecta en errores "not master" si <literal>"safe"</literal> está establecido.
        </entry>
       </row>
       <row>
        <entry>1.0.9</entry>
        <entry>
-        Añadido soporte para pasar enteros a la opción "safe" (antes sólo aceptaba
-        booleanos) y añadida la opción "fsync".
+        <para>
+         Añadida la capacidad de pasar enteros a la opción <literal>"safe"</literal>,
+         la cual anteriormente únicamente aceptaba booleanos.
+        </para>
+        <para>
+         Añadida la opción <literal>"fsync"</literal>.
+        </para>
        </entry>
       </row>
       <row>
-       <entry>1.0.11</entry>
-       <entry>
-        Si "safe" está habilitado y hay un error que no sea en el maestro, se desconecta.
-       </entry>
-      </row>
-      <row>
-       <entry>1.2.0</entry>
-       <entry>
-        Añadida la opción "timeout".
-       </entry>
+       <entry>1.0.5</entry>
+       <entry>Añadido el parámetro <parameter>options</parameter>.</entry>
       </row>
      </tbody>
     </tgroup>
    </informaltable>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -182,6 +126,7 @@ $obj = array('x' => 1);
 
 // insertar $obj en la base de datos
 $collection->save($obj);
+var_dump($obj);
 
 // añadir otro campo
 $obj['foo'] = 'bar';
@@ -195,9 +140,34 @@ $collection->save($obj);
 ?>
 ]]>
    </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+array(2) {
+  ["x"]=>
+  int(1)
+  ["_id"]=>
+  object(MongoId)#4 (1) {
+    ["$id"]=>
+    string(24) "50b6afe544415ed606000000"
+  }
+}
+]]>
+   </screen>
   </example>
  </refsect1>
-
+ 
+ <refsect1 role="notes"><!-- {{{ -->
+  &reftitle.notes;
+  <note>
+   <para>
+    Este método creará un campo <literal>_id</literal> en el
+    array <parameter>a</parameter> con un ID pregenerado si el campo no
+    existe ya, a menos que el argumento fuera una referencia.
+   </para>
+  </note>
+ </refsect1><!-- }}} -->
+ 
 </refentry>
 <!-- Keep this comment at the end of the file
 Local variables:

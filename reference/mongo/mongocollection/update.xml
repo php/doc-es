@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c90424bc60a933348a29381c53116ec6ca607f4a Maintainer: andresdzphp Status: ready -->
+<!-- EN-Revision: ec6cb30f0e84618fb4a79d2d58d14126a8a071ba Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 
 <refentry xml:id="mongocollection.update" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -53,14 +53,23 @@
        <literal>array("optionname" => &lt;boolean&gt;, ...)</literal>. Las opciones
        soportadas actualmente son:
        <itemizedlist>
+        &mongo.writes.parameters.writeconcern;
         <listitem>
          <para>
           <literal>"upsert"</literal>
          </para>
          <para>
-          Si ningún documento cumplira las condiciones de <parameter>$criteria</parameter>, se crearía 
-          un nuevo documento a partir de <parameter>$criteria</parameter> y <parameter>$new_object</parameter> 
-          (revise más abajo el ejemplo de upsert).
+          Si ningún documento cumple las condiciones de <parameter>$criteria</parameter>, se
+          insertará un nuevo documento.
+         </para>
+         <para>
+          Si se insertara un nuevo documento y
+          <parameter>$new_object</parameter> contiene modificadores atómicos
+          (esto es, operadores <literal>$</literal>), esas operaciones serán
+          aplicadas al parámetro <parameter>$criteria</parameter> para crear
+          el nuevo documento. Si <parameter>$new_object</parameter> no
+          contiene modificadores atómicos, será utilizado tal cual para el documento
+          insterdo. Véase los ejemplos de upsert abajo para más información.
          </para>
         </listitem>
         <listitem>
@@ -77,58 +86,9 @@
           la base de datos podría cambiar en el futuro.
          </para>
         </listitem>
-        <listitem>
-         <para>
-          <literal>"safe"</literal>
-         </para>
-         <para>
-          Puede ser un booleano o un entero, por omisión &false;. Si &false;, el programa
-          continua su ejecución sin esperar respuesta por parte de la base de datos.
-          Si &true;, el programa esperará la respuesta de la base de datos y emitira una
-          excepcion <classname>MongoCursorException</classname> si la inserción
-          no tuviera éxito.
-         </para>
-         <para>
-          Si se estuvieran utilizando réplicas, y el maestro cambiara, al usar "safe"
-          se provocaría que el driver desconectaría del maestro, emitiría una excepción,
-          y en la siguiente operación se tratría de encontrar un nuevo maestro (su aplicación
-          debe decidir si reintentará realizar de nuevo la operación sobre un nuevo
-          maestro).
-         </para>
-         <para>
-          Si <emphasis>no</emphasis> utiliza "safe" con conjuntos de réplicas y el maestro
-          cambia, no habrá forma de que el driver conozca el cambio. En este caso, continuará
-          la ejecución y la escritura, silenciosamente, fallará.
-         </para>
-         <para>
-          Si <literal>safe</literal> fuera un entero, replicará la actualización a ese
-          número de máquinas antes de notificar un éxito (o lanzaría una excepción
-          si al replicar se excediera el tiempo de espera; consulte wtimeout). Sobreescribe
-          la variable w asignada a la colección.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"fsync"</literal>
-         </para>
-         <para>
-          Booleano, por omisión &false;. Obliga a que la actualización se sincronice en disco
-          antes de notificar éxito. Si &true;, se realiza de manera implícita una actuaización segura (safe)
-          y sobrescribirá el ajuste <literal>safe</literal> a &false;.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"timeout"</literal>
-         </para>
-         <para>
-          Entero, por omisión <literal>MongoCursor::$timeout</literal>. Si
-          "safe" está habilitado, este valor indica por cuánto tiempo (en milisegundos)
-          esperará el cliente la respuesta de la base de datos. Si la base de datos no respondiera
-          en ese periodo de tiempo, se lanzaría una excepción de tipo
-          <classname>MongoCursorTimeoutException</classname>.
-         </para>
-        </listitem>
+        &mongo.writes.parameters.fsync;
+        &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.safe;
        </itemizedlist>
       </para>
      </listitem>
@@ -140,26 +100,18 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si <parameter>safe</parameter> está habilitado, devuelve un array con el
-   estado de la actualización. En cualquier otro caso, devuelve un booleano indicando si
-   el array no estaba vacío (un array vacío no se insertará). Los campos de
-   este array están descritos en la documentación de
+   Devuelve un array que contiene el estado de la actualización si la
+   opción <literal>"w"</literal> está establecida. De lo contrario, devuelve &true;.
+  </para>
+  <para>
+   Los campos del array de estado están descritos en la documentación para
    <function>MongoCollection::insert</function>.
   </para>
  </refsect1>
  
  <refsect1 role="errors">
   &reftitle.errors;
-  <para>
-   Lanza <classname>MongoCursorException</classname> si la opción "safe" estuviera
-   habilitada y la actualización fallara.
-  </para>
-  <para>
-   Lanza <classname>MongoCursorTimeoutException</classname> si la opción "safe" 
-   estuviera habilitada y a la operación llevara más de
-   <varname>MongoCursor::$timeout</varname> milisegundos completarse. No detiene el
-   proceso en el servidor; es sólo un tiempo de espera en el lado del cliente.
-  </para>
+  &mongo.errors.exceptions.writeconcern;
  </refsect1>
  
  <refsect1 role="changelog">
@@ -175,58 +127,58 @@
      </thead>
      <tbody>
       <row>
-       <entry>1.0.1</entry>
+       <entry>1.3.0</entry>
        <entry>
-        Cambiado el parámetro "opciones" de un booleano a un array. Antes de 1.0.1, el segundo
-        parámetro era un booleano opcional cuyo valor indicaba si era o no upsert.
+        El parámetro <parameter>options</parameter> ya no acepta un valor booleano
+        para indicar un upsert. En su lugar, esto ahora se tiene que hacer 
+        con <literal>array('upsert' => true)</literal>.
        </entry>
       </row>
       <row>
-       <entry>1.0.5</entry>
+       <entry>1.2.11</entry>
        <entry>
-        Añadida la opción "safe".
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.9</entry>
-       <entry>
-        Añadido soporte para pasar enteros a la opción "safe" (antes sólo aceptaba
-        booleanos) y añadida la opción "fsync".
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.9</entry>
-       <entry>
-        Cambiado el tipo devuelto por un array que contiene información del
-        error si se utiliza la opción "safe", de otro modo es un booleano como
-        antes.
-       </entry>
-      </row>
-      <row>
-       <entry>1.0.11</entry>
-       <entry>
-        Si "safe" está habilitado y hay un error que no sea en el maestro, se desconecta.
+        Emite <constant>E_DEPRECATED</constant> cuando
+        <parameter>options</parameter> es de tipo <type>scalar</type>.
        </entry>
       </row>
       <row>
        <entry>1.2.0</entry>
-       <entry>
-        Añadida la opción "timeout".
-       </entry>
+       <entry>Se añadió la opción <literal>"timeout"</literal>.</entry>
       </row>
-        <row>
-       <entry>1.2.11</entry>
+      <row>
+       <entry>1.0.11</entry>
        <entry>
-       Emite <constant>E_DEPRECATED</constant> cuando <parameter>options</parameter> es de tipo <type>scalar</type>.
+        Se desconecta en errores "not master" si <literal>"safe"</literal> está establecido.
        </entry>
       </row>
       <row>
-       <entry>1.3.0</entry>
-        <entry>
-         El parámetro <parameter>options</parameter> no acepta un valor
-         booleano para indicar un upsert. En su lugar, esto ahora se tiene que hacer 
-         con <literal>array('upsert' => true)</literal>.
-        </entry>
+       <entry>1.0.9</entry>
+       <entry>
+        <para>
+         Añadida la capacidad de pasar enteros a la opción <literal>"safe"</literal>,
+         la cual anteriormente únicamente aceptaba booleanos.
+        </para>
+        <para>
+         Añadida la opción <literal>"fsync"</literal>.
+        </para>
+        <para>
+         Cambiado el tipo devuelto por un array que contiene información
+         si se utiliza la opción <literal>"safe"</literal>. De otro modo, se devuelve
+         un booleano como antes.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>1.0.5</entry>
+       <entry>Se añadió la opción <literal>"safe"</literal>.</entry>
+      </row>
+      <row>
+       <entry>1.0.1</entry>
+       <entry>
+        Cambiado el parámetro <parameter>"opciones"</parameter> de un booleano a un array.
+        Antes de la versión 1.0.1, el segundo parámetro era valor booleano opcional especificando
+        un upsert.
+       </entry>
       </row>
      </tbody>
     </tgroup>
@@ -272,19 +224,29 @@ array(4) {
    </screen>
   </example>
   <example>
-   <title>Ejemplo de <function>MongoCollection::update</function> con upsert</title>
+   <title>Ejemplos de <function>MongoCollection::update</function> con upsert</title>
    <para>
-    Los upserts pueden simplificar el código, ya que con una sóla línea podemos crear el objeto si éste
-    no existiera, o actualizarlo si existiera.
+    Los upserts pueden simplificar el código, ya que con una única línea se puede crear el documento si
+    no existe (basado en <parameter>$criteria</parameter>), o actualizar un
+    documento existente si coincide.
+   </para>
+   <para>
+    En el siguiente ejemplo, <parameter>$new_object</parameter> contiene un
+    modificador atómico. Ya que la colección está vacía y upsert debe insertar un nuevo
+    documento, aplicará esas operaciones al
+    parámetro <parameter>$criteria</parameter> para crear el documento.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
 $c->drop();
-$c->update(array("uri" => "/fotos_verano"), array('$inc' => array("accesos" => 1)), array("upsert" => true));
+$c->update(
+    array("uri" => "/summer_pics"),
+    array('$inc' => array("page hits" => 1)),
+    array("upsert" => true)
+);
 var_dump($c->findOne());
-
 ?>
 ]]>
    </programlisting>
@@ -303,10 +265,11 @@ array(3) {
 ]]>
    </screen>
    <para>
-    Si <parameter>$new_object</parameter> no contuviera operadores $, upsert podría crear a partir de
-    él un nuevo documento. Esto coincide con el comportamiento normal de una actualización:
-    si no se usaran operadores $, se sobrescribiría todo el
-    documento.
+    Si <parameter>$new_object</parameter> no contiene modificadores atómicos
+    (esto es, operadores <literal>$</literal>), upsert utilizará
+    <parameter>$new_object</parameter> tal cual para el nuevo documento. Esto coincide
+    con el comportamiento de una actualización normal, donde la no utilización de modificadores atómicos
+    ocasiona la sobrescritura del documento.
    </para>
    <programlisting role="php">
 <![CDATA[
