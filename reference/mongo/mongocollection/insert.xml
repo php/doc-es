@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: ec6cb30f0e84618fb4a79d2d58d14126a8a071ba Maintainer: seros Status: ready -->
+<!-- EN-Revision: 6f59b9c6a9307d5cef36f06d73258c75d2976bc2 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongocollection.insert" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoCollection::insert</refname>
-  <refpurpose>Inserta un array en la colección</refpurpose>
+  <refpurpose>Inserta un documento en la colección</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <modifier>public</modifier> <type>bool|array</type><methodname>MongoCollection::insert</methodname>
-   <methodparam><type>array</type><parameter>a</parameter></methodparam>
+   <methodparam><type>array|object</type><parameter>a</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
   </methodsynopsis>
   <para>
@@ -33,8 +33,17 @@
      </term>
      <listitem>
       <para>
-       Un array.
+       Un array u objeto. Si se utiliza un objeto, este no puede tener propiedades
+       protegidas o privadas.
       </para>
+      <note>
+       <para>
+        Si el parámetro no posee una clave <literal>_id</literal> o
+        propiedad, se creará una nueva instancia de <classname>MongoId</classname>
+        y se le asignará. Este comportamiento especial no implica que el
+        parámetro sea pasado por referencia.
+       </para>
+      </note>
      </listitem>
     </varlistentry>   
     <varlistentry>
@@ -43,7 +52,7 @@
      </term>
      <listitem>
       <para>
-       Opciones de inserción.
+       Opciones para la inserción.
        <itemizedlist>
         &mongo.writes.parameters.writeconcern;
         &mongo.writes.parameters.fsync;
@@ -121,8 +130,9 @@
      </term>
      <listitem>
       <para>
-       Si la última operación fue de inserción, una actualización o una eliminación, será
-       devuelto el número de objetos afectados.
+       Si la última operación fue de inserción, una upsert, o una eliminación, será
+       devuelto el número de objetos afectados. Para operaciones de inserción, este valor
+       siempre es <literal>0</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -189,7 +199,9 @@
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Lanza una <classname>MongoCursorException</classname> si el array insertado está vacío.
+   Lanza una excepción de tipo <classname>MongoException</classname> si el documento insertado está
+   vacío o si contiene claves de longitud cero. Intentar insertar un objeto
+   con propiedades protegidas o privadas causará un error de clave de longitud cero.
   </para>
   &mongo.errors.exceptions.writeconcern;
  </refsect1>
@@ -266,26 +278,53 @@
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>MongoCollection::insert</function> con _id</title>
+   <title>Ejemplo de <function>MongoCollection::insert</function> con <literal>_id</literal></title>
    <para>
-    Al insertar un objeto se le añadirá un campo _id, a no ser que se pase por referencia.
+    Un campo <literal>_id</literal> será añadido al documento insertado si
+    no estuviera ya presente. Dependiendo de cómo el parámetro sea pasado, estará disponible
+    o no un <literal>_id</literal> generado para llamar al código.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
 $m = new MongoClient();
-$db = $m->selectDB('test');
-$colección = new MongoCollection($db, 'phpmanual');
+$colección = $m->selectCollection('test', 'phpmanual');
 
-$a = array('x' => 12);
+// Si se usa un array literal, no hay forma de acceder al _id generado
+$colección->insert(array('x' => 1));
+
+// El _id está disponible en un array pasado por valor
+$a = array('x' => 2);
 $colección->insert($a);
 var_dump($a);
 
-$b = array('x' => 12);
+// El _id no está disponible en un array pasado por referencia
+$b = array('x' => 3);
 $ref = &$b;
 $colección->insert($ref);
 var_dump($ref);
+
+// El _id está disponible si una función envolvente no desencadena una copia durante la escritura
+function insert_no_cow($colección, $documento)
+{
+    $colección->insert($documento);
+}
+
+$c = array('x' => 4);
+insert_no_cow($colección, $c);
+var_dump($c);
+
+// El _id no está disponible si una función envolvente desencadena una copia durante la escritura
+function insert_cow($colección, $documento)
+{
+    $documento['y'] = 1;
+    $colección->insert($documento);
+}
+
+$d = array('x' => 5);
+insert_cow($colección, $d);
+var_dump($d);
 
 ?>
 ]]>
@@ -295,14 +334,25 @@ var_dump($ref);
 <![CDATA[
 array(2) {
   ["x"]=>
-  int(12)
+  int(2)
   ["_id"]=>
   object(MongoId)#4 (0) {
   }
 }
-array(12) {
+array(1) {
   ["x"]=>
-  int(1)
+  int(3)
+}
+array(2) {
+  ["x"]=>
+  int(4)
+  ["_id"]=>
+  object(MongoId)#5 (0) {
+  }
+}
+array(1) {
+  ["x"]=>
+  int(5)
 }
 ]]>
    </screen>
