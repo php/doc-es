@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 26b9276e07d1be8fd39c0c1ce26c90d75b4193d7 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="mongocollection.aggregate" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>MongoCollection::aggregate</refname>
+  <refpurpose>Realiza una acumulación usando el framework de acumulación</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>public</modifier> <type>array</type><methodname>MongoCollection::aggregate</methodname>
+   <methodparam><type>array</type><parameter>pipeline</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>op</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>...</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   El
+   <link xlink:href="&url.mongodb.docs.aggregation;">framework de agregación </link>
+   de MongoDB proporciona medios para calcular valores acumulados sin tener que usar
+   MapReduce. Aunque MapReduce es potente, a menudo es más dificultoso de lo
+   necesario para muchas tareas sencillas de acumulación, tales como totalizar o hallar la media
+   de valores de campos.
+  </para>
+  <para>
+   Este método acepta tanto una cantidad variable de operadores de tubería como un
+   único array de dichos operadores constituyendo la tubería.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>pipeline</parameter></term>
+    <listitem>
+     <para>
+      Un array de operadores de tubería, o simplemente el primer operador.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>op</parameter></term>
+    <listitem>
+     <para>
+      El segundo operador de tubería.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>...</parameter></term>
+    <listitem>
+     <para>
+      Operadores de tubería adicionales.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   El resultado de la acumulación como un array. <varname>ok</varname> será
+   establecido a <literal>1</literal> en caso de éxito, <literal>0</literal> en caso de error.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Cuando ocurre un error se devuelve un array con las siguientes claves:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <varname>errmsg</varname> - contiene la razón del fallo
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <varname>code</varname> - el código de error del fallo
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <varname>ok</varname> - será establecido a 0.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example xml:id="mongocollection.aggregate.example.basic">
+   <title>Ejemplo de <methodname>MongoCollection::aggregate</methodname></title>
+   <para>
+    El siguiente ejemplo de operación acumulativa pivota datos para crear un conjunto de
+    nombres de autores agrupados por etiquetas aplicadas a un artículo. Se llama al framework de
+    acumulación usando el siguiente comando:
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new Mongo;
+$c = $m->selectDB("examples")->selectCollection("article");
+$datos = array (
+    'title' => 'this is my title',
+    'author' => 'bob',
+    'posted' => new MongoDate,
+    'pageViews' => 5,
+    'tags' => array ( 'fun', 'good', 'fun' ),
+    'comments' => array (
+      array (
+        'author' => 'joe',
+        'text' => 'this is cool',
+      ),
+      array (
+        'author' => 'sam',
+        'text' => 'this is bad',
+      ),
+    ),
+    'other' =>array (
+      'foo' => 5,
+    ),
+);
+$d = $c->insert($datos, array("w" => 1));
+
+$ops = array(
+    array(
+        '$project' => array(
+            "author" => 1,
+            "tags"   => 1,
+        )
+    ),
+    array('$unwind' => '$tags'),
+    array(
+        '$group' => array(
+            "_id" => array("tags" => '$tags'),
+            "authors" => array('$addToSet' => '$author'),
+        ),
+    ),
+);
+$resultados = $c->aggregate($ops);
+var_dump($resultados);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  ["result"]=>
+  array(2) {
+    [0]=>
+    array(2) {
+      ["_id"]=>
+      array(1) {
+        ["tags"]=>
+        string(4) "good"
+      }
+      ["authors"]=>
+      array(1) {
+        [0]=>
+        string(3) "bob"
+      }
+    }
+    [1]=>
+    array(2) {
+      ["_id"]=>
+      array(1) {
+        ["tags"]=>
+        string(3) "fun"
+      }
+      ["authors"]=>
+      array(1) {
+        [0]=>
+        string(3) "bob"
+      }
+    }
+  }
+  ["ok"]=>
+  float(1)
+}
+]]>
+   </screen>
+  </example>
+  
+  <para>
+   El siguiente ejemplo usa el <link xlink:href="&url.mongodb.examples.zipcode;">conjunto de datos de códigos zip</link>.
+   Utilice mongoimport para cargar este conjunto de datos en una instancia de mongod.
+  </para>
+  
+  <example xml:id="mongocollection.aggregate.example.zipcode.population">
+   <title>Ejemplo de <methodname>MongoCollection::aggregate</methodname></title>
+   <para>
+    Para devolver todos los estados con una población de más de 10 millones, se usa la siguiente operación acumulativa:
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new Mongo;
+$c = $m->selectDB("test")->selectCollection("zips");
+
+$salida = $c->aggregate(array(
+        '$group' => array(
+            '_id' => '$state',
+           'totalPop' => array('$sum' => '$pop')
+        )
+    ),
+    array(
+        '$match' => array('totalPop' => array('$gte' => 10*1000*1000))
+    )
+);
+
+var_dump($salida);
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+array(2) {
+  ["result"]=>
+  array(7) {
+    [0]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "TX"
+      ["totalPop"]=>
+      int(16986510)
+    }
+    [1]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "PA"
+      ["totalPop"]=>
+      int(11881643)
+    }
+    [2]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "NY"
+      ["totalPop"]=>
+      int(17990455)
+    }
+    [3]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "IL"
+      ["totalPop"]=>
+      int(11430602)
+    }
+    [4]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "CA"
+      ["totalPop"]=>
+      int(29760021)
+    }
+    [5]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "OH"
+      ["totalPop"]=>
+      int(10847115)
+    }
+    [6]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "FL"
+      ["totalPop"]=>
+      int(12937926)
+    }
+  }
+  ["ok"]=>
+  float(1)
+}
+]]>
+   </screen>
+  </example>
+  
+  <example xml:id="mongocollection.aggregate.example.zipcode.population.average">
+   <title>Ejemplo de <methodname>MongoCollection::aggregate</methodname></title>
+   <para>
+    Para devolver la población media de las ciudades de cada estado, use la siguiente operación acumulativa:
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new Mongo;
+$c = $m->selectDB("test")->selectCollection("zips");
+
+$salida = $c->aggregate(
+    array(
+        '$group' => array(
+            '_id' => array('state' => '$state', 'city' => '$city' ),
+            'pop' => array('$sum' => '$pop' )
+        )
+    ),
+    array(
+        '$group' => array(
+            '_id' => '$_id.state',
+            'avgCityPop' => array('$avg' => '$pop')
+        )
+    )
+);
+
+var_dump($salida);
+
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+array(2) {
+  ["result"]=>
+  array(51) {
+    [0]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "DC"
+      ["avgCityPop"]=>
+      float(303450)
+    }
+    [1]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "DE"
+      ["avgCityPop"]=>
+      float(14481.913043478)
+    }
+    [2]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "RI"
+      ["avgCityPop"]=>
+      float(18933.283018868)
+    }
+    [3]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "AL"
+      ["avgCityPop"]=>
+      float(7907.2152641879)
+    }
+    [4]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "NH"
+      ["avgCityPop"]=>
+      float(5232.320754717)
+    }
+...
+    [45]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "WY"
+      ["avgCityPop"]=>
+      float(3359.9111111111)
+    }
+    [46]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "MN"
+      ["avgCityPop"]=>
+      float(5335.4865853659)
+    }
+    [47]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "OK"
+      ["avgCityPop"]=>
+      float(6155.7436399217)
+    }
+    [48]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "IL"
+      ["avgCityPop"]=>
+      float(9931.0182450043)
+    }
+    [49]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "WI"
+      ["avgCityPop"]=>
+      float(7323.0074850299)
+    }
+    [50]=>
+    array(2) {
+      ["_id"]=>
+      string(2) "WV"
+      ["avgCityPop"]=>
+      float(2759.1953846154)
+    }
+  }
+  ["ok"]=>
+  float(1)
+}
+]]>
+   </screen>
+  </example>
+  
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member>El <link xlink:href="&url.mongodb.docs.aggregation;">framework de acumulación</link> de MongoDB</member>
+  </simplelist>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
