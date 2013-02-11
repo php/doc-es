@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 04b11e621f6ccf857368d90262f051a8d40c865d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 974b97a17538de1591ef2738975ce8aaa0e4b113 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mysqlnd-ms.quickstart" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Guía rápida y ejemplos</title>
@@ -50,7 +50,7 @@
     <programlisting role="ini">
 <![CDATA[
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=/ruta/al/complemetno_mysqlnd_ms.ini
+mysqlnd_ms.config_file=/ruta/al/complemento_mysqlnd_ms.ini
 ]]>
     </programlisting>
    </example>
@@ -58,14 +58,18 @@ mysqlnd_ms.ini_file=/ruta/al/complemetno_mysqlnd_ms.ini
   <para>
    El complemento utiliza su propio fichero de configuración. Use la directiva
    de configuración de PHP
-   <link linkend="ini.mysqlnd-ms.ini-file">mysqlnd_ms.ini_file</link>
+   <link linkend="ini.mysqlnd-ms.config-file">mysqlnd_ms.config_file</link>
    para establecer la ruta completa al fichero de configuración específico del complemento.
    Este fichero debe ser legible por PHP (p.ej., el usuario del servidor web).
+   Por favor, observe que la directiva de configuración <link linkend="ini.mysqlnd-ms.config-file">mysqlnd_ms.config_file</link>
+   sustituye a <link linkend="ini.mysqlnd-ms.ini-file">mysqlnd_ms.ini_file</link>
+   desde la versión 1.4.0. Es un error común usar la directiva de configuración antigua,
+   la cual ya no está disponible.
   </para>
   <para>
    Cree un fichero de configuración específico del complemento. Guarde el fichero en la ruta
    establecida por la directiva de configuración de PHP
-   <link linkend="ini.mysqlnd-ms.ini-file">mysqlnd_ms.ini_file</link>.
+   <link linkend="ini.mysqlnd-ms.config-file">mysqlnd_ms.config_file</link>.
   </para>
   <para>
    El <link linkend="mysqlnd-ms.plugin-ini-json">fichero de configuración</link> del complemento
@@ -191,6 +195,15 @@ mysqlnd_ms.ini_file=/ruta/al/complemetno_mysqlnd_ms.ini
 ]]>
     </programlisting>
    </example>
+  </para>
+  <para>
+   El complemento intenta notificarle de configuraciones inválidas. Desde 1.5.0,
+   lanzará una advertencia durante el arranque de PHP si no se puede leer el fichero de configuración,
+   está vacío, o falló el análisis de JSON. Según la configuración de PHP, estos
+   errores podrían aparecer únicamente en algunos ficheros log. Se hace una validación extra cuando se
+   establece una conexión y se buscan secciones válidas en el fichero de configuración.
+   Establecer <link linkend="ini.mysqlnd-ms.force-config-usage">mysqlnd_ms.force_config_usage</link>
+   podría ayudar a depurar una configuración incorrecta.
   </para>
   
  </section>
@@ -795,6 +808,11 @@ $mysqli->close();
     requiere PHP 5.4.0 o superior.
    </para>
   </note>
+  <para>
+   Por favor, observe las restricciones descritas en la
+   sección de conceptos sobre
+   <link linkend="mysqlnd-ms.transaction">manejo de transacciones</link>.
+  </para>
  </section>
  <section xml:id="mysqlnd-ms.quickstart.qos-consistency">
   <title>Nivel de servicio y consistencia</title>
@@ -1715,7 +1733,9 @@ var_dump($resultado->fetch_assoc());
    a fallos automática y silenciosa. Dependiendo de la configuración, la tolerancia a fallos automática
    y silenciosa se intentará en el maestro antes de emitir un error, o se intentará
    conectar a otros esclavos, dada la consulta permitida para ello, antes de intentar conectarse
-   a un maestro.
+   a un maestro. Ya que la <link linkend="mysqlnd-ms.failover">tolerancia a fallos automática</link> no
+   es infalible, no se trata en esta guía rápida. En su lugar, los detalles se proporcionan
+   en la sección de conceptos posterior.
   </para>
   <para>
    <example>
@@ -1785,6 +1805,134 @@ if ($res) {
     </programlisting>
    </example>
   </para>
+ </section>
+ <section xml:id="mysqlnd-ms.quickstart.partitioning">
+  <title>Particionamiento y fragmentación</title>
+  <para>
+   La agrupación (clustering) de bases de datos se realiza por varias razones. Los clúster pueden mejorar la disponibilidad,
+   la tolerancia a fallos, e incrementar el rendimiento aplicando un enfoque de "divide y vencerás",
+   ya que el trabajo se distribuye en varias máquinas. La agrupación (clustering) a veces se combina con
+   particionamiento y fragmentación para dividir aún más una tarea compleja grande en unidades
+   más pequeñas y manejables.
+  </para>
+  <para>
+   El complemento mysqlnd_ms pretende dar soporte a una gran variedad de clústeres de bases de datos de MySQL. Algunos sabores de
+   clúster de bases de datos de MySQL poseen métodos internos para el particionamiento y la fragmentacion,
+   los cuales podrían ser transparentes de usar. El complemetno admite los dos enfoques más
+   comunes: filtración de tabla de Replicación de MySQL, y la fragmentación
+   (particionamiento basada en aplicación).
+  </para>
+  <para>
+   La Replicación de MySQL admite el particionamiento como filtros que permiten
+   crear esclavos que replican todas las bases de datos o específicas del maestro, o tablas.
+   Es entonces responsabilidad de la aplicación
+   elegir un esclavo según las reglas de los filtros. Se puede usar el filtro
+   <literal>node_groups</literal> de mysqlnd_ms para dar soporte manual a esto, 
+   o usar el filtro de tablas experimental.
+  </para>
+  <para>
+   El particionamiento manual o fragmentación está soportado a través del
+   filtro de agrupación de nodos, y de las sugerencias SQL a partir de 1.5.0. El filtro node_groups
+   permite asignar un nombre simbólico a un grupo de servidores maestros y esclavos.
+   En el ejemplo, el maestro <literal>master_0</literal> y <literal>slave_0</literal>
+   forman un grupo con el nombre de <literal>Partition_A</literal>. Es su responsabilidad
+   decidir lo que haga un grupo. Por ejemplo, se podrían usar grupos de
+   nodos para la fragmentación, y usar los nombres de grupos para direccionar fragmentos
+   como <literal>Shard_A_Range_0_100</literal>.
+  </para>
+  <para>
+   <example>
+    <title>Clúster de grupos de nodos</title>
+    <programlisting role="ini">
+<![CDATA[
+ {
+  "myapp": {
+       "master": {
+            "master_0": {
+                "host": "localhost",
+                "socket": "\/tmp\/mysql.sock"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "simulate_slave_failure",
+                "port": "0"
+            },
+            "slave_1": {
+                "host": "127.0.0.1",
+                "port": 3311
+            }
+        },
+        "filters": {
+            "node_groups": {
+                "Partition_A" : {
+                    "master": ["master_0"],
+                    "slave": ["slave_0"]
+                }
+            },
+           "roundrobin": []
+        }
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Particionamiento manual usando sugerencias SQL</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function select($mysqli, $msj, $sugerencia = '') {
+  /* Nota: prueba débil, dos conexiones a dos servidores podrían tener el mismo id de hilo */
+  $sql = sprintf("SELECT CONNECTION_ID() AS _thread, '%s' AS _hint FROM DUAL", $msj);
+  if ($sugerencia) {
+    $sql = $sugerencia . $sql;
+  }
+  if (!($res = $mysqli->query($sql))) {
+    printf("[%d] %s", $mysqli->errno, $mysqli->error);
+    return false;
+  }
+  $fila =  $res->fetch_assoc();
+  printf("%d - %s - %s\n", $fila['_thread'], $fila['_hint'], $sql);
+  return true;
+}
+
+$mysqli = new mysqli("myapp", "user", "password", "database");
+if (!$mysqli)
+  /* Por supuesto, su manejo de errores es mejor... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+/* Permitir siempre esclavos */
+select($mysqli, "slave_0");
+select($mysqli, "slave_1");
+
+/* solamente permtir los servidores del grupo de nodos "Partition_A" */
+select($mysqli, "slave_1", "/*Partition_A*/");
+select($mysqli, "slave_1", "/*Partition_A*/");
+?>
+]]>
+    </programlisting>
+    <screen>
+<![CDATA[
+6804 - slave_0 - SELECT CONNECTION_ID() AS _thread, 'slave1' AS _hint FROM DUAL
+2442 - slave_1 - SELECT CONNECTION_ID() AS _thread, 'slave2' AS _hint FROM DUAL
+6804 - slave_0 - /*Partition_A*/SELECT CONNECTION_ID() AS _thread, 'slave1' AS _hint FROM DUAL
+6804 - slave_0 - /*Partition_A*/SELECT CONNECTION_ID() AS _thread, 'slave1' AS _hint FROM DUAL
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   Por omisión, el complemento usará todos los servidores maestros y esclavos configurados para
+   la ejecución de consultas. Pero si una consulta comienza con una sugerencia SQL como
+   <literal>/*node_group*/</literal>, el complemento considerará únicamente los servidores
+   enumerados en <literal>node_group</literal> para la ejecución de consultas. Así,
+   las consultas <literal>SELECT</literal> prefijadas con <literal>/*Partition_A*/</literal>
+   úncamente serán ejecutadas en <literal>slave_0</literal>.
+  </para>
+  
  </section>
 </chapter>
 <!-- Keep this comment at the end of the file

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 04b11e621f6ccf857368d90262f051a8d40c865d Maintainer: seros Status: ready -->
+<!-- EN-Revision: bb129b41d117517606c54dc7e4abdccf6df434cf Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -1598,83 +1598,187 @@ version = 5.6.2-m5-log
    </para>
   </note>
   <para>
-   <emphasis role="bold">Utilizar clústeres asíncronos con un único maestro</emphasis>
+   <emphasis role="bold">Copia primaria (Replicación de MySQL)</emphasis>
   </para>
   <para>
-   Caso de uso primario del complemento. Siga las sugerencias dadas en la descripción de cada característica.
-  </para>
-  <note>
-   <title>Requisitos de versión</title>
-   <para>
-    El siguiente clúster puede requerir el uso de ajustes no disponibles antes de mysqlnd_ms 1.2.0-alpha.
-   </para>
-  </note>
-  <para>
-   <emphasis role="bold">Utilizar clústeres asíncronos con múltiples maestros</emphasis>
+   Este es el caso de uso primario del complemento. Siga las indicaciones dadas en la descripción de cada característica.
   </para>
   <para>
-   Esta configuración actualmente no está soportada.
+   <example>
+    <title>Habilitar el complemento (php.ini)</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.config_file=/path/to/mysqlnd_ms_plugin.ini
+]]>
+    </programlisting>
+   </example>
   </para>
   <para>
-   El complemento no posee funcionalidad interna para dirigir ciertas escrituras hacia ciertos
-   maestros. Está considerada la adición de un filtrado de tablas en versiones futuras. El filtrado de tablas
-   permitiría la restrincción de lecturas y escrituras para ciertos esclavos y maestros basada
-   en la base de datos (esquema) y en la tabla usadas por una sentencia.
+   <example>
+    <title>Configuración básica del complemento (mysqlnd_ms_plugin.ini) para la Replicación de MySQL</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+  "myapp": {
+    "master": {
+      "master_1": {
+        "host": "localhost",
+        "socket": "\/tmp\/mysql57.sock"
+      }
+    },
+    "slave": {
+      "slave_0": {
+        "host": "127.0.0.1",
+        "port": 3308
+      },
+      "slave_1": {
+        "host": "192.168.2.28",
+        "port": 3306
+      }
+    },
+    "filters": {
+      "random": {
+        "sticky": "1"
+      }
+    }
+  }
+}
+]]>
+    </programlisting>
+   </example>
   </para>
   <para>
-   La característica del filtrado de tablas está preparada en el código fuente del complemento. Sin embargo, es
-   inestable y no de debe usar. La notificación de fallos sobre el filtrado de tablas será rechazada.
+   <emphasis role="bold">Copia primaria con multiprimarios (MMM - MySQL Multi Master)</emphasis>
   </para>
   <para>
-   <emphasis role="bold">Utilizar clúesteres sincrónicos como el Clúster MySQL</emphasis>
+   La Replicación de MySQL permite crear topologías de clústeres con múltiples maestros (primarios).
+   Los conflictos escritura-escritura no los maneja el sistema de replicación. No es una configuración de actualización en cualquier sitio.
+   Por tanto, los datos deben ser particionados manualmente y los clientes deben ser redirigidos de acuerdo
+   a las reglas de particionamiento. La configuración recomendada es igual a la de fragmentación de más abajo.
   </para>
   <para>
-   El Clúster MySQL es un solución de clúster sincrónico. Todos los nodos del clúster aceptan
-   peticiones de lectura y de escritura. En el contexto del complemento, todos los nodos
-   serían considerados como maestros.
+   <emphasis role="bold">Fragmentación manual, posiblemente combinada con copia primaria y múltiples primarios</emphasis>
   </para>
   <para>
-   Utilizar solamente las características del equilibrado de carga y de la tolerancia a fallos.
+   Use sugerencias SQL y el filtro de grupos de nodos para clústeres que usen particionamiento de datos
+   pero que dejen la redirección de consultas al cliente. La configuración del ejemplo muestra una configuración
+   multimaestro con dos fragmentos.
+  </para>
+  <para>
+   <example>
+    <title>Múltiples primarios - multimaestro (php.ini)</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.config_file=/path/to/mysqlnd_ms_plugin.ini
+mysqlnd_ms.multi_master=1
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Copia primaria con múltiples primarios y particionamiento</title>
+    <programlisting role="ini">
+<![CDATA[
+{
+  "myapp": {
+    "master": {
+      "master_1": {
+        "host": "localhost",
+        "socket": "\/tmp\/mysql57.sock"
+      }
+      "master_2": {
+        "host": "192.168.2.27",
+        "socket": "3306"
+      }
+    },
+    "slave": {
+      "slave_1": {
+        "host": "127.0.0.1",
+        "port": 3308
+      },
+      "slave_2": {
+        "host": "192.168.2.28",
+        "port": 3306
+      }
+    },
+    "filters": {
+      "node_groups": {
+        "Partition_A" : {
+          "master": ["master_1"],
+          "slave": ["slave_1"]
+        },
+        "Partition_B" : {
+          "master": ["master_2"],
+          "slave": ["slave_2"]
+        }
+      },
+      "roundrobin": []
+    }
+  }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   El complemento también se puede usar con una colección suelta de fragmentos no relacionados. Para
+   tal clúster, configure solamente maestros y deshabilite la división de lectura-escritura. Los nodos de
+   tal clúster son llamados maestros en la configuración del complemento ya que aceptan
+   tanto lecturas como escrituras para su particionamiento.
+  </para>
+  <para>
+   <emphasis role="bold">Usar clústeres de actualización en cualquier sitio sincrónicos tales como el Clúster de MySQL</emphasis>
+  </para>
+  <para>
+   El Clúster de MySQL es una solución de clúster sincrónico. Todos los nodos del clúster aceptan
+   peticiones de lectura y escritura. En el contexto del complemento, todos los nodos
+   son considerados maestros.
+  </para>
+  <para>
+   Use únicamente el equilibrado de carga y la tolerancia a fallos.
   </para>
   <para>
    <itemizedlist>
     <listitem>
      <simpara>
-      Deshabilite la <link linkend="mysqlnd-ms.rwsplit">división de lectura-escritura interna</link> del complemento.
+      Deshabilite la <link linkend="mysqlnd-ms.rwsplit">división interna de lectura-esritura</link>.
      </simpara>
     </listitem>
     <listitem>
      <simpara>
-      Configure únicamente los maestros.
+      Configure maestros solamente.
      </simpara>
     </listitem>
     <listitem>
      <simpara>
-      Considere la estrategia de equilibrado de carga aleatorio, que es la predeterminada del complemento.
-      Si se usa la estrategia de aleatorio una vez, solamente se configuran los maestros y no se utilizan sugerencias
-      SQL para forzar el uso de un nodo en particular, ni ocurrirán intercambios de conexión durante
-      una petición web. Por lo tanto, no es necesario un trato especial con
-      las transacciones. El complemento eligirá un maestro al comienzo del
-      script de PHP y lo usará hasta que éste finalice.
+      Considere la estrategia del equilibrado de carga aleatorio una vez, que es la predeterminada del complemento.
+      Si se usa esta estrategia, solamente se configuran los maestros y no se usan sugerencias SQL
+      para forzar el uso de un nodo en particular, no ocurriran intercambios de conexiones durante
+      una petición web. Por tanto, no se requiere un trato especial
+      para las transacciones. El complemento eligirá un maestro al inicio del
+      script de PHP y lo usará hasta que finalice dicho script.
      </simpara>
     </listitem>
     <listitem>
      <simpara>
       No establezca la calidad de servicio. Todos los nodos tienen todos los datos. Esto
-      proporciona autmáticamente el servicio de calidad más alto posible (consistencia fuerte).
+      proporciona automáticamente la mejor calidad de servicio posible (consistencia fuerte).
      </simpara>
     </listitem>
     <listitem>
      <simpara>
-      No habilite la inyección de transacciones global en el lado del cliente. No es
-      necesaria para apoyar la tolerancia a fallos en el lado del servidor ni para asistir al filtro de
-      calidad de servicio para que elija un nodo apropiado.
+      No habilite la inyección de transacciones global en el lado del cliente. Ni es necesario
+      para ayudar con la tolerancia a fallos del lado del servidor ni para asistir al
+      filtro de calidad de servicio a elegir un nodo apropiado.
      </simpara>
     </listitem>
    </itemizedlist>
   </para>
   <para>
-   Deshabilitar la división de lecutra-escritura interna.
+   Deshabilitar la división interna de lectura-escritura
    <itemizedlist>
     <listitem>
      <simpara>
@@ -1691,7 +1795,7 @@ version = 5.6.2-m5-log
    </itemizedlist>
   </para>
   <para>
-   Configure masters only.
+   Configure únicamente maestros.
    <itemizedlist>
     <listitem>
      <simpara>
@@ -1705,11 +1809,67 @@ version = 5.6.2-m5-log
     <listitem>
      <simpara>
       Establezca
-      <literal><link linkend="mysqlnd-ms.plugin-ini-json">failover=master</link></literal>
-      en el fichero de configuración del complemento para evitar advertencias sobre la lista vacía de esclavos
+      <literal><link linkend="mysqlnd-ms.plugin-ini-json">failover=loop_before_master</link></literal>
+      en el fichero de configuración del complemento para evitar advertencias sobre listas de esclavos vacías
+      y para hacer que la lógica de tolerancia a fallos itere sobre todos los maestros configurados antes de emitir un error.
+     </simpara>
+     <simpara>
+      Observe las advetencias sobre la tolerancia a fallos automática dadas en las secciones anteriores.
      </simpara>
     </listitem>
    </itemizedlist>
+  </para>
+  <para>
+   <example>
+    <title>Múltiples primarios - multimaestro (php.ini)</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.config_file=/path/to/mysqlnd_ms_plugin.ini
+mysqlnd_ms.multi_master=1
+mysqlnd_ms.disable_rw_split=1
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Clúster de actualización en cualquier sitio sincrónico</title>
+    <programlisting role="ini">
+<![CDATA[
+
+  "myapp": {
+    "master": {
+      "master_1": {
+        "host": "localhost",
+        "socket": "\/tmp\/mysql57.sock"
+      },
+      "master_2": {
+        "host": "192.168.2.28",
+        "port": 3306
+      }
+    },
+    "slave": {
+    },
+    "filters": {
+      "roundrobin": {
+      }
+    },
+    "failover": {
+      "strategy": "loop_before_master",
+      "remember_failed": true
+    }
+  }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   Si se ejecuta un clúster de actualización en cualquier sitio que no tenga particionamiento interno para
+   evitar hot spots y altas tasas de colisiones, considere usar el filtro de grupos de nodos
+   para seguir las actualizaciones en una tabla de acceso frecuente en uno de los nodos. Esto podría
+   ayudar a reducir las tasas de colisión y proporcionar así una mejora del rendimiento.
   </para>
  </section>
 </chapter>
