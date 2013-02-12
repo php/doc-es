@@ -1,0 +1,1225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 74f46122078b4e4d442939cb1955ca34390dfb69 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="sca.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ &reftitle.examples;
+ <para> 
+  Los ejemplos de las secciones subsiguientes ilustran los
+  siguientes aspectos de SCA para PHP: 
+ </para>
+ 
+ <!-- {{{ itemizedlist of examples -->
+ <itemizedlist>
+  <listitem>
+   <para>
+    Cómo se usan las anotaciones de PHP para definir clases de PHP como componentes
+    SCA, y cómo se usan las anotaciones para definir los
+    servicios.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo un componente SCA puede ser expuesto como un servicio web.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo un componente SCA puede consumir un servicio web, ya sea
+    proporcionado por otro componente SCA o por algún otro servicio que
+    no sepa nada de SCA.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo un componente SCA puede llamar a otro componete SCA localmente
+    (dentro del mismo proceso en la misma plica de llamadas).
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo un script cliente que no es un componente SCA puede usar la
+    llamada a getService para optener un delegado para un componente SCA.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo las estructuras de datos, tales como Direcciones o Pedidos de Compra,
+    están represetadas como Objetos de Datos de Servicio (SDOs), y son manejadas.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo se implementan los componentes SCA, y en particular cómo y
+    cuando se genera WSDL para un servicio.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo los parmétros son siempre pasados por valor (y no por
+    referencia) entre componentes, incluso cuando las llamadas son locales.
+    Esto aseguna que la semántica de una llamada no cambie según
+    la ubicación de un componente.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo están soportados los parámetros posicionales para un servicio, incluso
+    cuando el WSDL es un documento literal envuelto, y
+    naturalmente admite únicamente parámetros con nombre.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Cómo se manejan las excepciones de negocio y en tiempo de ejecución.
+   </para>
+  </listitem>
+  
+ </itemizedlist>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Structure -->
+ <section xml:id="sca.examples.structure">
+  <title>La estructura de un Componente de Servicio</title>
+  <para> 
+   Un componente de servicio es implementado por una clase. Para identificarlo
+   como un componente de servicio, contiente una anotación @service. El tiempo de
+   ejecución d SCA usará el nombre del fichero del script para determinar el
+   nombre del componente, por convención. La clase y el fichero del script deben,
+   por lo tanto, compartir el mismo nombre.
+  </para>
+  
+  <para> 
+   Los componentes de SCA para PHP siempre exponen un servicio, y no exite otra forma
+   de invocar a un componente sino que sea llamado como un resultado de una
+   petición de servidio web, o llamado directamente desde otro componente o
+   desde un script. Por este motivo, un componente SCA de PHP válido siempre
+   contienen una anotación @service y al menos un método público.
+  </para>
+  
+  <para> 
+   Cada componente SCA requiere que el script SCA.php esté
+   incluido. Además de contener la definición de la clase SCA,
+   el script contiene código de PHP que será ejecutado siempre que el
+   script sea invocado, y que será responsable de hacer que el
+   componente se comporte como sea neceario.
+  </para>
+  
+  <caution>
+   
+   <para> 
+    Es muy importante que, si el fichero contiene otras
+    inclusiones, estas vengan antes de la inclusión de SCA.php. Si hubieran
+    inclusiones después de la del SCA.php, no serán
+    procesadas cuando el tiempo de ejecución de SCA ejecute la clase.
+   </para>
+  </caution>
+  
+  <para> 
+   El ejemplo de abajo ilustra esta estructura en general.
+  </para>
+  
+  <para>
+   <example>
+    <title>La estructura de un componente SCA para PHP</title>
+    
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// cualquier inclusión
+
+include "SCA/SCA.php";
+
+/**
+ * @service
+ */
+
+class ConvertedStockQuote {
+
+       // variables de instancia, lógica de negocio, incluyendo al menos un método público
+
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Proxies -->
+ <section xml:id="sca.examples.proxies">
+  <title>Obtener un delegado para otro Componente de Servicio</title>
+  <para>
+   Un componente SCA puede llamar al servicio proporcionado por otro componente
+   SCA. El servicio que proporciona un componente está hecho de todos sus
+   métodos públicos. SCA para PHP actualemnte proporciona dos maneras de que un
+   componente llame a otro: localmente (esto es, dentro del mismo tiempo de ejecución
+   de PHP, y sobre la misma pila de llamadas) o remotamente si el componente
+   llamador expone una vinculación de servicio web.
+  </para>
+  
+  <para>
+   Para que un componente llame a otro, el llamador
+   necesita un delgado para el componente llamado. Este delegado es
+   proporcionado normalmente por una variable de instancia en el componente llamador,
+   aunque los delegados también se pueden obtener con la llamada a
+   SCA::getService(), como se verá más tarde. Cuando se construye un componente,
+   los delegados son construidos para cualquier variable de instancia que recurra a
+   otro componente, ya que estos delegados están "inyectados" en las
+   variables de instancia. Los delegados se usan siempre, ya sea si el
+   componente es local o remoto, para proporcinar un comportamiento de llamada
+   idéntico entre llamadas remotas y locales (por ejemplo, las llamadas locales
+   se hacen siempre para pasar datos por valor). Los delegados saben cómo
+   localizar el componente requerido y pasar las llamadas realizadas sobre ellos.
+  </para>
+  
+  <para>
+   Las variables de instancia, que tienen por objeto mantener delgeados para
+   servicio, están indicados por dos anotaciones estilo PHPDocumentor,
+   @reference y @binding. Ambas están ubicadas
+   en la sección de documentación de una variable de instancia de clase,
+   como se muestra en el código de abajo.
+  </para>
+  
+  <para>
+   La anotación @reference antes de una variable de instancia
+   indica que dicha variable se va a inicializar con un
+   delegado a un componente.
+  </para>
+  
+  <para> 
+   La anotación @binding posee dos formas: @binding.php y
+   @binding.soap, e indica qu el delegado es para un componente
+   local o para un servicio web, respectivamente. Para ambas, @binding.php
+   y @binding.soap, la anotación proporciona una URI objetivo. 
+  </para>
+  
+  <para>
+   Por el momento, con el método basado en anotaciones de
+   especificación de dependencias, la única forma de alterar el objetivo planeado
+   de una referencia es alterar la anotación dentro del componente.
+  </para>
+  
+  <para>
+   En el ejemplo de ConvertedStockQuote, la
+   variable de instancia <varname>$exchange_rate</varname> estará
+   inicializada con un delegado para el componente local ExchangeRate
+   siempre que se construya una instancia de ConvertedStockQuote.
+  </para>
+  
+  <para>
+   <example>
+    <title>Obtener un delegado para unca clase local de PHP</title>
+    
+    <programlisting role="php">
+<![CDATA[
+<?php 
+   /**
+     * El servicio de tipo de cambio monetario a usar.
+     *
+     * @reference
+     * @binding.php ../ExchangeRate/ExchangeRate.php
+     */
+    public $exchange_rate;
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para> 
+   Para @binding.php, la URI identifica la ubicación del
+   script que contiene la implementación del componente. El
+   componente será invocado localmente. El servicio proporcionado es el conjunto de
+   métodos públicos del componente. La URI debe ser un nombre de ruta simple,
+   ya sea absoluta o relativa. El componente se cargará con la
+   directiva include de PHP, después de comprobar si ya está cargado
+   con
+   <function>class_exists</function>. Si la URI es una ruta
+   relativa, se resuelve relativa al componente que contiene la
+   anotación. Observe que esto es diferente del comportamiento normal
+   de PHP, donde los scripts deberían buscar por el include_path
+   de PHP. Esto tiene por objeto proporcionar independencia
+   de ubicaciones para referencias de componentes cruzadas.
+  </para>
+  
+  <para> 
+   Si este servicio ExchangeRate fuera remoto y fuese llamad como un
+   servicio web, solamente cambia la línea @binding. En lugar del proporcionar la
+   ubicación de una clase de PHP, proporciona la ubicación del WSDL que describe
+   el servicio web. En el componente del ejemplo, esto está ilustrado por
+   la segunda referencia:
+  </para>
+  
+  <para>
+   <example>
+    <title>Obtener un delgado para un servicio web</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/**
+     * El servicio de cotización de acciones a usar.
+     *
+     * @reference
+     * @binding.soap ../StockQuote/StockQuote.wsdl
+     */
+    public $stock_quote;
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para> 
+   El componente StockQuote será invocado mediante una petición de servicio
+   web. En este caso la URI para el WSDL puede ser un nombre de ruta sencillo, o
+   podría contener una envoltura de PHP y comenzar con, por ejemplo,
+   <varname>file://</varname> o
+   <varname>http://</varname>. En el caso que sea un nombre de ruta
+   sencillo, puede ser absoluto o relativo, y si es relativo será
+   resulto relativo al componente que contiene la anotación.
+   Observe que este comportamiento es como el de @binding.php, pero
+   diferente del comportamiento noraml de PHP donde se buscaría el fichero
+   relativo al directorio de trabajo actual de PHP, el cual
+   sería normalmente al ubicación del primer script a ser llamado. Este
+   comportamiento tiene como objetivo otorgar consistencia a través de las diferentes
+   vinculaciones y proporcionar algo de independencia de ubicación para
+   referencias entre componentes.
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Calling -->
+ <section xml:id="sca.examples.calling">
+  <title>Invocar a otro Componente de Servicio</title>
+  
+  <para>
+   El ejemplo ConvertedStockQuote también invoca a los delegados para
+   los dos componentes a los que hace referencia.
+  </para>
+  
+  <para>
+   <example>
+    <title>Llamar a servicios</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$quote  = $this->stock_quote->getQuote($ticker);
+$rate   = $this->exchange_rate->getRate($currency);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para> 
+   La llamada al servicio StockQuote es una llamada a un servicio local;
+   la llamada al servicio ExchangeRate es una llamada a un servicio remoto.
+   Observe que las llamadas se realizan de la misma manera, sin tener en cuenta
+   si la llamada es a un servicio local o a uno remoto.
+  </para>
+  
+  <para> 
+   Los delegados que han sido inyectados se aseguran de que la manera de llamar
+   a los componentes y el comportamiento sea el mismo, ya se trate de un servicio
+   local o de uno remoto, por lo que los componentes no dependen
+   de si una llamada es a un servicio local o a uno remoto. Por
+   ejemplo, el delegado para un servicio local copia los argumentos
+   y únicamente pasa esas copias, para asegurarse de que las llamadas sean por
+   paso por valor, como lo harían para una llamada remota. También, el delegado
+   para un servicio remoto toma los argumentos desde una lista de parámetros
+   posicionales y se asegura de que están empaquetados apropiadamente en una petición
+   SOAP y vueltos a convertir a una lista de parámetros posicionales al final de
+   todo. 
+  </para>
+  
+  <para> 
+   En el ejemplo de arriba,
+   
+   <varname>$ticker</varname> y
+   
+   <varname>$currency</varname> son claramente tipos escalares de PHP.
+   Los componentes puede pasar los tipos escalares de PHP string, integer, float y
+   boolean, pero las estructuras de datos sobre llamadas a servicios son siempre pasadas como
+   Objetos de Datos de Servicio (SDOs). En un sección posterior se describe cómo un
+   componente puede crear un SDO y pasarlo a una llamada a un servicio local o web, o
+   cómo un componente puede crear un SDO para devolverlo. La documentación de proyecto
+   SDO de PHP describe cómo trabajar con las APIs de SDO (véanse
+   <link linkend="ref.sdo">las páginas de SDO</link>).
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section nonscascript -->
+ <section xml:id="sca.examples.nonscascript">
+  <title>Localizar e invocar a servicios desde un script que no es un
+   Componente SCA</title>
+  
+  <para> 
+   Los componentes SCA obtienen delegados para otros componentes o
+   servicios como variables de instancia anotadas con @reference, pero
+   esto no es posible para un script que no sea también un componente.
+   Un script cliente que no es un componente debe usar el
+   método estático <function>SCA::getService</function> para obtener un
+   delegado para un servicio, ya sea local o remoto. El
+   método <function>getService</function> toma una URI como
+   argumento. Normalmente, esta es la ubicación de un script de PHP local
+   que contiene un componente, o un fichero WSDL, y se usa exactamente de la
+   misma manera que los objetivos de las anotaciones @binding descritas en la
+   sección anterior: esto es, las URIs relativas se resuelven en la
+   ubicación del script cliente y no en el include_path de PHP
+   o en el directorio de trabajo actual.
+  </para>
+  
+  <para> 
+   Por ejemplo, un script que necesite obetener delegados para los
+   servicios ExchangeRate y StockQuote, aunque no un compoentne,
+   usarían el método
+   <function>getService</function> como sigue: 
+  </para>
+  
+  <para>
+   <example>
+    <title>Obtener un delegado usando getService</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$exchange_rate = SCA::getService('../ExchangeRate/ExchangeRate.php');
+$stock_quote   = SCA::getService('../StockQuote/StockQuote.wsdl');
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   Los métodos en servicios se pueden invocar entonces en el delegado devuelto,
+   tal como se puede en un componente.
+  </para>
+  <para>
+   <example>
+    <title>Realizar llamadas en el componente</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$quote  = $stock_quote->getQuote($ticker);
+$rate   = $exchange_rate->getRate($currency);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Exposing Webservice Componenent -->
+ <section xml:id="sca.examples.exposing-webservice">
+  <title>Exponer un Componente de Servicio como un servicio web</title>
+  
+  <para> 
+   SCA para PHP puede generar WSDL desde anotaciones dentro de un
+   componente de servicio, por lo que puede ser fácilmente implementado y expuesto como un
+   servicio web. Para porporcionar a SCA la información que necesita para
+   generar el WSDL, es necesario añadir la anotación
+   @binding.soap bajo la anotación @service, y especificar los
+   parámetros y devolver valores de los métodos usando las anotaciones @param y
+   @return. Estas anotaciones serán leídas cuando el WSDL sea
+   generado, y el orden y tipo de los parámetros determinará el
+   contenido de la
+   sección &lt;schema&gt; del WSDL. 
+  </para>
+  
+  <para> 
+   SCA para PHP siempre genera WSDL document/literal envueltos
+   para componentes que exponen un servicio web. Observe que esto no hace
+   que los componentes dejen de consumir servicios web que no son componentes
+   SCA y que estén documentados con WSDL escrito en un
+   estilo diferente.
+  </para>
+  
+  <para> 
+   Los tipos escalares que puede usarse en la anotación @param son
+   los cuatro tipos escalares comunes de PHP: boolean, integer, float y
+   string. Simplemente se hacen corresponder con los tipos del esquema XML del mismo
+   nombre en el WSDL. El ejemplo de abajo, que es una implementación
+   trivial del servicio StockQuote que el
+   componente ConvertedStockQuote llama, ilustra los tipos string y
+   float.
+  </para>
+  
+  <para>
+   <example>
+    <title>El servicio StockQuote</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+include "SCA/SCA.php";
+
+/**
+ * Implementación scaffold para un servicio web StockQuote remoto.
+ *
+ * @service
+ * @binding.soap
+ *
+ */
+class StockQuote {
+
+    /**
+     * Obtener una cotización de la acción de una clave de pizarra dada.
+     *
+     * @param string $ticker La clave de pizarra.
+     * @return float La cotización de la acción.
+     */
+    function getQuote($ticker) {
+        return 80.9;
+  }
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para> 
+   Se generará WSDL muy parecido a lo siguiente para este
+   servicio (aunque con una ubicación para el servicio
+   distinta de 'localhost', probablemente):
+  </para>
+  
+  <para>
+   <example>
+    <title>WSDL generado</title>
+    <programlisting role="xml">
+<![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xsi:type="tDefinitions"
+    xmlns:tns2="http://StockQuote" xmlns:tns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns3="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" targetNamespace="http://StockQuote">
+  <types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+      targetNamespace="http://StockQuote">
+      <xs:element name="getQuote">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="ticker" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="getQuoteResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="getQuoteReturn" type="xs:float"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </types>
+
+  <message name="getQuoteRequest">
+    <part name="getQuoteRequest" element="tns2:getQuote"/>
+  </message>
+  <message name="getQuoteResponse">
+    <part name="return" element="tns2:getQuoteResponse"/>
+  </message>
+  <portType name="StockQuotePortType">
+    <operation name="getQuote">
+      <input message="tns2:getQuoteRequest"/>
+      <output message="tns2:getQuoteResponse"/>
+    </operation>
+  </portType>
+  <binding name="StockQuoteBinding" type="tns2:StockQuotePortType">
+    <operation name="getQuote">
+      <input>
+        <tns3:body xsi:type="tBody" use="literal"/>
+      </input>
+      <output>
+        <tns3:body xsi:type="tBody" use="literal"/>
+      </output>
+      <tns3:operation xsi:type="tOperation" soapAction=""/>
+    </operation>
+    <tns3:binding xsi:type="tBinding" transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+  </binding>
+  <service name="StockQuoteService">
+    <port name="StockQuotePort" binding="tns2:StockQuoteBinding">
+      <tns3:address xsi:type="tAddress" location="http://localhost/StockQuote/StockQuote.php"/>
+    </port>
+  </service>
+</definitions>
+
+<!-- this line identifies this file as WSDL generated by SCA for PHP. Do not remove -->
+]]>
+     
+    </programlisting>
+   </example>
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Deploy -->
+ <section xml:id="sca.examples.deploy">
+  <title>Implementar un componente SCA</title>
+  <para> 
+   No son necesarios pasos especiales para implementar un componente SCA
+   para PHP. Es suficiente colocar el script de PHP del componente en su
+   lugar adecuado bajo la raíz de documentos del servidor web, al igual que cualquier otro
+   script de PHP. Es la línea ejecutable
+   <function>SCA::initComponent</function>
+   dentro de cada componente la que será ejecutada siempre que el script sea
+   invocado, y la que será responsable de hacer que el comoenente
+   responda de la forma adecuada a las llamadas a los servicios web, llamadas locales, o
+   peticiones de WSDL. 
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Obtaining WSDL -->
+ <section xml:id="sca.examples.obtaining-wsdl">
+  <title>Obtener el WSDL para un componente SCA que ofrece un Servicio como
+   servicio web</title>
+  
+  <para> 
+   Los componentes SCA que exponen una interfaz de servicio web (esto es, tienen
+   una anotación @binding.soap) devolverán su definición WSDL en
+   respuesta a una petición HTTP con un parámetro 'get' de "wsdl". La forma
+   usual de obtener esto es con "?wsdl" al final de una URL. El ejemplo de
+   abajo utiliza
+   <function>file_get_contents</function> para obtener WSDL desde un
+   servicio y escribirlo a un fichero temporal antes de obtener un delegado
+   para el servicio de la manera usual. Por supuesto, se podría también
+   obtener el WSDL en un navegador, o mediante otros medios, y guardar el fichero
+   uno mismo.
+  </para>
+  
+  <para>
+   <example>
+    <title> Generated WSDL </title>
+    <programlisting role="xml">
+<![CDATA[
+<?php
+$wsdl = file_get_contents('http://www.example.com/Services/Example.php?wsdl');
+file_put_contents("service.wsdl",$wsdl); //write the wsdl to a file
+$service = SCA::getService('service.wsdl'); 
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+  
+  <para>
+   NOTA: si el wsdl requiere xsds importado, será necesario que este sea
+   obtenido por separado.
+  </para>
+  
+ </section>
+ <!-- }}} -->
+ 
+ <!-- {{{ Section Understanding WSDL -->
+ <section xml:id="sca.examples.understanding-wsdl">
+  <title>Comprender cómo se genera el WSDL</title>
+  <para> 
+   SCA para PHP genera WSDL para componentes que contienen una
+   anotación @binding.soap después de la anotación @service. Para
+   generar WSDL, el tiempo de ejecución de SCA reflexiona sobre el componente y
+   examina las anotaciones @param y @return para cada método
+   público, así como también cualquier anotación @types dentro del componente. La
+   información desde las anotaciones @param y @return se usa para
+   construir la sección &lt;types&gt; del WSDL. Cualquier anotación
+   @types que especifique un fichero de esquema distinto resultará en un
+   elemento &lt;import&gt; para tal esquema dentro del WSDL.
+  </para>
+  
+  <section xml:id="sca.examples.understanding-wsdl.location"><!-- {{{ -->
+   <title>El atributo 'location' del elemento &lt;service&gt;</title>
+   <para> 
+    Al final del WSDL se encuentra el elmento &lt;service&gt;,
+    que usa el atributo de ubicación 'location' para identificar la URL del
+    servicio. Por ejemplo, esto podría ser como sigue:
+   </para>
+   
+   <para>
+    <example>
+     <title>El atrubuto 'location'</title>
+     <programlisting role="xml">
+<![CDATA[
+    <service name="ConvertedStockQuote"
+...
+location="http://localhost/ConvertedStockQuote/ConvertedStockQuote.php"/>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Observe que esta ubicación es relaitva a la raíz de documentos del
+    servidor web, y no puede ser resuelta de antemano. Solamente puede
+    hacerse una vez que el componente esté en su propio lugar bajo un servidor
+    web en ejecución, cuando el nombre de host y el puerto puedan ser conocidos y colocados en
+    el WSDL. Se usan los detalles de la URL que solicita el WSDL, por lo que, por
+    ejemplo, si el WSDL es generado en respuesta a una petición a
+    http://www.example.com:1111/ConvertedStockQuote/ConvertedStockQuote.php?wsdl,
+    se insertará la ubicación
+    http://www.example.com:1111/ConvertedStockQuote/ConvertedStockQuote.php
+    en el atributo 'location' del WSDL.
+   </para>
+  </section>
+  <!-- }}} -->
+  
+  <section xml:id="sca.examples.understanding-wsdl.positional-parameters"> <!-- {{{ -->
+   <title>WSDL document/literal envuelto y parámetros
+    posicionales</title>
+   <para> 
+    SCA para PHP genera WSDL al estilo document/literal
+    envuelto. Este estilo encierra los parámetros y devuelve los tipo de un
+    método en "envolturas" que son nombradas después des método
+    correspondiente. El elemento &lt;types&gt; al incio del WSDL define
+    cada envoltura. Si se considera el
+    método <function>getQuote</function> del
+    ejemplo ConvertedStockQuote:
+   </para>
+   
+   <para>
+    <example>
+     <title>Método con dos arguentos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+   /**
+     * Obtener la contización de la acción para una clave de pizarra dada en una moneda dada.
+     *
+     * @param string $ticker La clave de pizarra.
+     * @param string $currency A qué moneda convertir el valor.
+     * @return float El valor de la acción es la moneda objetivo.
+     */
+    function getQuote($ticker, $currency)
+    {
+        $quote  = $this->stock_quote->getQuote($ticker);
+        $rate   = $this->exchange_rate->getRate($currency);
+        return  $rate * $quote;
+    }
+?>
+]]>
+      
+     </programlisting>
+    </example>
+   </para>
+   
+   <para>
+    El WSDL generado para definir este método nombrará a los métodos
+    y a los parámetros, y proporcionará un tipo de esquema XML para los
+    parámetros. La sección de tipos del WSDL se parecería a esto: 
+   </para>
+   
+   <para>
+    <example>
+     <title>La sección de tipos ilustrando parámetros con nombre</title>
+     <programlisting role="xml">
+<![CDATA[
+  <types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+      targetNamespace="http://ConvertedStockQuote">
+      <xs:element name="getQuote">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="ticker" type="xs:string"/>
+            <xs:element name="currency" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="getQuoteResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="getQuoteReturn" type="xs:float"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </types>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   
+   <para>
+    El tiempo de ejecución de SCA procesa de manera especial la conversión de
+    las listas de parámetros posicionales de la interfaz a XML que contiene
+    parámetros con nombre en la solicitud soap, y luego vueltas a convertir
+    a listas de parámetros posicionales. Para ver por qué importa esto,
+    considere cómo un script de PHP que usó una interfaz diferente para hace una
+    llamada SOAP necesitaría construir la lista de parámetros. Un script de PHP
+    que use un SoapClient de PHP, por ejemplo, necesitaría pasar al
+    SoapClient un único parámetro proporcionando los valores para "ticker" y
+    "currency", quizás como un array asociativo. Para insistir que los componentes
+    SCA construyen listas de parámetros para hacer llamadas a servicios web de
+    esta manera, sería hacer  que las llamadas locales y remotas fueran diferentes, por lo que
+    sería necesario un enfoque diferente.
+   </para>
+   
+   <para>
+    Cuando SCA genera WSDL para un componente SCA, incluye un
+    comentario en el WSDL que marca dicho WSDL como la interfaz para
+    un componente SCA. En este caso, cuando un componente SCA invoca
+    a otro a través de un servicio web, el tiempo de ejecución de SCA al finalizar la llamada
+    toma la lista de parámetros posicionales desde la llamada y asigna los
+    valores uno a uno a los elementos con nombre del mensaje soap. Por ejemplo,
+    una llamada al método
+    <function>getQuote</function> definido arriba que
+    pasa los valores 'IBM' y 'USD' podría ser así:
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+  $quote = $remote_service->getQuote('IBM','USD');
+?>
+]]>
+    </programlisting>
+   </para>
+   
+   <para>
+    lo que resultará en un mensaje soap que coteiene los
+    siguiente:
+   </para>
+   
+   <para>
+    <programlisting role="xml">
+<![CDATA[
+<getQuote>
+  <ticker>IBM</ticker>
+  <currency>USD</currency>
+</getQuote>
+]]>
+    </programlisting>
+   </para>
+   
+   <para>
+    Al final de proporcionar el servicio, el tiempo de ejecución de SCA toma los
+    parámetros una a uno desde el mensaje soap y forma una lista de parámetros
+    posicionales a partir de ellos, reformando la lista de argumentos
+    ('IBM','USD').
+   </para>
+   
+   <caution>
+    
+    <para> 
+     Al finalizar ambos, el tiempo de ejecución de SCA cuenta con que el
+     orden en que aparecen los parámetros en el mensaje soap sea el mismo que el de la
+     lista de parámetros de los métodos objetivo. Esto se determina básicamente
+     por el orden de las anotaciones @param: determina el orden
+     en el que aparacen los parámetros en el WSDL y por lo tanto el orden en
+     que aparacen el el mensaje soap. Así, es esencial
+     que el orden de las anotaciones @param coincida con el de los
+     parámetros de la lista de parámetros del método.
+    </para>
+   </caution>
+   
+  </section>
+  <!-- }}} -->
+  
+ </section>
+ <!-- }}} -->
+ 
+ <section xml:id="sca.examples.structures"><!-- {{{ -->
+  <title>Trabajar con estructuras de datos</title>
+  <para>
+   Los componente SCA pueden pasar y devolver los cuatro tipos escalares de PHP
+   boolean, integer, float y string, pero para pasar o devolver estructuras de
+   datos, los componentes SCA usan Objetos de Datos de Servicio (SDOs). Los SDOs
+   están descritos con más detalle en las
+   <link linkend="ref.sdo">páginas de SDO</link> de este manual.
+   Los lectores familiarizados con SDOs sabrán que son adecuados para
+   representar el tipo de datos estructurados y semiestructurados que
+   frecuentemente se modelan en XML, y que serializan de forma muy
+   natural para pasarlos entre componentes remotos, o en servicios
+   web. Los SDOs son actualmente la única manera soportada de pasar y
+   devolver estructuras de datos. No es posible pasar o devolver objetos
+   de PHP, o arrays de PHP. 
+  </para>
+  
+  <para> 
+   El tiempo de ejecución de SCA siempre se asegura de que los datos sean pasados por valor, incluso
+   para llamadas locales. Para hacer esto, el tiempo de ejecución de SCA copia cualquier SDO de la
+   lista de parámetros antes de pasarlo, al igual que hace con los tipos
+   escalares.
+  </para>
+  
+  <section xml:id="sca.examples.structures.defined"><!-- {{{ -->
+   <title>Cómo se definen estructuras de datos para componentes SCA</title>
+   <para> 
+    Actualemtne, el único mecanismo para especificar la ubicación de
+    una definición de una estructura de datos, es especificar los tipos en un fichero
+    de esquema XML. Sin embargo, en el futuro podría ser posible definir
+    tipos de otra manera, tal como basadas en clases o interfaces de PHP, o
+    basadas en definiciones expresadas como arrays asociativos.
+   </para>
+   
+   <para>
+    Para ilustrar el uso de SDOs, se introduce un nuevo componente.
+    El servico PortfolioMangement de abajo devuelve un SDO
+    que representa una cartera de acciones para un cliente dado. 
+   </para>
+   
+   <para>
+    <example>
+     <title>Un componente que usa estructuras de datos</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+include "SCA/SCA.php";
+
+/**
+ * Administrar la cartera para un cliente.
+ *
+ * @service
+ * @binding.soap
+ *
+ * @types http://www.example.org/Portfolio PortfolioTypes.xsd
+ *
+ */
+class PortfolioManagement {
+
+    /**
+     * Obtener la cartera de acciones para un cliente dado.
+     *
+     * @param integer $customer_id El id del cliente
+     * @return Portfolio http://www.example.org/Portfolio The stock portfolio (symbols and quantities)
+     */
+    function getPortfolio($customer_id) {
+        // Pretend we just got this from a database
+        $portfolio = SCA::createDataObject('http://www.example.org/Portfolio', 'Portfolio');
+        $holding = $portfolio->createDataObject('holding');
+        $holding->ticker = 'AAPL';
+        $holding->number = 100.5;
+        $holding = $portfolio->createDataObject('holding');
+        $holding->ticker = 'INTL';
+        $holding->number = 100.5;
+        $holding = $portfolio->createDataObject('holding');
+        $holding->ticker = 'IBM';
+        $holding->number = 100.5;
+        return $portfolio;
+    }
+
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   
+   <para>
+    La anotación @types:
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+@types http://www.example.org/Portfolio PortfolioTypes.xsd
+?>
+]]>
+    </programlisting>
+   </para>
+   
+   <para>
+    indica que los tipos del espacio de nombres
+    http://www.example.org/Portfolio se encontrarán en el fichero
+    de esquema ubicado en la URI URI PortfolioTypes.xsd. El WSDL generado
+    reproducirá esta información con una sentencia importante, como
+    sigue: 
+   </para>
+   
+   <para>
+    <programlisting role="xml">
+<![CDATA[
+   <xs:import schemaLocation="PortfolioTypes.xsd"
+                      namespace="http://www.example.org/Portfolio"/>
+]]>
+    </programlisting>
+   </para>
+   
+   <para>
+    por lo que la URI, absoluta o relativa, debe ser una que pueda ser
+    resuelta al incluirla en el atributo 'schemaLocation'.
+   </para>
+   
+  </section>
+  <!-- }}} -->
+  
+  <section xml:id="sca.examples.structures.creating"><!-- {{{ -->
+   <title>Crear SDOs</title>
+   <para>
+    Los lectores familiarizados con SDOs sabrán que siempre son
+    creados según una descripción de la estructura permitida
+    (algunas veces llamada como el "esquema" o "modelo") y que,
+    en vez de crearlos usando directamente 'new', es necesaria alguna
+    forma de fábrica de datos. A menudo, se puede usar un objeto de datos existente como la
+    fábrica de datos, pero otras veces, y especialmente para obtener el
+    primer objeto de daots, otra cosa debe actuar como fábrica de datos.
+   </para>
+   
+   <para>
+    En SCA, tanto la clase en tiempo de ejecución de SCA o los delegados para
+    servicios, ya sean locales o remotos, pueden actuar como las fábricas de datos
+    para SDOs. La elección de cúal usar, y cuando, está descrita en las dos
+    secciones siguientes.
+   </para>
+   <para> 
+    Cambiamos a un nuevo ejemplo para ilustrar la creación
+    de SDOs, para pasarlo a, y ser devuelto por un servicio.
+   </para>
+  </section>
+  <!-- }}} -->
+  
+  <section xml:id="sca.examples.structures.services"><!-- {{{ -->
+   <title>Crear un SDO para pasárselo a un servicio</title>
+   <para>
+    Un llamador de un servicio que requiera que una estructura de datos 
+    le sea pasada, utiliza un delegado para el servicio como la fábrica de datos para
+    los correspondientes SDOs. Por ejemplo, suponga que un componente hace
+    uso de un delegada para un servicio proporcionado por un componente AddressBook
+    local. 
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/**
+ * @reference
+ * @binding.local AddressBook.php
+ */
+$address_book;
+?>
+]]>
+    </programlisting>
+   </para>
+   <para> 
+    El componente AddressBook que se desea llamar está definido
+    como sigue: 
+   </para>
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/**
+* @service
+* @binding.soap
+* @types http://addressbook ../AddressBook/AddressBook.xsd
+*/
+class AddressBook {
+
+    /**
+     * @param personType $person http://addressbook (un objeto person)
+     * @return addressType http://addressbook (el objeto address para el objeto person)
+     */
+    function lookupAddress($person)  {
+        ...
+    }
+}
+?>
+]]>
+    </programlisting>
+   </para>
+   
+   <para> 
+    El componente AddressBook proporciona un método de servicio llamado
+    
+    <function>lookupAddress</function> que usa los tipos del
+    espacio de nombres http://addressbook namespace. el método lookupAddress toma una
+    estructura de datos personType y devuelve un addressType. Ambos tipos
+    están definido en el fichero de esquema addressbook.xsd. 
+   </para>
+   
+   <para> 
+    Una vez que el componente que desea usar el componente
+    AddressBook haya sido construido, de modo que la
+    instancia variable <varname>$address_book</varname> contiene
+    un delegado para el servicio, el componente llamador puede usar el delegado en
+    <varname>$address_book</varname> para crear el SDO 'person', tal como
+    se muestra abajo:
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$william_shakespeare        = $address_book->createDataObject('http://addressbook','personType');
+$william_shakespeare ->name = "William Shakespeare";
+$address                    = $address_book->lookupAddress($william_shakespeare);
+?>
+]]>
+    </programlisting>
+   </para>
+   
+   <para> 
+    Observe que el uso del delegado como el medio de crear el SDO no está
+    limitado a componentes SCA. Si un servicio está siendo llamado desde un
+    script de PHP general, y el delegado fue obtenido con
+    <function>getService</function>, entonces se usa el mismo
+    enfoque.
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$address_book = SCA::getService('AddressBook.php');
+$william_shakespeare = $address_book->createDataObject('http://addressbook','personType');
+?>
+]]>
+     
+    </programlisting>
+   </para>
+   
+  </section>
+  <!-- }}} -->
+  
+  <section xml:id="sca.examples.structures.services.returning"><!-- {{{ -->
+   <title>Crear un SDO SDO para devolverlo desde un componente</title>
+   <para> 
+    Un componente que necesita crear un objeto de datos para devolverlo a un
+    llamador no tendrá un delgado que usar como objeto de datos. En este caso
+    usa el
+    método estático <function>createDataObject</function> de
+    <filename>SCA.php</filename>. Por lo tanto, si el componente
+    AddressBook descrito arriba necesita crear un objeto del tipo
+    <classname>addressType</classname> dentro del espacio de nombres
+    http://addressbook, podría hacerlo como sigue:
+   </para>
+   
+   <para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$address = SCA::createDataObject('http://addressbook','addressType');
+?>
+]]>
+     
+    </programlisting>
+   </para>
+  </section>
+  <!-- }}} -->
+ </section>
+ <!-- }}} -->
+ 
+ <section xml:id="sca.examples.errorhandling"><!-- {{{ -->
+  <title>Manejo de errores</title>
+  <para> 
+   Esta sección describe cómo se manejan los errores. Existen dos
+   tipos de errores:
+  </para>
+  <itemizedlist>
+   <listitem>
+    <para> 
+     Las excepciones en tiempo de ejecución de SCA son aquellas que señalan
+     problemas en el manejo de la ejecución de componentes, y en la
+     interacción con servicios remotos. Podrían ocurrir debido a
+     problemas de red o de configuración.
+    </para>
+   </listitem>
+   
+   <listitem>
+    <para> 
+     Las excpeciones de negocio son aquellas definidas por el
+     programador. Amplían la clase Exception de PHP, y son lanzadas
+     y capturadas deliberadamente como parte de la lógica de negocio.
+    </para>
+   </listitem>
+   
+  </itemizedlist>
+  
+  <section xml:id="sca.examples.errorhandling.runtime"><!-- {{{ -->
+   <title>Manejo de excepciones en tiempo de ejecución</title>
+   <para> 
+    Hay dos tipos de excepciones en tiempo de ejecución de SCA: 
+   </para>
+   
+   <itemizedlist>
+    <listitem>
+     <para> 
+      SCA_RuntimeException - señala un problema encontrado por o
+      quizás ocurrido dentro del tiempo de ejecución de SCA. Puede ser lanzada por
+      varias razones, muchas de las cuales pueden ocurrir sin tener en cuenta si
+      si se ha realizado una conexión a un servicio local o remoto:
+      un error en una de las anotaciones de un componente, un fichero
+      WSDL o php faltante, etc. En el caso de servicios web, una
+      SCA_RuntimeException también puede ser lanzada si se recibe un
+      SoapFault desde un servicio web remoto y el código de error del
+      SoapFault indica que sea improbable que tenga éxito un reintento.
+     </para>
+    </listitem>
+    
+    <listitem>
+     <para> 
+      SCA_ServiceUnavailableException - esta es una subclase de
+      SCA_RuntimeException y señala un problema al conectarse a, o
+      usar un servicio remoto, aunque podría tener éxito si se reintenta.
+      En el caso de servicios web, esta excepción es lanzada si se
+      recibe un SoapFault con un código de error que indique que un
+      reintento podría tener éxito.
+     </para>
+    </listitem>
+    
+   </itemizedlist>
+  </section>
+  <!-- }}} -->
+  <section xml:id="sca.examples.errorhandlilng.business"> <!-- {{{ -->
+   <title>Manejo de excepciones de negocio</title>
+   <para> 
+    Las excepciones de negocio pueden ser definidas y lanzadas por un componente
+    de la manera usual, sin tener en cuenta si el componente ha sido
+    invocado local o remotamente. El tiempo de ejecución de SCA no captura
+    las excepciones de negocio que han sido lanzadas por un componente invocado
+    localmente, por lo que serán devueltas al llamador de la manera usuarl. Por otro
+    lado, si un componente ha sido invocado mediante un servicio web, el tiempo
+    de ejecución de SCA, al final de proporcionar el servicio, captura las excepciones
+    de negocio, y se asegurará de que sean pasadas otra vez al final
+    de la llamada y sena relanzadas. Asumiento que al final de la llamada hay una definición
+    de la excepción (esto es, es capaz de incluir un fichero que contenga la
+    clase de PHP que contenga la excepción) la excepción relanzada
+    contendrá los mismos detalles que la original, por lo que los métodos
+    <function>getLine</function> y
+    <function>getFile</function>, por ejemplo, contendrán
+    la ubicación de donde fue lanzada la excepción dentro de la lógica
+    de negocio. La excepción será pasada en el campo 'detail' de un error
+    soap con el código de error "Client". 
+   </para>
+  </section>
+  <!-- }}} -->
+  
+ </section>
+ <!-- }}} -->
+ 
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
+
