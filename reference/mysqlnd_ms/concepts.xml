@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bb129b41d117517606c54dc7e4abdccf6df434cf Maintainer: seros Status: ready -->
+<!-- EN-Revision: af871c29a56de390dbc98f2d3844482296a75a2d Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -707,6 +707,16 @@ version = 5.6.2-m5-log
    de los intentos de equilibrado de carga futuros. La limitación del número de reintentos y
    el recuerdo de los equipos anfitriones fallidos son considerados características experimentales, aunque son
    razonablemente estables. La sintaxis y la semántica puede cambiar en versiones futuras.
+  </para>
+  <para>
+   Observe que desde la versión 1.5.0 la tolerancia a fallos automática está deshabilitada
+   durante una transacción si está habilitada la adhesión de transacciones y
+   se han detectado los límites de la transacción. El complento no intercambiará
+   conexiones durante una transacción. Tampoco realizará la tolerancia a fallos
+   automática ni silenciosa. En su lugar se lanzará un error. Es entoces responsabilidad
+   del usuario el manejo del fallo de una transacción. Por favor, consulte la documetación de
+   <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness"><literal>trx_stickiness</literal></link>
+   para saber cómo hacer esto.
   </para>
   <para>
    Se proporciona un ejemplo básico de tolerancia a fallos manual en la sección
@@ -1604,6 +1614,44 @@ version = 5.6.2-m5-log
    Este es el caso de uso primario del complemento. Siga las indicaciones dadas en la descripción de cada característica.
   </para>
   <para>
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Configurar un maestro y uno o más esclavos.
+      Los <link linkend="mysqlnd-ms.plugin-ini-json.server-list-syntax">detalles de configuraicón del servidor</link>
+      se dan en la sección de configuración.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Utilizar la política de equilibrado de carga aleatorio junto con la bandera
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.filter-random">sticky</link>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Si no se planea usar las llamadas a la API de
+      <link linkend="mysqlnd-ms.quickstart.qos-consistency">niveles de servicio</link>,
+      añada la bandera
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.master-on-write">master on write</link>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Por favor, concienciese de las propiedades de la tolerancia de fallos automática antes de
+      añadir una directiva <link linkend="ini.mysqlnd-ms-plugin-config-v2.failover">failover</link>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Considere el uso de <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">trx_stickiness</link>
+      para ejecutar transacciones solamente en el primario. Lea cuidadosamente cómo funciona
+      antes de confiar en él.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <para>
    <example>
     <title>Habilitar el complemento (php.ini)</title>
     <programlisting role="ini">
@@ -1800,11 +1848,11 @@ mysqlnd_ms.multi_master=1
     <listitem>
      <simpara>
       Establezca
-      <link linkend="mysqlnd-ms.configuration"><literal>mysqlnd_ms.multi_master=1</literal></link>
+      <link linkend="mysqlnd-ms.configuration"><literal>mysqlnd_ms.multi_master=1</literal>.</link>
      </simpara>
     </listitem>
     <listitem>
-     <simpara>No configure ningún esclavo</simpara>
+     <simpara>No configure ningún esclavo.</simpara>
     </listitem>
     <listitem>
      <simpara>
