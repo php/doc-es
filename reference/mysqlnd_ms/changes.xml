@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bb129b41d117517606c54dc7e4abdccf6df434cf Maintainer: seros Status: ready -->
+<!-- EN-Revision: 5e3799d3171b02888602a968bbad9db413df3600 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.changes" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -46,7 +46,54 @@
    <itemizedlist>
     <listitem>
      <para>
-      Corregida la violación de acceso #60605 de PHP cuando mysqlnd_ms está habilitado
+      Corregida la violación de acceso #60605 de PHP cuando mysqlnd_ms está habilitado.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Establecer la adhesión de transacciones deshabilita todo el equilibrado de carga, incluyendo
+      lla tolerancia a fallos automática, durante una transacción. Por lo que
+      podrían ocurrir intercambios de conexiones en mitad de una transacción
+      en configuraciones multimaestro y durante la tolerancia a fallos automática aunque
+      la monitorización de transacciones haya detectado los límites de la transacción apropiadamente.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Rotura de RC y error corregido. Las sugerencias SQL que fuerzan a un tipo
+      específico de servidor (<constant>MYSQLND_MS_MASTER_SWITCH</constant>,
+      <constant>MYSQLND_MS_SLAVE_SWITCH</constant>,
+      <constant>MYSQLND_MS_LAST_USED_SWITCH</constant>) son ignoradas durante
+      una transacción si la adhesión de transacciones está habilitada y
+      se han detectado apropiadamente los límites de la transacción.
+     </para>
+     <para>
+      Este es un cambio de comportamiento. Sin embargo, también es una corrección de error y un paso
+      para alinear comportamiento. Si, en versiones anteriores, con adhesión de transacciones,
+      se combinaba una de las sugerencias SQL enumeradas el filtro de calidad de servicio,
+      podía ocurrir que dichas sugerencias fueran ignoradas. En algún
+      caso, las sugerencias SQL funcionaban, en otros no. El nuevo
+      comportamiento es más consistente. Las sugerencias SQL siempre serán ignoradas
+      durante una transacción si la
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">adhesión de transacciones</link>
+      está habilitado.
+     </para>
+     <para>
+      Observe que la detección de los límites de transaccoines continua basándose en la monitorización
+      de llamadas a la API. Los comandos SQL que controlan transacciones no son monitorizados.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Rotura de RC y error corregido. Las llamadas a <function>mysqlnd_ms_set_qos</function>
+      fallarán cuando se hacen en mitad de una transacción si la
+      <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">adhesión de transacciones</link>
+      está habilitada. Los intercambios de conexión no están permitidos durante una
+      transacción. El cambio de la calidad de servicio probablemente resulta en un conjunto
+      diferente de servidores elegidos para la ejecución de consultas, posiblemente haciendo
+      necesario intercambiar conexiones. Así, la llamada no está permitida durante
+      una transacción activa. La calidad de servicio puede ser, sin embargo,
+      cambiada entre transacciones.
      </para>
     </listitem>
    </itemizedlist>
@@ -93,7 +140,6 @@
       Los ejemplos de código del fichero fuente de mysqlnd_ms se actualizaron.
      </para>
     </listitem>
-    
    </itemizedlist>
   </para>
  </section>
