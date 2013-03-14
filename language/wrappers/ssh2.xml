@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b6d169424ff189bb563ef4c3f35f8adff3f42c5 Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 04beb00111b3b243522aaa3cc85d53954656732b Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="wrappers.ssh2" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" role="noversion">
  <refnamediv>
@@ -246,6 +247,32 @@ $stream = fopen("ssh2.tunnel://$session/remote.example.com:1234", 'r');
 ?>
 ]]>
    </programlisting>
+  </example>
+  <example>
+   <title>¡La variable <varname>$session</varname> debe permanecer disponible!</title>
+   <simpara>
+    Para utilizar la envoltura <filename>ssh2.*://$session</filename> debe
+    mantenerse el recurso <varname>$session</varname> disponible. El código siguiente no
+    tendrá el efecto deseado:
+   </simpara>
+      <programlisting role="php">
+<![CDATA[
+<?php
+$session = ssh2_connect('example.com', 22);
+ssh2_auth_pubkey_file($session, 'username', '/home/username/.ssh/id_rsa.pub',
+                                            '/home/username/.ssh/id_rsa', 'secret');
+$connection_string = "ssh2.sftp://$session/";
+unset($session);
+$stream = fopen($connection_string . "path/to/file", 'r');
+?>
+]]>
+   </programlisting>
+   <simpara>
+     unset() cierra la sesión, ya que <varname>$connection_string</varname> no
+     contiene una referencia a la variable <varname>$session</varname>, simplemente una representación de la cadena
+     derivada de ella. Esto también ocurre cuando <function>unset</function> va implícito
+     porque se sale del ámbito (como dentro de una función).
+   </simpara>
   </example>
 
  </refsect1><!-- }}} -->
