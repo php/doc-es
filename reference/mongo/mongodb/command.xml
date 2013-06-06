@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 26b9276e07d1be8fd39c0c1ce26c90d75b4193d7 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: a174aaabf47530d7907b5b05691f01d98bb34877 Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <refentry xml:id="mongodb.command" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -16,18 +16,19 @@
    <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Prácticamente todo lo que no son operaciones CRUD se puede realizar con un comando de base de datos.
-   ¿Necesita conocer la versión de la base de datos? Hay un comando para ello. ¿Necesita hacer una
-   agregación? Hay un comando para ello. ¿Necesia habilitar registros de mensajes? Se puede hacer una idea.
+   Prácticamente todo lo que no son operaciones CRUD se puede realizar con un comando de
+   base de datos. ¿Necesita conocer la versión de la base de datos? Hay un comando para ello.
+   ¿Necesita hacer una agregación? Hay un comando para ello. ¿Necesia habilitar la
+   identificación? Ha captado la idea.
   </para>
   <para>
-   Este método es equivalente a:
+   Este método es idéntico a:
    <programlisting role="php">
 <![CDATA[
 <?php
 
-public function command($data) {
-    return $this->selectCollection('$cmd')->findOne($data);
+public function command($datos) {
+    return $this->selectCollection('$cmd')->findOne($datos);
 }
 
 ?>
@@ -57,7 +58,7 @@ public function command($data) {
       <para>
        Este parámetro es un array asociativo de la forma
        <literal>array("nombre_opción" => &lt;boolean&gt;, ...)</literal>. Actualmente
-       las opciones soportadas son:
+       las opciones admitidas son:
        <itemizedlist>
         &mongo.writes.parameters.timeout;
        </itemizedlist>
@@ -96,28 +97,34 @@ public function command($data) {
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;  
   <para>
-   Devuelve la respuesta de la base de datos.
+   Devuelve la respuesta de la base de datos. Cada respuesta de la base de datos siempre es como máximo
+   un documento, lo que significa que el resultado de un comando de base de datos nunca puede
+   exceder 16MB. La estructura del documento resultante depende del comando, pero
+   la mayoría de los resultados tendrán el campo <literal>ok</literal> para indicar éxito
+   o fracaso, y <literal>results</literal>, que contiene un array por cada
+   documento resultante.
   </para>
  </refsect1>
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
    <title>Ejemplo de <function>MongoDB::command</function> con "distinct"</title>
    <para>
-    Localizando todos los valores distintos de una clave.
+    Buscar todos los valores distintos de una clave.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$personas = $db->personas;
+$personas = $bd->personas;
 
 $personas->insert(array("nombre" => "Joe", "edad" => 4));
 $personas->insert(array("nombre" => "Sally", "edad" => 22));
 $personas->insert(array("nombre" => "Dave", "edad" => 22));
 $personas->insert(array("nombre" => "Molly", "edad" => 87));
 
-$edades = $db->command(array("distinct" => "personas", "key" => "edad"));
+$edades = $bd->command(array("distinct" => "personas", "key" => "edad"));
 
 foreach ($edades['values'] as $edad) {
     echo "$edad\n";
@@ -128,11 +135,12 @@ foreach ($edades['values'] as $edad) {
    </programlisting>
    &example.outputs.similar;
    <screen>
-    4
-    22
-    87
+4
+22
+87
    </screen>
   </example>
+  
   <example>
    <title>Ejemplo de <function>MongoDB::command</function> con "distinct"</title>
    <para>
@@ -143,14 +151,14 @@ foreach ($edades['values'] as $edad) {
 <![CDATA[
 <?php
 
-$personas= $db->personas;
+$personas= $bd->personas;
 
 $personas->insert(array("nombre" => "Joe", "edad" => 4));
 $personas->insert(array("nombre" => "Sally", "edad" => 22));
 $personas->insert(array("nombre" => "Dave", "edad" => 22));
 $personas->insert(array("nombre" => "Molly", "edad" => 87));
 
-$edades = $db->command(
+$edades = $bd->command(
     array(
         "distinct" => "personas",
         "key" => "edad",
@@ -167,10 +175,11 @@ foreach ($edades['values'] as $edad) {
    </programlisting>
    &example.outputs.similar;
    <screen>
-    22
-    87
+22
+87
    </screen>
   </example>
+
   <example>
    <title>Ejemplo de <function>MongoDB::command</function> con MapReduce</title>
    <para>
@@ -182,31 +191,31 @@ foreach ($edades['values'] as $edad) {
 <?php
 
 // documento de eventos de ejemplo
-$events->insert(array("user_id" => $id, 
-    "type" => $type, 
+$eventos->insert(array("user_id" => $id, 
+    "type" => $tipo, 
     "time" => new MongoDate(), 
-    "desc" => $description));
+    "desc" => $descripción));
 
 // construcción del mapa y función reductora
-$map = new MongoCode("function() { emit(this.user_id,1); }");
-$reduce = new MongoCode("function(k, vals) { ".
+$mapa = new MongoCode("function() { emit(this.user_id,1); }");
+$reductora = new MongoCode("function(k, vals) { ".
     "var sum = 0;".
     "for (var i in vals) {".
         "sum += vals[i];". 
     "}".
     "return sum; }");
 
-$sales = $db->command(array(
+$sales = $bd->command(array(
     "mapreduce" => "events", 
-    "map" => $map,
-    "reduce" => $reduce,
+    "map" => $mapa,
+    "reduce" => $reductora,
     "query" => array("type" => "sale"),
     "out" => array("merge" => "eventCounts")));
 
-$users = $db->selectCollection($sales['result'])->find();
+$usuarios = $bd->selectCollection($sales['result'])->find();
 
-foreach ($users as $user) {
-    echo "Usuario {$user['_id']} tuvo {$user['value']} venta(s).\n";
+foreach ($usuarios as $usuario) {
+    echo "Usuario {$usuario['_id']} tuvo {$usuario['value']} venta(s).\n";
 }
 
 ?>
@@ -214,15 +223,15 @@ foreach ($users as $user) {
    </programlisting>
    &example.outputs.similar;
    <screen>
-    Usuario 47cc67093475061e3d9536d2 tuvo 3 venta(s).
-    Usuario 49902cde5162504500b45c2c tuvo 14 venta(s).
-    Usuario 4af467e4fd543cce7b0ea8e2 tuvo 1 venta(s).
+Usuario 47cc67093475061e3d9536d2 tuvo 3 venta(s).
+Usuario 49902cde5162504500b45c2c tuvo 14 venta(s).
+Usuario 4af467e4fd543cce7b0ea8e2 tuvo 1 venta(s).
    </screen>
    <note>
     <title>Usando <classname>MongoCode</classname></title>
     <para>
      Este ejemplo utiliza <classname>MongoCode</classname>, que puede utilizar también un
-     argumento de ámbito. Sin embargo, por el momento, MongoDB no soporta el uso de
+     argumento de ámbito. Sin embargo, por el momento, MongoDB no admite el uso de
      ámbitos en MapReduce. Si deseara utilizar variables en el lado de cliente con las 
      funciones MapReduce, puede añairlas al ámbito global usando el campo opcional de
      ámbito con el comando de la base de datos. Consulte la
@@ -233,9 +242,9 @@ foreach ($users as $user) {
    <note>
     <title>El argumento <literal>out</literal></title>
     <para>
-     Antes de 1.8.0, el argumento <literal>out</literal> era opcional. Si no se iba a usar,
-     los resultados de MapReduce se escribían a una colección temporal,
-     que se eliminaba cuando se cerrara la conexión. A partir de la versión 1.8.0, el 
+     Antes de 1.8.0, el argumento <literal>out</literal> era opcional. Si no se iba
+     a usar, los resultados de MapReduce se escribían a una colección temporal,
+     que se eliminaba cuando se cerraba la conexión. A partir de la versión 1.8.0, el 
      argumento <literal>out</literal> es obligatorio. Consulte la
      <link xlink:href="&url.mongodb.dochub.mapreduce;">documentación de MapReduce</link> 
      para más información.
@@ -243,22 +252,134 @@ foreach ($users as $user) {
    </note>
    <para>
     Si va a usar MapReduce, Prajwal Tuldhar ha creado una API para usuarios de
-    Mongo PHP que ofrece una interfaz más elegante que el comando 'al desnudo'. Puede
-    descarlo desde
+    Mongo PHP que ofrece una interfaz más elegante que el comando básico. Puede
+    descargarlo desde
     <link xlink:href="&url.mongodb.mapreduceapi;">Github</link>
     y hay un  
     <link xlink:href="&url.mongodb.mapreduceapi.blog;">artículo de blog</link> 
     sobre cómo usarlo.
    </para>
   </example>
+  
+  <example>
+   <title>Ejemplo de <function>MongoDB::command</function> con "textSearch"</title>
+   <para>
+    Realizar una búsqueda de texto completo con la funcionalidad "text search" de
+    MongoDB 2.4 y superior.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new MongoClient();
+$d = $m->demo;
+$c = $d->planetas;
+
+$c->insert(array("nombre" => "Mercurio", "desc" => "Mercurio es el planeta más pequeño y más cercano al Sol"));
+$c->insert(array("nombre" => "Venus", "desc" => "Venus es el segundo planeta desde el Sol, su órbita es de 224.7 días terrestres."));
+$c->insert(array("nombre" => "Tierra", "desc" => "La Tierra es el más denso de los ocho planetas del Sistema Solar."));
+$c->insert(array("nombre" => "Marte", "desc" => "Marte era el dios romano de la guerra."));
+
+$c->ensureIndex(array('desc' => 'text'));
+
+$r = $d->command(array("text" => "planetas", 'search' => "sol" ));
+print_r($r);
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+Array
+(
+    [queryDebugString] => sun||||||
+    [language] => english
+    [results] => Array
+        (
+            [0] => Array
+                (
+                    [score] => 0.625
+                    [obj] => Array
+                        (
+                            [_id] => MongoId Object
+                                (
+                                    [$id] => 517549d944670a4a5cb3059a
+                                )
+
+                            [nombre] => Mercurio
+                            [desc] => Mercurio es el planeta más pequeño y más cercano al Sol
+                        )
+
+                )
+
+            [1] => Array
+                (
+                    [score] => 0.55
+                    [obj] => Array
+                        (
+                            [_id] => MongoId Object
+                                (
+                                    [$id] => 517549d944670a4a5cb3059b
+                                )
+
+                            [nombre] => Venus
+                            [desc] => Venus es el segundo planeta desde el Sol, su órbita es de 224.7 días terrestres.
+                        )
+
+                )
+
+        )
+
+    [stats] => Array
+        (
+            [nscanned] => 2
+            [nscannedObjects] => 0
+            [n] => 2
+            [nfound] => 2
+            [timeMicros] => 95
+        )
+
+    [ok] => 1
+)
+   </screen>
+  </example>
+  
+  <example>
+   <title>Ejemplo de <function>MongoDB::command</function> con "geoNear"</title>
+   <para>
+    Este ejemplo muestra cómo usar el comando geoNear.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new MongoClient();
+$d = $m->demo;
+$c = $d->poiConcat;
+
+$r = $d->command(array(
+    'geoNear' => "poiConcat",      // Buscar en la colección poiConcat
+    'near' => array(-0.08, 51.48), // Buscar cerca de 51.48°N, 0.08°E
+    'spherical' => true,           // Habilitar la búsqueda esférica
+    'num' => 5,                    // 5 documentos devueltos como máximo
+));
+print_r($r);
+?>
+]]>
+   </programlisting>
+  </example>
  </refsect1>
  
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
-   Documentación de MongoDB sobre
+   <simplelist>
+    <member><methodname>MongoCollection::aggregate</methodname></member>
+    <member><methodname>MongoCollection::findAndModify</methodname></member>
+    <member><methodname>MongoCollection::group</methodname></member>
+   </simplelist>
+  </para>
+  <para>
+   La documentación de MongoDB sobre
    <link xlink:href="&url.mongodb.dochub.commands;">comandos de base de datos</link>
-   y comando individuales: 
+   y los comandos individuales: 
    <link xlink:href="&url.mongodb.dochub.findandmodify;">findAndModify</link>, 
    <link xlink:href="&url.mongodb.dochub.getlasterror;">getLastError</link>, y 
    <link xlink:href="&url.mongodb.dochub.repair;">repair</link> (existen muchos más,
