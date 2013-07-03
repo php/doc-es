@@ -2401,8 +2401,135 @@ $mysqli->set_charset("latin1");
       </para>
      </listitem>
     </varlistentry>
+    
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.transient_error">
+     <term>
+      <parameter>transient_error</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       El ajuste ha sido introducido en la versión 1.6.0.
+      </para>
+      <para>
+       Un nodo de un clúster de una base de datos podría replicar un error transitorio a un cliente. El cliete
+       puede entonces repetir la operación sobre el mismo nodo, recurrir a otro nodo diferente
+       o abortar la operación. Por definición es seguro que un cliente reintente
+       la misma operación sobre el mismo nodo antes de rendirse.
+      </para>
+      <para>
+       <literal>PECL/mysqlnd_ms</literal> puede realizar el bucle de
+       reintento en nombre de la aplicación.
+       Configurando <literal>transient_error</literal>, el complemento puede ser
+       instruido para que repita las operaciones que fallen con ciertos códigos de error para
+       un número máximo de veces con una pausa entre cada reintento.
+       Si el error transitorio desaparece durante la ejecución del bucle, se
+       oculta a la aplicación. De lo contrario, el error es
+       reenviado a la aplicación al finalizar el bucle.
+      </para>
+      <para>
+       <example>
+        <title>Bucle de reintentos para errores transitorios</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+       },
+       "transient_error": {
+          "mysql_error_codes": [
+            1297
+          ],
+          "max_retries": 2,
+          "usleep_retry": 100
+       }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>mysql_error_codes</literal>
+          </entry>
+          <entry>
+           <para>
+            La lista de los códigos de errores transitorios. Se podría añadir cualquier código de error de MySQL
+            a la lista. Es posible considerar cualquier error como transitorio,
+            no únicamente el <literal>1297</literal>
+            (<literal>HY000 (ER_GET_TEMPORARY_ERRMSG),
+            Message: Got temporary error %d '%s' from %s</literal>).
+            Antes de añadir otros códigos, excepto el <literal>1297</literal>, a la lista,
+            asegúrese de que el clúster admite un nuevo intento sin impactar
+            sobre el estado de la aplicación.
+           </para>
+          </entry>
+          <entry>Desde 1.6.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>max_retries</literal>
+          </entry>
+          <entry>
+           <para>
+            Cuántas veces reintentar una operación que
+            falla con un error transitorio antes de reenviar el
+            fallo al usuario.
+           </para>
+           <para>
+            Predeterminado: <literal>1</literal>
+           </para>
+          </entry>
+          <entry>Desde 1.6.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>usleep_retry</literal>
+          </entry>
+          <entry>
+           <para>
+            Milisegundos a dormir antes de reintentar el error transitorio.
+            El valor es pasado a la función <function>usleep</function> en C,
+            de ahí el nombre.
+           </para>
+           <para>
+            Predeterminado: <literal>100</literal>
+           </para>
+          </entry>
+          <entry>Desde 1.6.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+     </listitem>
+    </varlistentry>
+    
    </variablelist>
   </para>
+  
  </section>
  
  <section xml:id="mysqlnd-ms.plugin-ini-v1">
