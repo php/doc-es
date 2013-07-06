@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 6a6061bbd4b1c78af2b50aba8ddd8fd5e4590b05 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 656d1610af1a960d87c8b7056e54d0d4c75fb123 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="intldateformatter.format" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -14,7 +14,7 @@
    &style.oop;
   </para>
   <methodsynopsis>
-   <type>string</type><methodname>IntlDateFormatter::format</methodname>
+   <modifier>public</modifier> <type>string</type><methodname>IntlDateFormatter::format</methodname>
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
@@ -46,10 +46,20 @@
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       El valor a formatear. Puede ser un objetos de la clase <classname>DateTime</classname>,
-       un <type>integer</type> representando un valor de marca de tiempo Unix (segundos transcurridos
-       desde la Época Unix, UTC) o un <type>array</type> en el formato devuelto por
+       El valor a formatear. Puede ser un objeto <classname>DateTime</classname>, un
+       objeto <classname>IntlCalendar</classname>, un tipo <type>numeric</type>
+       que representa un número (posiblemente fraccionario) de segundos desde la época o un
+       <type>array</type> en el formato generado por
        <function>localtime</function>.
+      </para>
+      <para>
+       Si se proporciona un objeto <classname>DateTime</classname> o
+       <classname>IntlCalendar</classname>, su zona horaria no se
+       considera. El objeto será formateado usando la zona horaria configurada
+       del formateador. Si se quiere usar la zona horaria del objeto a formatear,
+       <function>IntlDateFormatter::setTimeZone</function> debe ser invocado antes
+       con la zona horaria del objeto. Alternativamente, la función estática
+       <function>IntlDateFormatter::formatObject</function> podría usarse en su lugar.
       </para>
      </listitem>
     </varlistentry>
@@ -77,6 +87,13 @@
       </row>
      </thead>
      <tbody>
+      <row>
+       <entry>5.5.0/PECL 3.0.0</entry>
+       <entry>
+        Se añadió el soporta para proporcionar objetos <classname>IntlCalendar</classname>
+        al parámetro <parameter>value</parameter>.
+       </entry>
+      </row>
       <row>
        <entry>5.3.4</entry>
        <entry>
@@ -137,6 +154,51 @@ La primera salida formateada con patrón es 12/31/1969
 La segunda salida formateada con patrón es 31/12/1969
 ]]>
   </screen>
+  
+  <example>
+   <title>Con un objeto <classname>IntlCalendar</classname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$tz = reset(iterator_to_array(
+        IntlTimeZone::createEnumeration('FR')));
+$formatter = IntlDateFormatter::create(
+        "fr_FR",
+        IntlDateFormatter::FULL,
+        IntlDateFormatter::FULL,
+        $tz,
+        IntlDateFormatter::GREGORIAN);
+
+$cal = IntlCalendar::createInstance($tz, '@calendar=islamic-civil');
+$cal->set(IntlCalendar::FIELD_MONTH, 8); //9th month, Ramadan
+$cal->set(IntlCalendar::FIELD_DAY_OF_MONTH, 1); //1st day
+$cal->clear(IntlCalendar::FIELD_HOUR_OF_DAY);
+$cal->clear(IntlCalendar::FIELD_MINUTE);
+$cal->clear(IntlCalendar::FIELD_SECOND);
+$cal->clear(IntlCalendar::FIELD_MILLISECOND);
+
+echo "En este año islámico, el Ramadan empezó/empezará el:\n\t",
+        $formatter->format($cal), "\n";
+
+//Es la zona hiraria del formateador la que se usa:
+$formatter->setTimeZone('Asia/Tokyo');
+echo "Después de cambiar la zona horaria:\n\t",
+        $formatter->format($cal), "\n";
+
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+En este año islámico, el Ramadan empezó/empezará el:
+    mardi 9 juillet 2013 19:00:00 heure avancée d’Europe centrale
+Después de cambiar la zona horaria:
+    mercredi 10 juillet 2013 02:00:00 heure normale du Japon
+
+]]>
+   </screen>
+  </example>
+  
  </refsect1>
  
  <refsect1 role="seealso">
@@ -147,6 +209,7 @@ La segunda salida formateada con patrón es 31/12/1969
     <member><function>datefmt_parse</function></member>
     <member><function>datefmt_get_error_code</function></member>
     <member><function>datefmt_get_error_message</function></member>
+    <member><function>datefmt_format_object</function></member>
    </simplelist>
   </para>
  </refsect1>
