@@ -19,10 +19,11 @@
   <methodname>MongoCollection::remove</methodname>) se le proporciona una opción de
   Asunto de Escritura (<literal>"w"</literal>), el controlador enviará la consulta a MongoDB
   y luego proseguirá con un comando <literal>getLastError</literal>
-  (<acronym>GLE</acronym>) con la opción de Asunto de Escritura, que estará bloqueada
-  hasta que la condición de Asunto de Escritura se verifique que se ha cumplido, o que el tiempo
-  de espera de la consulta expire (controlado con la opción <literal>"wtimeout"</literal>, sin
-  tiempo de espera predeterminado).
+  (<acronym>GLE</acronym>) con la opción de Asunto de Escritura al mismo tiempo.
+  El servidor solo devuelve cuando la condición de Asunto de Escritura se verifica que se
+  cumple, o la consulta expira (controlado con la
+  opción<literal>"wtimeout"</literal>, <literal>10000</literal> milisegundos
+  es lo predeterminado).
  </para>
  
  <warning>
@@ -110,6 +111,86 @@
   </table>
  </para>
  
+ <simplesect xml:id="mongo.writeconcerns.setting">
+  <title>Usar WriteConcerns</title>
+  <para>
+   Cada método que causa escrituras
+   (<methodname>MongoCollection::insert</methodname>,
+   <methodname>MongoCollection::update</methodname>, 
+   <methodname>MongoCollection::remove</methodname>, y
+   <methodname>MongoCollection::batchInsert</methodname>) permite un argumento
+   opcional para enviar un conjunto de opciones al servidor de MongoDB. Con este array
+   de opciones se puede establecer el WriteConcern como ilustra el siguiente ejemplo:
+  </para>
+  <example>
+   <title>Pasar un WriteConcern a una operación de escritura</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// Establecer w=0 para insertar:
+$colección->insert($someDoc, array("w" => 0));
+
+// Establecer w=majority para acutalizar:
+$colección->update($someDoc, $someUpdates, array("w" => "majority"));
+
+// Establecer w=5 y j=true para eliminar:
+$colección->update($someDoc, array("w" => 5, "j" => true));
+
+// Establecer w="AllDCs" para batchInsert:
+$colección->update(array($someDoc1, $someDoc2), array("w" => "AllDCs"));
+?>
+]]>
+   </programlisting>
+  </example>
+  <para>
+   Además de establecer WriteConcerns por operación como un argumento de opción, es
+   también posible establecer un WriteConcern predeterminado de diferentes formas.
+  </para>
+  <para>
+   La primera forma es a través de la <link
+   linkend="mongo.mongoclient.construct.parameters">cadena
+   de conexión</link>. La cadena de conexión acpeta las opciones
+   <literal>journal</literal>, <literal>w</literal>, y
+   <literal>wTimeoutMS</literal>:
+  </para>
+  <example>
+   <title>WriteConcerns en cadena de conexión</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new MongoClient("mongodb://localhost/?journal=true&w=majority&wTimeoutMS=20000");
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <para>
+   Desde la versión 1.5  del controlador, también es posible llamar a
+   <methodname>MongoDB::setWriteConcern</methodname> y a
+   <methodname>MongoCollection::setWriteConcern</methodname> para establecer un WriteConcern
+   predeterminado para todas las operaciones creadas desde ese objeto
+   <classname>MongoDB</classname> o <classname>MongoCollection</classname>
+   específico:
+  </para>
+  <example>
+   <title>MongoDB::setWriteConcern y MongoCollection::setWriteConcern</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new MongoClient("mongodb://localhost/");
+$d = $m->demoDb;
+$c = $d->demoCollection;
+
+// Establecer w=3 en el objeto de base de datos con un tiempo de espera de 25000ms
+$d->setWriteConcern(3, 25000);
+
+// Establecer w=majority en el objeto de colección sin cambiar el tiempo de espera
+$c->setWriteConcern("majority");
+?>
+]]>
+   </programlisting>
+  </example>
+ </simplesect>
  
  <simplesect xml:id="mongo.writeconcerns.unacknowledged">
   <title>Escrituras no reconocidas</title>
