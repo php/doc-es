@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0761e9d5e4a1130b2ed91b72fe661275f5ee6502 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 5a133dd1d92ee3b925227c0b91827b1499d07d60 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -657,6 +657,166 @@ version = 5.6.2-m5-log
    Tales casos pueden ser depurados comprobando los errores de tipo
    <literal>E_WARNING</literal> (véase arriba) o, si no queda otra opción, investigar
    el <link linkend="mysqlnd-ms.debugging">registro de depuración y rastreo de mysqlnd_ms</link>.
+  </para>
+ </section>
+ 
+ <section xml:id="mysqlnd-ms.transient_errors">
+  <title>Errores transitorios</title>
+  <para>
+   Algunos clústeres de bases de datos distribuidas hacen usan errores transitorios. Un error
+   transitorio es un error temporal que es probable que dessaparezca pronto. Por definición,
+   es seguro para un cliente el ignorar un error transitorio y reintentar la operación
+   fallida en el mismo servidor de bases de datos. El reintento está libre de efectos segundarios.
+   Los clientes no están forzados a abortar su trabajo o recurrir a otro servidor de bases de datos
+   de forma inmediata. Podrían entrar en un bucle de reintentos antes de esperar a que el error
+   desaparezca antes de dejar el servidor de bases de datos.
+   Los errores transitorios pueden ser vistos, por ejemplo, al usar MySQL Cluster. Aunque
+   no están limitados a ninguan solución de clústeres específica per se.
+  </para>
+  <para>
+   <literal>PECL/mysqlnd_ms</literal> puede realizar un bucle de reintentos automático en
+   caso de darse un error transitorio. Esto aumento la transparencia de la distribución y, por lo tanto,
+   hace más sencillo migrar una aplicación ejecutando en un único servidor de bases
+   de datos para ejecutar un clúster de servidores de bases de datos sin tener que cambiar
+   el origen de la aplicación.
+  </para>
+  <para>
+   El bucle de reintentos automáticos repetirá la operación solicitada hasta un número
+   de veces configurable por el usuario y hará una pausa entre intentos por una cantidad de
+   tiempo configurable. Si el error desaparece durante el bucle, la aplicación nunca
+   lo verá. Si no, el error es reenviado a al aplicación para su manejo.
+  </para>
+  <para>
+   En el ejemplo de abajo se provoca un error de clave duplicada para hacer que el complemento
+   reintente la consulta fallida dos vedes antes de que el error sea pasado a la aplicación.
+   Entre los dos intentos, el complemento duerme durante 100 milisegundos.
+  </para>
+  <para>
+   <example>
+    <title>Provocar un error transitorio</title>
+    <programlisting role="ini">
+<![CDATA[
+mysqlnd_ms.enable=1
+mysqlnd_ms.collect_statistics=1
+]]>
+    </programlisting>
+    <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "master": {
+            "master_0": {
+                "host": "localhost"
+            }
+        },
+        "slave": {
+            "slave_0": {
+                "host": "192.168.78.136",
+                "port": "3306"
+            }
+       },
+       "transient_error": {
+          "mysql_error_codes": [
+            1062
+          ],
+          "max_retries": 2,
+          "usleep_retry": 100
+       }
+    }
+}
+]]>
+    </programlisting>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Bucle de reintentos del error transitorio</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$mysqli = new mysqli("myapp", "username", "password", "database");
+if (mysqli_connect_errno())
+  /* Por supuesto, su manejo de errores es mejor... */
+  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
+    !$mysqli->query("CREATE TABLE test(id INT PRIMARY KEY)") ||
+    !$mysqli->query("INSERT INTO test(id) VALUES (1))")) {
+  printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+}
+
+/* El bucle de reintentos es completamente transaparente. Verificar las estadísticas es
+ la única manera de conocer algo sobre los reintentos implícitos */
+$stats = mysqlnd_ms_get_stats();
+printf("Intentos del error transitorio antes del error: %d\n", $stats['transient_error_retries']);
+
+/* Provocar un error de clave duplicada para ver el cambio en las estadísticas */
+if (!$mysqli->query("INSERT INTO test(id) VALUES (1))")) {
+  printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+}
+
+$stats = mysqlnd_ms_get_stats();
+printf("Intentos del error transitorio después del error: %d\n", $stats['transient_error_retries']);
+
+$mysqli->close();
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Intentos del error transitorio antes del error: 0
+[1062] Duplicate entry '1' for key 'PRIMARY'
+Intentos del error transitorio después del error: 2
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   Ya que la ejecución del bucle de reintentos es transparente desde el punt de vista
+   de los usuarios, el ejemplo comprueba las
+   <link linkend="function.mysqlnd-ms-get-stats">estadísticas</link>
+   proporcionadas por el complemento para aprender de ellas.
+  </para>
+  <para>
+   Como muetra el ejemplo, el complemento puede ser instruido para considerar cualquier error
+   transitorio a pesar de la semámtica de los errores de los servidores de bases de datos. El único error
+   que cosidera temporal un stock de servidor MySQL tiene el código de error
+   <constant>1297</constant>. Al configurar otror códigos de errores excepto el
+   <constant>1297</constant>, asegúrese de que la configuración refleja
+   la semántica de los códigos de error del clúster.
+  </para>
+  <para>
+   Las siguientes llamadas a las API en C de mysqlnd están monitorizadas por el complemento para
+   comprobar errores transitorios: <literal>query()</literal>,
+   <literal>change_user()</literal>, <literal>select_db()</literal>,
+   <literal>set_charset()</literal>, <literal>set_server_option()</literal>
+   <literal>prepare()</literal>, <literal>execute()</literal>,
+   <literal>set_autocommit()</literal>,
+   <literal>tx_begin()</literal>, <literal>tx_commit()</literal>,
+   <literal>tx_rollback()</literal>, <literal>tx_commit_or_rollback()</literal>.
+   Las llamadas a la API de usuario correspondientes tienen nombres similares.
+  </para>
+  <para>
+   El tiemp máximo que el complemento puede dormir durante el bucle de reintentos depende de la
+   función en cuestión. Un bucle de reintentos para <literal>query()</literal>,
+   <literal>prepare()</literal> o <literal>execute()</literal> dormirá
+   hasta <literal>max_retries * usleep_retry</literal> milisegundos.
+  </para>
+  <para>
+   Sin embargo, las funciones que
+   <link linkend="mysqlnd-ms.pooling">controlan el estado de conexión</link>
+   son despachadas para todas las conexiones. Los ajustes del bucle de reintentos están aplicados
+   a cada conexión sobre la cual el comando se está ejecutando. Así, tales funciones
+   podrían interrumpir la ejecución del programa durante más tiempo que una función que se ejecute
+   sobre únicamente un servidor. Por ejemplo, <literal>set_autocommit()</literal> es
+   despachada para conexiones y podría dormir hasta
+   <literal>(max_retries * usleep_retry) * number_of_open_connections)</literal>
+   milisegundos. Por favor, mantenga esto en mento al configurar tiempos de dormir largos
+   y números de reintentos grandes. Con los ajustes preestablecidos de
+   <literal>max_retries=1</literal>, <literal>usleep_retry=100</literal> y
+   <literal>lazy_connections=1</literal> es improbable que vea
+   un retarno de más de un segundo.
   </para>
  </section>
  
