@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 10c87dc7fce84d6c57bfd360d90f6047f3ecdb02 Maintainer: aeoris Status: ready -->
+<!-- EN-Revision: a5064d6ab73561c47178e32bcf2e25ac888bc0fb Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <refentry xml:id="function.curl-setopt" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -956,9 +956,13 @@
              <literal>multipart/form-data</literal>.
             </simpara>
             <simpara>
-             Desde PHP 5.2.0, <parameter>value</parameter> debe ser un array si los archivos son 
+             A partir de PHP 5.2.0, <parameter>value</parameter> debe ser un array si los archivos son 
              pasados a esta opción con el prefijo <literal>@</literal>.
-            </simpara>            
+            </simpara>
+            <simpara>
+             A partir de PHP 5.5.0, el prefijo <literal>@</literal> está obsoleto, por lo que
+             los ficheros se pueden enviar usando <classname>CURLFile</classname>.
+            </simpara>
            </entry>
            <entry valign="top">
            </entry>
@@ -1267,9 +1271,8 @@
        </informaltable>
       </para>
       <para>
-       <parameter>valuee</parameter> debe ser un string que sea el nombre de una función
-       de retorno válida para los siguientes valores del
-       parámetro <parameter>option</parameter>:
+       <parameter>value</parameter> debería ser el nombre de una función válida o una Clausura
+       para los siguientes valores del parámetro <parameter>option</parameter>:
        <informaltable>
         <tgroup cols="3">
          <thead>
@@ -1282,39 +1285,54 @@
           <row>
            <entry valign="top"><constant>CURLOPT_HEADERFUNCTION</constant></entry>
            <entry valign="top">
-            Nombre de la función de llamada de retorno donde la función toma
-            dos parámetros. El primero es el recurso cURL, el sengudo es una
-            cadena con los datos del header a ser escritos. Los datos del header
-            deben ser escritos cuando se llama a la función de retorno. Devuelve
-            el numero de bytes escritos.
+            Una llamada de retorno que acepta dos parámetros.
+            El primero es el recurso cURL, el segundo es un
+            string con los datos de la cabecera a escribir. Los datos de la cabecera deben
+            escribirse durante esta llamada de retorno. Devuelve el número de
+            bytes escritos.
            </entry>
           </row>
           <row>
            <entry valign="top"><constant>CURLOPT_PASSWDFUNCTION</constant></entry>
            <entry valign="top">
-            Nombre de la función de llamada de retorno donde la función toma
-            tres parámetros. El primero es el recurso cURL, el segundo es una
-            cadena que contiene la contraseña, y el tercero es la longitud
-            máxima para la contraseña. Devuelve una cadena que contiene la contraseña.
+            Una llamada de retorno que acepta tres parámetros.
+            El primero es el recurso cURL, el segundo es un
+            string que contiene la contraseña, y el tercero es la longitud
+            máxima para la contraseña. Devuelve un string que contiene la contraseña.
            </entry>
           </row>
           <row>
            <entry valign="top"><constant>CURLOPT_PROGRESSFUNCTION</constant></entry>
            <entry valign="top">
-            El nombre de la función de llamada de retorno donde la función toma
-            tres parámetros. El primero es el recurso cURL, el sengudo es un
-            recurso descriptor de fichero, y el tercero es la longitud. Devuelve el
-            string que contiene los datos.
+            <para>
+             Una llamada de retorno que acepta cinco parámetros.
+             El primero es el recurso cURL, el segundo es el número total de
+             bytes que se espera descargar en esta transferencia, el tercero es
+             el número de bytes descargados hasta ahora, el cuarto es el número
+             total de bytes que se espera subir en esta transferencia, y el
+             quinto es el número de bytes subidos hasta ahora.
+            </para>
+            <note>
+             <para>
+              La llamada de retorno solamente se invoca cuando la opción <constant>CURLOPT_NOPROGRESS</constant>
+              está establecida a &false;.
+             </para>
+            </note>
+            <para>
+             Devuelve un valor distinto de cero para abortar la transferencia. En este caso, la
+             transferencia establecerá un error
+             <constant>CURLE_ABORTED_BY_CALLBACK</constant>.
+            </para>
            </entry>
           </row>
           <row>
            <entry valign="top"><constant>CURLOPT_READFUNCTION</constant></entry>
            <entry valign="top">
-            El nombre de la función de llamada de retorno donde dicha función toma
-            tres parámetros. El primero es el recurso cURL, el sengudo es un
+            Una llamada de retorno que acepta tres parámetros.
+            El primero es el recurso cURL, el segundo es un
             recurso de flujo de datos proporcionado a través  de la opción
             <constant>CURLOPT_INFILE</constant>, y el tercero es la máxima
-            cantidad de datos a leer. La función de retorno de llamada debe devolver un string
+            cantidad de datos a leer. La llamada de retorno debe devolver un string
             con la misma longitud o menor que la cantidad de datos pedidos,
             normalmente leyéndolos del recurso de flujo de datos pasado. Debe           
             devolver una cadena vacía para marcar el <literal>EOF</literal>.
@@ -1323,11 +1341,33 @@
           <row>
            <entry valign="top"><constant>CURLOPT_WRITEFUNCTION</constant></entry>
            <entry valign="top">
-            Nombre de la función de llamda de retorno donde la función toma
-            dos parámetros. El primero es el recurso cURL, y el segundo es un
-            string con los datos a ser escritos. Los datos deben ser escritos
-            usando esta función de retorno. Debe devolver el número exacto de
-            bytes a ser escritos o la transferencia será abortada con un error.
+            Una llamada de retorno que acepta dos parámetros.
+            El primero es el recurso cURL, el segundo es un
+            string con los datos a escribir. Los datos deben ser guardados por
+            esta llamada de retorno. Debe devolver el número exacto de bytes escritos
+            o la transferencia será abortada con un error.
+           </entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </informaltable>
+      </para>
+      <para>
+       Otros valores:
+       <informaltable>
+        <tgroup cols="3">
+         <thead>
+          <row>
+           <entry>Opción</entry>
+           <entry>Establecer <parameter>value</parameter> a</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry valign="top"><constant>CURLOPT_SHARE</constant></entry>
+           <entry valign="top">
+            Un resultado de <function>curl_share_init</function>. Hace que el
+            gestor de cURL use los datos del gestor compartido.
            </entry>
           </row>
          </tbody>
@@ -1360,16 +1400,35 @@
      </thead>
      <tbody>
       <row>
+       <entry>5.5.0</entry>
+       <entry>
+        Se añadió el recurso cURL como el primer parámetro de la
+        llamada de retorno <constant>CURLOPT_PROGRESSFUNCTION</constant>.
+       </entry>
+      </row>
+      <row>
+       <entry>5.5.0</entry>
+       <entry>
+        Se introdujo <constant>CURLOPT_SHARE</constant>.
+       </entry>
+      </row>
+      <row>
+       <entry>5.3.0</entry>
+       <entry>
+        Se introdujo <constant>CURLOPT_PROGRESSFUNCTION</constant>.
+       </entry>
+      </row>
+      <row>
        <entry>5.2.10</entry>
        <entry>
-        Disponibles <constant>CURLOPT_PROTOCOLS</constant>, y
+        Se introdujo <constant>CURLOPT_PROTOCOLS</constant>, y
         <constant>CURLOPT_REDIR_PROTOCOLS</constant>.
        </entry>
       </row>
       <row>
        <entry>5.1.0</entry>
        <entry>
-        Disponibles <constant>CURLOPT_AUTOREFERER</constant>,
+        Se introdujo <constant>CURLOPT_AUTOREFERER</constant>,
         <constant>CURLOPT_BINARYTRANSFER</constant>,
         <constant>CURLOPT_FTPSSLAUTH</constant>,
         <constant>CURLOPT_PROXYAUTH</constant>, y
@@ -1379,7 +1438,7 @@
       <row>
        <entry>5.0.0</entry>
        <entry>
-        Disponibles <constant>CURLOPT_FTP_USE_EPRT</constant>,
+        Se introdujo <constant>CURLOPT_FTP_USE_EPRT</constant>,
         <constant>CURLOPT_NOSIGNAL</constant>,
         <constant>CURLOPT_UNRESTRICTED_AUTH</constant>,
         <constant>CURLOPT_BUFFERSIZE</constant>,
