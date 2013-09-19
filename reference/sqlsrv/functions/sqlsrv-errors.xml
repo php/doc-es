@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 04b11e621f6ccf857368d90262f051a8d40c865d Maintainer: regiemix Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="function.sqlsrv-errors" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>sqlsrv_errors</refname>
+  <refpurpose>Devuelve información de errores y alertas (warnings) de la última operación SQLSRV realizada</refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <!-- Example: All functions have this -->
+   <type>mixed</type><methodname>sqlsrv_errors</methodname>
+   <methodparam choice="opt"><type>int</type><parameter>errorsOrWarnings</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Devuelve información de errores y alertas de la última operación SQLSRV realizada.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>errorsOrWarnings</parameter></term>
+     <listitem>
+      <para>
+       Determina si se ha de retornar información de error, alertas, o 
+       ambas. Si este parámetro no se informa, se devolverá tanto información de error como 
+       de alerta. Este parámetro puede tomar los 
+       siguientes valores: SQLSRV_ERR_ALL, SQLSRV_ERR_ERRORS, SQLSRV_ERR_WARNINGS.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Si se produjeron errores y/o warnings en la última operación sqlsrv, se devolverá un array de
+   arrays conteniendo información de error. Si no se produjeron errores y/o alertas
+   en la última operación sqlsrv, se devolverá &null;. La siguiente tabla
+   describe la estructura de los arrays devueltos:
+   <table>
+   <title>Array devuelto por sqlsrv_errors</title>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>Clave</entry>
+      <entry>Descripción</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>SQLSTATE</entry>
+      <entry>Para errores que se originan en el driver ODBC driver, el SQLSTATE devuelto 
+      por ODBC. Para errores que se originan en los drivers de Microsoft para PHP para 
+      SQL Server, un SQLSTATE de IMSSP. Para alertas que se originan en los drivers de
+      Microsoft para PHP para SQL Server, un SQLSTATE de 01SSP.
+      </entry>
+     </row>
+     <row>
+      <entry>code</entry>
+      <entry>Para errores que se originan en SQL Server, el código de error SQL Server 
+      nativo. Para errores que se originan en el driver ODBC, el código 
+      de error devuelto por ODBC. Para errores que se originan en los Drivers de Microsoft
+      para PHP para SQL Server, los códigos de error de SQL Server para los Drivers de Microsoft para PHP.
+      </entry>
+     </row>
+     <row>
+      <entry>message</entry>
+      <entry>Una descripción del error.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>ejemplo de <function>functionname</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$serverName = "serverName/sqlexpress";
+$connectionInfo = array( "Database"=>"dbName", "UID"=>"username", "PWD"=>"password");
+$conn = sqlsrv_connect( $serverName, $connectionInfo);
+if( $conn === false ) {
+     die( print_r( sqlsrv_errors(), true));
+}
+
+/* Query que selecciona un nombre de columna inválida. */
+$sql = "SELECT BadColumnName FROM Table_1";
+
+/* Ejecución de la query que fallará debido al nombre de columna incorrecto. */
+$stmt = sqlsrv_query( $conn, $sql );
+if( $stmt === false ) {
+    if( ($errors = sqlsrv_errors() ) != null) {
+        foreach( $errors as $error ) {
+            echo "SQLSTATE: ".$error[ 'SQLSTATE']."<br />";
+            echo "code: ".$error[ 'code']."<br />";
+            echo "message: ".$error[ 'message']."<br />";
+        }
+    }
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <para>
+   Por defecto, las alertas generadas en una llamada a cualquier función SQLSRV se tratarán
+   como errores. Esto significa que si una alerta ocurre en una llamada a una función SQLSRV, 
+   la función devolverá &false;. Sin embargo, las alertas correspondientes a los valores de 
+   SQLSTATE 01000, 01001, 01003, y 01S02 nunca se tratarán como errores. Para 
+   obtener información sobre cómo cambiar este comportamiento, ver <function>sqlsrv_configure</function> 
+   y la configuración de WarningsReturnAsErrors.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>sqlsrv_configure</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 8b6d169424ff189bb563ef4c3f35f8adff3f42c5 Maintainer: regiemix Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="function.sqlsrv-execute" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>sqlsrv_execute</refname>
+  <refpurpose>Ejecuta una sentencia preparada con <function>sqlsrv_prepare</function></refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>sqlsrv_execute</methodname>
+   <methodparam><type>resource</type><parameter>stmt</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Ejecuta una sentencia preparada con  <function>sqlsrv_prepare</function>. Esta 
+   función es ideal para ser ejecutar múltiples veces una sentencia preparada 
+   con diferentes valores de parámetros.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>stmt</parameter></term>
+     <listitem>
+      <para>
+       Un recurso de sentencia devuelto por <function>sqlsrv_prepare</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>ejemplo de <function>sqlsrv_execute</function></title>
+    <para>
+    Este ejemplo muestra como preparar una sentencia con
+    <function>sqlsrv_prepare</function> y reejecutarla múltiples veces (con 
+    diferentes valores de parámetros) utilizando <function>sqlsrv_execute</function>.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$serverName = "serverName\sqlexpress";
+$connectionInfo = array( "Database"=>"dbName", "UID"=>"username", "PWD"=>"password");
+$conn = sqlsrv_connect( $serverName, $connectionInfo);
+if( $conn === false) {
+    die( print_r( sqlsrv_errors(), true));
+}
+
+$sql = "UPDATE Table_1
+        SET OrderQty = ?
+        WHERE SalesOrderID = ?";
+
+// Inicializar los parámetros y preparar la sentencia.
+// Las variables $qty y $id se pasan como parámetro a la sentencia $stmt.
+$qty = 0; $id = 0;
+$stmt = sqlsrv_prepare( $conn, $sql, array( &$qty, &$id));
+if( !$stmt ) {
+    die( print_r( sqlsrv_errors(), true));
+}
+
+// Configurar la información de SalesOrderDetailID y OrderQty. 
+// Este array liga el orden ID al orden de cantidad en las parejas  key=>value.
+$orders = array( 1=>10, 2=>20, 3=>30);
+
+// Ejecuta la sentencia para cada orden.
+foreach( $orders as $id => $qty) {
+    // Como $id y $qty se pasan como parámetro a $stmt1, sus valores
+    // actualizados se utilizan en cada ejecución de la sentencia.
+    if( sqlsrv_execute( $stmt ) === false ) {
+          die( print_r( sqlsrv_errors(), true));
+    }
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <para>
+   Cuando se prepara una sentencia que utiliza variables como parámetros, las variables 
+   se pasan como parámetros a la sentencia. Esto significa que si se actualizan los valores de las 
+   variables, la próxima vez que se ejecute la sentencia lo hará con los nuevos valores
+   de los parámetros. Para las sentencias que se quieran ejecutar únicamente una vez, utilizar
+   <function>sqlsrv_query</function>.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>sqlsrv_prepare</function></member>
+    <member><function>sqlsrv_query</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
