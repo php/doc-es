@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: regiemix Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="function.yaz-record" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>yaz_record</refname>
+  <refpurpose>Devuelve un registro</refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>string</type><methodname>yaz_record</methodname>
+   <methodparam><type>resource</type><parameter>id</parameter></methodparam>
+   <methodparam><type>int</type><parameter>pos</parameter></methodparam>
+   <methodparam><type>string</type><parameter>type</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   La función <function>yaz_record</function> inspecciona un registro del
+   conjunto resultado actual que está en la posición especificada por el parámetro
+   <parameter>pos</parameter>. 
+  </para>
+ </refsect1>
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>id</parameter></term>
+     <listitem>
+      <para>
+       El recurso de conexión devuelto por <function>yaz_connect</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>pos</parameter></term>
+     <listitem>
+      <para>
+       La posición del registro. Las posiciones de los registros en el conjunto resultado están numeradas con 1,
+       2, ... $hits donde $hits es el contador devuelto por  <function>yaz_hits</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>type</parameter></term>
+     <listitem>
+      <para>
+       El parámetro <parameter>type</parameter> especifica la forma del
+       registro devuelto.
+      </para>
+      <note>
+       <para>
+        Es la aplicación responsable de asegurar
+        realmente que los registros son devueltos en el formato correcto 
+        por el servidor Z39.50/SRW. El type indicado únicamente especifica una conversión
+        que se realizará en el lado cliente (en PHP/YAZ).
+       </para>
+      </note>
+      <para>
+       Además de la conversion del registro transferido a un string/array, PHP/YAZ
+       también puede realizar una conversión de mapa de caracteres del
+       registro. Esto es recomendado especialmente para USMARC/MARC21 puesto que
+       éstos se devuelven habitualmente en el mapa de caracteres MARC-8 que no
+       está soportado por navegadores, etc. Para especificar una conversión, añadir
+       <literal>; charset=</literal><replaceable>from</replaceable><literal>,
+       </literal><replaceable>to</replaceable> donde
+       <replaceable>from</replaceable> es el mapa de caracteres original
+       del registro y <replaceable>to</replaceable> es el mapa de caracteres
+       resultante (desde el punto de vista PHP).
+      </para>
+      <variablelist>
+       <varlistentry>
+        <term><literal>string</literal></term>
+        <listitem>
+         <para>
+          El registro se devuelve como un string de visualización simple.
+          En este modo, todos los registros MARC se convierten a un formato línea a línea
+          ya que  ISO2709 es difícilmente legible.
+          Los registros XML y SUTRS se devuelven en su formato original.
+          GRS-1 se devuelve en un (feo) formato línea a línea.
+         </para>
+         <para>
+          Este formato es adecuado si los registros se mostrarán de forma
+          rápida - para depuración - o porque no es factible realizar
+          una visualización adecuada.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><literal>xml</literal></term>
+        <listitem>
+         <para>
+          El registro se devuelve como un string XML si es posible.
+          En este modo, todos los registros MARC se convierten en
+          <link xlink:href="&url.yaz-marcxml;">MARCXML</link>.
+          Los registros XML y SUTRS se devuelven en su formato original.
+          GRS-1 no está soportado.
+         </para>
+         <para>
+          Este formato es parecido a <parameter>string</parameter> excepto por los
+          registros MARC que se convierten a MARCXML
+         </para>
+         <para>
+          Este formato es adecuado si los registros se procesan posteriormente por un interpretador XML
+          o un procesador XSLT .
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><literal>raw</literal></term>
+        <listitem>
+         <para>
+          El registro se devuelve como un string en su formato original.
+          Este tipo es adecuado para MARC, XML y SUTRS. No funciona con
+          GRS-1.
+         </para>
+         <para>
+          Los registros MARC se devuelven como un string ISO2709. XML y SUTRS son
+          devueltos como strings.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><literal>syntax</literal></term>
+        <listitem>
+         <para>
+          La sintaxis del registro se devuelve como un string, p.e.
+          <literal>USmarc</literal>, <literal>GRS-1</literal>,
+          <literal>XML</literal>, etc.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><literal>database</literal></term>
+        <listitem>
+         <para>
+          El nombre de la base de datos asociada con el registro en la posición,
+          se devuelve como un string.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><literal>array</literal></term>
+        <listitem>
+         <para>
+          El registro se devuelve como un array que refleja la estructura
+          GRS-1. Este tipo es adecuado para MARC y GRS-1. XML, SUTRS
+          no están soportados y si el registro actual es XML o SUTRS se
+          devolverá un string vacío.
+         </para>
+         <para>
+          El array devuelto consiste en una lista correspondiente a 
+          cada hoja/nodo interno de GRS-1. Cada lista de elementos consiste en
+          una sublista con el primer elemento <emphasis>path</emphasis> y
+          <emphasis>data</emphasis> (si los datos están disponibles).
+         </para>
+         <para>
+          El camino de acceso, que es un string, contiene una lista de tres componentes (del
+          registro estructurado GRS-1) de la raíz a la hoja. Cada componente es
+          un par de tipo etiqueta/valor de etiqueta de la forma
+          <literal>(</literal><replaceable>type</replaceable><literal>,</literal>
+          <replaceable>value</replaceable>
+         </para>
+         <para>
+          Las etiguqetas normalmente tienen un tipo tag 3.
+          MARC también puede ser devuelto como un array (se convierten a
+          GRS-1 internamente).
+         </para>
+        </listitem>
+       </varlistentry>
+      </variablelist>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>    
+   Devuelve el registro que se encuentra en la posición <parameter>pos</parameter> o un string
+   vacío si no existe ningún registro en la posición indicada.
+  </para>
+  <para>
+   Si no hay registro en la posición indicada en la base de datos, se devolverá un string
+   vacío.
+  </para>
+ </refsect1>
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Array para registro GRS-1</title>
+   <para>
+    Considerar este registro GRS-1 :
+    <screen>
+<![CDATA[
+(4,52)Robert M. Pirsig
+(4,70)
+      (4,90)
+            (2,7)Transworld Publishers, ltd.
+]]>
+    </screen>
+    Este registro tiene dos nodos a nivel de raíz. El primer elemento del nivel raíz es
+    (4,52) [tipo tag 4, valor de tag 52], y tiene datos <literal>Robert M. 
+    Pirsig</literal>. El segundo elemento en el nivel raíz (4,70) tiene un subárbol con
+    un elemento simple (4,90). (4,90) tiene a su vez otro subárbol (2,7) con datos
+    <literal>Transworld Publishers, ltd.</literal>.
+   </para>
+   <para>
+    Si este registro está presente en la posición $p, entonces
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$ar = yaz_record($id, $p, "array");
+print_r($ar);
+
+?>
+]]>
+    </programlisting>
+    will output:
+    <screen>
+<![CDATA[
+Array
+(
+    [0] => Array
+        (
+            [0] => (4,52)
+            [1] => Robert M. Pirsig
+        )
+    [1] => Array
+        (
+            [0] => (4,70)
+        )
+    [2] => Array
+        (
+            [0] => (4,70)(4,90)
+        )
+    [3] => Array
+        (
+            [0] => (4,70)(4,90)(2,7)
+            [1] => Transworld Publishers, ltd.
+        )
+)      
+]]>
+    </screen>
+   </para>
+  </example>
+  <example>
+   <title>Trabajando con MARCXML</title>
+   <para>
+    El siguiente fragmento PHP devuelve un registro MARC21/USMARC como MARCXML. 
+    El registro original se devuelve en marc-8 (desconocido para muchos interpretadores XML),
+    así que lo convertimos a UTF-8 (que todos los interpretadores XML deben soportar).
+    <programlisting role="php">
+<![CDATA[
+<?php
+$rec = yaz_record($id, $p, "xml; charset=marc-8,utf-8");
+?>
+]]>
+    </programlisting>
+   </para>
+   <para>
+    El registro <literal>$rec</literal> puede ser procesado con el
+    procesador <link linkend="ref.xslt">Sablotron XSLT</link> de la forma siguiente:
+   </para>
+   <para>
+    <programlisting role="php">
+<![CDATA[ 
+<?php
+
+$xslfile = 'display.xsl';
+$processor = xslt_create();
+$parms = array('/_xml' => $rec);
+$res = xslt_process($processor, 'arg:/_xml', $xslfile, NULL, $parms);
+xslt_free($processor);
+$res = preg_replace("'</?html[^>]*>'", '', $res);
+echo $res;
+
+?>
+]]>
+    </programlisting>
+   </para>
+   <para>
+    Para PHP 5 la extensión <link linkend="book.xsl">XSL</link> debe ser utilizada
+    en vez de Sablotron XSLT.
+   </para>
+  </example>
+ </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
