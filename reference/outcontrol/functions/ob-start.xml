@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: f68abbe82cc5429cde1ff576e536956fb547f324 Maintainer: seros Status: ready -->
+<!-- EN-Revision: be1c862babddf0359d9660d11f67ae6b8b9ab247 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ob-start">
  <refnamediv>
@@ -12,9 +12,9 @@
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>ob_start</methodname>
-   <methodparam choice="opt"><type>callable</type><parameter>output_callback</parameter></methodparam>
+   <methodparam choice="opt"><type>callable</type><parameter>output_callback</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>chunk_size</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>erase</parameter><initializer>true</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer><constant>PHP_OUTPUT_HANDLER_STDFLAGS</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
    Esta función activará el almacenamiento en búfer de salida. Mientras dicho almacenamiento esté
@@ -142,13 +142,56 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>erase</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Si el parámetro opcional <parameter>erase</parameter> se establece a &false;,
-       el búfer no será borrado hasata que el script finalice.
-       Esto ocasiona que las funciones de volcado y limpieza emitirán un aviso
-       y devuelvan &false; si se las invoca.
+       El parámetro <parameter>flags</parameter> es una máscara de bits que controla
+       las operaciones que se pueden realizar sobre el búfer de salida. Lo predeterminado
+       es permitir que los búferes de salida sean limpiados, volcados y borrados, lo que
+       se puede hacer explícitamente mediante
+       <constant>PHP_OUTPUT_HANDLER_CLEANABLE</constant> |
+       <constant>PHP_OUTPUT_HANDLER_FLUSHABLE</constant> |
+       <constant>PHP_OUTPUT_HANDLER_REMOVABLE</constant>, o
+       <constant>PHP_OUTPUT_HANDLER_STDFLAGS</constant> como clave.
+      </para>
+      <para>
+       Cada bandera (flag) controla el acceso a un conjunto de funciones, como está descrito a continuación:
+       <informaltable>
+        <tgroup cols="2">
+         <thead>
+          <row>
+           <entry>Constante</entry>
+           <entry>Funciones</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry><constant>PHP_OUTPUT_HANDLER_CLEANABLE</constant></entry>
+           <entry>
+            <function>ob_clean</function>,
+            <function>ob_end_clean</function>, y
+            <function>ob_get_clean</function>.
+           </entry>
+          </row>
+          <row>
+           <entry><constant>PHP_OUTPUT_HANDLER_FLUSHABLE</constant></entry>
+           <entry>
+            <function>ob_end_flush</function>,
+            <function>ob_flush</function>, y
+            <function>ob_get_flush</function>.
+           </entry>
+          </row>
+          <row>
+           <entry><constant>PHP_OUTPUT_HANDLER_REMOVABLE</constant></entry>
+           <entry>
+            <function>ob_end_clean</function>,
+            <function>ob_end_flush</function>, y
+            <function>ob_get_flush</function>.
+           </entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </informaltable>
       </para>
      </listitem>
     </varlistentry>
@@ -175,6 +218,21 @@
       </row>
      </thead>
      <tbody>
+      <row>
+       <entry>5.4.0</entry>
+       <entry>
+        El tercer parámetro de <function>ob_start</function> se cambió de un
+        parámetro <type>boolean</type> llamado <parameter>erase</parameter>
+        (el cual, si se establecía a &false;, prevenía al búfer de salida de ser
+        eliminado hasta el final de la ejecución del script) a un
+        parámetro <type>integer</type> llamado <parameter>flags</parameter>.
+        Desafortunadamente, esto resulta en una rotura de compatibilidad de la API para código
+        escrito antes de PHP 5.4.0 que use el tercer parámetro. Véase
+        <link linkend="function.ob-start.flags-bc">el ejemplo de banderas</link>
+        para saber cómo manejar esto con código que necesite ser
+        compatible con ambas.
+       </entry>
+      </row>
       <row>
        <entry>5.4.0</entry>
        <entry>
@@ -241,6 +299,26 @@ ob_end_flush();
 </html>
 ]]>
     </screen>
+   </example>
+  </para>
+  
+  <para>
+   <example xml:id="function.ob-start.flags-bc">
+    <title>Crear un búfer de salida imborrable de forma compatible con PHP 5.3 y 5.4</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+if (version_compare(PHP_VERSION, '5.4.0', '>=')) {
+  ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS ^
+    PHP_OUTPUT_HANDLER_REMOVABLE);
+} else {
+  ob_start(null, 0, false);
+}
+
+?>
+]]>
+    </programlisting>
    </example>
   </para>
  </refsect1>
