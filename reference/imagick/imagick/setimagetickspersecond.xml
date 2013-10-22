@@ -1,45 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
 <!-- EN-Revision: 196abbabb4f94cc5e9de0ace42e121e5fdb4de7f Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="imagick.setimagetickspersecond">
  <refnamediv>
   <refname>Imagick::setImageTicksPerSecond</refname>
   <refpurpose>Establece los ticks por segundo de la imagen</refpurpose>
  </refnamediv>
-
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>Imagick::setImageTicksPerSecond</methodname>
-   <methodparam><type>int</type><parameter>ticks_per-second</parameter></methodparam>
+   <methodparam><type>int</type><parameter>ticks_per_second</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Establece los ticks por segundo de la imagen.
+   Ajusta la cantidad de tiempo que se muestra un marco de una imagen animada.
   </para>
+  <note>
+   <para>
+    Para GIFs animados, esta función no cambia el número de 'ticks de imagen'
+    por segundo, el cual está siempre definido como 100. En su lugar, ajusta la cantidad de
+    tiempo que se muestra un marco para simular el cambio de 'ticks por
+    segundo'.
+   </para>
+   <para>
+    Por ejemplo, para un GIF animado donde cada marco se muestra para 20 ticks
+    (1/5 de un segundo), al llamar a este método en cada marco de esa imagen
+    con un argumento de <literal>50</literal>, los marcos se ajustan para que
+    se muestren por 40 ticks (2/5 de un segundo) y así, la animación se reproducirá
+    a la mitad de la velocidad original.
+   </para>
+  </note>
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>ticks_per-second</parameter></term>
+     <term><parameter>ticks_per_second</parameter></term>
      <listitem>
       <para>
+       La duración por la que imagen debería mostrarse expresada en ticks
+       por segundo.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &imagick.return.success;
   </para>
  </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Modificar un GIF animado con <function>Imagick::setImageTicksPerSecond</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
 
+// Modificar un GIF animado para que la primera mitad del GIF se reproduzca a
+// la mitad de su velocidad, y la segunda mitad se reproduzca al doble de su
+// velocidad actual
+
+$imagick = new Imagick(realpath("Test.gif"));
+$imagick = $imagick->coalesceImages();
+
+$totalFrames = $imagick->getNumberImages();
+
+$frameCount = 0;
+
+foreach ($imagick as $frame) {
+    $imagick->setImageTicksPerSecond(50);
+    
+    if ($frameCount < ($totalFrames / 2)) {
+        // Modificar el marco para que se muestre al doble de lo actual
+        $imagick->setImageTicksPerSecond(50);
+    } else {
+        // Modificar el marco para que se muestre a la mitad de lo actual
+        $imagick->setImageTicksPerSecond(200);
+    }
+
+    $frameCount++;
+}
+
+$imagick = $imagick->deconstructImages();
+
+$imagick->writeImages("/ruta/donde/guardar/salida.gif", true);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+ 
 </refentry>
 
 <!-- Keep this comment at the end of the file
