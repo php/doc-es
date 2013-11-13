@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 7da0357629d4f40105a314a9e63eff559bbeb351 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ac78bae531756815da86f105c9a70f66cd48f417 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="function.hash-pbkdf2" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -48,7 +48,7 @@
      <term><parameter>salt</parameter></term>
      <listitem>
       <para>
-       La sal a usar para la derivación.
+       La sal a usar para la derivación. Este valor debería ser generado aleatoriamente.
       </para>
      </listitem>
     </varlistentry>
@@ -64,8 +64,15 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud de la clave derivada a generar. Si es <literal>0</literal>, se usa
-       la longitud del algoritmo proporcionado.
+       La longitud del string de salida. Si <parameter>raw_output</parameter>
+       es &true;, se corresponde con la longitud en bytes de la clave derivada; si
+       <parameter>raw_output</parameter> es &false;, se corresponde con dos veces la
+       longitud en bytes de la clave derivada (ya que cada byte de la clave es devuelto
+       como dos dígitos hexadecimales).
+      </para>
+      <para>
+       Si se pasa <literal>0</literal>, se usará la salida completa
+       del algoritmo proporcionado.
       </para>
      </listitem>
     </varlistentry>
@@ -73,8 +80,8 @@
      <term><parameter>raw_output</parameter></term>
      <listitem>
       <para>
-       Cuando se establece a &true;, genera datos binarios sin tratar.
-       &false; genera hexits en minúsculas.
+       Cuando se establece a &true;, genera datos binarios puros.
+       &false; genera dígitos hexadecimales en minúsculas.
       </para>
      </listitem>
     </varlistentry>
@@ -85,9 +92,9 @@
  <refsect1 role="returnvalues"><!-- {{{ -->
   &reftitle.returnvalues;
   <para>
-   Devuelve un string que contiene la clave derivada como hexits en minúsculas,
-   a menos que <parameter>raw_output</parameter> sea establecido a true, en cuyo caso
-   devuelve la represetación binaria de la clave derivada.
+   Devuelve un string que contiene la clave derivada como dígitos hexadecimales en minúsculas,
+   a menos que <parameter>raw_output</parameter> sea establecido a &true;, en cuyo caso
+   devuelve la represetación binaria pura de la clave derivada.
   </para>
  </refsect1><!-- }}} -->
  
@@ -110,14 +117,19 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$contraseña = "contraseña";
-$sal = "salt";
-$hash = hash_pbkdf2("sha256", $contraseña, $sal, 1, 20);
+$contraseña = "password";
+$iteraciones = 1000;
+
+// Generar una IV aleatoria usando mcrypt_create_iv(),
+// openssl_random_pseudo_bytes() u otra fuente disponible de aleatoriedad
+$sal = mcrypt_create_iv(16, MCRYPT_DEV_URANDOM);
+
+$hash = hash_pbkdf2("sha256", $contraseña, $sal, $iteraciones, 20);
 echo $hash;
 ?>
 ]]>
     </programlisting>
-    &example.outputs;
+    &example.outputs.similar;
     <screen>
 <![CDATA[
 120fb6cffcf8b32c43e7
@@ -131,10 +143,10 @@ echo $hash;
   &reftitle.notes;
   <caution>
    <para>
-    El método PBKDF2 se puede usar para el almacenamiento de contraseñas de hash (está
-    aprovado por el NIST para tal uso). Sin embargo, se debería observar que
-    <constant>CRYPT_BLOWFISH</constant> es más conveniente para el almacenamiento de contraseñas,
-    por lo que debería usarse en vez de mediante <function>crypt</function>.
+    El método PBKDF2 se puede usar para el almacenamiento de contraseñas de hash. Sin embargo,
+    se debería observar que <function>password_hash</function> o
+    <function>crypt</function> con <constant>CRYPT_BLOWFISH</constant> son
+    más adecuados para el almacenamiento de contraseñas.
    </para>
   </caution>
  </refsect1>
@@ -144,6 +156,7 @@ echo $hash;
   <para>
    <simplelist>
     <member><function>crypt</function></member>
+    <member><function>password_hash</function></member>
     <member><function>hash</function></member>
     <member><function>hash_algos</function></member>
     <member><function>hash_init</function></member>
