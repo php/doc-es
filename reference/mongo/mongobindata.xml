@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b34a4dd8e5d73b712352a6491fcb1c7bc876d906 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 3107c3b0120f98446e284877fa7e277ed2fbde83 Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <phpdoc:classref xml:id="class.mongobindata" xmlns:phpdoc="http://php.net/ns/phpdoc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
  
- <title>Clase MongoBinData</title>
+ <title>La clase MongoBinData</title>
  <titleabbrev>MongoBinData</titleabbrev>
  
  <partintro>
@@ -14,25 +14,26 @@
   <section xml:id="mongobindata.intro">
    &reftitle.intro;
    <para>
-    Objeto para almacenar y consultar datos binarios de la base de datos.
+    Un objeto que se puede usar para almacenar y obtener datos binarios de la base de datos.
    </para>
    <para>
-    El tamaño máximo de un objeto que puede insertarse en la base de datos es
-    16 MB. Para datos superiores (películas, música, autobiografía de Henry Kissinger),
-    utilice <classname>MongoGridFS</classname>. Para datos inferiores
-    a 16 MB, lo más probable es que lo más sencillo sea embeber el documento
+    El tamaño máximo de un objeto que puede insertarse en la base de datos es de
+    16 MB. Para datos mayores (películas, música, la autobiografía de
+    Henry Kissinger), utilice <classname>MongoGridFS</classname>. Para datos
+    menores a 16 MB, sería más sencillo embeberlos en el documento
     utilizando <classname>MongoBinData</classname>.
    </para>
    <para>
-    Por ejemplo, para empotrar una imagen a un documento, se podría escribir:
+    Por ejemplo, para embeber una imagen en un documento, se podría escribir:
    </para>
    <example xml:id="mongobindata.intro-example">
     <programlisting role="php">
 <![CDATA[
 <?php
 
-$profile = array("username" => "foobity",
-    "pic" => new MongoBinData(file_get_contents("gravatar.jpg"))
+$profile = array(
+    "username" => "foobity",
+    "pic" => new MongoBinData(file_get_contents("gravatar.jpg"), MongoBinData::GENERIC),
 );
 
 $users->save($profile);
@@ -42,11 +43,14 @@ $users->save($profile);
     </programlisting>
    </example>
    <para>
-    Esta clase contiene el campo <varname>type</varname>, que actualmente no
-    proporciona ninguna funcionalidad al driver de la base de datos. Hay 5 tipos
-    predefinidos (las contantes de clase definidas abajo), y los usuarios puede definir
-    los suyos propios (se corre el riesgo de que colisione con la especificación BSON).
-    Por omisión, el driver de PHP siempre utiliza el tipo 2: un array de bytes.
+    Esta clase contiene un campo <varname>type</varname>, que actualmente no
+    proporciona ninguna funcionalidad al controlador de PHP o a la base de datos. Hay
+    7 tipos predefinidos, los cuales están definidos más abajo como constantes de clase. Para
+    respetar la retrocompatibilidad, el controlador de PHP utiliza
+    <constant>MongoBinData::BYTE_ARRAY</constant> como el predeterminado; sin embargo,
+    podría cambiar a <constant>MongoBinData::GENERIC</constant> en el futuro.
+    Se anima a los usuarios a especificar un tipo en
+    <function>MongoBinData::__construct</function>.
    </para>
   </section>
   <!-- }}} -->
@@ -70,13 +74,19 @@ $users->save($profile);
     <fieldsynopsis>
      <modifier>const</modifier>
      <type>int</type>
+     <varname linkend="mongobindata.constants.generic">MongoBinData::GENERIC</varname>
+     <initializer>0</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>int</type>
      <varname linkend="mongobindata.constants.func">MongoBinData::FUNC</varname>
      <initializer>1</initializer>
     </fieldsynopsis>
     <fieldsynopsis>
      <modifier>const</modifier>
      <type>int</type>
-     <varname linkend="mongobindata.constants.bytearray">MongoBinData::BYTE_ARRAY</varname>
+     <varname linkend="mongobindata.constants.byte_array">MongoBinData::BYTE_ARRAY</varname>
      <initializer>2</initializer>
     </fieldsynopsis>
     <fieldsynopsis>
@@ -84,6 +94,12 @@ $users->save($profile);
      <type>int</type>
      <varname linkend="mongobindata.constants.uuid">MongoBinData::UUID</varname>
      <initializer>3</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>int</type>
+     <varname linkend="mongobindata.constants.uuid_rfc4122">MongoBinData::UUID_RFC4122</varname>
+     <initializer>4</initializer>
     </fieldsynopsis>
     <fieldsynopsis>
      <modifier>const</modifier>
@@ -122,8 +138,17 @@ $users->save($profile);
   <section>
    &reftitle.constants;
    <section xml:id="mongobindata.constants.types">
-    <title>Tipos de Datos Binarios</title>
+    <title>Tipos de datos binarios</title>
     <variablelist>
+     <varlistentry xml:id="mongobindata.constants.generic">
+      <term><constant>MongoBinData::GENERIC</constant></term>
+      <term><constant>0x00</constant></term>
+      <listitem>
+       <simpara>
+        Datos binarios genéricos.
+       </simpara>
+      </listitem>
+     </varlistentry>
      <varlistentry xml:id="mongobindata.constants.func">
       <term><constant>MongoBinData::FUNC</constant></term>
       <term><constant>0x01</constant></term>
@@ -133,12 +158,13 @@ $users->save($profile);
        </simpara>
       </listitem>
      </varlistentry>
-     <varlistentry xml:id="mongobindata.constants.bytearray">
+     <varlistentry xml:id="mongobindata.constants.byte_array">
       <term><constant>MongoBinData::BYTE_ARRAY</constant></term>
       <term><constant>0x02</constant></term>
       <listitem>
        <simpara>
-        Array de bytes.
+        Datos binarios genéricos (obsoleta a favor de
+        <constant>MongoBinData::GENERIC</constant>).
        </simpara>
       </listitem>
      </varlistentry>
@@ -147,7 +173,18 @@ $users->save($profile);
       <term><constant>0x03</constant></term>
       <listitem>
        <simpara>
-        Identificador Único Universal.
+        Identificador único universal (obsoleta en favor de
+        <constant>MongoBinData::UUID_RFC4122</constant>).
+       </simpara>
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="mongobindata.constants.uuid_rfc4122">
+      <term><constant>MongoBinData::UUID_RFC4122</constant></term>
+      <term><constant>0x04</constant></term>
+      <listitem>
+       <simpara>
+        Identificador único universal (de acuerdo a la
+        <link xlink:href="&url.rfc;4122">RFC 4122</link>).
        </simpara>
       </listitem>
      </varlistentry>
@@ -173,6 +210,29 @@ $users->save($profile);
    </section>
   </section>
   <!-- }}} -->
+  
+  <simplesect role="changelog">
+   &reftitle.changelog;
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>1.5.0</entry>
+       <entry>
+        Se añadieron las constantes <constant>MongoBinData::GENERIC</constant>
+        y <constant>MongoBinData::UUID_RFC4122</constant>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </simplesect>
   
  </partintro>
  

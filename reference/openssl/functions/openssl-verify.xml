@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 834e755b8d998407bda7643ac1cd576e2ea2a125 Maintainer: agarzon Status: ready -->
+<!-- EN-Revision: 2d4b995d680332b66a53f8278439ba1d6454a9eb Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-verify">
  <refnamediv>
   <refname>openssl_verify</refname>
@@ -14,13 +15,13 @@
    <methodparam><type>string</type><parameter>data</parameter></methodparam>
    <methodparam><type>string</type><parameter>signature</parameter></methodparam>
    <methodparam><type>mixed</type><parameter>pub_key_id</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>signature_alg</parameter><initializer>OPENSSL_ALGO_SHA1</initializer></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>signature_alg</parameter><initializer>OPENSSL_ALGO_SHA1</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>openssl_verify</function> verifica que la firma
    <parameter>signature</parameter> es correcta para la información
    <parameter>data</parameter> especificada usando la clave pública asociada con
-   <parameter>pub_key_id</parameter>. Ésto debe ser la clave pública que se
+   <parameter>pub_key_id</parameter>. Ésta debe ser la clave pública que se
    corresponde con la clave privada usada para firmar.
   </para>
  </refsect1>
@@ -33,6 +34,7 @@
      <term><parameter>data</parameter></term>
      <listitem>
       <para>
+       El string de datos utilizado anteriormente para generar la firma.
       </para>
      </listitem>
     </varlistentry>
@@ -40,6 +42,7 @@
      <term><parameter>signature</parameter></term>
      <listitem>
       <para>
+       Un string binario puro generado por <function>openssl_sign</function> o por medios similares
       </para>
      </listitem>
     </varlistentry>
@@ -47,15 +50,22 @@
      <term><parameter>pub_key_id</parameter></term>
      <listitem>
       <para>
+       <type>resource</type> - una clave, devuelta por <function>openssl_get_publickey</function>
       </para>
+      <para>
+       <type>string</type> - una clave con formato PEM; p.ej., "-----BEGIN PUBLIC KEY-----
+       MIIBCgK..."
+      </para>     
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>signature_alg</parameter></term>
      <listitem>
       <para>
-       Para más información véase la lista de <link
-       linkend="openssl.signature-algos">Algoritmos de Firma</link>.
+       <type>int</type> - uno de estos <link linkend="openssl.signature-algos">Algoritmos de firma</link>.
+      </para>
+      <para>
+       <type>string</type> - un string válido devuelto por <function>openssl_get_md_methods</function>; p.ej., "sha1WithRSAEncryption" o "sha512".
       </para>
      </listitem>
     </varlistentry>
@@ -105,13 +115,10 @@
 <?php
 // se asume que $data y $signature contienen la información y la firma
 
-// traer la clave pública desde el certifiado y prepararla
-$fp = fopen("/src/openssl-0.9.6/demos/sign/cert.pem", "r");
-$cert = fread($fp, 8192);
-fclose($fp);
-$pubkeyid = openssl_get_publickey($cert);
+// obtener la clave pública desde el certifiado y prepararla
+$pubkeyid = openssl_pkey_get_public("file://src/openssl-0.9.6/demos/sign/cert.pem");
 
-// establecer si la firma es correcta o no
+// especificar si la firma es correcta o no
 $ok = openssl_verify($data, $signature, $pubkeyid);
 if ($ok == 1) {
     echo "buena";
@@ -120,8 +127,40 @@ if ($ok == 1) {
 } else {
     echo "alarmante, error verificando la firma";
 }
-// libera la clave de la memoria
+// liberar la clave de la memoria
 openssl_free_key($pubkeyid);
+?>
+]]>
+    </programlisting>
+   </example>
+   <example>
+    <title><function>openssl_verify</function> example</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// datos que se quieren firmar
+$datos = 'mis datos';
+
+// crear unas claves pública y privada nuevas
+$private_key_res = openssl_pkey_new(array(
+    "private_key_bits" => 2048,
+    "private_key_type" => OPENSSL_KEYTYPE_RSA,
+));
+$details = openssl_pkey_get_details($private_key_res);
+$public_key_res = openssl_pkey_get_public($details['key']);
+
+// crear la firma
+openssl_sign($datos, $firma, $private_key_res, "sha1WithRSAEncryption");
+
+// comprobar la firma
+$ok = openssl_verify($datos, $firma, $public_key_res, OPENSSL_ALGO_SHA1);
+if ($ok == 1) {
+    echo "válida";
+} elseif ($ok == 0) {
+    echo "no válida";
+} else {
+    echo "error: ".openssl_error_string();
+}
 ?>
 ]]>
     </programlisting>
