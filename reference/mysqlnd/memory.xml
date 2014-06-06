@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: d617b26e4b9db6f2a4a39e5bd45bb09e2dc91100 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+<chapter xml:id="mysqlnd.memory" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Gestión de la memoria</title>
+ <para>
+  <emphasis role="bold">Introducción</emphasis>
+ </para>
+ <para>
+  El Controlador Nativo de MySQL gestiona la memoria de forma diferente que la Biblioteca Cliente de MySQL.
+  Las bibliotecas difieren en la manera en que asigan y liberan memoria,
+  en cómo la memoria se asigna en trozos mientras se leen los resultados desde MySQL, en las
+  opciones de depuración y desarrollo que existen, y en cómo los resultados leídos desde MySQL
+  son vinculados a variables de usuario de PHP.
+ </para>
+ <para>
+  Las siguientes notas tienen por objeto sre una introducción y resumen a los usuarios
+  interesados en comprender el Controlador Nativo de MySQL al nivel de código en C.
+ </para>
+ <para>
+  <emphasis role="bold">Funciones de gesitón de memoria usadas</emphasis>
+ </para>
+ <para>
+  Toda la asignación y desasignación de memoria se realiza usando las funciones de gestión
+  de memoria de PHP. Por lo tanto, el consumo de memoria de mysqlnd se puede monitorizar
+  usando llamadas a la API de PHP, tales como <function>memory_get_usage</function>. Ya que la
+  memoria es asignada y desasignada usando el gestor de memoira de PHP, los cambios podrían no
+  ser visibles de inmediato al nivel del sistema operativo. El gestor de memoria de PHP
+  actúa como un proxy que podría demorar la liberación de memoria con respecto
+  al sistema. Debido a esto, la comparación de la memoria usada por el Controlador Nativo de MySQL
+  y la Biblioteca Cliente de MySQL es difícil. La Biblioteca Cliente de MySQL
+  usa directamente llamadas al gestor de memoria del sistema operativo, por lo que los efectos
+  se pueden observar inmediatamente al nivel del sistema operativo.
+ </para>
+ <para>
+  Cualquier límite de memoria dictado por PHP también afecta al Controlador Nativo de MySQL. Esto
+  podría causar errores de agotamiento de memoria al obtener conjuntos de resultados grandes que excedan
+  el tamaño de la memoria restante que ha dispuesto PHP. Ya que la Biblioteca Cliente de MySQL
+  no utiliza las funciones de gestión de memoria de PHP, no obedece a ningún
+  límite de memoria establecido por PHP. Si se usa la Biblioteca Cliente de MySQL, dependiendo del
+  modelos de distribución, la huella de memoria del proceso de PHP podría crecer
+  más alla del límite de memoria de PHP. Aunque también, los scripts de PHP que podrían procesar
+  conjuntos de resultados más grandes, ya que las partes de la memoria asignada para mantener
+  los conjuntos de resultados están más allá del control del motor de PHP.
+ </para>
+ <para>
+  Las funciones de gestión de memoria de PHP son invocadas por el Controlador Nativo de MySQL a través
+  de una envoltura ligera. Entre otras cosas, la envoltura hace la depuración más sencilla.
+ </para>
+ <para>
+  <emphasis role="bold">Manejo de conjuntos de resultados</emphasis>
+ </para>
+ <para>
+  Los diferentes servidores de MySQL y las diferentes API de cliente distinguen entre conjuntos
+  de resultados <link linkend="mysqli.quickstart.statements">almacenados y no almacenados en búfer</link>.
+  Los conjuntos de resultados no almacenados en búfer son transferidos fila a fila desde MySQL al cliente,
+  mientras que este recorre los resultados. Los resultados almacenados en búfer se obtienen en
+  su totalidad mediante la biblioteca cliente antes de pasarlos al cliente.
+ </para>
+ <para>
+  El Controlador Nativo de MySQL utiliza Flujos de PHP para la comunicación en red
+  con el Servidor de MySQL. Los resultados enviados por MySQL se obtienen desde los búferes
+  de red de los Flujos de PHP al búfer de resultados de mysqlnd. El búfer de resultados está
+  hecho de zvals. En un segundo paso, los resultados ya están disponibles para el script de PHP.
+  Esta transferencia final desde el búfer de resultados a variables de PHP impacta sobre el consumo
+  de memoria y, lo más notable, al usar conjuntos de resultados almacenados en búfer.
+ </para>
+ <para>
+  Por defecto, el Controlador Nativo de MySQL intenta evitar mantener dos veces en
+  memoria resultados almacenados en búfer. Los resultados se guardan una sola vez en los búferes
+  de resultados internos y en sus zvals. Cuando los resultados son alojados en variables de PHP
+  por el script de PHP, las variables harán referencia a los búferes de resultados internos.
+  Los resultados de consultas de la base de datos no se copian y se guardan en memoria una sola vez.
+  If el usuario modificase el contenido de una variable que contiene resultados de la base de datos, se
+  debe realizar una Copia al escribir ('copy-on-write') para evitar que se cambie el búfer de resultados interno
+  referenciado. El contenido del búfer no debe ser modificado porque el usuario
+  podría decidir leer el conjunto de resultados una segunda vez. El mecanismo de Copia al escribir
+  está implementado usando una lista de gestores de referencias
+  adicional y el uso de contadores de referencias zval estándar.
+  'Copy-on-write' también se debe realizar si el usuario lee un conjunto de resultados y lo pasa a variables
+  de PHP, y luego libera el conjunto de resultados antes de que las variables se destruyan.
+ </para>
+ <para>
+  De forma general, este patrón funciona bien con scripts que lean un conunto de
+  resultados una vez y no modifiquen las variables que contienen los resultados. Su mayor
+  desventaja es la carga adicional de memoria causada por la gestión adicional de referencias que
+  viene primariamente por el hecho de que las variables de usuario que contienen los resultados
+  no se pueden liberar completamente hasta que el gestor de referencias de mysqlnd
+  deje de hacer referencia a ellas. El Controlador Nativo de MySQL elimina las referencias de las
+  variables de usuario cuando el conjunto de resultados es liberado o se realiza una Copia al escribir.
+  Un observador verá el consumo total de memoria crecer hasta que el conjunto de resultados
+  sea liberado. Use las <link linkend="mysqlnd.stats">estadísticas</link> para verificar si
+  un script libera el conjunto de resultados explícitamente o el controlador lo hace
+  implícitamente, y por lo tanto, la memoria es utilizada por un periodo de tiempo mayor que el necesario.
+  Las estadísticas también ayudan a ver cómo ocurren las operaciones de Copiar al escribir.
+ </para>
+ <para>
+  Un script que lea muchas filas pequeñas de un conjunto de resultados almacenado en búfer usando un trozo de código
+  igual o equivalente a <literal>while ($fila = $res-&gt;fetch_assoc()) { ... }</literal>
+  podría optimizar el consumo de memoria solitando copias en lugar de referencias.
+  Aunque, solicitar copias significa mantener los resultados dos veces en memoria, permite
+  a PHP liberar la copia contenida en <literal>$fila</literal> mientras el conjunto de resultados
+  está siendo recorrido y antes de liberarlo. Un servidor cargado que
+  optimice el uso de picos de memoria, podría ayudar a mejorar el rendimiento total del sistema
+  aunque, para un script solo, la estrategia de copia podría ser más lenta debido a
+  las operaciones de asignación y copia de memoria adicionales.
+ </para>
+ <para>
+  Se puede forzar el modo copia estableciendo
+  <link linkend="ini.mysqlnd.fetch_data_copy">mysqlnd.fetch_data_copy</link>=1.
+ </para>
+ <para>
+  <emphasis role="bold">Monitorización y depuración</emphasis>
+ </para>
+ <para>
+  Hay muchas maneras de monitorizar el uso de memoria del Controlador Nativo de MySQL.
+  Si el objetivo es obtener un resumen de alto nivel o verificar la eficiendia de memoria
+  de scripts de PHP, compruebe las <link linkend="mysqlnd.stats">estadísticas</link>
+  recopiladas por la biblioteca. Las estadísticas permiten, por ejemplo, capturar
+  sentencias SQL que generen más resultados que los procesados por un script de PHP.
+ </para>
+ <para>
+  El registro de seguimiento <link linkend="ini.mysqlnd.debug">debug</link> puede configurarse para
+  grabar llamadas al gestor de memoria. Esto ayuda a ver cuándo la memoria es asignada
+  o liberada. Sin embargo, el tamaño de los trozos de memoria solicitados podrían no mostrarse en la lista.
+ </para>
+ <para>
+  Algunas versiones recientes del Controlador Nativo de MySQL introducen la emulación de
+  situaciones aleatorias de agotamiento de memoria. Se pretende que esta característica sea usada
+  solamente por los desarroladores en C de la biblioteca los autores del
+  <link linkend="mysqlnd.plugin">complemento</link> de mysqlnd. Busque el código fuente para los
+  ajuestes de configuración de PHP correspondientes y para más detalles. La característica está considerada
+  privada y podría ser modificada en cualquier momento sin previo aviso.
+ </para>
+ 
+</chapter>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
