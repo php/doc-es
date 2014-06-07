@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5a133dd1d92ee3b925227c0b91827b1499d07d60 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 0aa774414ae3ca9032fa586b59554dd66fc376df Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.setup" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -767,6 +767,205 @@ Warning: mysqli::mysqli(): (mysqlnd_ms) Exclusive usage of configuration enforce
         </tbody>
        </tgroup>
       </informaltable>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.fabric">
+     <term>
+      <parameter>fabric</parameter>
+      <type>object</type>
+     </term>
+     <listitem>
+      <para>
+       Ajustes relacionados con MySQL Fabric. Si el complemento se usa junto con MySQL
+       Fabric, el fichero de configuración del complemento no contendrá las listas de servidores de MySQL.
+       En su lugar, el complemento preguntará a MySQL Fabric sobre qué listas de servidores usar para
+       realizar cierta tarea.
+      </para>
+      <para>
+       Una configuración mínima del complemento para usar con MySQL Fabric contendrá una lista
+       de uno o más hosts de MySQL Fabric que el complemento puede consultar. Si se configura
+       más de un host de MySQL Fabric, el complemento usará una estrategia de rotación
+       para elegir entre ellos. No está disponible ninguna otra estrategia actualmente.
+      </para>
+      <para>
+       <example>
+        <title>Configuración mínima del complemento para usar con MySQL Fabric</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "fabric": {
+            "hosts": [
+                {
+                    "host" : "127.0.0.1",
+                    "port" : 8080
+                }
+            ]
+        }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       Cada host de MySQL Fabric está descrito usando un objeto de JSON con los siguientes
+       miembros.
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <colspec colwidth="1*"/>
+        <colspec colwidth="7*"/>
+        <colspec colwidth="2*"/>
+        <thead>
+         <row>
+          <entry>Palabra clave</entry>
+          <entry>Descripción</entry>
+          <entry>Versión</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>host</literal>
+          </entry>
+          <entry>
+           <para>
+            Nombre del host de MySQL Fabric.
+           </para>
+          </entry>
+          <entry>Desde 1.6.0.</entry>
+         </row>
+         <row>
+          <entry>
+           <literal>port</literal>
+          </entry>
+          <entry>
+           <para>
+            El puerto TCP/IP en el que el host de MySQL Fabric escucha
+            para llamadas de procedimientos remotos enviados por clientes como
+            el complemento.
+           </para>
+          </entry>
+          <entry>Desde 1.6.0.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
+      <para>
+       El complemento utiliza flujos de PHP para comunicarse con MySQL Fabric
+       a través de XML RPC sobre HTTP. Por omisión, no se establecen tiempos de espera
+       para la comunicación en red. Así, el valor predeterminado del complemento es el tiempo
+       de espera predeterminado del flujo de PHP. Dichos valores predeterminados están fuera
+       del alcance del complemento.
+      </para>
+      <para>
+       Se puede establecer un tiempo de espera opcional para sobrescribir el predeterminado
+       del flujo de PHP. Establecer el tiempo de espera en el fichero de configuración
+       del complemento tiene el mismo efecto que
+       establecer un tiempo de espera para la conexión HTTP del espacio de usuario de PHP
+       establecida a través de flujos de PHP.
+      </para>
+      <para>
+       La unidad del valor del tiempo de espera de Fabric del complemento es el segundo.
+       El rango de valores permitidos es de 0 a 65535. Este ajuste existe desde la versión 1.6.
+      </para>
+      <para>
+       <example>
+        <title>Tiempo de espera opcional para la comunicación con Fabric</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "fabric": {
+            "hosts": [
+                {
+                    "host" : "127.0.0.1",
+                    "port" : 8080
+                }
+            ],
+            "timeout": 2
+        }
+    }
+}
+]]>
+        </programlisting>
+       </example>
+      </para>
+      <para>
+       La <link linkend="ini.mysqlnd-ms-plugin-config-v2.trx-stickiness">adhesión de transacciones</link>
+       y la lógica de MySQL Fabric puden entrar en conflicto. La opción de adhesión deshabilita el cambio
+       entre srevidores durante una transacción. Al usar Fabric y fragmentación,
+       el usuario podría (erróneamente) iniciar una transacción local en un fragmento y
+       luego intentar cambiar a un fragmento diferente usando
+       <link linkend="function.mysqlnd-ms-fabric-select-shard">
+        <function>mysqlnd_ms_fabric_select_shard</function></link> o
+       <link linkend="function.mysqlnd-ms-fabric-select-global">
+        <function>mysqlnd_ms_fabric_select_global</function></link>. En este caso, el
+       complemento no rechazará la petición de cambiar de servidor en mitad de una transacción,
+       sino que permitirá al usuario cambiar a otro servidor independientemente de la configuración
+       de adhesión de transacciones usada. Obviamente, es un error de usuario escribir tal código.
+      </para>
+      <para>
+       Si la adhesión de transacciones está habilitada y se obtiene un error de tipo
+       advertencia al llamar a <link linkend="function.mysqlnd-ms-fabric-select-shard">
+       <function>mysqlnd_ms_fabric_select_shard</function></link> o
+       <link linkend="function.mysqlnd-ms-fabric-select-global">
+        <function>mysqlnd_ms_fabric_select_global</function></link>,
+       estblezca la bandera booleana <literal>trx_warn_server_list_changes</literal>.
+      </para>
+      <para>
+       <example>
+        <title>Advertencias sobre la violación de límites de transacciones</title>
+        <programlisting role="ini">
+<![CDATA[
+{
+    "myapp": {
+        "fabric": {
+            "hosts": [
+                {
+                    "host" : "127.0.0.1",
+                    "port" : 8080
+                }
+            ],
+            "trx_warn_serverlist_changes": 1
+        },
+        "trx_stickiness": "on"
+    }
+}
+]]>
+        </programlisting>
+        <programlisting role="php">
+<![CDATA[
+<?php
+$enlace = new mysqli("myapp", "root", "", "test");
+/*
+  Para la demostración, la llamada posría fallar.
+  Si falla o no, nos introduciremos en el estado
+  necesario para el ejemplo.
+*/
+@mysqlnd_ms_fabric_select_global($enlace, 1);
+$enlace->begin_transaction();
+@$enlace->query("DROP TABLE IF EXISTS test");
+/*
+  ¡Cambiar de servidor/fragmento es un error debido a la
+  transacción local abierta!
+*/
+mysqlnd_ms_select_global($enlace, 1);
+?>
+]]>
+        </programlisting>
+        &example.outputs;
+        <screen>
+<![CDATA[
+PHP Warning: mysqlnd_ms_fabric_select_global(): (mysqlnd_ms) Fabric server exchange in the middle of a transaction in %s on line %d
+]]>
+        </screen>
+       </example>
+      </para>
+      <para>
+       Por favor, considere la característica como experimental. Podrían cambiarse la sintaxis y la semántica.
+      </para>
      </listitem>
     </varlistentry>
     <varlistentry xml:id="ini.mysqlnd-ms-plugin-config-v2.filters">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 59a1bbcb6f7a1e74a640d7ec2890cc6a12f19b52 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 0aa774414ae3ca9032fa586b59554dd66fc376df Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -1439,6 +1439,11 @@ Intentos del error transitorio después del error: 2
     posterior. No es necesario la monitorización de los límites de transacciones en el lado del cliente ni
     ninguna configuración si se utiliza la característica del servidor.
    </para>
+   <para>
+    Observe que todas las versiones de producción de MySQL 5.6 no proporcionan
+    clientes con suficiente información para usar GTID para forzar la consistencia de sesión.
+    En el peor de los casos, el complemento eligirá solamente el maestro.
+   </para>
   </note>
   <para>
    <emphasis role="bold">Idea y emulación en el lado del cliente</emphasis>
@@ -1534,8 +1539,8 @@ Intentos del error transitorio después del error: 2
    limitaciones de la solución del lado del servidor no son acpetables.
   </para>
   <para>
-   Desde la perspectiva de las aplicaciones casi no hay diferencia en el uso de un enfoque
-   u otro. Difieren las siguientes propiedades.
+   Desde la perspectiva de las aplicaciones casi no hay diferencia en el uso de una estrategia
+   u otra. Difieren las siguientes propiedades.
    <itemizedlist>
     <listitem>
      <simpara>
@@ -1547,6 +1552,28 @@ Intentos del error transitorio después del error: 2
       y un número de secuencia como identificador de transacciones global. La comparación no
       puede hacerse mediante álgebra numérica. En su lugar, se debe usar una función SQL. Por favor,
       lea el Manual de referencia de MySQL para más detalles.
+     </simpara>
+     <simpara>
+      No se puede usar la característica interna del lado del servidor de MySQL 5.6 para asegurar la consistencia de sesión
+      bajo ninguna circunstancia. No la utilice para la característica de calidad de servicio. Aquí se expone un ejemplo
+      sencillo de por qué no proporcionará resultado fiables. Hay más casos límites que no se pueden
+      cubrir con la funcionalidad limitada exportada por el servidor. Actualmente, los clientes solamente pueden
+      preguntar al maestro de replicación de MySQL por una lista de todos los ID de transacciones globales ejecutadas.
+      Si un esclavo está configurado para no replicar todas las transacciones, por ejemplo, porque están establecidos
+      los filtros de replicación, el esclavo nunca mostrará el mismo conjunto de ID de transacciones globales ejecutadas.
+      Aunque el esclavo podría haber replicado las escrituras de un cliente y podría ser un candidato
+      para una lectura consistente, nunca será considerado por el complemento. En cuanto a la escritura, el complemento
+      aprende del maestro que el historial de transacciones de servidores completo consiste en GTID=1..3.
+      No hay forma de que el complemento pregunte por el GTID de la transacción de escritura en sí, digamos GTID=3.
+      Se asume que el esclavo no replica la transacciones GTID=1..2, sino solamente GTID=3 debido a una
+      característica de replicación. Entonces, el historial de transacciones de esclavos es GTID=3. Sin embargo, el complemento intenta
+      encontrar un nodo que tenga un historial de transacción de GITD=1...3. Aunque el esclavo haya replicado
+      la escritura del cliente y la consistencia de sesión podría alcanzarse al leer desde el esclavo, el
+      complemento no lo considerará. Esto no es un fallo de la implementación del complemento, sino
+      una laguna de la característica del lado del servidor. Observe que es este  es un caso trivial para ilustrar el
+      problema; existen otros más. En resumen, se sugiere no intentar usar los GTID internos de MySQL 5.6
+      para forzar la consistencia de sesión. Tarde o temprano, el equilibrado de carga dejará de funcionar de manera apropiada
+      y el complemento dirigirá todas las peticiones de consistencia de sesión al maestro.
      </simpara>
     </listitem>
     <listitem>

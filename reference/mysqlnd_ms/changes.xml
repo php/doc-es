@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 97b95f3520a62026f95edfc4d79d7d0657e3af96 Maintainer: seros Status: ready -->
+<!-- EN-Revision: b51167b8eab37ef29b31301419075172d3b47ca6 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.changes" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -26,7 +26,7 @@
     </listitem>
     <listitem>
      <simpara>
-      Motivo/tema: Maintenance
+      Motivo/tema: Mantenimiento y soporte inicial para MySQL Fabric
      </simpara>
     </listitem>
    </itemizedlist>
@@ -46,7 +46,42 @@
    <itemizedlist>
     <listitem>
      <para>
-      No se ha infiromado de nuevos errores
+      No se podrá corregir: #66616 Falla la división de lectura/escritura: QOS con mysqlnd_get_last_gtid con GTID internos de MySQL 
+     </para>
+     <para>
+      Esto no es un error en la implementación del complemento, sino una limitación de una característica
+      del lado del servidor no considerada ni documentada antes. Los GTID internos de MySQL 5.6 no pueden
+      usarse para asegurar la consistencia de sesión al leer desde los esclavos en cualquier caso.
+      En el peor de los casos, el complemento no considerará el uso de esclavos y
+      recurrirá al uso del maestro. No habrá resultados erróneos, excepto que no habrá el beneficio
+      de realizar la comprobación del GTID.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Corregido #66064 - Equilibrio de carga aleatorio una vez ignora pesos
+     </para>
+     <para>
+      Debido a un error de análisis de configuración, el equilibrio de carga ha ignorado el nodo
+      de pesos si, y solo si, la bandera 'sticky' estaba establecida (aleatorio una vez).
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Corregido #65496 - Comprobación errónea de la demora de esclavos
+     </para>
+     <para>
+      El filtro de calidad de servicio ha ignorado de forma errónea a los esclavos
+      que demoraban cero (0) segundos si se hubo establecido cualquier máximo de demora.
+      Aunque un esclavo no se demorara, era excluido de la lista de
+      equilibrio de carga si el filtro QoS estableció un máximo de edad.
+      Esto era debido al uso de un operador de comparación erróneo en el código fuente
+      del filtro.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Corregido #65408 - Fallo al compilar con -Werror=format-security
      </para>
     </listitem>
    </itemizedlist>
@@ -57,15 +92,56 @@
     <listitem>
      <para>
       Se introdujo un bucle de reintentos automático para
-     <link linkend="mysqlnd-ms.transient_errors">errores transitorios</link> y las
-     <link linkend="function.mysqlnd-ms-get-stats">estadísticas correspondientes</link>
-     para contar el número de intentos implícitos. Algunos clústeres de
-     bases de datos distribuidas usan erroes transitorios para sugeriri a un cliente que reintente
-     su operación en un momento. Muy amenudo, el cliente se supone que
-     para la ejecución (duerme) por un coroto momento antes del reintentar la
-     operación deseada. No es necesario recurrir inmediatamente a otro nodo
-     en respuesta al error. En su lugar, se puede realizar un blucle
-     de reintentos. Una situación común al usar un Clúster de MySQL.
+      <link linkend="mysqlnd-ms.transient_errors">errores transitorios</link> y las
+      <link linkend="function.mysqlnd-ms-get-stats">estadísticas correspondientes</link>
+      para contar el número de intentos implícitos. Algunos clústeres de
+      bases de datos distribuidas usan erroes transitorios para sugeriri a un cliente que reintente
+      su operación en un momento. Muy amenudo, el cliente se supone que
+      para la ejecución (duerme) por un coroto momento antes del reintentar la
+      operación deseada. No es necesario recurrir inmediatamente a otro nodo
+      en respuesta al error. En su lugar, se puede realizar un blucle
+      de reintentos. Una situación común al usar un Clúster de MySQL.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Se introdujo el <link linkend="mysqlnd-ms.quickstart.mysql_fabric">soporte más básico</link>
+      para MySQL Fabric High Availability y el marco de trabajo de fragmentación.
+     </para>
+     <para>
+      Considere este como calidad prealfa. El código del marco de trabajo
+      del lado del servidor y del cliente client debe funcionar de forma precisa
+      considerando solamente los ejemplos del inicio rápido de MySQL Fabric. Sin embargo,
+      no se han realizado pruebas al nivel de versiones del complemento anteriores a alfa.
+      Ambos lados son objetivos móviles, los cambios en la API podrían ocurrir en
+      cualquier momento sin previo aviso.
+     </para>
+     <para>
+      Ya que se está trabajando aún en ello, el manual podría no reflejar las limitaciones
+      de las características permitidas y los errores conocidos.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Nuevas
+      <link linkend="function.mysqlnd-ms-get-stats">estadísticas</link>
+      para monitorizar la llamada XML RPC de Fabric <literal>sharding.lookup_servers</literal>:
+      <literal>fabric_sharding_lookup_servers_success</literal>,
+      <literal>fabric_sharding_lookup_servers_failure</literal>,
+      <literal>fabric_sharding_lookup_servers_time_total</literal>,
+      <literal>fabric_sharding_lookup_servers_bytes_total</literal>,
+      <literal>fabric_sharding_lookup_servers_xml_failure</literal>.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Nuevas funciones relacionadas con MySQL Fabric:
+      <link linkend="function.mysqlnd-ms-fabric-select-shard">
+       <function>mysqlnd_ms_fabric_select_shard</function></link>,
+      <link linkend="function.mysqlnd-ms-fabric-select-global">
+       <function>mysqlnd_ms_fabric_select_global</function></link>,
+      <link linkend="function.mysqlnd-ms-dump-servers">
+       <function>mysqlnd_ms_dump_servers</function></link>.
      </para>
     </listitem>
    </itemizedlist>
