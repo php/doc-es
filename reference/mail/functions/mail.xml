@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c782d9acfdd59040513c4d38c857e41845a465fc Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 2f5af7951a8132450b9106201693212f1ad2eb38 Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.mail" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mail</refname>
@@ -19,7 +19,7 @@
    <methodparam choice="opt"><type>string</type><parameter>additional_parameters</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Envía un email.
+   Envía un correo electrónico.
   </para>
  </refsect1>
  
@@ -34,7 +34,7 @@
        Destinatario/s del correo.
       </para>
       <para>
-       Es formato de este string debe cumplir con la
+       El formato de este string debe cumplir con la
        <link xlink:href="&url.rfc;2822">RFC 2822</link>. Algunos ejemplos son:
        <simplelist>
         <member>usuario@example.com</member>
@@ -49,7 +49,7 @@
      <term><parameter>subject</parameter></term>
      <listitem>
       <para>
-       Título del email a enviar.
+       Título del correo electrónico a enviar.
       </para>
       <caution>
        <para>
@@ -88,12 +88,13 @@ $texto = str_replace("\n.", "\n..", $texto);
      <term><parameter>additional_headers</parameter> (opcional)</term>
      <listitem>
       <para>
-       String a insertar al final de la cabecera del email.
+       String a insertar al final de la cabecera del correo.
       </para>
       <para>
        Se usa normalmente para añadir cabeceras extra (From, Cc y Bcc).
        Las cabeceras múltiples adicionales deberían separarse con un CRLF(\r\n).
-       Se ha de validar el parámetro para evitar que algún atacante inyecte cabeceras no deseadas.
+       Si se usan datos externos para componer esta cabecera, los datos deberían ser saneados
+       para que no se inyecten cabeceras no deseadas. 
       </para>
       <note>
        <para>
@@ -112,7 +113,7 @@ $texto = str_replace("\n.", "\n..", $texto);
       </note>
       <note>
        <para>
-        Si no se reciben los mensajes enviados, intente el uso de sólo LF (\n).
+        Si no se reciben los mensajes enviados, intente usar solamente LF (\n).
         Algunos agentes de transferencia de correo de Unix (como
         <link xlink:href="&url.qmail;">qmail</link>) reemplzan LF por CRLF
         automáticamente (lo que conlleva doblar CR si se usa CRLF).
@@ -128,26 +129,29 @@ $texto = str_replace("\n.", "\n..", $texto);
       <para>
        El parámetro <parameter>additional_parameters</parameter> puede
        usarse para indicar opciones adicionales como opciones de línea de comandos
-       al programa configurado para ser usado cuando se envía correo, definido
+       al programa que está configurado para usarse cuando se envía correo, definido
        por la opción de configuración <literal>sendmail_path</literal>. Por
-       ejemplo, puede usarse para establecer la dirección de correo de
-       remitente usado por sendmail con la opción <literal>-f</literal>.
+       ejemplo, puede usarse para establecer la dirección de correo del
+       remitente usando sendmail con su opción <literal>-f</literal>.
       </para>
       <para>
-       This parameter is escaped by <function>escapeshellcmd</function> internally
-       to prevent command execution. <function>escapeshellcmd</function> prevents
-       command execution, but allows to add addtional parameters. For security reason,
-       this parameter should be validated.
+       Este parámetro es escapado internamente por <function>escapeshellcmd</function>
+       para prevenir la ejecución del comando. Aunque <function>escapeshellcmd</function>
+       evita la ejecución del comando, permite añadir parámetros adicionales. Por razones de seguridad,
+       se recomienda que el usuario sanee este parámetro para evitar que se añadan
+       parámetros indeseados al comando.
       </para>
       <para>
-       Since <function>escapeshellcmd</function> is applied automatically, some characters
-       that are allowed as email addresses by internet RFCs cannot be used. Programs
-       that are required to use these characters <function>mail</function> cannot be used.
+       Ya que <function>escapeshellcmd</function> se aplica automáticamente, algunos caracteres
+       que están permitidos como direcciones de correo electrónico por algún RFC no se pueden usar. 
+       <function>mail</function> no puede permitir tales caracteres, por lo que en programas donde el uso
+       de tales caracters sea necesario, se recomienda una vía alternativa de enviar correos
+       (como usar un marco de trabajo o una biblioteca). 
       </para>
       <para>
-       El usuario usado por el servidor web debe ser añadido como usuario de confianza
+       El usuario usado por el servidor web debería ser añadido como usuario de confianza
        en la configuración de sendmail para evitar que se añada la cabecera 'X-Warning'
-       al mensaje cuando se añade la dirección de remitente (-f) usando este método.
+       al mensaje cuando se añada la dirección de remitente (-f) usando este método.
        Para los usuarios de sendmail, este fichero es <filename>/etc/mail/trusted-users</filename>.
       </para>
      </listitem>
@@ -159,10 +163,10 @@ $texto = str_replace("\n.", "\n..", $texto);
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si el correo ha sido aceptado con éxito para su envío, o, de lo contrario &false;.
+   Devuelve &true; si el correo ha sido aceptado para su envío, de lo contrario &false;.
   </para>
   <para>
-   Es importante tener en cuenta que si el correo es aceptado para reparto, NO
+   Es importante tener en cuenta que si el correo es aceptado para su envío, NO
    quiere decir que el correo haya alcanzado el destino indicado.
   </para>
  </refsect1>
@@ -184,8 +188,8 @@ $texto = str_replace("\n.", "\n..", $texto);
        <entry>
         Se aceptan todas las cabeceras personalizadas (como From, Cc, Bcc y Date)
         y no distinguen entre mayúsculas y minúsculas.
-        (Como las cabeceras personaliazadas no son interpretadas por el MTA en
-        primer lugar pero son analizadas por PHP, PHP &lt; 4.3 sólo soportaba
+        (Como, de entrada, las cabeceras personaliazadas no son interpretadas por
+        el MTA, pero son analizadas por PHP, PHP &lt; 4.3 sólo admitía
         el elemento de cabecera Cc y distinguía entre mayúsculas y minúsculas).
        </entry>
       </row>
@@ -194,14 +198,14 @@ $texto = str_replace("\n.", "\n..", $texto);
        <entry>
         El parámetro <parameter>additional_parameters</parameter> es
         deshabilitado en <link linkend="ini.safe-mode">safe_mode</link> y la
-        función <function>mail</function> mostrará un mensaje de aviso,
-        retornando &false; cuando se usa.
+        función <function>mail</function> mostrará un mensaje de advertencia,
+        devolviendo &false; cuando se usa.
        </entry>
       </row>
       <row>
        <entry>4.0.5</entry>
        <entry>
-        Se añade el parámetro <parameter>additional_parameters</parameter>.
+        Se añadió el parámetro <parameter>additional_parameters</parameter>.
        </entry>
       </row>
      </tbody>
@@ -214,7 +218,7 @@ $texto = str_replace("\n.", "\n..", $texto);
   &reftitle.examples;
   <para>
    <example>
-    <title>Enviar correo</title>
+    <title>Enviar un correo.</title>
     <para>
      Usando <function>mail</function> para enviar un correo simple:
     </para>
@@ -227,7 +231,7 @@ $mensaje = "Línea 1\r\nLínea 2\r\nLínea 3";
 // Si cualquier línea es más larga de 70 caracteres, se debería usar wordwrap()
 $mensaje = wordwrap($mensaje, 70, "\r\n");
 
-// Send
+// Enviarlo
 mail('caffeinated@example.com', 'Mi título', $mensaje);
 ?>
 ]]>
@@ -243,8 +247,8 @@ mail('caffeinated@example.com', 'Mi título', $mensaje);
 <![CDATA[
 <?php
 $para      = 'nobody@example.com';
-$titulo = 'El título';
-$mensaje = 'Hola';
+$titulo    = 'El título';
+$mensaje   = 'Hola';
 $cabeceras = 'From: webmaster@example.com' . "\r\n" .
     'Reply-To: webmaster@example.com' . "\r\n" .
     'X-Mailer: PHP/' . phpversion();
@@ -257,9 +261,9 @@ mail($para, $titulo, $mensaje, $cabeceras);
    <example>
     <title>Enviar un correo con parámetros de línea de comando adicionales.</title>
     <para>
-     El parámetro <parameter>additional_parameters</parameter> puede ser
-     usado para indicar parámetros adicicionales al programa configurado para
-     usar en el envío de correo configurado en <literal>sendmail_path</literal>.
+     Se puede usar el parámetro <parameter>additional_parameters</parameter>
+     para proporcionar parámetros adicicionales al programa configurado para
+     usar en el envío de correo utilizando <literal>sendmail_path</literal>.
     </para>
     <programlisting role="php">
 <![CDATA[
@@ -282,10 +286,10 @@ mail('nadie@example.com', 'El título', 'El mensaje', null,
 $para  = 'aidan@example.com' . ', '; // atención a la coma
 $para .= 'wez@example.com';
 
-// subject
-$titulo = 'Recordatorio de cumpleaños para Agosto';
+// título
+$título = 'Recordatorio de cumpleaños para Agosto';
 
-// message
+// mensaje
 $mensaje = '
 <html>
 <head>
@@ -308,7 +312,7 @@ $mensaje = '
 </html>
 ';
 
-// Para enviar un correo HTML mail, la cabecera Content-type debe fijarse
+// Para enviar un correo HTML, debe establecerse la cabecera Content-type
 $cabeceras  = 'MIME-Version: 1.0' . "\r\n";
 $cabeceras .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 
@@ -318,8 +322,8 @@ $cabeceras .= 'From: Recordatorio <cumples@example.com>' . "\r\n";
 $cabeceras .= 'Cc: birthdayarchive@example.com' . "\r\n";
 $cabeceras .= 'Bcc: birthdaycheck@example.com' . "\r\n";
 
-// Mail it
-mail($para, $titulo, $mensaje, $cabeceras);
+// Enviarlo
+mail($para, $título, $mensaje, $cabeceras);
 ?>
 ]]>
     </programlisting>
@@ -328,9 +332,8 @@ mail($para, $titulo, $mensaje, $cabeceras);
   <para>
    <note>
     <para>
-     Si la intención es enviar HTML u otro tipo de correos complejos, es
-     recomendable usar el paquete PEAR <link
-     xlink:href="&url.pear.package;Mail_Mime">PEAR::Mail_Mime</link>.
+     Si la intención es enviar HTML u otro tipo de correo complejo, es recomendable usar
+     el paquete PEAR <link xlink:href="&url.pear.package;Mail_Mime">PEAR::Mail_Mime</link>.
     </para>
    </note>
   </para>
@@ -340,10 +343,10 @@ mail($para, $titulo, $mensaje, $cabeceras);
   &reftitle.notes;
   <note>
    <para>
-    La implementación Windows de <function>mail</function> difiere en muchas
-    formas de la implementación Unix. Primero, no usa un ejecutable local para
+    La implementación en Windows de <function>mail</function> difiere bastante
+    de la implementación en Unix. Primero, no usa un binario local para
     componer mensajes ya que sólo opera en sockets directos, lo que significa
-    que se necesita un <literal>MTA</literal> escuchando en un un socket de
+    que es necesario un <literal>MTA</literal> escuchando en un socket de
     red (que puede estar tanto en localhost como en una máquina remota).
    </para>
    <para>
@@ -351,15 +354,15 @@ mail($para, $titulo, $mensaje, $cabeceras);
     <literal>From:</literal>,
     <literal>Cc:</literal>,
     <literal>Bcc:</literal> y
-    <literal>Date:</literal> <emphasis role="strong">no</emphasis> son
-    interpretadas por el <literal>MTA</literal> en primer lugar, pero son
+    <literal>Date:</literal>, de entrada <emphasis role="strong">no</emphasis>
+    son interpretadas por el <literal>MTA</literal>, aunque son
     analizadas por PHP.
    </para>
    <para>
     Por esto, el parámetro <parameter>to</parameter> no debería ser una
-    dirección de correo de la forma &quot;Algo
-    &lt;alguien@example.com&gt;&quot;. Es posible que el comando mail no
-    analice esto correctamente cuando dialoga con el MTA.
+    dirección de correo de la forma &quot;Algo &lt;alguien@example.com&gt;&quot;.
+    Es posible que el comando mail no analice esto correctamente mientrasz dialoga con
+    el MTA.
    </para>
   </note>
   
@@ -370,7 +373,7 @@ mail($para, $titulo, $mensaje, $cabeceras);
     cierra un socket SMTP para cada correo, algo que no es muy eficiente.
    </para>
    <para>
-    Para enviar una gran cantidad de correo, ver los paquetes <link
+    Para enviar una gran cantidad de correo, véanse los paquetes <link
     xlink:href="&url.pear.package;Mail">PEAR::Mail</link> y <link
     xlink:href="&url.pear.package;Mail_Queue">PEAR::Mail_Queue</link>.
    </para>
@@ -378,7 +381,7 @@ mail($para, $titulo, $mensaje, $cabeceras);
   
   <note>
    <para>
-    Las siguientes RFCs pueden ser de utilidad:
+    Las siguientes RFC pueden ser de utilidad:
     <link xlink:href="&url.rfc;1896">RFC 1896</link>,
     <link xlink:href="&url.rfc;2045">RFC 2045</link>,
     <link xlink:href="&url.rfc;2046">RFC 2046</link>,
