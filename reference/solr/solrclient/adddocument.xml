@@ -1,27 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b6d169424ff189bb563ef4c3f35f8adff3f42c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ddb6e7264cf1debe2c8962b5394107991ce2ecd6 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="solrclient.adddocument" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>SolrClient::addDocument</refname>
   <refpurpose>Añade un documento al índice</refpurpose>
  </refnamediv>
-
+ 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <modifier>public</modifier> <type>SolrUpdateResponse</type><methodname>SolrClient::addDocument</methodname>
    <methodparam><type>SolrInputDocument</type><parameter>doc</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>allowDups</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>overwrite</parameter><initializer>true</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>commitWithin</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
    Este método añade un documento al índice.
   </para>
-
+  
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,32 +36,48 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>allowDups</parameter></term>
+     <term><parameter>overwrite</parameter></term>
      <listitem>
       <para>
-       Si se establece a &false; los duplicados serán sobrescritos.
+       Si sobrescribir el documento existente o no. Si es &false; existirán duplicados (varios documento con el mismo ID).
+       
       </para>
+      <warning>
+       <para>
+        En Solr &lt; 2.0 de PECL se usó $allowDups en lugar de $overwrite, que tiene la misma funcionalidad con la bandera booleana opuesta.
+       </para>
+       <para>
+        $allowDups = false es lo mismo que $overwrite = true
+       </para>
+      </warning>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>commitWithin</parameter></term>
      <listitem>
       <para>
-       Número de milisegundos dentro de los que enviar este documento. Disponible desde Solr 1.4
+       Número de milisegundos dentro de los que autoconsignar este documento. Disponible desde Solr 1.4. El valor predeterminado (0) significa deshabilitado.
+      </para>
+      <para>
+       Cuando se especifica este valor, deja el control de cúando realizar la consignación 
+       al mismo Solr, optimizando el número de consignaciones a un mínimo mientras aún se cumple
+       con los requisitos
+       de latencia de actualizaciones, por lo que Solr realizará automáticamente una consignación
+       cuando la agregación más antigua en el búfer venza.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un objeto SolrUpdateResponse en caso de éxito o lanza una excepción SolrClientException en caso de fallo.
+   Devuelve un objeto <type>SolrUpdateResponse</type> en caso de éxito o lanza una <type>SolrClientException</type> en caso de error.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -89,6 +106,9 @@ $doc->addField('cat', 'Lucene');
 
 $respuestaActualización = $cliente->addDocument($doc);
 
+// se ha de consignar los cambios a escribir is no se usó $commitWithin
+$client->commit();
+
 print_r($respuestaActualización->getResponse());
 
 ?>
@@ -113,17 +133,70 @@ SolrObject Object
     </screen>
    </example>
   </para>
- </refsect1>
+  <para>
+   <example>
+    <title>Ejemplo 2 de <methodname>SolrClient::addDocument</methodname></title>
+    <programlisting role="php">
+<![CDATA[
 
+<?php
+
+$opciones = array
+(
+    'hostname' => SOLR_SERVER_HOSTNAME,
+    'login'    => SOLR_SERVER_USERNAME,
+    'password' => SOLR_SERVER_PASSWORD,
+    'port'     => SOLR_SERVER_PORT,
+);
+
+$cliente = new SolrClient($opciones);
+
+$doc = new SolrInputDocument();
+
+$doc->addField('id', 334455);
+$doc->addField('cat', 'Software');
+$doc->addField('cat', 'Lucene');
+
+// No es necesario llamar a commit() ya que se proporciona $commitWithin, por lo que Solr Server autoconsignará en 10 segundos
+$respuestaActualización = $cliente->addDocument($doc, false, 1000);
+
+print_r($updateResponse->getResponse());
+
+?>
+
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+
+SolrObject Object
+(
+    [responseHeader] => SolrObject Object
+        (
+            [status] => 0
+            [QTime] => 1
+        )
+
+)
+
+]]>
+    </screen>
+   </example>
+   
+  </para>
+ </refsect1>
+ 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><methodname>SolrClient::addDocuments</methodname></member>
+    <member><methodname>SolrClient::commit</methodname></member>
    </simplelist>
   </para>
  </refsect1>
-
+ 
 </refentry>
 
 <!-- Keep this comment at the end of the file
