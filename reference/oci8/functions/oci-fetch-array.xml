@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 46854b1593fc9bf77d14db6fddcbfb73a20cbf86 Maintainer: seros Status: ready -->
+<!-- EN-Revision: e85d788eabb67456a5101afd7b994b69a495af4f Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.oci-fetch-array" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -67,7 +67,7 @@
            <entry>Devuelve un array con índices tanto asociativos como
             numéricos. Es lo mismo que
             con <constant>OCI_ASSOC</constant>
-            + <constant>OCI_NUM</constant> y es el comportamiento
+            + <constant>OCI_NUM</constant>. Es el comportamiento
             predeterminado.</entry>
           </row>
           <row>
@@ -86,7 +86,7 @@
           </row>
           <row>
            <entry><constant>OCI_RETURN_LOBS</constant></entry>
-           <entry>Devuelve el contenido de los LOBs en lugar de los descriptores
+           <entry>Devuelve el contenido de los LOB en lugar de los descriptores
             de los mismos.</entry>
           </row>
          </tbody>
@@ -125,7 +125,7 @@
    NLS_DATE_FORMAT</literal>.
   </para>
   <para>
-   Los nombres de columna predeterminados de Oracle que insensibles al uso de mayúsculas/minúsculas 
+   Los nombres de columna predeterminados de Oracle que no consideran mayúsculas/minúsculas 
    tendrán claves de array en mayúsculas. Los nombres de columnas sensibles al uso de
    mayúsculas/minúsculas tendrán claves de array que usan el nombre exacto de la columna.
    Use <function>var_dump</function> en el array resultante para verificar el uso apropiado
@@ -326,6 +326,8 @@ oci_execute($stid);
 while (($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_LOBS)) != false) {
     echo $row['ID'] . "<br>\n";
     echo $row['DESCRIPTION'] . "<br>\n"; // contiene todo lo de DESCRIPTION
+    // En un bucle, liberar la variable grande de la 2ª obtención reduce en uso de memoria de picos de PHP
+    unset($row); 
 }
 
 // La salida es:
@@ -521,7 +523,7 @@ oci_close($conn);
   </para>
   <para>
    <example>
-    <title><function>oci_fetch_array</function> con una consulta como <literal>LIMIT</literal></title>
+    <title>Paginación con <function>oci_fetch_array</function> usando una consulta como <literal>LIMIT</literal></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -536,22 +538,22 @@ if (!$conn) {
 preg_match('/Release ([0-9]+)\./', oci_server_version($conn), $matches);
 $oracleversion = $matches[1];
 
-// Esta es la consulta que se quiere ejecutar
+// Esta es la consulta que se quiere "paginar"
 $sql = 'SELECT city, postal_code FROM locations ORDER BY city';
 
-// Construir una consulta anidada seleccionando un subconjunto de filas de $sql.
-// En entornos de producción, evite los problemas de inyecciones SQL
-// con sentencias SQL concatenadas
 if ($oracleversion >= 12) {
     // Usar la sintaxis de Oracle 12c de OFFSET / FETCH NEXT
     $sql = $sql . ' OFFSET :offset ROWS FETCH NEXT :numrows ROWS ONLY';
 } else {
-    // Versiones anteriores requieren la sintaxis de consulta como esta o la
-    // consulta base necesaria para sobrescribirla al usar una función row_number()
-    $sql = "SELECT * FROM (SELECT A.*, ROWNUM AS MY_RNUM
-                           FROM ($sql) A
+    // Versiones antiguas de Oracle necesitaban una consulta anidada para
+    // seleccionar un subconjunto de $sql. O, si la sentencia SQL es conocida
+    // durante el desarrollo, considere usar una función row_number() en lugar
+    // de esta solución anidada. En entornos de producción, tenga cuidado para
+    // evitar problemas con inyecciones SQL con concatenaciones.
+    $sql = "SELECT * FROM (SELECT a.*, ROWNUM AS my_rnum
+                           FROM ($sql) a
                            WHERE ROWNUM <= :offset + :numrows)
-            WHERE MY_RNUM > :offset";
+            WHERE my_rnum > :offset";
 }
 
 $offset  = 0;  // saltar estas filas
@@ -596,7 +598,7 @@ if (!$conn) {
 // Requiere OCI8 2.0 y Oracle Database 12c
 // Véase también oci_get_implicit_resultset()
 $sql = 'DECLARE
-            c1 SYS_REFCURSOR;
+           c1 SYS_REFCURSOR;
         BEGIN
            OPEN c1 FOR SELECT city, postal_code FROM locations WHERE ROWNUM < 4 ORDER BY city;
            DBMS_SQL.RETURN_RESULT(c1);

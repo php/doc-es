@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8c1fe071140833a8e90b266523ff26a32520c4e7 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.oci-field-type-raw" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -13,14 +13,13 @@
   <methodsynopsis>
    <type>int</type><methodname>oci_field_type_raw</methodname>
    <methodparam><type>resource</type><parameter>statement</parameter></methodparam>
-   <methodparam><type>int</type><parameter>field</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>field</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve el tipo de datos sin tratar de Oracle del campo dado por <parameter>field</parameter>.
+   Devuelve el tipo de datos "SQLT" sin tratar de Oracle del campo dado por <parameter>field</parameter>.
   </para>
   <para>
-   Sin embargo, si se quiere obtener el tipo del campo, es mejor usar
-   <function>oci_field_type</function>. 
+   Si se quiere obtener el nombre de tipo del campo, es mejor usar <function>oci_field_type</function>. 
   </para>
  </refsect1>
  
@@ -51,7 +50,47 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devueleve el tipo de datos sin tratar de Oracle como una cadena, o &false; en caso de error.
+   Devueleve el tipo de datos sin tratar de Oracle como un número, o &false; en caso de error.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title><function>oci_field_type_raw</function> Example</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Crear la tabla con:
+//   CREATE TABLE mytab (number_col NUMBER, varchar2_col varchar2(1), clob_col CLOB, date_col DATE);
+
+$conn = oci_connect("hr", "hrpwd", "localhost/XE");
+if (!$conn) {
+    $m = oci_error();
+    trigger_error(htmlentities($m['message']), E_USER_ERROR);
+}
+
+$stid = oci_parse($conn, 'select * from mytab');
+oci_execute($stid, OCI_DESCRIBE_ONLY);  // Use OCI_DESCRIBE_ONLY if not fetching rows
+$n = oci_num_fields($stid);
+for ($i = 1; $i <= $n; ++$i) {
+    echo oci_field_name($stid, $i) . " is raw type: " . oci_field_type_raw($stid, $i) . "<br>\n";
+}
+
+// La salida es:
+//    NUMBER_COL is raw type: 2
+//    VARCHAR2_COL is raw type: 1
+//    CLOB_COL is raw type: 112
+//    DATE_COL is raw type: 12
+
+oci_free_statement($stid);
+oci_close($conn);
+
+?>]]>
+    </programlisting>
+   </example>
   </para>
  </refsect1>
  
