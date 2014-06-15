@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 98b6248a57330b1d616eda73954e42a19a9f7069 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 1219ed7946c32ddcf8d06e002c004c9ab4440cd2 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mongo.connecting" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -13,6 +13,140 @@
   pero está página ofrece más detalles y consejos para casos de uso
   prácticos.
  </para>
+ 
+ <section xml:id="mongo.connecting.ssl">
+  <title>Conectar sobre SSL</title>
+  <para>
+   El controlador admite conexiones a <link xlink:href="&url.mongodb.docs.configure-ssl;">MongoDB sobre SSL</link>
+   y puede opcionalmente usar opciones <link linkend="context.ssl">Contexto de flujos de SSL</link> para proporcionar más detalles,
+   tales como verificar certificados con cadenas de certificado específicas, o autenticar a
+   <link xlink:href="&url.mongodb.docs.configure-x509;">MongoDB usando la certificación X509</link>.
+  </para>
+  
+  <example xml:id="mongo.connecting.context.ssl">
+   <title>Conectar a una instancia de MongoDB con encriptación SSL</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$mc = new MongoClient("mongodb://server1", array("ssl" => true));
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example xml:id="mongo.connecting.context.ssl.verify">
+   <title>Conectar a una instancia de MongoDB con encriptación SSL, verificando que es quien se espera</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$ctx = stream_context_create(array(
+    "ssl" => array(
+        /* Verificar opcionalmente que el servidor es el previsto, y que ha sido certificado por la CA en que confiamos */
+        "verify_peer"       => true,
+        "allow_self_signed" => false,
+        "cafile"            => "/vagrant/certs/ca.pem",
+    ),
+));
+
+$mc = new MongoClient(
+    "mongodb://server1", 
+    array("ssl" => true), 
+    array("context" => $ctx)
+);
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  
+  <example xml:id="mongo.connecting.context.ssl.certificate">
+   <title>Conectar a una instancia de MongoDB que requiera certificados cliente</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$ctx = stream_context_create(array(
+    "ssl" => array(
+        "local_cert" => "/vagrant/certs/client.pem",
+        /* Si el certificado que proporcionamos fue codificado con passphrase, es necesario establecerlo aquí */
+        "passphrase" => "My Passphrase for the local_cert",
+
+        /* Verificar opcionalmente que el servidor es el previsto */
+        "verify_peer" => true,
+        "cafile"      => "/vagrant/certs/ca.pem",
+    ),
+));
+
+$mc = new MongoClient(
+    "mongodb://server1/?ssl=true", 
+    array(), 
+    array("context" => $ctx)
+);
+?>
+]]>
+   </programlisting>
+  </example>
+  
+  <example xml:id="mongo.connecting.authenticate.ssl.x509">
+   <title>Autenticación con certificados X.509</title>
+   <para>
+    El nombre de usuario es el <literal>sujeto del certificado</literal> de X509, el cual puede extraerse así:
+   </para>
+   <programlisting role="shell">
+<![CDATA[
+openssl x509 -in /vagrant/certs/ca-signed-client.pem -inform PEM -subject -nameopt RFC2253
+]]>
+   </programlisting>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$ctx = stream_context_create( array(
+    "ssl" => array(
+        "local_cert" => "/vagrant/certs/ca-signed-client.pem",
+    )
+) );
+
+$mc = new MongoClient(
+    'mongodb://username@server1/?authSource=$external&authMechanism=MONGODB-X509&ssl=true', 
+    array(), 
+    array("context" => $ctx)
+);
+?>
+]]>
+   </programlisting>
+   <para>
+    Donde <literal>username</literal> es el sujeto del certificado.
+   </para>
+  </example>
+  
+  <simplesect role="changelog">
+   &reftitle.changelog;
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>1.5.0</entry>
+       <entry>
+        Se añadió soporte para autenticación X509.
+       </entry>
+      </row>
+      <row>
+       <entry>1.4.0</entry>
+       <entry>
+        Se añadió soporte para conectar con MongoDB habilitado para SSL.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </simplesect>
+  
+ </section>
  
  <section xml:id="mongo.connecting.auth">
   <title>Autenticación</title>
