@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a21bbcd97760c4651881807299b6f6c55793cada Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4148bc245c90cbd97a98274d3120b5944e0ff220 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongocollection.ensureindex" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoCollection::ensureIndex</refname>
   <refpurpose>
-   Crea un índice en el/los campo/s dado/s, o si el índice ya existe,
-   no realiza nada
+   Crea un índice en el campo o campos especificados, si aún no existen
   </refpurpose>
  </refnamediv>
  
@@ -19,11 +18,26 @@
    <methodparam><type>string|array</type><parameter>key|keys</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
   </methodsynopsis>
+  <warning>
+   <para>
+    Este método está obsoleto desde la versión 1.5.0. Use
+    <methodname>MongoCollection::createIndex</methodname> en su lugar.
+   </para>
+  </warning>
   <para>
-   Este método crea un índice en la colección y los campos especificados.
-   Al especificar la clave se puede o bien proporcionar un nombre de campo en forma de string, o
-   un array que contenga uno o más nombres de campo con su sentido de ordenación.
+   Crea un índice con el campo o campos especificados si aún no existen.
+   Los campos podría indexarse con una dirección (p.ej., ascendente o descendente) o un
+   tipo especial (p.ej., texto, geoespacial, de tipo hash).
   </para>
+  <note>
+   <para>
+    Este método utilizará el comando de base de datos
+    <link xlink:href="&url.mongodb.dochub.createindexes;">createIndexes</link>
+    al comunicarse con MongoDB 2.6+. Para versiones anteriores de bases
+    de datos, este método realizará una operación de inserción en la
+    collección especial <literal>system.indexes</literal>.
+   </para>
+  </note>
  </refsect1>
  
  <refsect1 role="parameters"> 
@@ -36,10 +50,11 @@
      </term>
      <listitem>
       <para>
-       Array que contiene los campos por los que se ordenará el índice. Cada elemento del
-       array tiene como clave el nombre del campo, y como valor, o bien
-       <literal>1</literal> para orden ascendente, o bien <literal>-1</literal> para
-       orden desendente.
+       Un array que tiene como claves los campos de índice. Para cada campo, el
+       valor es la dirección del índice o el
+       <link xlink:href="&url.mongodb.dochub.indexes.types;">tipo de índice</link>.
+       Si se especifica la dirección, se ha de indicar <literal>1</literal> para ascendente o
+       <literal>-1</literal> para descendente.
       </para>
      </listitem>
     </varlistentry>   
@@ -49,96 +64,36 @@
      </term>
      <listitem>
       <para>
-       Este parámetro es un array asociativo de la forma
-       <literal>array("nombredeopcion" => &lt;boolean&gt;, ...)</literal>. Las opciones
-       soportadas actualmente son:
+       Un array de opciones para la creación del índice. Las opciones actualmente
+       disponibles son:
+       <itemizedlist>
+        &mongo.index.parameters.unique;
+        &mongo.index.parameters.dropdups;
+        &mongo.index.parameters.sparse;
+        &mongo.index.parameters.expireafterseconds;
+        &mongo.index.parameters.name;
+        &mongo.writes.parameters.sockettimeoutms;
+       </itemizedlist>
+      </para>
+      <para>
+       La siguiente opción podría usarse con MongoDB 2.6+:
+       <itemizedlist>
+        &mongo.command.parameters.maxtimems;
+       </itemizedlist>
+      </para>
+      <para>
+       Las siguientes opciones podrían usarser con versiones de MongoDB anteriores a la 2.6:
        <itemizedlist>
         &mongo.writes.parameters.writeconcern;
-        <listitem>
-         <para>
-          <literal>"unique"</literal>
-         </para>
-         <para>
-          Crea un índice único.
-         </para>
-         <warning>
-          <para>
-           No se puede crear un índice único en un campo si los distintos documentos
-           existentes no contienen dicho campo. Este es efectivamente &null;
-           para estos documentos y, por lo tanto, ya es no único. Se podría utilizar
-           indexación fluida para superar este problema, ya que prevendrá que los documentos sin
-           dicho cambo sean indexados.
-          </para>
-         </warning>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"dropDups"</literal>
-         </para>
-         <para>
-          Si se estuviera creando un índice único, y existieran valores duplicados, borrar
-          todos excepto uno de ellos.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"sparse"</literal>
-         </para>
-         <para>
-          Crea un índice fluido, el cual únicamente incluye documentos que contiene el
-          campo. Esta opción solamente es compatible con índices de campo sencillo.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"expireAfterSeconds"</literal>
-         </para>
-         <para>
-          El valor de esta opciión debería especificar el número de segundos transcurridos
-          para que un documento sea considerado como expirado y sea automáticamente
-          eliminado de la colección. Esta opción solamente es compatible con
-          índices de campo sencillo donde el campo contiene valores
-          <classname>MongoDate</classname>.
-         </para>
-         <para>
-          Esta característica está disponible en MongoDB 2.2+. Véase
-          <link xlink:href="&url.mongodb.docs.expire_data;">Expirar datos de colecciones estableciendo el TTL</link>
-          para más información.
-         </para>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"background"</literal>
-         </para>
-         <para>
-          De manera predeterminada, la creación de un índice es una operación de bloqueo que detendrá otras
-          operaciones sobre la base de datos hasta que sea completada. Si se
-          especifica &true; para esta opción, el índice se creará en segundo
-          plano mientras toman lugar otras operaciones.
-         </para>
-         <warning>
-          <para>
-           Antes de MongoDB 2.1.0, la operación de construcción de un índice no estaba en segundo
-           plano cuando replicaba a secundarios, sin tener en cuenta esta opción.
-           See
-           <link xlink:href="&url.mongodb.dochub.indexes.rs;">Building Indexes with Replica Sets</link>
-           for more information.
-          </para>
-         </warning>
-        </listitem>
-        <listitem>
-         <para>
-          <literal>"name"</literal>
-         </para>
-         <para>
-          Esta opción permite sobrescribir el algoritmo que usa el controlador
-          para crear un nombre de índice y especificar el propio. Puede ser
-          útil si se están indexando varias claves y Mongo reclama que el
-          nombre del índice es muy extenso.
-         </para>
-        </listitem>
-        &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.writeconcerntimeoutms;
+       </itemizedlist>
+      </para>
+      <para>
+       Las siguientes opciones están obsoletas y no deberían usarse más:
+       <itemizedlist>
         &mongo.writes.parameters.safe;
+        &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.writeconcerntimeout;
        </itemizedlist>
       </para>
      </listitem>
@@ -150,11 +105,23 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array que contiene el estado de la creación del índice si la
-   opción <literal>"w"</literal> está establecida. De lo contrario, devuelve &true;.
+   Devuelve un array que contiene el estado de la creación del índice. El array
+   contiene si la operación tuvo éxito (<literal>"ok"</literal>), el
+   número de índices antes y después de la operación
+   (<literal>"numIndexesBefore"</literal> y
+   <literal>"numIndexesAfter"</literal>), y si la colección a la que
+   pertenece el índice ha sido creada
+   (<literal>"createdCollectionAutomatically"</literal>). Si el índice ya
+   existe y no fue necesario crearlo, podría estar presente el campo
+   <literal>"note"</literal> en lugar de <literal>"numIndexesAfter"</literal>.
   </para>
   <para>
-   Los campos del array de estado están descritos en la documentación de
+   Con MongoDB 2.4 y anteriores, solamente se devolvía un documento de estado si el
+   <link linkend="mongo.writeconcerns">asunto de escritura</link> es al menos
+   <literal>1</literal>. De lo contrario devuelve &true;. Los campos del documento
+   de estado son diferentes, excepto por el campo <literal>"ok"</literal>, el cual
+   describe si la creación del índice tuvo éxito. Los campos adicionales están
+   descritos en la documentación de
    <function>MongoCollection::insert</function>.
   </para>
  </refsect1>
@@ -172,11 +139,39 @@
      </thead>
      <tbody>
       <row>
+       <entry>1.5.0</entry>
+       <entry>
+        <para>
+         Se renombró la opción <literal>"wtimeout"</literal> a
+         <literal>"wTimeoutMS"</literal>. Emite un error de nivel
+         <constant>E_DEPRECATED</constant> cuando se usa
+         <literal>"wtimeout"</literal>.
+        </para>
+        <para>
+         Se renombró la opción <literal>"wtimeout"</literal> a
+         <literal>"socketTimeoutMS"</literal>. Emite un error de nivel
+         <constant>E_DEPRECATED</constant> cuando se usa
+         <literal>"timeout"</literal>.
+        </para>
+        <para>
+         Emite un error de nivel <constant>E_DEPRECATED</constant> cuando
+         se usa <literal>"safe"</literal>.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>1.3.4</entry>
+       <entry>Se añadió la opción <literal>"wtimeout"</literal>.</entry>
+      </row>
+      <row>
        <entry>1.3.0</entry>
        <entry>
-        El parámetro <parameter>options</parameter> ya no acepta un booleano para
-        identificar un índice único. En su lugar, ahora debe hacerse con
-        <literal>array('unique' => true)</literal>.
+        <para>Se añadió la opción <literal>"w"</literal>.</para>
+        <para>
+         El parámetro <parameter>options</parameter> ya no acepta un booleano para
+         identificar un índice único. En su lugar, ahora debe hacerse con
+         <literal>array('unique' => true)</literal>.
+        </para>
        </entry>
       </row>
       <row>
@@ -213,7 +208,7 @@
       <row>
        <entry>1.0.2</entry>
        <entry>
-        Cambiado el parámetro <parameter>options</parameter> de booleano a array.
+        Se cambió el parámetro <parameter>options</parameter> de booleano a array.
         Antes de la versión 1.0.2, el segundo parámetro era un valor booleano opcional que
         especificaba si era o no un índice único.
        </entry>
@@ -227,8 +222,16 @@
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Lanza <classname>MongoException</classname> si el nombre de índice es superior
-   a 128 bytes. (Versión 1.0.11+)
+   Lanza una <classname>MongoException</classname> si el nombre del índice es mayor
+   de 128, o si la especificación del índice no es un array.
+  </para>
+  <para>
+   Lanza una <classname>MongoDuplicateKeyException</classname> si el servidor no pudo
+   crear el índice único debido a documentos conflictivos.
+  </para>
+  <para>
+   Lanza una <classname>MongoResultException</classname> si el servidor no pudo
+   crear el índice debido a un error.
   </para>
   &mongo.errors.exceptions.writeconcern;
  </refsect1>
@@ -243,65 +246,59 @@
 
 $c = new MongoCollection($db, 'foo');
 
-// crea un índice en 'x' ascendente
-$c->ensureIndex('x');
+// crear un índice sobre 'x' ascendente
+$c->ensureIndex(array('x' => 1));
 
-// crea un índice en 'y' ascendente
-$c->ensureIndex(array('y' => 1));
+// crear un índice único sobre 'y'
+$c->ensureIndex(array('y' => 1), array('unique' => true));
 
-// crea un índice en 'z' ascendente y en 'zz' descendente
-$c->ensureIndex(array('z' => 1, 'zz' => -1));
-
-// crea un índice único en 'x'
-$c->ensureIndex(array('x' => 1), array("unique" => true));
+// crear un índice compuesto sobre 'za' ascendente y 'zb' descendente
+$c->ensureIndex(array('za' => 1, 'zb' => -1));
 
 ?>
 ]]>
    </programlisting>
   </example>
   <example>
-   <title>Ejemplo de borrado de duplicados</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$collection->insert(array("username" => "joeschmoe"));
-$collection->insert(array("username" => "joeschmoe"));
-
-/*
- * falla la creación del índice; no se puede crear un índice único en una clave que no tiene
- * valores únicos
- */
-$collection->ensureIndex(array("username" => 1), array("unique" => 1));
-
-/*
- * éxito al crear índice: se ha eliminado uno de los documentos de la colección
- */
-$collection->ensureIndex(array("username" => 1), array("unique" => 1, "dropDups" => 1));
-
-/* 
- * ahora tenemos un índice único, por lo que las inserciones con el mismo username (como el
- * anterior) fallarán
- */
-$collection->insert(array("username" => "joeschmoe"));
-
-?>
-]]>
-   </programlisting>
-  </example>
-  
-  <example>
-   <title>Indexación Geoespacial</title>
+   <title>Indexación geoespacial</title>
    <para>
-    Mongo soporta índices geoespaciales, que permiten buscar documentos cercanos a una
+    Mongo soporta índices geoespaciales, los cuales permiten buscar documentos cercanos a una
     determinada localización o que estén dentro de una determinada forma. Por ejemplo, para crear
-    un índice geoespacial en el campo "loc":
+    un índice geoespacial en el campo <literal>"loc"</literal>:
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$collection->ensureIndex(array("loc" => "2d"));
+$colección->ensureIndex(array("loc" => "2d"));
+
+?>
+]]>
+   </programlisting>
+  </example>
+  <example>
+   <title>Ejemplo de eliminación de duplicados</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$colección->insert(array('nombreUsuario' => 'joeschmoe'));
+$colección->insert(array('nombreUsuario' => 'joeschmoe'));
+
+/* Falla la creación del índice; no se puede crear un índice único en un campo
+ * cuando existen duplicados.
+ */
+$colección->ensureIndex(array('nombreUsuario' => 1), array('unique' => 1));
+
+/* MongoDB uno de los documentos conflictivos y permitirá la creación del
+ * índice único.
+ */
+$colección->ensureIndex(array('nombreUsuario' => 1), array('unique' => 1, 'dropDups' => 1));
+
+/* Ahora tenemos un índice único, por lo que las inserciones subsiguientes con el
+ * mismo nombre de usuario fallarán.
+ */
+$colección->insert(array('nombreUsuario' => 'joeschmoe'));
 
 ?>
 ]]>
@@ -311,11 +308,17 @@ $collection->ensureIndex(array("loc" => "2d"));
  
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   Documentación de MongoDB sobre
-   <link xlink:href="&url.mongodb.dochub.indexes;">índices por defecto</link> y sobre
-   <link xlink:href="&url.mongodb.dochub.geo;">índices geoespaciales</link>.
-  </para>
+  <simplelist>
+   <member><methodname>MongoCollection::createIndex</methodname></member>
+   <member><methodname>MongoCollection::deleteIndex</methodname></member>
+   <member><methodname>MongoCollection::deleteIndexes</methodname></member>
+   <member>
+    Documentación sobre
+    <link xlink:href="&url.mongodb.dochub.indexes;">índcies</link> y
+    <link xlink:href="&url.mongodb.dochub.indexes.types;">tipos de índices</link>
+    de MongoDB.
+   </member>
+  </simplelist>
  </refsect1>
  
 </refentry>

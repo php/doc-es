@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: fa909446a4cf15b5829ca87417db5ebcffc32a5c Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4fc4e25cbda576d44cdf7f498c3787cf50a72ae6 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongocollection.aggregate" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -14,6 +14,11 @@
   <methodsynopsis>
    <modifier>public</modifier> <type>array</type><methodname>MongoCollection::aggregate</methodname>
    <methodparam><type>array</type><parameter>pipeline</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>options</parameter></methodparam>
+  </methodsynopsis>
+  <methodsynopsis>
+   <modifier>public</modifier> <type>array</type><methodname>MongoCollection::aggregate</methodname>
+   <methodparam><type>array</type><parameter>op</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>op</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>...</parameter></methodparam>
   </methodsynopsis>
@@ -38,7 +43,43 @@
     <term><parameter>pipeline</parameter></term>
     <listitem>
      <para>
-      Un array de operadores de tubería, o simplemente el primer operador.
+      Un array de operadores de tubería.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>options</parameter></term>
+    <listitem>
+     <para>Opciones para el comando de acumulación. Las opciones válidas son:</para>
+     <itemizedlist>
+      <listitem>
+       <para><literal>"allowDiskUse"</literal></para>
+       <para>Permitir que la agregación pueda escribir ficheros temporales</para>
+      </listitem>
+      <listitem>
+       <para><literal>"cursor"</literal></para>
+       <para>
+        Opciones para controlar la creación del objeto cursor. Si fuera necesario
+        usar esta opción, se debería considerar el uso
+        <methodname>MongoCollection::aggregateCursor</methodname>.
+       </para>
+      </listitem>
+      <listitem>
+       <para><literal>"explain"</literal></para>
+       <para>Devuelve información sobre el procesamiento de la tubería.</para>
+      </listitem>
+      &mongo.command.parameters.maxtimems;
+     </itemizedlist>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+  <para>Or</para>
+  <variablelist>
+   <varlistentry>
+    <term><parameter>op</parameter></term>
+    <listitem>
+     <para>
+      Primer operador de tubería.
      </para>
     </listitem>
    </varlistentry>
@@ -46,7 +87,7 @@
     <term><parameter>op</parameter></term>
     <listitem>
      <para>
-      El segundo operador de tubería.
+      Segundo operador de tubería.
      </para>
     </listitem>
    </varlistentry>
@@ -64,7 +105,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   El resultado de la acumulación como un array. <varname>ok</varname> será
+   Un array con el resultado de la acumulación. <varname>ok</varname> será
    establecido a <literal>1</literal> en caso de éxito, <literal>0</literal> en caso de error.
   </para>
  </refsect1>
@@ -93,6 +134,28 @@
   </para>
  </refsect1>
  
+ <refsect1 role="changelog"><!-- {{{ -->
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>1.5.0</entry>
+      <entry>
+       Se añadió el parámetro opcional <parameter>options</parameter>
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1><!-- }}} -->
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <example xml:id="mongocollection.aggregate.example.basic">
@@ -105,7 +168,7 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$m = new Mongo;
+$m = new MongoClient("localhost");
 $c = $m->selectDB("examples")->selectCollection("article");
 $datos = array (
     'title' => 'this is my title',
@@ -202,20 +265,24 @@ array(2) {
    <programlisting role="php">
 <![CDATA[
 <?php
-$m = new Mongo;
+$m = new MongoClient("localhost");
 $c = $m->selectDB("test")->selectCollection("zips");
 
-$salida = $c->aggregate(array(
+$tubería = array(
+    array(
         '$group' => array(
-            '_id' => '$state',
-           'totalPop' => array('$sum' => '$pop')
+            '_id' => array('state' => '$state', 'city' => '$city' ),
+            'pop' => array('$sum' => '$pop' )
         )
     ),
     array(
-        '$match' => array('totalPop' => array('$gte' => 10*1000*1000))
+        '$group' => array(
+            '_id' => '$_id.state',
+            'avgCityPop' => array('$avg' => '$pop')
+        )
     )
 );
-
+$salida = $c->aggregate($tubería);
 var_dump($salida);
 ?>
 ]]>
@@ -291,7 +358,7 @@ array(2) {
    <programlisting role="php">
 <![CDATA[
 <?php
-$m = new Mongo;
+$m = new MongoClient("localhost");
 $c = $m->selectDB("test")->selectCollection("zips");
 
 $salida = $c->aggregate(
@@ -333,56 +400,7 @@ array(2) {
       ["avgCityPop"]=>
       float(14481.913043478)
     }
-    [2]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "RI"
-      ["avgCityPop"]=>
-      float(18933.283018868)
-    }
-    [3]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "AL"
-      ["avgCityPop"]=>
-      float(7907.2152641879)
-    }
-    [4]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "NH"
-      ["avgCityPop"]=>
-      float(5232.320754717)
-    }
 ...
-    [45]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "WY"
-      ["avgCityPop"]=>
-      float(3359.9111111111)
-    }
-    [46]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "MN"
-      ["avgCityPop"]=>
-      float(5335.4865853659)
-    }
-    [47]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "OK"
-      ["avgCityPop"]=>
-      float(6155.7436399217)
-    }
-    [48]=>
-    array(2) {
-      ["_id"]=>
-      string(2) "IL"
-      ["avgCityPop"]=>
-      float(9931.0182450043)
-    }
     [49]=>
     array(2) {
       ["_id"]=>
@@ -405,11 +423,131 @@ array(2) {
    </screen>
   </example>
   
+  <example xml:id="mongocollection.aggregate.example.zipcode.explain">
+   <title><methodname>MongoCollection::aggregate</methodname> con opciones de comandos</title>
+   <para>
+    Para devolver información sobre cómo será procesada la tubería, se usa la opción de comando <literal>explain</literal>
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$m = new MongoClient;
+$c = $m->selectDB("test")->selectCollection("zips");
+
+$tubería = array(array(
+        '$group' => array(
+            '_id' => '$state',
+           'totalPop' => array('$sum' => '$pop'),
+        ),
+    ),
+    array(
+        '$match' => array('totalPop' => array('$gte' => 10*1000*1000)),
+    ),
+    array(
+        '$sort' => array("totalPop" => -1),
+    ),
+);
+
+$opciones = array("explain" => true);
+$salida = $c->aggregate($tubería, $opciones);
+var_dump($salida);
+?>
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+<![CDATA[
+array(2) {
+  ["stages"]=>
+  array(4) {
+    [0]=>
+    array(1) {
+      ["$cursor"]=>
+      array(3) {
+        ["query"]=>
+        array(0) {
+        }
+        ["fields"]=>
+        array(3) {
+          ["pop"]=>
+          int(1)
+          ["state"]=>
+          int(1)
+          ["_id"]=>
+          int(0)
+        }
+        ["plan"]=>
+        array(4) {
+          ["cursor"]=>
+          string(11) "BasicCursor"
+          ["isMultiKey"]=>
+          bool(false)
+          ["scanAndOrder"]=>
+          bool(false)
+          ["allPlans"]=>
+          array(1) {
+            [0]=>
+            array(3) {
+              ["cursor"]=>
+              string(11) "BasicCursor"
+              ["isMultiKey"]=>
+              bool(false)
+              ["scanAndOrder"]=>
+              bool(false)
+            }
+          }
+        }
+      }
+    }
+    [1]=>
+    array(1) {
+      ["$group"]=>
+      array(2) {
+        ["_id"]=>
+        string(6) "$state"
+        ["totalPop"]=>
+        array(1) {
+          ["$sum"]=>
+          string(4) "$pop"
+        }
+      }
+    }
+    [2]=>
+    array(1) {
+      ["$match"]=>
+      array(1) {
+        ["totalPop"]=>
+        array(1) {
+          ["$gte"]=>
+          int(10000000)
+        }
+      }
+    }
+    [3]=>
+    array(1) {
+      ["$sort"]=>
+      array(1) {
+        ["sortKey"]=>
+        array(1) {
+          ["totalPop"]=>
+          int(-1)
+        }
+      }
+    }
+  }
+  ["ok"]=>
+  float(1)
+}
+]]>
+  </screen>
+  </example>
+  
  </refsect1>
  
  <refsect1 role="seealso">
   &reftitle.seealso;
   <simplelist>
+   <member><methodname>MongoCollection::aggregateCursor</methodname></member>
    <member>El <link xlink:href="&url.mongodb.docs.aggregation;">framework de acumulación</link> de MongoDB</member>
   </simplelist>
  </refsect1>

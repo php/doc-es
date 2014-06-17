@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 34575dba02e14db5c1a9e874b3fccfc5fbfab87b Maintainer: seros Status: ready -->
+<!-- EN-Revision: adffd231a78f0c8e4e2c8eb24931e56d0830a629 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongoclient.construct" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -15,6 +15,7 @@
    <modifier>public</modifier> <methodname>MongoClient::__construct</methodname>
    <methodparam choice="opt"><type>string</type><parameter>server</parameter><initializer>"mongodb://localhost:27017"</initializer></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array("connect" => &true;)</initializer></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>driver_options</parameter></methodparam>
   </constructorsynopsis>
   <para>
    Si no se proporció ninúng parámetro, se conectará a "localhost:27017" (o lo que
@@ -31,8 +32,8 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
    </programlisting>
   </para>
   <para>
-   La cadena de conexión siempre comienza con <literal>mongodb://</literal>, para
-   indicar que es una cadena de conexión con esta forma.
+   El string de conexión siempre comienza con <literal>mongodb://</literal>, para
+   indicar que es un string de conexión con esta forma.
   </para>
   <para>Si se especifican <literal>nombre_usuario</literal> y <literal>contraseña</literal>,
    el constructor intenrará autenticar la conexión con
@@ -54,7 +55,7 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
    "admin".
   </para>
   <para>
-   Se puede usar una cadena de conexión opcional para especificar opciones extra. Las mismas
+   Se puede usar un string de conexión opcional para especificar opciones extra. Las mismas
    opciones también son admitidas a través del array <parameter>options</parameter>,
    y, por lo tanto, están descritas allí. Véanse los <link
    linkend="mongo.mongoclient.construct.examples">ejemplo de abajo</link> sobre
@@ -88,9 +89,58 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
      </term>
      <listitem>
       <para>
-       Un array con opciones para la conexión. Las opciones disponibles actualmente
-       son:
+       Un array con opciones para la conexión. Las opciones disponibles
+       actualmente son:
        <itemizedlist>
+        <listitem>
+         <para>
+          <literal>"authMechanism"</literal>
+         </para>
+         <para>
+          Los mecanismos de autenticación son:
+          <informaltable>
+           <tgroup cols="3">
+            <thead>
+             <row>
+              <entry>authMechanism</entry>
+              <entry>Descripción</entry>
+              <entry>Disponibilidad</entry>
+             </row>
+            </thead>
+            <tbody>
+             <row>
+              <entry>MONGODB-CR</entry>
+              <entry>Autenticar usando el mecanismo de Respuesta de Reto. Este es el valor predeterminado.</entry>
+              <entry>Todas las versiones de MongoDB</entry>
+             </row>
+             <row>
+              <entry>X509</entry>
+              <entry>Autenticar usando certificados X509</entry>
+              <entry>MongoDB 2.6. Solamente disponible si <xref linkend="book.openssl" /> está habilitado</entry>
+             </row>
+             <row>
+              <entry>PLAIN</entry>
+              <entry>Autenticar usando nombre_usuario+contraseña plano no encriptado. Debe usarse sobre conexiones SSL. Generalmente usado por MongoDB para identificarse mediante un servidor LDAP de terceros</entry>
+              <entry>MongoDB Enterprise 2.4. El controlador debe compilarse con CyrusSASL2</entry>
+             </row>
+             <row>
+              <entry>GSSAPI</entry>
+              <entry>Autenticar mediante sistemas kerberos</entry>
+              <entry>MongoDB Enterprise 2.4. El controlador debe compilarse con CyrusSASL2</entry>
+             </row>
+            </tbody>
+           </tgroup>
+          </informaltable>
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"authSource"</literal>
+         </para>
+         <para>
+          Debería estar establecido al nombre de la base de datos cuando lo defina.
+         </para>
+        </listitem>
         <listitem>
          <para>
           <literal>"connect"</literal>
@@ -104,7 +154,7 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
          </para>
          <warning>
           <para>
-           Esta opción no está admitida a través de la cadena de conexión.
+           Esta opción no está admitida a través del string de conexión.
           </para>
          </warning>
         </listitem>
@@ -132,33 +182,53 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
           <literal>"fsync"</literal>
          </para>
          <para>
-          Cuando se establece <literal>fsync</literal>, todas las operaciones de lectura en la
-          base de datos únicamente devuelvan cuando la escritura haya sido sincronizada con el disco.
-          Esto hace que las operaciones de lectura sean más lentas,
-          pero garantiza que la operación de escritura tenga éxito y se
-          consigne al disco. Si se tiene la opción "journal" activada en MongoDB (lo
-          predeterminado), la sincronización le sucede solamente al
-          <emphasis>journal</emphasis>. Si no está habilitado, el uso de
-          <literal>fsync</literal> requiere un volcado completo al disco.
+          Cuando <literal>"fsync"</literal> está establecido, todas las operaciones de escritura
+          bloquearán hasta que la base de datos haya volcado los cambios al disco. Esto hace que las
+          operaciones de escritura sean más lentas, pero garantiza su éxito
+          y que puedan ser recuperadas en caso de un fallo
+          total del sistema.
          </para>
-         <warning>
-          <para>
-           <emphasis>No use</emphasis> esta opción, está
-           obsoleta; use la opción <literal>journal</literal> en su lugar,
-           quizá junto con la opción <literal>w</literal>.
-          </para>
-         </warning>
+         <para>
+          Si el servidor de MongoDB tiene el registro en el diario habilitado, esta opción es idéntica
+          a <emphasis>"journal"</emphasis>. Si el registro no está habilitado, esta opción
+          se asegura de que las operaciones de escritura se sincronicen con los ficheros de la base
+          de dato del disco.
+         </para>
+         <note>
+          <simpara>
+           Si el registro en el diario está habilitado, se recomienda utilizar la opción
+           <literal>"journal"</literal> en lugar de
+           <literal>"fsync"</literal>. No use <literal>"fsync"</literal> y
+           <literal>"journal"</literal> simultáneamente, ya que resultará en
+           un error.
+          </simpara>
+         </note>
         </listitem>
         <listitem>
          <para>
           <literal>"journal"</literal>
          </para>
          <para>
-          Cuando se establece <literal>journal</literal>, todas las operaciones de lectura en la
-          base de datos bloquearán hasta que el servidor de bases de datos haya volcado sus
-          ficheros de bases de datos al disco. Esto hace que las operaciones sean marginalmente más lentas,
-          pero garantiza que la operación de escritura tenga éxito y que
-          pueda ser recuperada en caso de un fallo total del sistema.
+          Cuando <literal>"journal"</literal> está establecido, todas las operaciones de escritura
+          bloquearán hasta que la base de datos haya volcado los cambios del diario al disco.
+          Esto hace que las operaciones de escritura sean más lentas, pero garantiza su éxito
+          y que puedan ser recuperadas en caso de un fallo
+          total del sistema.
+         </para>
+         <note>
+          <simpara>
+           Si está operación se usa y el registro en el diario está deshabilitado, MongoDB 2.6+
+           emitirá un error y la escritura fallará; las versiones más antiguas del servidor
+           simplemente ignorarán esta opción.
+          </simpara>
+         </note>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"gssapiServiceName"</literal>
+         </para>
+         <para>
+          Establece el <link xlink:href="&url.mongodb.docs.kerberos.service-principal;">Jefe de servicios de Kerberos</link>. Aplicable solamente si authMechanism=GSSAPI. El valor predeterminado es "mongodb".
          </para>
         </listitem>
         <listitem>
@@ -211,9 +281,18 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
          </para>
          <para>
           El nombre del conjunto de réplica al que conectarse. Si se proporciona, el
-          primario será automáticamente determinado. Esto significa que el controlador
+          primario se determinará automáticamente. Esto significa que el controlador
           podría acabar por conectarse a un servidor que no estuviera en la lista.
           Véase el ejemplo del conjunto de réplica abajo para mas detalles.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          <literal>"secondaryAcceptableLatencyMS"</literal>
+         </para>
+         <para>
+          Cuando se lee de un secundario (usando ReadPreferences), no leer de secundarios que se sabe que están a más de
+          <literal>secondaryAcceptableLatencyMS</literal> de nosotros. El valor predeterminado es <literal>15</literal>
          </para>
         </listitem>
         <listitem>
@@ -229,6 +308,7 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
             realmente recibió la escritura.
            </simpara>
           </note>
+          El valor predeterminado es 30 segundos. Este valor también puede establecerse en cada cursor usando <methodname>MongoCursor::timeout</methodname>.
          </para>
         </listitem>
         <listitem>
@@ -297,10 +377,19 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
        <itemizedlist>
         <listitem>
          <para>
+          <literal>"slaveOkay"</literal>
+         </para>
+         <para>
+          Obsoleta. Use las opciones de <link linkend="mongo.readpreferences">preferencias
+          de lectura</link>.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
           <literal>"timeout"</literal>
          </para>
          <para>
-          Alias obsoleto de "connectTimeoutMS".
+          Alias obsoleto de <literal>"connectTimeoutMS"</literal>.
          </para>
         </listitem>
         <listitem>
@@ -308,7 +397,33 @@ mongodb://[nombre_usuario:contraseña@]host1[:puerto1][,host2[:puerto2:],...]/bd
           <literal>"wTimeout"</literal>
          </para>
          <para>
-          Alias obsoleto de "wTimeoutMS".
+          Alias obsoleto de <literal>"wTimeoutMS"</literal>.
+         </para>
+        </listitem>
+       </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+    
+    <varlistentry>
+     <term>
+      <parameter>driver_options</parameter>
+     </term>
+     <listitem>
+      <para>
+       Un array de opciones para el controlador de MongoDB. Las opciones incluyen los ajustes
+       de conexión <link linkend="mongo.connecting.context.ssl">opciones de contexto para SSL</link>
+       o <link linkend="context.mongodb">retrollamadas de identificación</link>.
+       <itemizedlist>
+        <listitem>
+         <para>
+          <literal>"context"</literal>
+         </para>
+         <para>
+          El contexto de flujo a adjuntar a todas las conexiones nuevas. Esto permite,
+          por ejemplo, configurar certificados SSL. Están descritos en las
+          <link linkend="context.ssl">opciones de contexto de SSL</link>. Véase el tutorial
+          <link linkend="mongo.connecting.context.ssl">Conectar sobre SSL</link>.
          </para>
         </listitem>
        </itemizedlist>
@@ -386,7 +501,7 @@ $m1 = new MongoClient("mongodb://sf2.example.com,ny1.example.com", array("replic
    <para>
     En la versión 1.5.0, el servidor de MongoDB abre automáticamente un socket en
     /tmp/mongodb-&lt;puerto&gt;.sock. Se puede conectar a este socket especificado la
-    ruta en la cadena de conexión:
+    ruta en el string de conexión:
    </para>
    <programlisting role="php">
 <![CDATA[
@@ -418,7 +533,7 @@ $m = new MongoClient("mongodb:///tmp/mongodb-27017.sock,localhost:27017");
     Debe existir un usuario en la base de datos 'admin' antes de intentar usar la
     autenticación. Se puede crear uno con la interfaz de línea de comandos de Mongo ejecutando:
    </para>
-   <programlisting>
+   <programlisting role="shell">
 <![CDATA[
 > use admin
 switched to db admin
@@ -468,14 +583,14 @@ $m = new MongoClient($uri, array('replicaSet' => 'rs'));
   <example>
    <title>Ejemplo de opciones de <function>MongoClient::__construct</function></title>
    <para>
-    Las opciones puede pasarse a través de la cadena de consulta en la cadena de
+    Las opciones puede pasarse a través del string de consulta en el string de
     conexión, o como un array pasado al constructor como segundo argumento.
    </para>
    <para>
     Aquí se establece la opción 'journal' a true y 'readPreference' al secundario
     preferido como predeterminado para todas las operaciones de escritura:
    </para>
-   <programlisting>
+   <programlisting role="php">
 <![CDATA[
 <?php
 $m = new MongoClient("mongodb://localhost/?journal=true&readPreference=secondary");
@@ -485,7 +600,7 @@ $m = new MongoClient("mongodb://localhost/?journal=true&readPreference=secondary
    <para>
     Y ahora se hace lo mismo, pero con un array de opciones:
    </para>
-   <programlisting>
+   <programlisting role="php">
 <![CDATA[
 <?php
 $opciones = array(
@@ -532,11 +647,31 @@ $m = new MongoClient($uri, array('replicaSet' => 'rs'));
      </thead>
      <tbody>
       <row>
+       <entry>1.5.0</entry>
+       <entry>
+        <para>
+         Se añadieron <literal>"authMechanism"</literal>, <literal>"gssapiServiceName"</literal>, y <literal>"secondaryAcceptableLatencyMS"</literal>.
+        </para>
+       </entry>
+      </row>
+      <row>
        <entry>1.4.0</entry>
        <entry>
         <para>
-         Se añadió la opción <literal>"wTimeoutMS"</literal> como sustituto
-         de <literal>"wTimeout"</literal>.
+         Se añadió la opción <literal>"wTimeoutMS"</literal>, que remplaza a
+         <literal>"wTimeout"</literal>.
+        </para>
+        <para>
+         Emite un error de nivel <constant>E_DEPRECATED</constant> al usar
+         <literal>"slaveOkay"</literal> o <literal>"timeout"</literal>.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>1.5.0</entry>
+       <entry>
+        <para>
+         Se añadió <literal>"authSource"</literal>.
         </para>
        </entry>
       </row>
@@ -578,7 +713,7 @@ $m = new MongoClient($uri, array('replicaSet' => 'rs'));
           <listitem>
            <para>
             Si la conexión debiera ser persistente. Si se establece, la conexión será
-            persistente. La representación de cadena del valor se usa como un
+            persistente. La representación de tipo string del valor se usa como un
             ID para la conexión, por lo que dos instancias de
             <classname>MongoClient</classname> que hayan sido inicializadas con
             <literal>array("persist" => "foobar")</literal> compartirán la misma
@@ -656,8 +791,6 @@ $m = new MongoClient($uri, array('replicaSet' => 'rs'));
    </informaltable>
   </para>
  </refsect1>
- 
- 
  
 </refentry>
 <!-- Keep this comment at the end of the file

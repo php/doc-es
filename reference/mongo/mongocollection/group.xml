@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9aa2442769e39013415e198883e40a04931cf33a Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 4fc4e25cbda576d44cdf7f498c3787cf50a72ae6 Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <refentry xml:id="mongocollection.group" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -36,7 +36,7 @@
       <para>1.0.4+: Si <parameter>keys</parameter> es una instancia de
        <classname>MongoCode</classname>, <parameter>keys</parameter> será tratado como una función
        que devuelve la clave con la que agrupar (revise el ejemplo de abajo
-       sobre "Pasando una función a <parameter>keys</parameter>").  
+       sobre "Pasar una función a <parameter>keys</parameter>").  
       </para>
      </listitem>
     </varlistentry>   
@@ -46,7 +46,7 @@
      </term>
      <listitem>
       <para>
-       Valor inicial del objeto contador combinado.
+       Valor inicial del objeto contador de acumulación.
       </para>
      </listitem>
     </varlistentry>   
@@ -56,8 +56,8 @@
      </term>
      <listitem>
       <para>
-       Una función que toma dos argumentos (el documento actual y la agregación
-       en este punto) y realiza la agregación.
+       Una función que toma dos argumentos (el documento actual y la acumulación
+       en este punto) y realiza la acumulación.
       </para>
      </listitem>
     </varlistentry>   
@@ -67,7 +67,7 @@
      </term>
      <listitem>
       <para>
-       Parámetros opcionales para el comando group. Las opciones válidas incluyen:
+       Parámetros opcionales para el comando group. Las opciones válidas son:
       </para>
       <itemizedlist>
        <listitem>
@@ -75,7 +75,7 @@
          <literal>"condition"</literal>
         </para>
         <para>
-         Condición para incluir un documento a la agregación.
+         Condición para incluir un documento a la acumulación.
         </para>
        </listitem>
        <listitem>
@@ -87,6 +87,7 @@
          reduce.
         </para>
        </listitem>
+       &mongo.command.parameters.maxtimems;
       </itemizedlist>
      </listitem>
     </varlistentry>   
@@ -114,6 +115,10 @@
      </thead>
      <tbody>
       <row>
+       <entry>1.5.0</entry>
+       <entry>Se añadió la opción <literal>"maxTimeMS"</literal>.</entry>
+      </row>
+      <row>
        <entry>1.2.11</entry>
        <entry>
         Emite un error de nivel <constant>E_DEPRECATED</constant> cuando
@@ -132,17 +137,17 @@
    <title>Ejemplo de <function>MongoCollection::group</function></title>
    <para>
     Agrupa los documentos por categoría y crea una lista de los nombres que hay
-    dentro de la categoría.
+    dentro de dicha categoría.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$collection->insert(array("categoria" => "fruta", "nombre" => "manzana"));
-$collection->insert(array("categoria" => "fruta", "nombre" => "melocoton"));
-$collection->insert(array("categoria" => "fruta", "nombre" => "platano"));
-$collection->insert(array("categoria" => "verdura", "nombre" => "maiz"));
-$collection->insert(array("categoria" => "verdura", "nombre" => "brocoli"));
+$colección->insert(array("categoria" => "fruta", "nombre" => "manzana"));
+$colección->insert(array("categoria" => "fruta", "nombre" => "melocoton"));
+$colección->insert(array("categoria" => "fruta", "nombre" => "platano"));
+$colección->insert(array("categoria" => "verdura", "nombre" => "maiz"));
+$colección->insert(array("categoria" => "verdura", "nombre" => "brocoli"));
 
 $keys = array("categoria" => 1);
 
@@ -150,7 +155,7 @@ $initial = array("items" => array());
 
 $reduce = "function (obj, prev) { prev.items.push(obj.nombre); }";
 
-$g = $collection->group($keys, $initial, $reduce);
+$g = $colección->group($keys, $initial, $reduce);
 
 echo json_encode($g['retval']);
 
@@ -169,16 +174,16 @@ echo json_encode($g['retval']);
    <title>Ejemplo de <function>MongoCollection::group</function></title>
    <para>
     Este ejemplo no utiliza ninguna clave, por lo que cada documento será su propio grupo.
-    Además, usa una condición: sólo los documentos que la cumplan, serán procesados
+    Además, usa una condición: sólo los documentos que la cumplan serán procesados
     por la función de agrupación.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$collection->save(array("a" => 2));
-$collection->save(array("b" => 5));
-$collection->save(array("a" => 1));
+$colección->save(array("a" => 2));
+$colección->save(array("b" => 5));
+$colección->save(array("a" => 1));
 
 // usar todos los campos
 $claves = array();
@@ -192,7 +197,7 @@ $reduce = "function (obj, prev) { prev.count++; }";
 // usar sólo los documentos donde el campo "a" es mayor que 1
 $condicion = array('condition' => array("a" => array( '$gt' => 1)));
 
-$g = $collection->group($claves, $inicial, $reduce, $condicion);
+$g = $colección->group($claves, $inicial, $reduce, $condicion);
 
 var_dump($g);
 
@@ -223,11 +228,11 @@ array(4) {
   </example>
   
   <example>
-   <title>Pasando una función a <parameter>keys</parameter></title>
+   <title>Pasar una función a <parameter>keys</parameter></title>
    <para>
     Si se desea agrupar por algo distinto a un nombre de campo, se puede pasar
     una función como primer parámetro de 
-    <function>MongoCollection::group</function> y se ejecutará con cada documento.
+    <function>MongoCollection::group</function>, y así se ejecutará con cada documento.
     Se usará el valor devuelto de la función como valor de
     agrupación.
    </para>
@@ -247,7 +252,6 @@ $c->group(new MongoCode('function(doc) { return {mod : doc.num % 4}; }'),
 ]]>
    </programlisting>
   </example>
-  
  </refsect1>
  
 </refentry>

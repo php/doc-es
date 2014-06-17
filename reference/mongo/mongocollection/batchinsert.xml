@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e354213395a98fbfe4454e1c386aca7ab6613a66 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 4daa8ece2f2d57e8c0be8b343bd072d7f81889c9 Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <refentry xml:id="mongocollection.batchinsert" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -33,8 +33,8 @@
       </para>
       <note>
        <para>
-        Si los documentos a insertar no poseen una clave <literal>_id</literal> o
-        propiedad, se creará una nueva instancia de <classname>MongoId</classname>
+        Si los documentos a insertar no poseen una clave o propiedad <literal>_id</literal>,
+        se creará una nueva instancia de <classname>MongoId</classname>
         y se le asignará. Véase <function>MongoCollection::insert</function> para
         información adicional sobre este comportamiento.
        </para>
@@ -47,7 +47,8 @@
      </term>
      <listitem>
       <para>
-       Opciones para las inserciones.
+       Un array de opciones para las operaciones de inserción de lotes. Las opciones
+       disponibles actualmente son:
        <itemizedlist>
         <listitem>
          <para>
@@ -56,33 +57,37 @@
          <para>
           Booleano, por omisión es &false;. Si se establece, la base de datos no parará de
           procesar un volumen de inserciones si una falla (p.ej. debido a IDs duplicados).
-          Esto hace que el volumen de inserciones se comporte de manera similar que una insercioón
+          Esto hace que el volumen de inserciones se comporte de manera similar a una insercioón
           única, excepto que con la llamada a <function>MongoDB::lastError</function>
-          se obtendrá un error de conjunto si cualquier inserción falla, no sólo la primera.
+          se obtendrá un error establecido si cualquier inserción falla, no sólo la primera.
           Si ocurren varios errores, sólo se informará de más reciente, mediante
           <function>MongoDB::lastError</function>.
          </para>
          <note>
           <para>
-           Por favor, observe que <literal>continueOnError</literal> afecta únicamente
-           a los errores del lado del servidor. Si se intenta insertar un documento que tiene
+           Observe que <literal>continueOnError</literal> afecta únicamentea los errores
+           del lado del servidor. Si se intenta insertar un documento que tiene
            errores (por ejemplo que contiene una clave con un nombre vacío), el
-           documento no es transferido a la base de datos ya que el controlador
-           detecta este error y falla.
+           documento no será transferido a la base de datos, ya que el controlador
+           detecta este error y no continúa.
            <literal>continueOnError</literal> no tiene efecto sobre errores detectados
-           en los documentos por el controlador.
+           por el controlador en los documentos.
           </para>
          </note>
         </listitem>
         &mongo.writes.parameters.fsync;
         &mongo.writes.parameters.journal;
-<!--
         &mongo.writes.parameters.sockettimeoutms;
--->
         &mongo.writes.parameters.writeconcern;
-        &mongo.writes.parameters.writeconcerntimeout;
+        &mongo.writes.parameters.writeconcerntimeoutms;
+       </itemizedlist>
+      </para>
+      <para>
+       Las siguientes opciones están obsoletas y no deberían usarse más:
+       <itemizedlist>
         &mongo.writes.parameters.safe;
         &mongo.writes.parameters.timeout;
+        &mongo.writes.parameters.writeconcerntimeout;
        </itemizedlist>
       </para>
      </listitem>
@@ -97,14 +102,14 @@
    Si el parámetro <literal>w</literal> está establecido para aceptar la escritura,
    devuelve un array asociativo con el estado de las inserciones ("ok") y cualquier
    error que pudiera ocurrir ("err"). De lo contrario, devuelve &true; si la
-   inserción por lotes fue enviada con éxito, &false; si no.
+   inserción por lotes fue enviada con éxito, si no, &false;.
   </para>
  </refsect1>
  
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Lanza una excepción de tipo <classname>MongoException</classname> si cualquier documento insertado está
+   Lanza una <classname>MongoException</classname> si cualquier documento insertado está
    vacío o si contiene claves de longitud cero. Intentar insertar un objeto
    con propiedades protegidas o privadas causará un error de clave de longitud cero.
   </para>
@@ -123,13 +128,33 @@
       </row>
      </thead>
      <tbody>
-<!--
       <row>
        <entry>1.5.0</entry>
-       <entry>Se renombró la opción <literal>"timeout"</literal> a
-       <literal>"socketTimeoutMS"</literal>.</entry>
+       <entry>
+        <para>
+         Se añadió la opción <literal>"wTimeoutMS"</literal>, la cual remplaza a
+         <literal>"wtimeout"</literal>. Emite un error de nivel <constant>E_DEPRECATED</constant>
+         cuando se usa <literal>"wtimeout"</literal>.
+        </para>
+        <para>
+         Se añadió la opción <literal>"socketTimeoutMS"</literal>, la cual remplza a
+         <literal>"timeout"</literal>. Emite un error de nivel <constant>E_DEPRECATED</constant>
+         cuando se usa <literal>"timeout"</literal>.
+        </para>
+        <para>
+         Emite un error de nivel <constant>E_DEPRECATED</constant> al
+         usar <literal>"safe"</literal>.
+        </para>
+       </entry>
       </row>
--->
+      <row>
+       <entry>1.3.4</entry>
+       <entry>Se añadió la opción <literal>"wtimeout"</literal>.</entry>
+      </row>
+      <row>
+       <entry>1.3.0</entry>
+       <entry>Se añadió la opción <literal>"w"</literal>.</entry>
+      </row>
       <row>
        <entry>1.2.7</entry>
        <entry>Se añadió la opción <literal>"continueOnError"</literal>.</entry>
@@ -161,30 +186,30 @@
   <example>
    <title>Ejemplo de <function>MongoCollection::batchInsert</function></title>
    <para>
-    Las inserciones por lotes son una forma rápida de añadir muchos elementos a la base de datos
+    Las inserciones por lotes son una forma rápida de añadir muchos elementos a la base de datos de una sola vez
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$users = array();
+$usuarios = array();
 for ($i = 0; $i<100; $i++) {
-  $users[] = array('username' => 'user'.$i, 'i' => $i);
+  $usuarios[] = array('nombreUsuario' => 'usuario'.$i, 'i' => $i);
 }
 
 $mongo = new MongoClient();
-$collection = $mongo->my_db->users;
+$collection = $mongo->my_db->usuarios;
 $collection->drop();
 
-$collection->batchInsert($users);
+$collection->batchInsert($usuarios);
 
-foreach ($users as $user) {
-  echo $user['_id']."\n"; // completado con instanceof MongoId
+foreach ($usuarios as $usuario) {
+  echo $usuario['_id']."\n"; // completado con instanceof MongoId
 }
 
-$users = $collection->find()->sort(array('i' => 1));
-foreach ($users as $user) {
-    var_dump($user['username']);
+$usuarios = $collection->find()->sort(array('i' => 1));
+foreach ($usuarios as $usuario) {
+    var_dump($usuario['nombreUsuario']);
 }
 
 ?>
@@ -197,9 +222,9 @@ foreach ($users as $user) {
 4bf43ac68ead0e1971010000
 4bf43ac68ead0e1971020000
 ...
-string(5) "user1"
-string(5) "user2"
-string(5) "user3"
+string(5) "usuario1"
+string(5) "usuario2"
+string(5) "usuario3"
 ...
 ]]>
    </screen>
@@ -226,7 +251,7 @@ $doc2 = array(
         'desc' => "TWO",
 );
 $doc3 = array(
-        '_id' => new MongoId('4cb4ab6d7addf98506010002'), // el mismo _id que es de arriba
+        '_id' => new MongoId('4cb4ab6d7addf98506010002'), // el mismo _id que el anteior
         'id' => 3,
         'desc' => "THREE",
 );
