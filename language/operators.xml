@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: f002c9de8f31e55a7f1ad9c1bfc04fa495b15966 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 79eb03f7bf44e67036526f602b3432adbdd78f95 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <chapter xml:id="language.operators" xmlns="http://docbook.org/ns/docbook">
  <title>Operadores</title>
@@ -91,6 +91,11 @@
        <entry>izquierda</entry>
        <entry><literal>[</literal></entry>
        <entry><function>array</function></entry>
+      </row>
+      <row>
+       <entry>izquierda</entry>
+       <entry><literal>**</literal></entry>
+       <entry><link linkend="language.operators.arithmetic">aritmética</link></entry>
       </row>
       <row>
        <entry>derecha</entry>
@@ -372,6 +377,11 @@ $array[$i] = $i++; // podría establecer el índice a 1 o 2
       <entry>Módulo</entry>
       <entry>Resto de <varname>$a</varname> dividido por <varname>$b</varname>.</entry>
      </row>
+     <row>
+      <entry>$a ** $b</entry>
+      <entry>Exponenciación</entry>
+      <entry>Resultado de elevar <varname>$a</varname> a la potencia <varname>$b</varname>ésima. Introducido en PHP 5.6.</entry>
+     </row>
     </tbody>
    </tgroup>
   </table>
@@ -613,15 +623,28 @@ $o = &new C;
    luego la equivalencia.
   </para>
   <para>
-   Sea consciente de las conversiones de tipos de datos. Si tanto los parámetros
-   de la izquierda como los de la derecha son cadenas, el operador bit a bit
-   operará en los valores ASCII de los caracteres.
+   Si los operandos para los operadores <literal>&amp;</literal>, <literal>|</literal> y
+   <literal>^</literal> son string, la operación se realizará
+   con los valores ASCII de los caracteres que componen dichos string, y el
+   resultado será también un string. En todos los demás casos, ambos operandos serán
+   <link linkend="language.types.integer.casting">convertidos a valores de tipo integer</link>
+   y el resultado será también un integer.
+  </para>
+  <para>
+   Si el operando del operados <literal>~</literal> es un string, la
+   operación se realizará con valores los ASCII de los caracteres que componen
+   dicho string, y el resultado también será un string; en caso contrario, el operando y
+   el resultado serán tratados como valores de tipo integer.
+  </para>
+  <para>
+   Ambos operandos y el resultado de lo operadores <literal>&lt;&lt;</literal> y
+   <literal>&gt;&gt;</literal> siempre son tratados como valores de tipo integer.
   </para>
   <para>
    <informalexample>
     <para>
      <literallayout>
-      La configuración error_reporting del PHP ini utiliza valores de bit a bit,
+      El ajuste ini error_reporting utiliza valores a nivel de bit,
       lo que ofrece una demostración del mundo real de desactivar
       bits. Para mostrar todos los errores, a excepción de los avisos,
       las instrucciones del archivo php.ini dicen utilizar:
@@ -1167,10 +1190,14 @@ Expression: 0 = -4 << 62
   </para>
   <warning>
    <para>
-    No desplazar a la derecha más de 32 bits en sistemas de 32 bits.
-    No desplazar a la izquierda en caso de que resulte en un número más largo de 32 bits.
-    Usar funciones de la extensión gmp para manipulación bit a bit sobre
-    números más allá de PHP_INT_MAX.
+    Desplazar un integer por valores mayores o iguales al ancho del tipo long integer
+    del sistema resultará en un comportamiento indefinido. En otras palabras, no desplace
+    más de 31 bit en sistemas de 32 bit, y no desplace más de 63 bit en sistemas
+    de 64 bit.
+   </para>
+   <para>
+    Use funciones de la extensión <link linkend="book.gmp">gmp</link> para
+    manipular a nivel de bit números mayores que <literal>PHP_INT_MAX</literal>.
    </para>
   </warning>
   <para>
@@ -1457,8 +1484,8 @@ if (empty($_POST['action'])) {
    </para>
    <note>
     <simpara>
-     Por favor note que el operador ternario es una sentencia, y que
-     no evalúa a una variable, pero si al resultado de una sentencia. Esto
+     Por favor note que el operador ternario es una expresión, y que
+     no evalúa a una variable, sino al resultado de una expresión. Esto
      es importante saberlo si se desea retornar una variable por referencia.
      La sentencia <literal>return $var == 42 ? $a : $b;</literal> en una
      función con retorno-por-referencia no funcionará por lo que se ha mencionado y una advertencia es
