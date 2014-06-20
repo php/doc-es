@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 0 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="mongowritebatch.execute" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>MongoWriteBatch::execute</refname>
+  <refpurpose>Description</refpurpose>
+ </refnamediv>
+ 
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>final</modifier> <modifier>public</modifier> <type>array</type><methodname>MongoWriteBatch::execute</methodname>
+   <methodparam><type>array</type><parameter>write_options</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Ejecutar el MongoWriteBath.
+  </para>
+  
+ </refsect1>
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>write_options</parameter></term>
+    <listitem>
+     <para>
+      Véase <link linkend="mongowritebatch.construct.write_options">MongoWriteBatch::__construct</link>.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+ 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un array que contiene información estadística del lote completo.
+   Si el lote tuvo que ser dividido en varios lotes, el valor devuelto acumulará
+   los valores de los lotes individualtes y devolverá solamente el total.
+  </para>
+  <para>
+   Si el lote estuviera vacío, devuelve un array que contiene solamente el campo 'ok' (como &true;) aunque
+   no se enviará nada sobre el cable (<acronym>NOOP</acronym>).
+  </para>
+  <para>
+   <informaltable>
+    <thead>
+     <row>
+      <entry>Clave del array</entry>
+      <entry>Significado del valor</entry>
+      <entry>Devuelto por el tipo de lote</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>nInserted</entry>
+      <entry>Número de documentos insertados</entry>
+      <entry>Lote de MongoWriteBatch::COMMAND_INSERT</entry>
+     </row>
+     <row>
+      <entry>nMatched</entry>
+      <entry>Número de documentos que coinciden con los criterios de consulta</entry>
+      <entry>Lote de MongoWriteBatch::COMMAND_UPDATE</entry>
+     </row>
+     <row>
+      <entry>nModified</entry>
+      <entry>Número de documentos que realmente es necesario modificar</entry>
+      <entry>Lote de MongoWriteBatch::COMMAND_UPDATE</entry>
+     </row>
+     <row>
+      <entry>nUpserted</entry>
+      <entry>Número de documentos "upsert"ados</entry>
+      <entry>Lote de MongoWriteBatch::COMMAND_UPDATE</entry>
+     </row>
+     <row>
+      <entry>nRemoved</entry>
+      <entry>Número de documentos eliminados</entry>
+      <entry>Lote de MongoWriteBatch::COMMAND_DELETE</entry>
+     </row>
+     <row>
+      <entry>ok</entry>
+      <entry>Indicador de éxito de comando</entry>
+      <entry>Todos</entry>
+     </row>
+    </tbody>
+   </informaltable>
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Se lanza una <classname>MongoWriteConcernException</classname> en caso de error.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example xml:id="mongowritebatch.execute.example.insert">
+   <title>Ejemplo de <methodname>MongoWriteBatch::add</methodname></title>
+   <para>
+    Agrupar varias operaciones de inserción
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$mc = new MongoClient("localhost");
+$colección = $mc->selectCollection("test", "test");
+
+
+$docs = array();
+$docs[] = array("my" => "demo");
+$docs[] = array("is" => "working");
+$docs[] = array("pretty" => "well");
+
+$lote = new MongoInsertBatch($colección);
+foreach($docs as $documento) {
+    $lote->add($documento);
+}
+$retval = $lote->execute(array("w" => 1));
+var_dump($retval);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  ["nInserted"]=>
+  int(3)
+  ["ok"]=>
+  bool(true)
+}
+]]>
+   </screen>
+  </example>
+  
+  <example xml:id="mongowritebatch.execute.example.update">
+   <title>Ejemplo de <methodname>MongoWriteBatch::add</methodname></title>
+   <para>
+    Agrupar varias operaciones de actualización
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$mc = new MongoClient("localhost");
+$colección = $mc->selectCollection("test", "test");
+
+
+$item1 = array(
+    "q" => array("my" => "demo"),
+    "u" => array('$set' => array("try" => 1)),
+    "multi"  => false, /* default value */
+    "upsert" => false, /* default value */
+);
+$item2 = array(
+    "q" => array("is" => "working"),
+    "u" => array('$set' => array("try" => 2)),
+    "multi" => true,
+);
+$item3 = array(
+    "q" => array("created" => "new-document"),
+    "u" => array('$set' => array("try" => 3)),
+    "upsert" => true,
+);
+
+$lote = new MongoUpdateBatch($colección);
+$lote->add($item1);
+$lote->add($item2);
+$lote->add($item3);
+$retval = $lote->execute(array("w" => 1));
+var_dump($retval);
+
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(4) {
+  ["nMatched"]=>
+  int(18)
+  ["nModified"]=>
+  int(2)
+  ["nUpserted"]=>
+  int(0)
+  ["ok"]=>
+  bool(true)
+}
+]]>
+   </screen>
+  </example>
+  
+  <example xml:id="mongowritebatch.execute.example.delete">
+   <title>Ejemplo de <methodname>MongoWriteBatch::add</methodname></title>
+   <para>
+    Agrupar varias operaciones de eliminación
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$mc = new MongoClient("localhost");
+$colección = $mc->selectCollection("test", "test");
+
+
+$item1 = array(
+    "q" => array("my" => "demo"),
+    "limit" => 1,
+);
+$item2 = array(
+    "q" => array("try" => 3),
+    "limit" => 1,
+);
+
+
+$lote = new MongoDeleteBatch($colección);
+$lote->add($item1);
+$lote->add($item2);
+$retval = $lote->execute(array("w" => 1));
+var_dump($retval);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  ["nRemoved"]=>
+  int(1)
+  ["ok"]=>
+  bool(true)
+}
+]]>
+   </screen>
+  </example>
+ </refsect1>
+ 
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
