@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 28ab7af4e84f7268a75894cff91bcecebf7f051a Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<sect1 xml:id="migration56.new-features" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Características nuevas</title>
+ 
+ <sect2 xml:id="migration56.new-features.const-scalar-exprs">
+  <title>Expresiones escalares constantes</title>
+  
+  <para>
+   Ahora es posible proporcionar una expresión escalar que involucre literales numéricos
+   y de string y/o constantes en contextos donde PHP anteriormente demandaba
+   un valor estático, tal como una constante, una declaración de una propiedad o
+   argumentos de funciones predeterminados.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+const UNO = 1;
+const DOS = UNO * 2;
+
+class C {
+    const TRES = DOS + 1;
+    const UN_TERCIO = UNO / self::TRES;
+    const SENTENCE = 'El valor de TRES es '.self::TRES;
+
+    public function f($a = UNO + self::TRES) {
+        return $a;
+    }
+}
+
+echo (new C)->f()."\n";
+echo C::SENTENCE;
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+4
+El valor de TRES es 3
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.variadics">
+  <title>Funciones variádicas mediante <literal>...</literal></title>
+  
+  <para>
+   Las <link linkend="functions.variable-arg-list">funciones variádicas</link> ahora
+   se pueden implementar usando el operador <literal>...</literal>, en lugar de
+   depender de <function>func_get_args</function>.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+function f($requerido, $opcional = null, ...$parámetros) {
+    // $parámetros es un array que contiene los argumentos restantes.
+    printf('$requerido: %d; $opcional: %d; número de parámetros: %d'."\n",
+           $requerido, $opcional, count($parámetros));
+}
+
+f(1);
+f(1, 2);
+f(1, 2, 3);
+f(1, 2, 3, 4);
+f(1, 2, 3, 4, 5);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+$requerido: 1; $opcional: 0; número de parámetros: 0
+$requerido: 1; $opcional: 2; número de parámetros: 0
+$requerido: 1; $opcional: 2; número de parámetros: 1
+$requerido: 1; $opcional: 2; número de parámetros: 2
+$requerido: 1; $opcional: 2; número de parámetros: 3
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.splat">
+  <title>Desempaquetar argumentos mediante <literal>...</literal></title>
+  
+  <para>
+   Los <link linkend="language.types.array">array</link> y los objetos
+   <interfacename>Traversable</interfacename> se pueden desempaquetar
+   a listas de argumentos al invocar a funciones emleando el opeardor
+   <literal>...</literal>. A esto también se le conoce como el operador 'splat'
+   en otros lenguajes como Ruby.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+function sumar($a, $b, $c) {
+    return $a + $b + $c;
+}
+
+$operadoes = [2, 3];
+echo sumar(1, ...$operadoes);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+6
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.exponentiation">
+  <title>Exponenciación mediante <literal>**</literal></title>
+  
+  <para>
+   Se a añadido un operador asociativo derecho, <literal>**</literal>, para
+   realizar la exponenciación, junto con un operador de asignación abreviado,
+   <literal>**=</literal>.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+printf("2 ** 3 ==      %d\n", 2 ** 3);
+printf("2 ** 3 ** 2 == %d\n", 2 ** 3 ** 2);
+
+$a = 2;
+$a **= 3;
+printf("a ==           %d\n", $a);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+2 ** 3 ==      8
+2 ** 3 ** 2 == 512
+a ==           8
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.use">
+  <title><literal>use function</literal> y <literal>use const</literal></title>
+  
+  <para>
+   El operador
+   <link linkend="language.namespaces.importing"><literal>use</literal></link> 
+   se ha ampliado para admitir funciones de importación y constantes además
+   de clases. Esto se lleva a cabo mediante los contructores
+   <literal>use function</literal> y <literal>use const</literal>,
+   respectivamente.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+namespace Espacio\De\Nombres {
+    const FOO = 42;
+    function f() { echo __FUNCTION__."\n"; }
+}
+
+namespace {
+    use const Espacio\De\Nombres\FOO;
+    use function Espacio\De\Nombres\f;
+
+    echo FOO."\n";
+    f();
+}
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+42
+Espacio\De\Nombres\f
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.phpdbg">
+  <title>phpdbg</title>
+  
+  <para>
+   PHP ahora incluye un depurador interactivo llamado phpdbg, implementado como un
+   módulo de SAPI. Para más información, visite la
+   <link xlink:href="&url.phpdbg.docs;">documentación de phpdbg</link>.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.default-encoding">
+  <title>Codificación de caracteres predeterminada</title>
+  
+  <para>
+   <link linkend="ini.default-charset">default_charset</link> ahora se emplea como
+   conjunto de caracteres predeterminado para funciones que emplean una codificación específica,
+   como <function>htmlspecialchars</function>. Observe que si los ajustes de codificación
+   iconv y mbstring (ahora obsoletos) están establecidos, tomarán precedencia
+   sobre default_charset.
+  </para>
+  
+  <para>
+   El valor predeterminado para este ajuste es <literal>UTF-8</literal>.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.reusable-input">
+  <title><link linkend="wrappers.php.input"><literal>php://input</literal></link> es reustilizable</title>
+  
+  <para>
+   <link linkend="wrappers.php.input"><literal>php://input</literal></link>
+   ahor podría se reabierto y leído tantas veces como sea neceario. Esto trabajo también
+   ha resultado en una mayor reducción de la cantidad de memoria necesarioa para tratar
+   con datos POST.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.large-file">
+  <title>Subidas de ficheros grandes</title>
+  
+  <para>
+   Ahora se admiten subidas de ficheros de más de 2 gigabytes.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.gmp">
+  <title><link linkend="book.gmp">GMP</link> soporta la sobrecarga de operadores</title>
+  
+  <para>
+   Los objetos <link linkend="book.gmp">GMP</link> ahora soportan la sobrecarga
+   de operadores y la conversión a tipos escalares. Esto permite código más
+   expresivo empleando GMP:
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$a = gmp_init(42);
+$b = gmp_init(17);
+
+// Código pre-5.6:
+var_dump(gmp_add($a, $b));
+var_dump(gmp_add($a, 17));
+var_dump(gmp_add(42, $b));
+
+// Código nuevo:
+var_dump($a + $b);
+var_dump($a + 17);
+var_dump(42 + $b);
+?>
+]]>
+   </programlisting>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.hash-equals">
+  <title><function>hash_equals</function> para comparar string con seguridad contra ataques de temporización</title>
+  
+  <para>
+   Se ha añadido la función <function>hash_equals</function> para comparar
+   dos string en tiempo constante. Esto debería emplearse para mitigar los ataques
+   de temporización; por ejemplo, al probar los hash de contraseñas de
+   <function>crypt</function> (asumiendo que no se puede usar
+   <function>password_hash</function> y
+   <function>password_verify</function>, que no son susceptibles de ataques
+   de temporización).
+  </para>
+  
+  <!-- TODO: update crypt() examples -->
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$previsto   = crypt('12345', '$2a$07$usesomesillystringforsalt$');
+$correcto   = crypt('12345', '$2a$07$usesomesillystringforsalt$');
+$incorrecto = crypt('1234',  '$2a$07$usesomesillystringforsalt$');
+
+var_dump(hash_equals($previsto, $correcto));
+var_dump(hash_equals($previsto, $incorrecto));
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+bool(true)
+bool(false)
+]]>
+   </screen>
+  </informalexample>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.gost">
+  <title>Algoritmo de hash gost-crypto</title>
+  
+  <para>
+   Se ha añadido el algoritmo de hash <literal>gost-crypto</literal>.
+   Implementa la función de hash GOST usando las tablas S-box de CryptoPro, como
+   se especifica en la
+   <link xlink:href="&url.rfc;4357">RFC 4357, sección 11.2</link>.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.openssl">
+  <title>Mejoras en SSL/TLS</title>
+  
+  <para>
+   Se han realizado un amplio rango de mejoras al soporte para SSL/TLS en PHP
+   5.6. Estas incluyen la
+   <link linkend="migration56.incompatible.peer-verification">habilitación de la verificación del par por omisión</link>,
+   el soporte para la comparación de huellas digitales de certificados, la mitigación de ataques
+   de renegociación TLS, y muchas
+   <link linkend="context.ssl">opciones de contexto SSL</link> nuevas para permitir un
+   mayor cotrol de grano fino en ajustes de protocolos y verificacioines al emplear
+   flujos encriptados.
+  </para>
+  
+  <para>
+   Estos cambios están descritos con más detalle en la sección
+   <link linkend="migration56.openssl">Cambios de OpenSSL en PHP 5.6.x</link>
+   de esta guía de migración.
+  </para>
+ </sect2>
+ 
+ <sect2 xml:id="migration56.new-features.postgresql">
+  <title>Soporte para <link linkend="book.pgsql">pgsql</link> asíncrono</title>
+  
+  <para>
+   La extensión <link linkend="book.pgsql">pgsql</link> ahora admite
+   conexiones y consultas asíncronas, habilitando así un comportamiento de
+   no bloqueo al interactuar con bases de datos de PostgreSQL. Las conexiones
+   asíncronas podrían esteblecerse mediante la constante
+   <constant>PGSQL_CONNECT_ASYNC</constant>, y se podrían emplear las nuevas funciones
+   <function>pg_connect_poll</function>, <function>pg_socket</function>,
+   <function>pg_consume_input</function> y <function>pg_flush</function>
+   para manejar conexiones y consultas asíncronas.
+  </para>
+ </sect2>
+</sect1>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
