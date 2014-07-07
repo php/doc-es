@@ -1,35 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
 <!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: yago Status: ready -->
+<!-- Reviewed: no Maintainer: seros -->
 
 <chapter xml:id="memcached.callbacks" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Llamadas de retorno</title>
-
+ <title>Retrollamadas</title>
+ 
  <section xml:id="memcached.callbacks.result">
-  <title>Resultado de llamadas de retorno</title>
+  <title>Retrollamada de resultados</title>
   <para>
-   El resultado de las <type>callbacks</type> están invocados por los métodos
+   Las <type>callback</type> de resultados son invocadas por los métodos
    <methodname>Memcached::getDelayed</methodname> o
    <methodname>Memcached::getDelayedBykey</methodname> por cada ítem del 
-   resultado. La llamada de retorno es pasada al objeto Memcached y el array
-   con la información de cada ítem. La llamada de retorno en sí, no devuelve nada.
+   conjunto de resultados. A la retrollamada se le proporciona el objeto Memcached y el array
+   con la información del ítem. La retrollamada no tiene que devolver nada.
   </para>
   <example>
-   <title>Ejemplo de resultado de llamada de retorno</title>
+   <title>Ejemplo retrollamada de resultados</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 $m = new Memcached();
 $m->addServer('localhost', 11211);
 $items = array(
-    'key1' => 'value1',
-    'key2' => 'value2',
-    'key3' => 'value3'
+    'clave1' => 'valor1',
+    'clave2' => 'valor2',
+    'clave3' => 'valor3'
 );
 $m->setMulti($items);
-$m->getDelayed(array('key1', 'key3'), true, 'result_cb');
+$m->getDelayed(array('clave1', 'clave3'), true, 'rll_resultados');
 
-function result_cb($memc, $item)
+function rll_resultados($memc, $item)
 {
     var_dump($item);
 }
@@ -41,17 +42,17 @@ function result_cb($memc, $item)
 <![CDATA[
 array(3) {
   ["key"]=>
-  string(4) "key1"
+  string(6) "clave1"
   ["value"]=>
-  string(6) "value1"
+  string(6) "valor1"
   ["cas"]=>
   float(49)
 }
 array(3) {
   ["key"]=>
-  string(4) "key3"
+  string(6) "clave3"
   ["value"]=>
-  string(6) "value3"
+  string(6) "valor3"
   ["cas"]=>
   float(50)
 }
@@ -59,36 +60,36 @@ array(3) {
    </screen>
   </example>
  </section>
-
+ 
  <section xml:id="memcached.callbacks.read-through">
   <title>Lectura de caché de llamadas de retorno</title>
   <para>
-   La lectura de caché de llamadas de retorno se invoca cuando un ítem no puede ser obtenido
-   de un servidor. La llamada de retorno es pasada al objecto Memcached junto con la petición de la 
-   clave y el valor de la variable por referencia. La llamada de retorno se encarga de
-   definir el valor y devolver true o false. Si la llamada de retorno devuelve true,
-   Memcached guardará el valor en el servidor y lo devolverá en la 
-   llamada de la función original <methodname>Memcached::get</methodname> y
-   <methodname>Memcached::getByKey</methodname> soportan llamadas de retorno,
+   Las retrollamadas de caché de lectura previa son invocadas cuando un ítem no puede ser obtenido
+   de un servidor. A la retrollamada se le proporciona el objecto Memcached, la clave
+   solicitada y el valor por referencia de la variable. La retrollamada se encarga de
+   definir el valor y devolver true o false. Si la retrollamada devuelve true,
+   Memcached guardará el valor en el servidor y lo devolverá a la 
+   función de llamada original. Solamente <methodname>Memcached::get</methodname> y
+   <methodname>Memcached::getByKey</methodname> admiten estas retrollamadas,
    ya que el protocolo memcache no provee información sobre las claves
-   que no fueron encontradas en una petición múltiple.
+   que no fueron encontradas en la petición multiclave.
   </para>
   <example>
-   <title>Ejemplo de lectura de llamada de retorno</title>
+   <title>Ejemplo de lectura de retrollamada</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 $m = new Memcached();
 $m->addServer('localhost', 11211);
 
-$profile_info = $m->get('user:'.$user_id, 'user_info_cb');
+$info_perfil = $m->get('user:'.$id_usuario, 'rll_info_usuario');
 
-function user_info_cb($memc, $key, &$value)
+function rll_info_usuario($memc, $clave, &$valor)
 {
-    $user_id = substr($key, 5);
-    /* busca el profile en la BD */
+    $id_usuario = substr($clave, 5);
+    /* buscar el prefil en la BD */
     /* ... */
-    $value = $profile_info;
+    $valor = $info_perfil;
     return true;
 }
 ?>
@@ -96,7 +97,7 @@ function user_info_cb($memc, $key, &$value)
    </programlisting>
   </example>
  </section>
-
+ 
 </chapter>
 
 <!-- Keep this comment at the end of the file
