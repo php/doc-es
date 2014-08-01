@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0aa774414ae3ca9032fa586b59554dd66fc376df Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8068de761facc5d887ddde880a33c3e45ad89854 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mysqlnd-ms.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -1659,7 +1659,8 @@ Intentos del error transitorio después del error: 2
    puede controlar de forma transparente <literal>PECL/mysqlnd_ms</literal> 1.1.0-alpha
    o posterior para almacenar en caché una consulta de solo lectura, si está
    explícitamente permitido, configurando una calidad de servicio apropiada a través de
-   <function>mysqlnd_ms_set_qos</function>. Por favor, lea la
+   <function>mysqlnd_ms_set_qos</function>.
+   Por favor, lea la
    <link linkend="mysqlnd-ms.quickstart.cache">guía rápida</link> para ver un ejemplo de código.
    Ambos complementos deben estar instalados, <literal>PECL/mysqlnd_ms</literal>
    debe ser compilado para soportar la característica de la caché y se ha de utilizar PHP 5.4.0 o posterior.
@@ -2150,8 +2151,8 @@ mysqlnd_ms.disable_rw_split=1
     las primeras pruebas indican una calidad razonable.
    </para>
    <para>
-     Por favor, contacte con el equipo de desarrollo si está interesado en esta característica.
-     Estamos buscando comentarios de la vida real para completar esta característica.
+    Por favor, contacte con el equipo de desarrollo si está interesado en esta característica.
+    Estamos buscando comentarios de la vida real para completar esta característica.
    </para>
    <para>
     Abajo se muestra una lista de algunas restricciones de la característica.
@@ -2203,7 +2204,7 @@ mysqlnd_ms_xa_commit($link, 1);
     </programlisting>
    </example>
   </para>
-   <para>
+  <para>
    Las transacciones XA emplean el protocolo de consignación de dos fases. El protocolo de consignación
    de dos fases es un protocolo de bloqueo. Durante la primera fase, los servidores participantes
    comienzan una transacción y el cliente lleva a cabo su trabajo. A esta fase le sigue
@@ -2250,7 +2251,7 @@ mysqlnd_ms_xa_commit($link, 1);
    recursos virtualmente de forma indefinida. El manejo de los errores requiere conocer los
    participantes, comprobar su estado y enviarles los conmandos SQL apropiados.
    No existe una llamada a la API de usuario que exponga esta información. Se tendrá que
-   configurar un almacén de estado y hacer que el complemento grabe sus acciones en él para recibir
+   configurar un almacén de estado y hacer que el complemento registre sus acciones en él para recibir
    la información deseada.
   </para>
   <para>
@@ -2265,13 +2266,13 @@ mysqlnd_ms_xa_commit($link, 1);
   <para>
    Establecer y configurar un almacén de estados también es una precondición para utilizar la
    recolección de basura interna para transacciones XA que fallen durante la
-   segunda fase de consignación. Grabar información sobre transacciones XA en curso es
+   segunda fase de consignación. Registrar información sobre transacciones XA en curso es
    una tarea extra inevitable. La tarea extra consiste en actualizar el almacén
    de estados después de cada operación que cambie el estado de una transacción global
    en sí (iniciada, consignada, revertida, errores y abortos), la adición de
    participantes (host, opcionalmente el usuario y contraseña requeridos para conectarse) y cualquier
    cambio del estado de un participante. Observar que, dependiendo de la configuración y las
-   politicas de seguridad, estas grabaciones podrían considerarse delicadas.
+   politicas de seguridad, estos registros podrían considerarse delicados.
    Por tanto, se recomienda restringir el acceso al almacén de estados. A menos que el
    almancén de estados mismo esté sobrecargado, la escritura de la información de estado podría contribuir
    notablemente al tiempo de ejecución, pero debería ser por lo demás solamente un factor menor.
@@ -2294,38 +2295,38 @@ mysqlnd_ms_xa_commit($link, 1);
    Por omisión, el complemento iniciará la recolección de basura con una cierta probabilidad
    en las extensiones del método interno <literal>RSHUTDOWN</literal>. La petición
    de apagado es invocada después de finalizar el script. La realización de la
-   recolección de basura está determinara por el cálculo de un valor aleatorio entre
+   recolección de basura está determinara por el cálculo de un valor aleatorio en el rango
    <literal>1...1000</literal> y comparándolo con el ajuste de configuracion
    <link linkend="ini.mysqlnd-ms-plugin-config-v2.xa.gc"><literal>probability</literal></link>
    (predeterminado: 5). Si el ajuste es
    mayor o igual que el valor aleatorio, se llevará a cabo la recolección de basura.
   </para>
   <para>
-   Once started, the garbage collection acts upon up to
-   <literal>max_transactions_per_run</literal> (default: 100) global transactions
-   recorded. Records include successfully finished but also unfinished XA
-   transactions. Records for successful transactions are removed and unfinished
-   transactions are attempted to be solved. There are no statistics that help
-   you finding the right balance between keeping garbage collection runs short
-   by limiting the number of transactions considered per run and preventing the garbage
-   collection to fall behind, resulting in many records.
+   Una vez iniciada, la recolección de basura actúa sobre hasta
+   <literal>max_transactions_per_run</literal> (predeterminado: 100) transacciones globales
+   registradas. Los registros incluyen transaccines XA finalizadas con éxito y también no
+   finalizadas. Los registros para transacciones exitosas se eliminan y las no
+   finalizadas se intentan resolver. No hay estadísticas que ayuden
+   a encontrar el equilibrio exacto entre mantener una ejecución corta de la recolección de basura
+   limitando el número de transacciones consideradas por ejecución y prevenir que la recolección de
+   basura se quede retrasada, resultando en muchos registros.
   </para>
   <para>
-   For each failed XA transaction the garbage collection makes
-   <literal>max_retries</literal> (default: 5) attempts to finish it. After that
-   <literal>PECL/mysqlnd_ms</literal> gives up. There are two possible reasons for this. Either
-   a participating server crashed and has not become accessible again within
-   <literal>max_retries</literal> invocations of the garbage collection, or there
-   is a situation that the built-in garbage collection cannot cope with. Likely, the
-   latter would be considered a bug. However, you can manually force more
-   garbage collection runs calling <function>mysqlnd_ms_xa_gc</function> with the
-   appropriate parameter set. Should even those function runs fail to solve
-   the situation, then the problem must be solved by an operator.
+   Por cada transacción XA fallida, la recolección de basura realiza
+   <literal>max_retries</literal> (predeterminado: 5) intentos para finalizarla. Después de esto,
+   <literal>PECL/mysqlnd_ms</literal> se rinde. Hay dos posibles razones para esto. O
+   un servidor participante falla y ya no está accesible dentro de
+   <literal>max_retries</literal> invocaciones de la recolección de basura, o hay
+   una situación que la recolección de basura interna no puede manejar. Problemente, lo
+   último sería considerado como un error. Sin embargo, se puede forzar manualmente más
+   ejecuciones de recolección de basura llamando a <function>mysqlnd_ms_xa_gc</function> con el
+   parámetro apropiado establecido. Si incluso la ejecución de esta función no resuelve
+   la situación, el problema debe resolverse mediante un operador.
   </para>
   <para>
-   The function <link linkend="function.mysqlnd-ms-get-stats"><function>mysqlnd_ms_get_stats</function></link>
-   provides some statistics on how many XA transactions have been started,
-   committed, failed or rolled back.
+   La función <link linkend="function.mysqlnd-ms-get-stats"><function>mysqlnd_ms_get_stats</function></link>
+   proporciona algunas estadísticas sobre cuántas transacciones XA han sido iniciadas,
+   consignadas, han fallado o han sido revertidas.
   </para>
   
  </section>
