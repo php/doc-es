@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d860e9cfc071a7ee71a496132997b9bf7dce5392 Maintainer: aeoris Status: ready -->
+<!-- EN-Revision: 6f4d3c927626cfdc6e94a6b251bbf510bd3738ee Maintainer: aeoris Status: ready -->
 <!-- Reviewed: no -->
-
 <refentry xml:id="function.mcrypt-encrypt" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mcrypt_encrypt</refname>
@@ -23,7 +22,7 @@
    Cifra los datos y los devuelve.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -79,14 +78,14 @@
    </variablelist>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    Devuelve los datos cifrados, en formato cadena.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -95,22 +94,68 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB);
-    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-    $key = "Esta es una clave muy secreta";
-    $text = "Encuéntrame a las 11 en punto detrás del monumento.";
-    echo strlen($text) . "\n";
+    # --- ENCRYPTION ---
 
-    $crypttext = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $text, MCRYPT_MODE_ECB, $iv);
-    echo strlen($crypttext) . "\n";
+    # la clave debería ser binaria aleatoria, use scrypt, bcrypt o PBKDF2 para
+    # convertir un string en una clave
+    # la clave se especifica en formato hexadecimal
+    $key = pack('H*', "bcb04b7e103a0cd8b54763051cef08bc55abe029fdebae5e1d417e2ffb2a00a3");
+    
+    # mostrar el tamaño de la clave, use claves de 16, 24 o 32 bytes para AES-128, 192
+    # y 256 respectivamente
+    $key_size =  strlen($key);
+    echo "Tamaño de la clave: " . $key_size . "\n";
+    
+    $plaintext = "Este estring estaba encriptado con AES-256 / CBC / ZeroBytePadding.";
+
+    # crear una aleatoria IV para utilizarla co condificación CBC
+    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+    
+    # crea un texto cifrado compatible con AES (tamaño de bloque Rijndael = 128)
+    # para hacer el texto confidencial 
+    # solamente disponible para entradas codificadas que nunca finalizan con el
+    # el valor  00h (debido al relleno con ceros)
+    $ciphertext = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key,
+                                 $plaintext, MCRYPT_MODE_CBC, $iv);
+
+    # anteponer la IV para que esté disponible para el descifrado
+    $ciphertext = $iv . $ciphertext;
+    
+    # codificar el texto cifrado resultante para que pueda ser representado por un string
+    $ciphertext_base64 = base64_encode($ciphertext);
+
+    echo  $ciphertext_base64 . "\n";
+
+    # === ADVERTENCIA ===
+
+    # El texto cifrado resultante no tiene añadida integridad o autenticidad
+    # y no está protegido contra los ataques de relleno de oracle.
+    
+    # --- DESCIFRADO ---
+    
+    $ciphertext_dec = base64_decode($ciphertext_base64);
+    
+    # recupera la IV, iv_size debería crearse usando mcrypt_get_iv_size()
+    $iv_dec = substr($ciphertext_dec, 0, $iv_size);
+    
+    # recupera el texto cifrado (todo excepto el $iv_size en el frente)
+    $ciphertext_dec = substr($ciphertext_dec, $iv_size);
+
+    # podrían eliminarse los caracteres con valor 00h del final del texto puro
+    $plaintext_dec = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $key,
+                                    $ciphertext_dec, MCRYPT_MODE_CBC, $iv_dec);
+    
+    echo  $plaintext_dec . "\n";
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-42
-64
+Tamaño de la clave: 32
+ENJW8mS2KaJoNB5E5CoSAAu0xARgsR1bdzFWpEn+poYw45q+73az5kYi4j+0haevext1dGrcW8Qi59txfCBV8BBj3bzRP3dFCp3CPQSJ8eU=
+Este estring estaba encriptado con AES-256 / CBC / ZeroBytePadding.
 ]]>
     </screen>
    </example>
