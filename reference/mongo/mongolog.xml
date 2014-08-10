@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: ebd6689db56f26f247af88b58df40e4124b91971 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 6b2eb216fd3b435212c79c31b4e024b6cd7c13e7 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <phpdoc:classref xml:id="class.mongolog" xmlns:phpdoc="http://php.net/ns/phpdoc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -14,18 +14,9 @@
   <section xml:id="mongolog.intro">
    &reftitle.intro;
    <para>
-    El registro se puede usar para obetner información detallada de lo que está
-    haciendo el controlador. El mecanismo de registro como lo usa MongoLog emite todos los mensajes
-    de registro como un aviso de PHP. Dependiendo de la interfaz del servidor que se use,
-    esto significa que serán enviados a strerr (con PHP-CLI), o,
-    de lo contrario, al registro de errores del servidor web. Para que PHP pueda
-    imprimir los mensajes de registro, no se neceistan configurar sus niveles (E_NOTICE) para
-    que sean mostrados. Esto significa que el bit de E_NOTICE necesita ser parte del nivel de
-    error_reporting y que display_errors esté establecido a 1.
-   </para>
-   <para>
-    Por omisión, el registro está deshabilitado. Esta clase permite habilitar
-    niveles específicos de informes para determinadas áreas del driver. Algunos ejemplos:
+    El registro se puede usar para obetner información detallada de lo que está haciendo
+    el controlador. El registro está desactivado de forma predeterminada, aunque esta clase permite activar
+    niveles de registro específicos para determinadas áreas del controlador. Algunos ejemplos:los:
    </para>
    <programlisting role="php">
 <![CDATA[
@@ -39,13 +30,24 @@ MongoLog::setModule(MongoLog::ALL); // todas las partes del driver
 MongoLog::setLevel(MongoLog::INFO);
 MongoLog::setModule(MongoLog::RS);
 
-// muestra registros de nivel de información y de ajustes sobre conjuntos de réplicas y sobre agrupamientos de conexiones
+// muestra registros de nivel de información y diagnóstico para conjuntos de réplicas y conexiones
 MongoLog::setLevel(MongoLog::INFO|MongoLog::FINE);
-MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
+MongoLog::setModule(MongoLog::RS|MongoLog::CON);
 
 ?>
 ]]>
    </programlisting>
+   <note>
+    <para>
+     Por omisión, MongoLog emite todos los mensajes de registro como avisos de PHP. Dependiendo
+     de la <acronym>SAPI</acronym> que se use, los mensajes podrían enviarse a
+     <literal>stderr</literal> (para <acronym>CLI</acronym>) o al registro de errores
+     del servidor web. Si, después de configurar MongoLog, los mensajes de registro no aparecen
+     como se esperaba, asegúrese de que el bit de <constant>E_NOTICE</constant> está incluido
+     den <link linkend="ini.error-reporting">error_reporting</link> y de que
+     <link linkend="ini.display-errors">display_errors</link> esté activado.
+    </para>
+   </note>
   </section>
   <!-- }}} -->
   
@@ -109,6 +111,12 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
      <modifier>const</modifier>
      <type>int</type>
      <varname linkend="mongolog.constants.pool">MongoLog::POOL</varname>
+     <initializer>1</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>int</type>
+     <varname linkend="mongolog.constants.con">MongoLog::CON</varname>
      <initializer>2</initializer>
     </fieldsynopsis>
     <fieldsynopsis>
@@ -130,16 +138,22 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
      <initializer>16</initializer>
     </fieldsynopsis>
     
-    
     <classsynopsisinfo role="comment">Campos</classsynopsisinfo>
     <fieldsynopsis>
-     <modifier>public</modifier>
-     <modifier></modifier>
+     <modifier>private</modifier>
+     <modifier>static</modifier>
+     <type>int</type>
+     <varname>callback</varname>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>private</modifier>
+     <modifier>static</modifier>
      <type>int</type>
      <varname>level</varname>
     </fieldsynopsis>
     <fieldsynopsis>
-     <modifier>public</modifier>
+     <modifier>private</modifier>
+     <modifier>static</modifier>
      <type>int</type>
      <varname>module</varname>
     </fieldsynopsis>
@@ -166,7 +180,7 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::NONE</constant></term>
       <listitem>
        <simpara>
-        Constante para deshabilitar los registros.
+        No registrar nada.
        </simpara>
       </listitem>
      </varlistentry>
@@ -174,7 +188,7 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::ALL</constant></term>
       <listitem>
        <simpara>
-        Constante para notificar todos los registros.
+        Registrar todo.
        </simpara>
       </listitem>
      </varlistentry>
@@ -191,8 +205,8 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::WARNING</constant></term>
       <listitem>
        <simpara>
-        Muestra mensajes sobre situaciones excepcionales no
-        críticas.
+        Registrar eventos que son excepcionales de algún modo, aunque no lo suficiente como
+        las excepciones reales (p.ej. errores de conexión recuperables).
        </simpara>
       </listitem>
      </varlistentry>
@@ -200,8 +214,8 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::INFO</constant></term>
       <listitem>
        <simpara>
-        Muestra eventos que pudieran ser de interes para administradores, pero no
-        especialmente notorios.
+        Registrar eventos que podrían ser de interés para el administrador, aunque no
+        particularmente notables (p.ej. análisis de opciones, pasos de autentiación).
        </simpara>
       </listitem>
      </varlistentry>
@@ -209,8 +223,9 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::FINE</constant></term>
       <listitem>
        <simpara>
-        Muestra la mayor parte de eventos que realiza el driver. Dependiendo del módulo que
-        se esté analizando, este nivel podría ser demasiado ruidoso. Se usa principalmente para depuración.
+        Registrar la mayoría de los eventos que realiza el controlador (p.ej. selección de un servidor, comunicación con
+        socket). Dependiendo del módulo a registrar, esto puede ser
+        extremadamente ruidoso, por lo que es principalmente útil para depuración.
        </simpara>
       </listitem>
      </varlistentry>
@@ -223,11 +238,20 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
      Estas constantes pueden usarse por <function>MongoLog::setModule</function>.
     </para>
     <variablelist>
+     <varlistentry xml:id="mongolog.constants.con">
+      <term><constant>MongoLog::CON</constant></term>
+      <listitem>
+       <simpara>
+        Registrar actividades de conexión. Crear nuevas conexiones, autenticación,
+        ping tiempos límite, etc.
+       </simpara>
+      </listitem>
+     </varlistentry>
      <varlistentry xml:id="mongolog.constants.io">
       <term><constant>MongoLog::IO</constant></term>
       <listitem>
        <simpara>
-        Crea registros del tráfico generado de y desde la base de datos. A no ser que se trate de un programa trivial,
+        Registrar el tráfico generado de y desde la base de datos. A no ser que se trate de un programa trivial,
         esto creará un gran volumen de registros.
        </simpara>
       </listitem>
@@ -236,7 +260,8 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::PARSE</constant></term>
       <listitem>
        <simpara>
-        Crear registro de los análisis de textos realizados.
+        Registrar el análisis de string de conexiones y opciones cuando se construye
+        <classname>MongoClient</classname>.
        </simpara>
       </listitem>
      </varlistentry>
@@ -244,8 +269,8 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::POOL</constant></term>
       <listitem>
        <simpara>
-        Registra las actividades de los agrupamientos de conexiones. Creación de nuevas conexiones,
-        reutilización de conexiones, y cierre de conexiones.
+        Anteriormente usada para registrar la actividad de agrupaciones de conexiones. Esta opción ahora es
+        un alias obsoleto de <constant>MongoLog::RS</constant>.
        </simpara>
       </listitem>
      </varlistentry>
@@ -253,8 +278,7 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::RS</constant></term>
       <listitem>
        <simpara>
-        Registra las actividades de los conjuntos de réplicas. Caídas, comprobaciones, elección
-        de secundarios a los que leer, etc..
+        Registrar la actividad de conjuntos de réplicas. Tolerancia a fallos, selección de preferencias de lectura, etc.
        </simpara>
       </listitem>
      </varlistentry>
@@ -262,13 +286,39 @@ MongoLog::setModule(MongoLog::RS|MongoLog::POOL);
       <term><constant>MongoLog::SERVER</constant></term>
       <listitem>
        <simpara>
-        Registra cambios de estado en el servidor. Detecta en primarios, secundarios
-        y en duplicados.
+        Anteriormente usada para registrar cambios de estado del servidor. Esta opción está obsoleta
+        en favor de <constant>MongoLog::RS</constant>.
        </simpara>
       </listitem>
      </varlistentry>
     </variablelist>
    </section>
+  </section>
+  
+  <section role="changelog">
+   &reftitle.changelog;
+   <para>
+    <informaltable>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>&Version;</entry>
+        <entry>&Description;</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry>1.3.0</entry>
+        <entry>
+         Se añadió <constant>MongoLog::CON</constant> y está obsoletas
+         <constant>MongoLog::POOL</constant> y
+         <constant>MongoLog::SERVER</constant>.
+        </entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </informaltable>
+   </para>
   </section>
   
  </partintro>
