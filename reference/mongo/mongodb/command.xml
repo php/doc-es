@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0aa774414ae3ca9032fa586b59554dd66fc376df Maintainer: seros Status: ready -->
+<!-- EN-Revision: 7d5e3a55d916141b789c296085c3730e53fd3b4b Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 
 <refentry xml:id="mongodb.command" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoDB::command</refname>
-  <refpurpose>Ejecuta un comando de base de datos</refpurpose>
+  <refpurpose>Ejecuta una orden de base de datos</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
@@ -14,11 +14,12 @@
    <modifier>public</modifier> <type>array</type><methodname>MongoDB::command</methodname>
    <methodparam><type>array</type><parameter>command</parameter></methodparam>
    <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>array()</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter role="reference">hash</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Prácticamente todo lo que no son operaciones CRUD se puede realizar con un comando de
-   base de datos. ¿Necesita conocer la versión de la base de datos? Hay un comando para ello.
-   ¿Necesita hacer una agregación? Hay un comando para ello. ¿Necesia habilitar la
+   Prácticamente todo lo que no son operaciones CRUD se puede realizar con una orden de
+   base de datos. ¿Necesita conocer la versión de la base de datos? Hay una orden para ello.
+   ¿Necesita hacer una agregación? Hay una orden para ello. ¿Necesia habilitar la
    identificación? Ha captado la idea.
   </para>
   <para>
@@ -46,7 +47,7 @@ public function command($datos) {
      </term>
      <listitem>
       <para>
-       Consulta que se enviará.
+       La Consulta a enviar.
       </para>
      </listitem>
     </varlistentry>
@@ -56,12 +57,34 @@ public function command($datos) {
      </term>
      <listitem>
       <para>
-       Este parámetro es un array asociativo de la forma
-       <literal>array("nombre_opción" => &lt;boolean&gt;, ...)</literal>. Actualmente
-       las opciones admitidas son:
+       Un array de opciones para la creación del índice. Actualmente las opciones
+       disponibles incluyen:
+       <itemizedlist>
+        &mongo.writes.parameters.sockettimeoutms;
+       </itemizedlist>
+      </para>
+      <para>
+       Las siguientes opciones están obsoletas y no deberían utilizarse más:
        <itemizedlist>
         &mongo.writes.parameters.timeout;
        </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>
+      <parameter>hash</parameter>
+     </term>
+     <listitem>
+      <para>
+       Establecer el hash de conexión del servidor que ejecutó la orden. Cuando
+       el resultado de la orden es apropiado para crear un
+       <classname>MongoCommandCursor</classname>, el objeto del hash es
+       pasarlo a <function>MongoCommandCursor::createFromDocument</function>.
+      </para>
+      <para>
+       El hash también se corresponderá con una conexión devuelta desde
+       <function>MongoClient::getConnections</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -82,6 +105,20 @@ public function command($datos) {
      </thead>
      <tbody>
       <row>
+       <entry>1.5.0</entry>
+       <entry>
+        <para>
+         Se renombró la opción <literal>"timeout"</literal> a
+         <literal>"socketTimeoutMS"</literal>. Emite un error
+         <constant>E_DEPRECATED</constant> al utilizar
+         <literal>"timeout"</literal>.
+        </para>
+        <para>
+         Se añadió el parámetro por referencia <literal>hash</literal>.
+        </para>
+       </entry>
+      </row>
+      <row>
        <entry>1.2.0</entry>
        <entry>
         Se añadió el parámetro <literal>options</literal> con una única opción: 
@@ -98,8 +135,8 @@ public function command($datos) {
   &reftitle.returnvalues;  
   <para>
    Devuelve la respuesta de la base de datos. Cada respuesta de la base de datos siempre es como máximo
-   un documento, lo que significa que el resultado de un comando de base de datos nunca puede
-   exceder 16 MB. La estructura del documento resultante depende del comando, pero
+   un documento, lo que significa que el resultado de una orden de base de datos nunca puede
+   exceder 16 MB. La estructura del documento resultante depende de la orden, pero
    la mayoría de los resultados tendrán el campo <literal>ok</literal> para indicar éxito
    o fracaso, y <literal>results</literal>, que contiene un array por cada
    documento resultante.
@@ -234,7 +271,7 @@ foreach ($usuarios as $usuario) {
      argumento de ámbito. Sin embargo, por el momento, MongoDB no admite el uso de
      ámbitos en MapReduce. Si fuera necesario usar variables en el lado del cliente con las 
      funciones MapReduce, puede añairlas al ámbito global usando el campo opcional de
-     ámbito con el comando de la base de datos. Consulte la
+     ámbito con la orden de la base de datos. Consulte la
      <link xlink:href="&url.mongodb.dochub.mapreduce;">documentación de MapReduce</link> 
      para más información.
     </para>
@@ -253,90 +290,9 @@ foreach ($usuarios as $usuario) {
   </example>
   
   <example>
-   <title>Ejemplo de <function>MongoDB::command</function> con "textSearch"</title>
-   <para>
-    Realizar una búsqueda de texto completo con la funcionalidad "text search" de
-    MongoDB 2.4 y superior.
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-$m = new MongoClient();
-$d = $m->demo;
-$c = $d->planetas;
-
-$c->insert(array("nombre" => "Mercurio", "desc" => "Mercurio es el planeta más pequeño y más cercano al Sol"));
-$c->insert(array("nombre" => "Venus", "desc" => "Venus es el segundo planeta desde el Sol, su órbita es de 224.7 días terrestres."));
-$c->insert(array("nombre" => "Tierra", "desc" => "La Tierra es el más denso de los ocho planetas del sistema solar."));
-$c->insert(array("nombre" => "Marte", "desc" => "Marte era el dios romano de la guerra."));
-
-$c->ensureIndex(array('desc' => 'text'));
-
-$r = $d->command(array("text" => "planetas", 'search' => "sol" ));
-print_r($r);
-?>
-]]>
-   </programlisting>
-   &example.outputs.similar;
-   <screen>
-Array
-(
-    [queryDebugString] => sol||||||
-    [language] => english
-    [results] => Array
-        (
-            [0] => Array
-                (
-                    [score] => 0.625
-                    [obj] => Array
-                        (
-                            [_id] => MongoId Object
-                                (
-                                    [$id] => 517549d944670a4a5cb3059a
-                                )
-
-                            [name] => Mercury
-                            [desc] => Mercurio es el planeta más pequeño y más cercano al Sol
-                        )
-
-                )
-
-            [1] => Array
-                (
-                    [score] => 0.55
-                    [obj] => Array
-                        (
-                            [_id] => MongoId Object
-                                (
-                                    [$id] => 517549d944670a4a5cb3059b
-                                )
-
-                            [name] => Venus
-                            [desc] => Venus es el segundo planeta desde el Sol, su órbita es de 224.7 días terrestres.
-                        )
-
-                )
-
-        )
-
-    [stats] => Array
-        (
-            [nscanned] => 2
-            [nscannedObjects] => 0
-            [n] => 2
-            [nfound] => 2
-            [timeMicros] => 95
-        )
-
-    [ok] => 1
-)
-   </screen>
-  </example>
-  
-  <example>
    <title>Ejemplo de <function>MongoDB::command</function> con "geoNear"</title>
    <para>
-    Este ejemplo muestra cómo usar el comando geoNear.
+    Este ejemplo muestra cómo usar la orden geoNear.
    </para>
    <programlisting role="php">
 <![CDATA[
@@ -369,11 +325,11 @@ print_r($r);
   </para>
   <para>
    La documentación de MongoDB sobre
-   <link xlink:href="&url.mongodb.dochub.commands;">comandos de base de datos</link>
-   y los comandos individuales: 
+   <link xlink:href="&url.mongodb.dochub.commands;">órdenes de base de datos</link>
+   y las órdenes individuales: 
    <link xlink:href="&url.mongodb.dochub.findandmodify;">findAndModify</link>, 
    <link xlink:href="&url.mongodb.dochub.getlasterror;">getLastError</link>, y 
-   <link xlink:href="&url.mongodb.dochub.repairdatabase;">repair</link> (existen muchos más,
+   <link xlink:href="&url.mongodb.dochub.repairdatabase;">repair</link> (existen muchas más,
    éstos son sólo unos pocos ejemplos).
   </para>
  </refsect1>

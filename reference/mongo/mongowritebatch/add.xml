@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 4eed9a5bb843ec9ddb75ab5007d82ba4fec16a09 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 13445ae645cc80ee9b69e10b8b3f94070b8d865b Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <refentry xml:id="mongowritebatch.add" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>MongoWriteBatch::add</refname>
-  <refpurpose>Añade una operación CRUD al lote</refpurpose>
+  <refpurpose>Añade una operación de escritura a un lote</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -16,14 +16,15 @@
    <methodparam><type>array</type><parameter>item</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La operación a añadir al lote.
+   Añade una operación de escritura al lote.
   </para>
   <para>
-   Si <parameter>$item</parameter> causa que el lote alcance los límites <link xlink:href="url.mongodb.dochub.maxWriteBatchSize">maxWriteBatchSize</link>
-   o <link xlink:href="url.mongodb.dochub.maxBsonObjectSize">maxBsonObjectSize</link>, se creará internamente un nuevo lote y
-   todos los lotes se agruparán para enviar uno cada vez durante la llamada a <methodname>MongoWriteBatch::execute</methodname>.
+   Si <parameter>$item</parameter> hace que el lote exceda los límites
+   <link xlink:href="url.mongodb.dochub.maxWriteBatchSize">maxWriteBatchSize</link>
+   o <link xlink:href="url.mongodb.dochub.maxBsonObjectSize">maxBsonObjectSize</link>,
+   el controlador dividirá internamente los lotes en varias órdenes de
+   escritura en la llamada a <methodname>MongoWriteBatch::execute</methodname>.
   </para>
-  
  </refsect1>
  
  <refsect1 role="parameters">
@@ -33,30 +34,36 @@
     <term><parameter>item</parameter></term>
     <listitem>
      <para>
+      Un array que describe una operación de escritura. La estructura de este valor
+      depende del tipo de operación del lote.
       <informaltable>
        <thead>
         <row>
-         <entry>Cuando el lote actual es</entry>
+         <entry>Tipo de lote</entry>
          <entry>Argumento previsto</entry>
         </row>
        </thead>
        <tbody>
         <row>
-         <entry>MongoWriteBatch::COMMAND_INSERT</entry>
-         <entry>El documento a añadir</entry>
-        </row>
-        <row>
-         <entry>MongoWriteBatch::COMMAND_UPDATE</entry>
+         <entry><constant>MongoWriteBatch::COMMAND_INSERT</constant></entry>
          <entry>
-          <para>Operación de acualización sin tratar. Las claves requeridas son: array("q" => <link linkend="mongocollection.update.criteria">array("criterios")</link>, "u" => array("nuevos datos"))</para>
-          <para>Opcionalmente con las claves "multi"  "upsert" como valores booleanos</para>
-          <para>"upsert": Si se establece a true, crea un nuevo documento cuando ningún documento coincida con los criterios. El valor predeterminado es false, el cual no inserta un nuevo documento cuando no haya coincidencias.</para>
+          <simpara>El documento a añadir.</simpara>
          </entry>
         </row>
         <row>
-         <entry>MongoWriteBatch::COMMAND_DELETE</entry>
+         <entry><constant>MongoWriteBatch::COMMAND_UPDATE</constant></entry>
          <entry>
-          <simpara>Operación de eliminación sin tratar. Las claves requeridas son: array("q" => <link linkend="mongocollection.delete.criteria">array("criterios")</link>, "limit" => 1)</simpara>
+          <para>Operación de acualización pura.</para>
+          <para>Las claves requeridas son <literal>"q"</literal> y <literal>"u"</literal>, las cuales se corresponden a los parámetros <link linkend="mongocollection.update.criteria"><parameter>$criteria</parameter></link> y <link linkend="mongocollection.update.new_object"><parameter>$new_object</parameter></link> de <function>MongoCollection::update</function>, respectivamente.</para>
+          <para>Las claves opcionales son <literal>"multi"</literal> y <literal>"upsert"</literal>, las cuales se corresponden a las opciones <link linkend="mongocollection.update.multiple"><literal>"multiple"</literal></link> y <link linkend="mongocollection.update.upsert"><literal>"upsert"</literal></link> para <function>MongoCollection::update</function>, respectivamente. Si no se especifican, ambas opciones se predeterminan a &false;.</para>
+         </entry>
+        </row>
+        <row>
+         <entry><constant>MongoWriteBatch::COMMAND_DELETE</constant></entry>
+         <entry>
+          <para>Operación de eliminación pura..</para>
+          <para>Las claves requeridas son: <literal>"q"</literal> y <literal>"limit"</literal>, las cuales se corresponden al parámetro <link linkend="mongocollection.remove.criteria"><parameter>$criteria</parameter></link> y a la opción <link linkend="mongocollection.remove.justone"><literal>"justOne"</literal></link> de <function>MongoCollection::remove</function>, respectivamente.</para>
+          <para>La opción <literal>"limit"</literal> es un <type>integer</type>; sin embargo, MongoDB únicamente soporta <literal>0</literal> (es decir, eliminar todos los documentos coincidentes) y <literal>1</literal> (es decir, eliminar al menos un elemento coincidente) por ahora.</para>
          </entry>
         </row>
        </tbody>
@@ -70,7 +77,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; en caso de éxito, y lanza una excecpión en case de error.
+   Devuelve &true; en caso de éxito y lanza una excepción en caso de fallo.
   </para>
  </refsect1>
  
