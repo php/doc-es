@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 95613c06978f494ad0356f4c8b0944fe352fad15 Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 452d71c53cb8f32e6a4df407aeab9dfbeeaa5fcf Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mongo.queries" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Consultas</title>
@@ -18,20 +18,18 @@
    <link linkend="mongo.readpreferences.tagsets">conjuntos de etiquetas de conjuntos de réplicas</link>.
   </para>
   <para>
-   Las preferencias de lectura se pueden configurar a "cualquier nivel"
+   Las preferencias de lectura se pueden configurar en cualquier nivel del controlador:
    <simplelist>
-    <member>Como parámetro de consulta, u opción, a <methodname>MongoClient::__construct</methodname></member>
+    <member>Como parámetro de consulta u opción a <methodname>MongoClient::__construct</methodname></member>
     <member>Específicamente invocando a <methodname>MongoClient::setReadPreference</methodname></member>
-    <member>Al nivel de la base de datos con <methodname>MongoDB::setReadPreference</methodname></member>
-    <member>Al nivel de la colección con <methodname>MongoCollection::setReadPreference</methodname></member>
-    <!--
-    <member>At the Cursor level with <methodname>MongoCursor::setReadPreference</methodname></member>
--->
+    <member>A nivel de la base de datos con <methodname>MongoDB::setReadPreference</methodname></member>
+    <member>A nivel de la colección con <methodname>MongoCollection::setReadPreference</methodname></member>
+    <member>A nivel de cursor con <methodname>MongoCursor::setReadPreference</methodname> o <methodname>MongoCommandCursor::setReadPreference</methodname></member>
    </simplelist>
-   Cada clase hereda la configuración de preferencias de lectura de su clase superior, por lo que si se hace:
+   Cada clase hereda su configuración de preferencias de lectura del contexto "padre".
   </para>
   <example xml:id="mongo.queries.secondaries.inheritence-example">
-   <title>Heredar ReadPreferences del nivel de la base de datos hacia el Cursor</title>
+   <title>Herencia de las preferencias de lectura del nivel de la base de datos hacia el cursor</title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -44,9 +42,9 @@ $cursor = $c->find();
    </programlisting>
   </example>
   <para>
-   entonces, la consulta será ejecutada en un secundario (la colección
-   <constant>MongoClient::RP_SECONDARY_PREFERRED</constant> heredada de la
-   base de datos y el cursor heredado de la colección).
+   En este ejemplo, la consulta se ejecutará en un secundario. La
+   colección hereda <constant>MongoClient::RP_SECONDARY_PREFERRED</constant>
+   de la base de datos y el cursor lo hereda de la colección.
   </para>
  </simplesect>
  
@@ -78,37 +76,37 @@ $cursor->getNext();
 echo "Leyendo desde: ", $cursor->info()["server"], "\n";
 ?>
 ]]>
-       </programlisting>
-       &example.outputs.similar;
-       <screen>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
 <![CDATA[
 Reading from: australianHost
 Reading from: europeanHost
 ]]>
-       </screen>
-       <para>
-        Tenga en cuenta que se debe realizar una consulta antes de elegir un secundario:
-        los secundarios los elige el controlador de forma retardada, y para cada consulta por separado.
-       </para>
-   </example>
-   
+   </screen>
    <para>
-    Se puede ver los que el controlador piensa que es el estado actual de los miembros
-    del conjunto ejecutando <methodname>MongoClient::getHosts</methodname> o
-    <methodname>MongoClient::getConnections</methodname>.
+    Tenga en cuenta que se debe realizar una consulta antes de elegir un secundario:
+    los secundarios los elige el controlador de forma retardada, y para cada consulta por separado.
    </para>
-   
-   <para>
-    Si un secundario no es legible, el controlador enviará las lecturas al
-    primario que se especificó con
-    <constant>MongoClient::RP_SECONDARY_PREFERRED</constant>, que
-    recurrirá a ejecutar una consulta en un primario si no estuviera disponible un secundario.
-    Un servidor es considerado legible si su estado es 2 (SECONDARY) y su
-    salud es 1. Se puede verificar esto con
-    <methodname>MongoClient::getHosts</methodname> y
-    <methodname>MongoClient::getConnections</methodname>.
-   </para>
-   
+  </example>
+  
+  <para>
+   Se puede ver los que el controlador piensa que es el estado actual de los miembros
+   del conjunto ejecutando <methodname>MongoClient::getHosts</methodname> o
+   <methodname>MongoClient::getConnections</methodname>.
+  </para>
+  
+  <para>
+   Si un secundario no es legible, el controlador enviará las lecturas al
+   primario que se especificó con
+   <constant>MongoClient::RP_SECONDARY_PREFERRED</constant>, que
+   recurrirá a ejecutar una consulta en un primario si no estuviera disponible un secundario.
+   Un servidor es considerado legible si su estado es 2 (SECONDARY) y su
+   salud es 1. Se puede verificar esto con
+   <methodname>MongoClient::getHosts</methodname> y
+   <methodname>MongoClient::getConnections</methodname>.
+  </para>
+  
  </simplesect>
  <simplesect xml:id="mongo.queries.notes">
   <title>Notas aleatorias</title>
