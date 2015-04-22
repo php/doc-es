@@ -1,57 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
 <!-- EN-Revision: a56106f69198dfe88c6084593c78a71c26b24353 Maintainer: alejandrorodas Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <chapter xml:id="pdo.prepared-statements" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Sentencias preparadas y procedimientos almacenados</title>
  <para>
   Muchas de las bases de datos más maduras admiten el concepto de sentencias
   preparadas. Estas pueden definirse como un tipo de plantillas
-  compiladas para SQL que las aplicaciones quieren ejecutar, que pueden ser personalizadas
-  usando parámetros de variables. Las sentencias preparadas ofrecen dos grandes beneficios:
+  compiladas para SQL que las aplicaciones quieren ejecutar, pudiendo ser personalizadas
+  utilizando parámetros variables. Las sentencias preparadas ofrecen dos grandes beneficios:
  </para>
  <itemizedlist>
   <listitem>
    <simpara>
     La consulta sólo necesita ser analizada (o preparada) una vez, pero puede
-    ser ejecutada múltiples veces con los mismos o diferentes parámetros. Cuando la
-    consulta es preparada, la base de datos analizará, compilará y optimizará su
+    ser ejecutada muchas veces con los mismos o diferentes parámetros. Cuando la
+    consulta se prepara, la base de datos analizará, compilará y optimizará su
     plan para ejecutarla. Para consultas complejas, este proceso puede tomar
-    suficiente tiempo como para que ralentice notablemente una aplicación si fuera
+    suficiente tiempo como para ralentizar notablemente una aplicación si fuera
     necesario repetir la misma consulta muchas veces con los mismos parámetros.
-    Usando una sentencia preparada, la aplicación evita repetir el ciclo
+    Emplendo una sentencia preparada, la aplicación evita repetir el ciclo
     de análisis/compilación/optimización. Esto significa que las sentencias preparadas
-    usan menos recursos y se ejecutan más rápidamente.
+    utilizan menos recursos y se ejecutan más rápidamente.
    </simpara>
   </listitem>
   <listitem>
    <simpara>
     Los parámetros para las sentencias preparadas no necesitan estar entrecomillados;
     el controlador automáticamente se encarga de esto. Si una aplicación usa exclusivamente
-    sentencias preparadas, el desarrollador puede estar seguro de que no ocurrirán
-    inyecciones SQL (sin embargo, si otras partes de la consulta se construyen con
-    datos de entrada sin escapar, las inyecciones SQL pueden ocurrir).
+    sentencias preparadas, el desarrollador puede estar seguro de que no hay cabida para
+    inyecciones de SQL (sin embargo, si otras partes de la consulta se construyen con
+    datos de entrada sin escapar, aún es posible que hayan ataques de inyecciones de SQL).
    </simpara>
   </listitem>
  </itemizedlist>
  <para>
   Las sentencias preparadas son tan útiles que son la única característica que PDO
-  emulará para los controladores que no las admitan. Esto asegura que una aplicación
-  sea capaz de usar el mismo paradigma de acceso a datos independientemente de las
+  emulará para los controladores que no las soporten. Esto asegura que una aplicación
+  sea capaz de emplear el mismo paradigma de acceso a datos independientemente de las
   capacidades de la base de datos.
  </para>
  <para>
   <example>
-   <title>Inserciones reiteradas usando sentencias preparadas</title>
+   <title>Inserciones repetidas utilizando sentencias preparadas</title>
    <simpara>
-    Este ejemplo realiza dos consultas de tipo INSERT sustituyendo <literal>name</literal>
-    y <literal>value</literal> por los valores correspondientes.
+    Este ejemplo realiza dos consultas INSERT sustituyendo <literal>name</literal>
+    y <literal>value</literal> por los marcadores correspondientes.
    </simpara>
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("INSERT INTO REGISTRY (name, value) VALUES (:name, :value)");
+$sentencia = $mbd->prepare("INSERT INTO REGISTRY (name, value) VALUES (:name, :value)");
 $sentencia->bindParam(':name', $nombre);
 $sentencia->bindParam(':value', $valor);
 
@@ -71,15 +71,15 @@ $sentencia->execute();
  </para>
  <para>
   <example>
-   <title>Inserciones reiteradas usando sentencias preparadas</title>
+   <title>Inserciones repetidas utilizando sentencias preparadas</title>
    <simpara>
-    Este ejemplo realiza dos consultas de tipo INSERT sustituyendo <literal>name</literal>
-    y <literal>value</literal> por el parámetro de sustitución <literal>?</literal> posicional.
+    Este ejemplo realiza dos consultas INSERT sustituyendo <literal>name</literal>
+    y <literal>value</literal> por los marcadores posicionales '<literal>?</literal>'.
    </simpara>
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("INSERT INTO REGISTRY (name, value) VALUES (?, ?)");
+$sentencia = $mbd->prepare("INSERT INTO REGISTRY (name, value) VALUES (?, ?)");
 $sentencia->bindParam(1, $nombre);
 $sentencia->bindParam(2, $valor);
 
@@ -99,16 +99,16 @@ $sentencia->execute();
  </para>
  <para>
   <example>
-   <title>Obtener datos usando sentencias preparadas</title>
+   <title>Obtener datos emplendo sentencias preparadas</title>
    <simpara>
     Este ejemplo obtiene datos basándose en un valor de clave proporcionado por un formulario.
-    Los datos de usuario son automáticamente entrecomillados, con lo cual no hay riesgo de
-    un ataque por inyección SQL.
+    La entrada del usuario es entrecomillada automáticamente, con lo cual no hay riesgo de
+    un ataque por inyección de SQL.
    </simpara>
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("SELECT * FROM REGISTRY where name = ?");
+$sentencia = $mbd->prepare("SELECT * FROM REGISTRY where name = ?");
 if ($sentencia->execute(array($_GET['name']))) {
   while ($fila = $sentencia->fetch()) {
     print_r($fila);
@@ -121,11 +121,11 @@ if ($sentencia->execute(array($_GET['name']))) {
  </para>
  <para>
   Si el controlador de la base de datos lo admite, una aplicación podría también vincular
-  parámetros para salida y para entrada. Los parámetros de salida son típicamente usados
+  parámetros para salida y para entrada. Los parámetros de salida se emplean típicamente
   para recuperar valores de procedimientos almacenados. Los parámetros de salida son
   ligeramente más complejos de usar que los de entrada, de manera que el desarrollador
-  debe saber lo grande que podría ser un parámetro dado cuando se vincula. Si el valor
-  resulta ser más grande que el tamaño que indica, se emitirá un error.
+  debe conocer la magnitud de un parámetro dado cuando se vincula. Si el valor
+  resulta ser más grande que el tamaño indicado, se emitirá un error.
  </para>
  
  <para>
@@ -134,7 +134,7 @@ if ($sentencia->execute(array($_GET['name']))) {
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("CALL sp_returns_string(?)");
+$sentencia = $mbd->prepare("CALL sp_returns_string(?)");
 $sentencia->bindParam(1, $valor_devuleto, PDO::PARAM_STR, 4000); 
 
 // llamar al procedimiento almacenado
@@ -148,7 +148,7 @@ print "El procedimiento devolvió $valor_devuleto\n";
  </para>
  
  <para>
-  Los desarrolladores podrían también especificar parámetros que contienen valores tanto de
+  Un desarrollador podría también especificar parámetros que contienen valores tanto de
   entrada como de salida; la sintaxis es similar a la de los parámetros de salida. En el
   siguiente ejemplo, la cadena 'hola' es pasada al procedimiento almacenado, y cuando éste
   finaliza, 'hola' es reemplazada con el valor de retorno del procedimiento.
@@ -160,14 +160,14 @@ print "El procedimiento devolvió $valor_devuleto\n";
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("CALL sp_takes_string_returns_string(?)");
+$sentencia = $mbd->prepare("CALL sp_takes_string_returns_string(?)");
 $valor = 'hola';
 $sentencia->bindParam(1, $valor, PDO::PARAM_STR|PDO::PARAM_INPUT_OUTPUT, 4000); 
 
 // llamar al procedimiento almacenado
 $sentencia->execute();
 
-print "procedure returned $valor\n";
+print "El procedimiento devolvió $valor\n";
 ?>
 ]]>
    </programlisting>
@@ -179,11 +179,11 @@ print "procedure returned $valor\n";
    <programlisting role="php">
 <![CDATA[
 <?php
-$sentencia = $gbd->prepare("SELECT * FROM REGISTRY where name LIKE '%?%'");
+$sentencia = $mbd->prepare("SELECT * FROM REGISTRY where name LIKE '%?%'");
 $sentencia->execute(array($_GET['name']));
 
 // los parámetros de sustitución deben usarse en el lugar del valor completo
-$sentencia = $gbd->prepare("SELECT * FROM REGISTRY where name LIKE ?");
+$sentencia = $mbd->prepare("SELECT * FROM REGISTRY where name LIKE ?");
 $sentencia->execute(array("%$_GET[name]%"));
 ?>
 ]]>
