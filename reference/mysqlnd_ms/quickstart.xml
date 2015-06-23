@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d976ef507bfa953098069f9c541e49b0529f7d16 Maintainer: seros Status: ready -->
+<!-- EN-Revision: b2640f8900175a34675e303ac3f8878aff8d4a54 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mysqlnd-ms.quickstart" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Guía rápida y ejemplos</title>
@@ -308,28 +308,29 @@ $mysql = mysql_connect("myapp", "nombre_usuario", "contraseña");
 <?php
 /* El equilibrado de carga sigue las reglas de la sección "myapp" del fichero de configuración del complemento */
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (mysqli_connect_errno())
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (mysqli_connect_errno()) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Las sentencias se ejcutarán en el maestro */
 if (!$mysqli->query("DROP TABLE IF EXISTS test")) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 if (!$mysqli->query("CREATE TABLE test(id INT)")) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 if (!$mysqli->query("INSERT INTO test(id) VALUES (1)")) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 
 /* solo lectura: la sentencia se ejecutará en un esclavo */
-if (!($resultado = $mysqli->query("SELECT id FROM test")) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+if (!($res = $mysqli->query("SELECT id FROM test"))) {
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 } else {
- $fila = $resultado->fetch_assoc();
- $resultado->close();
- printf("El esclavó devolvió el ID = '%s'\n", $fila['id'];
+    $fila = $res->fetch_assoc();
+    $res->close();
+    printf("El esclavó devuelve el ID = '%s'\n", $fila['id'];
 }
 $mysqli->close();
 ?>
@@ -338,7 +339,7 @@ $mysqli->close();
     &example.outputs.similar;
     <screen>
 <![CDATA[
-El esclavó devolvió el ID = '1'
+El esclavó devuelve el ID = '1'
 ]]>
     </screen>
    </example>
@@ -395,22 +396,23 @@ El esclavó devolvió el ID = '1'
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Conexión 1, la conexión vincula una variable SQL de usuario, no se ejecuta ningún SELECT en el maestro */
 if (!$mysqli->query("SET @myrole='master'")) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 
 /* Conexión 2, se ejecuta en el esclavo a causa de SELECT */
-if (!($resultado = $mysqli->query("SELECT @myrole AS _role"))) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+if (!($res = $mysqli->query("SELECT @myrole AS _role"))) {
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 } else {
- $fila = $resultado->fetch_assoc();
- $resultado->close();
- printf("@myrole = '%s'\n", $fila['_role']);
+    $fila = $res->fetch_assoc();
+    $res->close();
+    printf("@myrole = '%s'\n", $fila['_role']);
 }
 $mysqli->close();
 ?>
@@ -511,9 +513,10 @@ $mysqli->close();
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (mysqli_connect_errno())
+if (mysqli_connect_errno()) {
   /* Por supuesto, su manejo de errores es mejor... */
   die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Conexión 1, la conexión vincula una variable SQL de usuario, no se ejecuta ningún SELECT en el maestro */
 if (!$mysqli->query("SET @myrole='master'")) {
@@ -521,11 +524,11 @@ if (!$mysqli->query("SET @myrole='master'")) {
 }
 
 /* Conexión 1, se ejecuta en el maestro debido a la sugerencia SQL */
-if (!($resultado = $mysqli->query(sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH)))) {
+if (!($res = $mysqli->query(sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH)))) {
  printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 } else {
- $fila = $resultado->fetch_assoc();
- $resultado->close();
+ $fila = $res->fetch_assoc();
+ $res->close();
  printf("@myrole = '%s'\n", $fila['_role']);
 }
 $mysqli->close();
@@ -563,13 +566,14 @@ $mysqli->close();
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Forzar el uso del maestro, el maestro siempre tiene datos recientes y actuales */
 if (!$mysqli->query(sprintf("/*%s*/SELECT critical_data FROM important_table", MYSQLND_MS_MASTER_SWITCH))) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 ?>
 ]]>
@@ -591,25 +595,26 @@ if (!$mysqli->query(sprintf("/*%s*/SELECT critical_data FROM important_table", M
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Forzar el uso del esclavo */
 if (!$mysqli->query(sprintf("/*%s*/CREATE TABLE informes_esclavo(id INT)", MYSQLND_MS_SLAVE_SWITCH))) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 /* Continuar usando esta conexión esclava en particular */
 if (!$mysqli->query(sprintf("/*%s*/INSERT INTO informes_esclavo(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH))) {
- printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 /* ¡No usar MYSQLND_MS_SLAVE_SWITCH, ya que permitiría el intercambio con otro esclavo! */
-if ($resultado = $mysqli->query(sprintf("/*%s*/SELECT COUNT(*) AS _num FROM informes_esclavo", MYSQLND_MS_LAST_USED_SWITCH))) {
-  $fila = $resultado->fetch_assoc();
-  $resultado->close();
-  printf("Hay %d filas en la tabla 'informes_esclavo'", $fila['_num']);
+if ($res = $mysqli->query(sprintf("/*%s*/SELECT COUNT(*) AS _num FROM informes_esclavo", MYSQLND_MS_LAST_USED_SWITCH))) {
+    $fila = $res->fetch_assoc();
+    $res->close();
+    printf("Hay %d filas en la tabla 'informes_esclavo'", $fila['_num']);
 } else {
-  printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 $mysqli->close();
 ?>
@@ -674,37 +679,38 @@ $mysqli->close();
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* No es un SELECT, se usará el maestro */
 if (!$mysqli->query("START TRANSACTION")) {
- /* Por favor, use un manejo de errores mejor en su código */
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    /* Por favor, use un manejo de errores mejor en su código */
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
 /* ¡Evitar el intercambio de conexión! */
-if (!$mysqli->query(sprintf("/*%s*/INSERT INTO test(id) VALUES (1)", MYSQLND_MS_LAST_USED_SWITCH)))) {
- /* Por favor, realice el ROLLBACK apropiado en su código, y no use simplemente 'die' */
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query(sprintf("/*%s*/INSERT INTO test(id) VALUES (1)", MYSQLND_MS_LAST_USED_SWITCH))) {
+    /* Por favor, realice el ROLLBACK apropiado en su código, y no use simplemente 'die' */
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
-if ($resultado = $mysqli->query(sprintf("/*%s*/SELECT COUNT(*) AS _num FROM test", MYSQLND_MS_LAST_USED_SWITCH)))) {
-  $fila = $resultado->fetch_assoc();
-  $resultado->close();
-  if ($fila['_num'] > 1000) {
-   if (!$mysqli->query(sprintf("/*%s*/INSERT INTO events(task) VALUES ('cleanup')", MYSQLND_MS_LAST_USED_SWITCH)))) {
-     die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-   }
-  }
+if ($res = $mysqli->query(sprintf("/*%s*/SELECT COUNT(*) AS _num FROM test", MYSQLND_MS_LAST_USED_SWITCH))) {
+    $fila = $res->fetch_assoc();
+    $res->close();
+    if ($fila['_num'] > 1000) {
+        if (!$mysqli->query(sprintf("/*%s*/INSERT INTO events(task) VALUES ('cleanup')", MYSQLND_MS_LAST_USED_SWITCH))) {
+            die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+        }
+    }
 } else {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
-if (!$mysqli->query(sprintf("/*%s*/UPDATE log SET last_update = NOW()", MYSQLND_MS_LAST_USED_SWITCH)))) {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query(sprintf("/*%s*/UPDATE log SET last_update = NOW()", MYSQLND_MS_LAST_USED_SWITCH))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
-if (!$mysqli->query(sprintf("/*%s*/COMMIT", MYSQLND_MS_LAST_USED_SWITCH)))) {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query(sprintf("/*%s*/COMMIT", MYSQLND_MS_LAST_USED_SWITCH))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
 $mysqli->close();
@@ -770,37 +776,38 @@ $mysqli->close();
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Deshabilitar autocommit, el complemento ejecutará todas las sentencias en el maestro */
 $mysqli->autocommit(FALSE);
 
 if (!$mysqli->query("INSERT INTO test(id) VALUES (1)")) {
- /* Por favor, realice el ROLLBACK apropiado en su código, y no use simplemente 'die' */
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    /* Por favor, realice el ROLLBACK apropiado en su código, y no use simplemente 'die' */
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
-if ($resultado = $mysqli->query("SELECT COUNT(*) AS _num FROM test")) {
-  $fila = $resultado->fetch_assoc();
-  $resultado->close();
-  if ($fila['_num'] > 1000) {
-   if (!$mysqli->query("INSERT INTO events(task) VALUES ('cleanup')")) {
-     die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-   }
-  }
+if ($res = $mysqli->query("SELECT COUNT(*) AS _num FROM test")) {
+    $fila = $res->fetch_assoc();
+    $res->close();
+    if ($fila['_num'] > 1000) {
+        if (!$mysqli->query("INSERT INTO events(task) VALUES ('cleanup')")) {
+            die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+        }
+    }
 } else {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 if (!$mysqli->query("UPDATE log SET last_update = NOW()")) {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 if (!$mysqli->commit()) {
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
 /* El complemento asume que la transacción ha finalizado e inicia el equilibrado de carga de nuevo */
-$mysqli->autocommit(TRUE);
+$mysqli->autocommit(true);
 $mysqli->close();
 ?>
 ]]>
@@ -838,8 +845,8 @@ $mysqli->close();
     las primeras pruebas indican una calidad razonable.
    </para>
    <para>
-     Por favor, contacte con el equipo de desarrollo si está interesado en esta característica.
-     Estamos buscando comentarios de la vida real para completar esta característica.
+    Por favor, contacte con el equipo de desarrollo si está interesado en esta característica.
+    Estamos buscando comentarios de la vida real para completar esta característica.
    </para>
   </note>
   <para>
@@ -867,34 +874,35 @@ $mysqli->close();
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* iniciar una transacción global */
 $gtrid_id = "12345";
 if (!mysqlnd_ms_xa_begin($mysqli, $gtrid_id)) {
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
 /* ejecutar las consultas como siempre: XA BEGIN será inyectada en cuanto se ejecute una consulta */
 if (!$mysqli->query("INSERT INTO orders(order_id, item) VALUES (1, 'christmas tree, 1.8m')")) {
-   /* Tanto si falla INSERT o falla la inyección de XA BEGIN */
-  if ('XA' == substr($mysqli->sqlstate, 0, 2)) {
-    printf("Fallo relacionado con una transacción/XA global, [%d] %s\n", $mysqli->errno, $mysqli->error);
-  } else {
-    printf("Fallo de INSERT, [%d] %s\n", $mysqli->errno, $mysqli->error);
-  }
-  /* revertir la transacción global */
-  mysqlnd_ms_xa_rollback($mysqli, $xid);
-  die("Deteniendo.");
+    /* Tanto si falla INSERT o falla la inyección de XA BEGIN */
+    if ('XA' == substr($mysqli->sqlstate, 0, 2)) {
+        printf("Fallo relacionado con una transacción/XA global, [%d] %s\n", $mysqli->errno, $mysqli->error);
+    } else {
+        printf("Fallo de INSERT, [%d] %s\n", $mysqli->errno, $mysqli->error);
+    }
+    /* revertir la transacción global */
+    mysqlnd_ms_xa_rollback($mysqli, $xid);
+    die("Deteniendo.");
 }
 
 /* continuar con la realización de consultas en otros servidores, p.ej. otros fragmentos */
 
 /* consignar la transacción global */
 if (!mysqlnd_ms_xa_commit($mysqli, $xa_id)) {
-  printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
+    printf("[%d] %s\n", $mysqli->errno, $mysqli->error);
 }
 ?>
 ]]>
@@ -931,18 +939,20 @@ if (!mysqlnd_ms_xa_commit($mysqli, $xa_id)) {
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
+if (!$mysqli) {
   /* Por supuesto, su manejo de errores es mejor... */
   die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* iniciar una transacción local */
-if (!$mysqli->begin_transaction())
-  die(sprintf("[%d/%s] %s\n", $mysqli->errno, $mysqli->sqlstate, $mysqli->error));
+if (!$mysqli->begin_transaction()) {
+    die(sprintf("[%d/%s] %s\n", $mysqli->errno, $mysqli->sqlstate, $mysqli->error));
+}
 
 /* anora no se puede iniciar la transición global - primero debe finalizar la local */
 $gtrid_id = "12345";
 if (!mysqlnd_ms_xa_begin($mysqli, $gtrid_id)) {
-  die(sprintf("[%d/%s] %s\n", $mysqli->errno, $mysqli->sqlstate, $mysqli->error));
+    die(sprintf("[%d/%s] %s\n", $mysqli->errno, $mysqli->sqlstate, $mysqli->error));
 }
 ?>
 ]]>
@@ -1118,33 +1128,38 @@ Warning: mysqlnd_ms_xa_begin(): (mysqlnd_ms) Some work is done outside global tr
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* división de lecutura-escritura: se usa el maestro */
 if (!$mysqli->query("INSERT INTO orders(order_id, item) VALUES (1, 'christmas tree, 1.8m')")) {
-  /* Por favor, use un manejo de errores mejor en su código */
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    /* Por favor, use un manejo de errores mejor en su código */
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
 /* Solicitud de consistencia de sesión: lectura de sus escrituras */
-if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_SESSION))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_SESSION)) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* El complemento selecciona un nodo que posee los cambios, aquí: el maestro */
-if (!$resultado = $mysqli->query("SELECT item FROM orders WHERE order_id = 1"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$res = $mysqli->query("SELECT item FROM orders WHERE order_id = 1")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
-var_dump($resultado->fetch_assoc());
+var_dump($res->fetch_assoc());
 
 /* Volver a la consistencia final: se permiten datos antiguos */
-if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* El complemento seleccina cualquier esclavo, se permiten datos antiguos */
-if (!$resultado = $mysqli->query("SELECT item, price FROM specials"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$res = $mysqli->query("SELECT item, price FROM specials")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 ?>
 ]]>
     </programlisting>
@@ -1205,26 +1220,32 @@ if (!$resultado = $mysqli->query("SELECT item, price FROM specials"))
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Demora de la lectura desde los esclavos de no más de cuatro segundos */
-$ret = mysqlnd_ms_set_qos($mysqli,
-         MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL,
-         MYSQLND_MS_QOS_OPTION_AGE, 4);
+$ret = mysqlnd_ms_set_qos(
+    $mysqli,
+    MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL,
+    MYSQLND_MS_QOS_OPTION_AGE,
+    4
+);
 
-if (!$ret)
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$ret) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* El comlemento elige cualquier esclavo, el cual puede o no poseer los cambios */
-if (!$resultado = $mysqli->query("SELECT item, price FROM daytrade"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-
+if (!$res = $mysqli->query("SELECT item, price FROM daytrade")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Volver a lo predeterminado: usar todos los esclavos y maestros permitidos */
-if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 ?>
 ]]>
     </programlisting>
@@ -1308,26 +1329,33 @@ if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL))
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Demora de la lectura desde los esclavos de no más de cuatro segundos */
-$ret = mysqlnd_ms_set_qos($mysqli,
-         MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL,
-         MYSQLND_MS_QOS_OPTION_AGE, 4);
+$ret = mysqlnd_ms_set_qos(
+    $mysqli,
+    MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL,
+    MYSQLND_MS_QOS_OPTION_AGE,
+    4
+);
 
-if (!$ret)
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$ret) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* El comlemento elige cualquier esclavo, el cual puede o no poseer los cambios */
-if (!$resultado = $mysqli->query("SELECT item, price FROM daytrade"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$res = $mysqli->query("SELECT item, price FROM daytrade")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 
 /* Volver a lo predeterminado: usar todos los esclavos y maestros permitidos */
-if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 ?>
 ]]>
     </programlisting>
@@ -1471,27 +1499,32 @@ INSERT INTO `trx`(`trx_id`) VALUES (1);
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("DROP TABLE IF EXISTS test"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("DROP TABLE IF EXISTS test")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("CREATE TABLE test(id INT)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("CREATE TABLE test(id INT)")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("INSERT INTO test(id) VALUES (1)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("INSERT INTO test(id) VALUES (1)")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* modo autoconsigna, lectura en el esclavo, sin incremento */
-if (!($resultado = $mysqli->query("SELECT id FROM test")))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!($res = $mysqli->query("SELECT id FROM test"))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
-var_dump($resultado->fetch_assoc());
+var_dump($res->fetch_assoc());
 ?>
 ]]>
     </programlisting>
@@ -1564,19 +1597,22 @@ array(1) {
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("DROP TABLE IF EXISTS test"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("DROP TABLE IF EXISTS test")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 printf("GTID después de la transacción %s\n", mysqlnd_ms_get_last_gtid($mysqli));
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("CREATE TABLE test(id INT)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("CREATE TABLE test(id INT)")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 printf("GTID después de la transacción %s\n", mysqlnd_ms_get_last_gtid($mysqli));
 ?>
@@ -1653,15 +1689,18 @@ GTID después de la transacción 8
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* modo autoconsigna, transacción en el maestro, el GTID debe ser incrementado */
-if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
-    !$mysqli->query("CREATE TABLE test(id INT)") ||
-    !$mysqli->query("INSERT INTO test(id) VALUES (1)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (   !$mysqli->query("DROP TABLE IF EXISTS test")
+    || !$mysqli->query("CREATE TABLE test(id INT)")
+    || !$mysqli->query("INSERT INTO test(id) VALUES (1)")
+) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* GTID es un identificador para la última escritura */
 $gtid = mysqlnd_ms_get_last_gtid($mysqli);
@@ -1672,11 +1711,11 @@ if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYS
 }
 
 /* Ejecutar en el maestro o en el esclavo que ha replicado el INSERT */
-if (!($resultado = $mysqli->query("SELECT id FROM test"))) {
+if (!($res = $mysqli->query("SELECT id FROM test"))) {
     die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
 }
 
-var_dump($resultado->fetch_assoc());
+var_dump($res->fetch_assoc());
 ?>
 ]]>
     </programlisting>
@@ -1847,14 +1886,17 @@ var_dump($resultado->fetch_assoc());
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
-if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
-    !$mysqli->query("CREATE TABLE test(id INT)") ||
-    !$mysqli->query("INSERT INTO test(id) VALUES (1)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (   !$mysqli->query("DROP TABLE IF EXISTS test")
+    || !$mysqli->query("CREATE TABLE test(id INT)")
+    || !$mysqli->query("INSERT INTO test(id) VALUES (1)")
+) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Explícitamente permite la consistencia final y el almacenamiento en caché (TTL <= 60 segundos) */
 if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_CACHE, 60)) {
@@ -1864,22 +1906,22 @@ if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MY
 /* Para que este ejemplo funcione, debemos esperar a que el esclavo se ponga al día. Estilo de fuerza bruta. */
 $intentos = 0;
 do {
-  /* comprobar si el esclavo posee la tabla */
-  if ($resultado = $mysqli->query("SELECT id FROM test")) {
-    break;
-  } else if ($mysqli->errno) {
-    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-  }
-  /* esperar a que el esclavo se ponga al día */
-  usleep(200000);
+    /* comprobar si el esclavo posee la tabla */
+    if ($res = $mysqli->query("SELECT id FROM test")) {
+        break;
+    } else if ($mysqli->errno) {
+        die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    }
+    /* esperar a que el esclavo se ponga al día */
+    usleep(200000);
 } while ($intentos++ < 10);
 
 /* La consulta ha sido ejecutada en un esclavo, el resultado está en la caché */
-assert($resultado);
-var_dump($resultado->fetch_assoc());
+assert($res);
+var_dump($res->fetch_assoc());
 
 /* Servido desde la caché */
-$resultado = $mysqli->query("SELECT id FROM test");
+$res = $mysqli->query("SELECT id FROM test");
 ?>
 ]]>
     </programlisting>
@@ -1908,14 +1950,17 @@ $resultado = $mysqli->query("SELECT id FROM test");
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
-if (!$mysqli->query("DROP TABLE IF EXISTS test") ||
-    !$mysqli->query("CREATE TABLE test(id INT)") ||
-    !$mysqli->query("INSERT INTO test(id) VALUES (1)"))
-  die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (   !$mysqli->query("DROP TABLE IF EXISTS test")
+    || !$mysqli->query("CREATE TABLE test(id INT)")
+    || !$mysqli->query("INSERT INTO test(id) VALUES (1)")
+) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Explícitamente permite la consistencia final y el almacenamiento en caché (TTL <= 60 segundos) */
 if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_CACHE, 60)) {
@@ -1925,29 +1970,31 @@ if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MY
 /* Para que este ejemplo funcione, debemos esperar a que el esclavo se ponga al día. Estilo de fuerza bruta. */
 $intentos = 0;
 do {
-  /* comprobar si el esclavo posee la tabla */
-  if ($resultado = $mysqli->query("SELECT id FROM test")) {
-    break;
-  } else if ($mysqli->errno) {
-    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-  }
-  /* esperar a que el esclavo se ponga al día */
-  usleep(200000);
+    /* comprobar si el esclavo posee la tabla */
+    if ($res = $mysqli->query("SELECT id FROM test")) {
+        break;
+    } else if ($mysqli->errno) {
+        die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+    }
+    /* esperar a que el esclavo se ponga al día */
+    usleep(200000);
 } while ($intentos++ < 10);
 
-assert($resultado);
+assert($res);
 
 /* La consulta ha sido ejecutada en un esclavo, el resultado está en la caché */
-var_dump($resultado->fetch_assoc());
+var_dump($res->fetch_assoc());
 
 /* Servido desde la caché */
-if (!($resultado = $mysqli->query("SELECT id FROM test")))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-var_dump($resultado->fetch_assoc());
+if (!($res = $mysqli->query("SELECT id FROM test"))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
+var_dump($res->fetch_assoc());
 
 /* Actualización en el maestro */
-if (!$mysqli->query("UPDATE test SET id = 2"))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("UPDATE test SET id = 2")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Lectura de sus escrituras */
 if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_SESSION)) {
@@ -1955,9 +2002,10 @@ if (false == mysqlnd_ms_set_qos($mysqli, MYSQLND_MS_QOS_CONSISTENCY_SESSION)) {
 }
 
 /* Obtener los últimos datos */
-if (!($resultado = $mysqli->query("SELECT id FROM test")))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
-var_dump($resultado->fetch_assoc());
+if (!($res = $mysqli->query("SELECT id FROM test"))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
+var_dump($res->fetch_assoc());
 ?>
 ]]>
     </programlisting>
@@ -2025,28 +2073,29 @@ var_dump($resultado->fetch_assoc());
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "nombre_usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 $sql = "SELECT 1 FROM DUAL";
 
 /* el manejo de errores debería realizarse sin tener en cuenta el complemento */
 if (!($res = $enlace->query($sql))) {
-  /* específico del complemento: comprobar errores de conexión */
-  switch ($enlace->errno) {
+    /* específico del complemento: comprobar errores de conexión */
+    switch ($enlace->errno) {
     case 2002:
     case 2003:
     case 2005:
-      printf("Error de conexión - ¡intentando con el siguiente esclavo!\n");
-      /* el equilibrador de carga elegirá el siguiente esclavo */
-      $res = $enlace->query($sql);
-      break;
+        printf("Error de conexión - ¡intentando con el siguiente esclavo!\n");
+        /* el equilibrador de carga elegirá el siguiente esclavo */
+        $res = $enlace->query($sql);
+        break;
     default:
-      /* no hay errores de conexión, la tolerancia a fallos es poco probable que ayude */
-      die(sprintf("SQL error: [%d] %s", $enlace->errno, $enlace->error));
-      break;
-  }
+        /* no hay errores de conexión, la tolerancia a fallos es poco probable que ayude */
+        die(sprintf("SQL error: [%d] %s", $enlace->errno, $enlace->error));
+        break;
+    }
 }
 if ($res) {
   var_dump($res->fetch_assoc());
@@ -2135,25 +2184,27 @@ if ($res) {
     <programlisting role="php">
 <![CDATA[
 <?php
-function select($mysqli, $msj, $sugerencia = '') {
-  /* Nota: prueba débil, dos conexiones a dos servidores podrían tener el mismo id de hilo */
-  $sql = sprintf("SELECT CONNECTION_ID() AS _thread, '%s' AS _hint FROM DUAL", $msj);
-  if ($sugerencia) {
-    $sql = $sugerencia . $sql;
-  }
-  if (!($res = $mysqli->query($sql))) {
-    printf("[%d] %s", $mysqli->errno, $mysqli->error);
-    return false;
-  }
-  $fila =  $res->fetch_assoc();
-  printf("%d - %s - %s\n", $fila['_thread'], $fila['_hint'], $sql);
-  return true;
+function select($mysqli, $msj, $sugerencia = '')
+{
+    /* Nota: prueba débil, dos conexiones a dos servidores podrían tener el mismo id de hilo */
+    $sql = sprintf("SELECT CONNECTION_ID() AS _thread, '%s' AS _hint FROM DUAL", $msj);
+    if ($sugerencia) {
+        $sql = $sugerencia . $sql;
+    }
+    if (!($res = $mysqli->query($sql))) {
+        printf("[%d] %s", $mysqli->errno, $mysqli->error);
+        return false;
+    }
+    $fila =  $res->fetch_assoc();
+    printf("%d - %s - %s\n", $fila['_thread'], $fila['_hint'], $sql);
+    return true;
 }
 
 $mysqli = new mysqli("myapp", "usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Permitir siempre esclavos */
 select($mysqli, "slave_0");
@@ -2251,10 +2302,8 @@ select($mysqli, "slave_1", "/*Partition_A*/");
   </para>
   <para>
    Los usuarios utilizan las nuevas funciones
-   <link linkend="function.mysqlnd-ms-fabric-select-shard">
-    <function>mysqlnd_ms_fabric_select_shard</function></link> y
-   <link linkend="function.mysqlnd-ms-fabric-select-global">
-    <function>mysqlnd_ms_fabric_select_global</function></link> para cambiar al
+   <function>mysqlnd_ms_fabric_select_shard</function> y
+   <function>mysqlnd_ms_fabric_select_global</function> para cambiar al
    conjunto de servidores responsables de una clave de fragmento dada. Luego, el
    complemento elige un servidor apropiado para ejecutar las consultas.
    Al hacer esto, el complemento se encarga del conjunto de reglas adicionales
@@ -2272,24 +2321,28 @@ select($mysqli, "slave_1", "/*Partition_A*/");
 <![CDATA[
 <?php
 $mysqli = new mysqli("myapp", "usuario", "contraseña", "base_datos");
-if (!$mysqli)
-  /* Por supuesto, su manejo de errores es mejor... */
-  die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+if (!$mysqli) {
+    /* Por supuesto, su manejo de errores es mejor... */
+    die(sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+}
 
 /* Crear una tabla global - una tabla disponible en todos los fragmentos */
 mysqlnd_ms_fabric_select_global($mysqli, "test.fabrictest");
-if (!$mysqli->query("CREATE TABLE test.fabrictest(id INT NOT NULL PRIMARY KEY)"))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!$mysqli->query("CREATE TABLE test.fabrictest(id INT NOT NULL PRIMARY KEY)")) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Cambiar la conexión al fragmento apropiado e insertar un registro */
 mysqlnd_ms_fabric_select_shard($mysqli, "test.fabrictest", 10);
-if (!($res = $mysqli->query("INSERT INTO fabrictest(id) VALUES (10)")))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!($res = $mysqli->query("INSERT INTO fabrictest(id) VALUES (10)"))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 
 /* Intentar leer el recién insertado registro */
 mysqlnd_ms_fabric_select_shard($mysqli, "test.fabrictest", 10);
-if (!($res = $mysqli->query("SELECT id FROM test WHERE id = 10")))
- die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+if (!($res = $mysqli->query("SELECT id FROM test WHERE id = 10"))) {
+    die(sprintf("[%d] %s\n", $mysqli->errno, $mysqli->error));
+}
 ?>
 ]]>
     </programlisting>
@@ -2300,8 +2353,7 @@ if (!($res = $mysqli->query("SELECT id FROM test WHERE id = 10")))
    después. Todas las operaciones de lenguaje de definición de datos (DDL)
    sobre una tabla fragmentada deben aplicarse a lo que se llama el grupo de servidores global.
    Antes de crear o alterar una tabla fragmentada, se llama a
-   <link linkend="function.mysqlnd-ms-fabric-select-global">
-    <function>mysqlnd_ms_fabric_select_global</function></link>
+   <function>mysqlnd_ms_fabric_select_global</function>
    para cambiar la conexión dada a los servidores correspondientes del grupo
    global. Las senetencias SQL de manipulación de datos (DML) deben ser enviadas a los fragmentos
    directamente. La función <link linkend="function.mysqlnd-ms-fabric-select-shard">
