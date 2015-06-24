@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: cb2e7b70b1354e5468e538720d59c37e273bc98e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 9f0e1e36a3eeac3652b724a834dbf241a8c90527 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <phpdoc:classref xml:id="class.mongocommandcursor" xmlns:phpdoc="http://php.net/ns/phpdoc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -14,28 +14,24 @@
   <section xml:id="mongocommandcursor.intro">
    &reftitle.intro;
    <para>
-    Un cursor de comandos se usa para recorrer los resultados de un comando de base
-    de datos. Un cursor de comando es similar a un
-    <classname>MongoCursor</classname> normal excepto que se usa para recorrer
-    el resultado de un comando del servidor en lugar de un resultado de una consulta.
+    Un cursor de comandos es similar a un <classname>MongoCursor</classname> excepto
+    que se utiliza para recorrer los resultados de un comando de la base de datos
+    en lugar de una consulta normal. Los cursores de comandos son útiles para recorrer
+    conjuntos de resultados grandes que podrían exceder el límite del tamaño del documento (actualmente 16MB)
+    de una respuesta <function>MongoDB::command</function> sencilla.
    </para>
    <para>
-    Normalmente no se crean cursores usando el constructor de
-    <classname>MongoCommandCursor</classname>, se obtiene un nuevo cursor
-    llamando a <function>MongoCollection::commandCursor</function>.
-   </para>
-   <para>
-    Usar un cursor de comandos en lugar de
-    <methodname>MongoDB::command</methodname> significa que se puede recorrer
-    un conjunto de resultados mucho más grande que el devuelto por
-    <methodname>MongoDB::command</methodname>, que está limitado al tamaño
-    máximo de un documento (actualmente 16MB).
+    Aunque se pueden crear cursores de comandos con
+    <function>MongoCommandCursor::__construct</function> o el método de fábrica
+    <function>MongoCommandCursor::createFromDocument</function>,
+    normalmente se utilizarán ayudantes específicos de comandos como
+    <function>MongoCollection::aggregateCursor</function>.
    </para>
    <para>
     Observe que el cursor no "contiene" los resultados del comando de la base de datos,
-    solamente los gestiona. Por lo tanto, si se imprime un cursor (con, digamos,
+    solamente gestiona su recorrido. Por lo tanto, si se imprime un cursor (p.ej., con
     <function>var_dump</function> o <function>print_r</function>), se obtendrá
-    el objeto cursor, no los documentos.
+    el objeto cursor, no los documentos de resultados.
    </para>
   </section>
   
@@ -43,17 +39,14 @@
    <title>Escenarios de un cursor</title>
    <para>
     Un <classname>MongoCommandCursor</classname> tiene dos "escenarios de vida": pre
-    y post consulta. Cuando un cursor se crea, aún no ha contactado con la base
-    de datos, por lo que esta en un estado de pre consulta. En este escenario, el cliente puede
-    además especificar la consulta que quiere realizar, incluyendo la configuración del tamaño
-    del lote.
+    y pos comando. Cuando un cursor se crea, aún no ha contactado con la base
+    de datos, por lo que está en un estado de precomando. Cuando el cliente primero intenta
+    obtener un resultado (llamando a <function>MongoCommandCursor::rewind</function>,
+    directa o indirectamente), el cursor se mueve al estado de poscomando.
    </para>
    <para>
-    Cuando el cliente intenta obtener un resultado (llamando a
-    <function>MongoCommandCursor::next</function>, directa o indirectamente),
-    el cursor se traslada al escenario de post consulta. En este punto, el comando
-    ha sido ejecutado por la base de datos y solamente se puede configurar el tamaño
-    del lote.
+    El tamaño del lote y el tiempo de espera del socket de cursor de comando puede configurarse tanto
+    en el estado de precomando como en el de poscomando.
    </para>
    <para>
     <example xml:id="mongocommandcursor.stages.adding-options">
@@ -64,11 +57,11 @@
 
 $cursor = new MongoCommandCursor(...);
 
-// la base de datos aún no ha sido consultada, por lo que se pueden añadir más opciones
 $cursor = $cursor->batchSize( 4 );
 
-var_dump($cursor->getNext());
-// ahora la base de datos ha sido consultada y no se pueden añadir más opciones
+foreach ($cursor as $resultado) {
+    var_dump($resultado);
+}
 ?>
 ]]>
      </programlisting>
@@ -90,10 +83,10 @@ var_dump($cursor->getNext());
       <classname>MongoCommandCursor</classname>
      </ooclass>
      <oointerface>
-      <interfacename>Iterator</interfacename>
+      <interfacename>MongoCursorInterface</interfacename>
      </oointerface>
      <oointerface>
-      <interfacename>MongoCursorInterface</interfacename>
+      <interfacename>Iterator</interfacename>
      </oointerface>
     </classsynopsisinfo>
     <!-- }}} -->
@@ -108,8 +101,8 @@ var_dump($cursor->getNext());
   <section role="seealso">
    &reftitle.seealso;
    <simplelist>
-    <member><methodname>MongoDb::command</methodname></member>
-    <member><methodname>MongoCollection::commandCursor</methodname></member>
+    <member><methodname>MongoDB::command</methodname></member>
+    <member><methodname>MongoCollection::aggregateCursor</methodname></member>
    </simplelist>
   </section>
   
