@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 92041765726331bcab485b3bee159dfe6673f9e1 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5eb641c91a7e3edbb5ab5a614225fdd6de925326 Maintainer: seros Status: ready -->
+<!-- Reviewed: no Maintainer: seros -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.flock">
  <refnamediv>
   <refname>flock</refname>
-  <refpurpose>Bloqueo de archivos asesorado portable</refpurpose>
+  <refpurpose>Bloqueo de ficheros recomendado y portable</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
@@ -18,19 +18,19 @@
   </methodsynopsis>
   <para>
    <function>flock</function> permite llevar a cabo un simple modelo de lectura/escritura
-   que puede ser usado en cada plataforma virtual (incluidas la mayoría de las derivadas
+   que puede emplearse virtualmente en cada plataforma (incluidas la mayoría de las derivadas
    de Unix e incluso Windows).
   </para>
   <para>
-   En versiones de PHP anteriores a 5.3.2, el bloqueo es liberado también por
+   En versiones de PHP anteriores a la 5.3.2, el bloqueo es liberado también por
    <function>fclose</function> (la cual es también llamada automáticamente cuando finaliza
    el script).
   </para>
   <para>
-   PHP soporta una manera portable de bloquear archivos completos de una forma asesorada
-   (lo cual significa que todos los programas de acceso tiene que usar la misma forma de
-   bloqueo o no funcionará). Por defecto, esta función operará hasta que el
-   bloqueo solicitado sea adquirido; esto se puede controlar con la opción <constant>LOCK_NB</constant> documentada abajo.
+   PHP soporta de manera portable el bloqueo de ficheros completos de una forma recomendada
+   (lo cual significa que todos los programas que accedan tiene que utilizar la misma forma de
+   bloqueo o este no funcionará). Por defecto, esta función esperá hasta adquirir el bloqueo
+   solicitado; esto se puede controlar con la opción <constant>LOCK_NB</constant> documentada abajo.
   </para>
  </refsect1>
  
@@ -62,7 +62,7 @@
         </listitem>
         <listitem>
          <simpara>
-          <constant>LOCK_UN</constant> para solicitar un desbloqueo (compartido o exclusivo).
+          <constant>LOCK_UN</constant> para liberar un bloqueo (compartido o exclusivo).
          </simpara>
         </listitem>
        </itemizedlist>
@@ -70,7 +70,7 @@
       <para>
        También es posible añadir <constant>LOCK_NB</constant> como una máscara de bit
        a una de las operaciones de arriba si no se desea que <function>flock</function>
-       bloquee mientras opera.
+       quede esperando mientras obtiene el bloqueo.
       </para>
      </listitem>
     </varlistentry>
@@ -78,8 +78,8 @@
      <term><parameter>wouldblock</parameter></term>
      <listitem>
       <para>
-       El tercer argumento opcional es establecido a 1 si el aviso produciría un bloqueo
-       (condición errno EWOULDBLOCK). (no soportado en Windows)
+       El tercer argumento opcional es establecido a 1 si el bloqueo hará que la función quede esperando
+       (condición errno EWOULDBLOCK).
       </para>
      </listitem>
     </varlistentry>
@@ -107,10 +107,17 @@
      </thead>
      <tbody>
       <row>
+       <entry>5.5.22, 5.6.6</entry>
+       <entry>
+        Se añadió soporte para el parámetro <parameter>wouldblock</parameter> en
+        Windows.
+       </entry>
+      </row>
+      <row>
        <entry>5.3.2</entry>
        <entry>
-        Se eliminó el desbloqueo automático al cerrarse el gestor de
-        recurso. El desbloqueo ahora siempre tiene que ser hecho manualmente.
+        Se eliminó la liberación del bloqueo automática al cerrarse el manejador del
+        recurso. La liberación del bloqueo ahora siempre tiene que realizarse manualmente.
        </entry>
       </row>
      </tbody>
@@ -131,7 +138,7 @@
 $fp = fopen("/tmp/lock.txt", "r+");
 
 if (flock($fp, LOCK_EX)) {  // adquirir un bloqueo exclusivo
-    ftruncate($fp, 0);      // truncar el archivo
+    ftruncate($fp, 0);      // truncar el fichero
     fwrite($fp, "Escribir algo aquí\n");
     fflush($fp);            // volcar la salida antes de liberar el bloqueo
     flock($fp, LOCK_UN);    // libera el bloqueo
@@ -174,26 +181,26 @@ fclose($fp);
   &reftitle.notes;
   <note>
    <para>
-    <function>flock</function> usa el bloqueo de forma obligada en vez del bloqueo
-    asesorado en Windows. Lo obligación del bloqueo también está soportado en sistemas operativos
-    basados en Linux y System V mediante el mecanismo usual soportado por la
-    llamada al sistema fcntl(): es decir, si el archivo en cuestión tiene el bit de
-    permiso setgid establecido y el bit de ejecución de grupo despejado. En Linux, el sistema
-    de archivos también necesita ser montado con la opción mand para que esto funcione.
+    En Windows, <function>flock</function> usa el bloqueo obligado en lugar del
+    bloqueo recomendado. El bloqueo obligado también está soportado en sistemas operativos
+    basados en Linux y System V mediante el mecanismo normal soportado por la
+    llamada al sistema fcntl(): es decir, si el fichero en cuestión tiene el bit de
+    permiso setgid establecido y el bit de ejecución de grupo despejado. Para que esto funcione
+    en Linux, el sistema de ficheros también debe ser montado con la opción mand.
    </para>
   </note>
   <note>
    <para>
-    Ya que <function>flock</function> requiere un puntero a un archivo, puede tener
-    que usar un archivo de bloqueo especial para proteger el acceso al archivo que se quiere
+    Ya que <function>flock</function> requiere un puntero a un fichero, puede ser necesario
+    usar un fichero de bloqueo especial para proteger el acceso al fichero que se quiere
     truncar, abriéndolo en modo escritura (con un argumento "w" o "w+" de
     <function>fopen</function>).
    </para>
   </note>
   <note>
    <para>
-    Sólo se puede usar en punteros de archivos devueltos por <function>fopen</function>
-    para archivos locales, o punteros de archivos apuntando a flujos de espacios de usuario que
+    Sólo se puede usar en punteros de ficheros devueltos por <function>fopen</function>
+    para ficheros locales, o punteros de ficheros que apuenten a flujos de espacios de usuario que
     implementen el método <function>streamWrapper::stream_lock</function>.
    </para>
   </note>
@@ -206,13 +213,13 @@ fclose($fp);
   <warning>
    <para>
     En algunos sistemas operativos <function>flock</function> está implementado a
-    nivel de proceso. Cuando se usa una API de servidor multi-hilo como ISAPI, ¡no
-    se podrá confiar en <function>flock</function> para proteger archivos contra
+    nivel de proceso. Cuando se usa una API de servidor multihilo como ISAPI, no
+    se podrá confiar en <function>flock</function> para proteger ficheros contra
     otros scripts de PHP que se ejecuten en hilos paralelos en la misma instancia del
-    servidor!
+    servidor.
    </para>
    <para>
-    <function>flock</function> no está soportado en sistemas de archivos anticuados como
+    <function>flock</function> no está soportado en sistemas de ficheros anticuados como
     <literal>FAT</literal> y sus derivados y por lo tanto siempre
     devuelve &false; bajo estos entornos (esto es especialmente válido para
     usuarios de Windows 98).
