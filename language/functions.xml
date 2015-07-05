@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5b4e9152ef6ee75cdebae8617498c5411e50d3f4 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 5486657cd95d764253b335c26b201c3693772704 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <chapter xml:id="language.functions" xmlns="http://docbook.org/ns/docbook">
  <title>Funciones</title>
@@ -9,7 +9,7 @@
   <title>Funciones definidas por el usuario</title>
   
   <para>
-   Una función puede ser definida usando una sintaxis como la siguiente:
+   Una función puede ser definida empleando una sintaxis como la siguiente:
   </para>
   <para>
    <example>
@@ -181,6 +181,35 @@ function recursividad($a)
    evaluados de izquierda a derecha.
   </simpara>
   <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>5.1.0</entry>
+       <entry>declaración de clases, interfaces y de tipo array</entry>
+      </row>
+      <row>
+       <entry>5.4.0</entry>
+       <entry>declaraciones de tipo <type>callable</type></entry>
+      </row>
+      <row>
+       <entry>7.0.0</entry>
+       <entry>declaraciones de tipo escalar (<type>int</type>, 
+        <type>float</type>, 
+        <type>string</type>, 
+        <type>bool</type>)</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>  
+  <para>
    PHP soporta argumentos pasados por valor (por defecto), <link
    linkend="functions.arguments.by-reference">pasados por
    referencia</link>, y <link
@@ -203,7 +232,6 @@ function tomar_array($entrada)
     </programlisting>
    </example>
   </para>
-  
   <sect2 xml:id="functions.arguments.by-reference">
    <title>Hacer que los argumentos sean pasados por referencia</title>
    
@@ -235,9 +263,7 @@ echo $cad;    // imprime 'Esto es una cadena, y algo más.'
      </programlisting>
     </example>
    </para>
-   
   </sect2>
-  
   <sect2 xml:id="functions.arguments.default">
    <title>Valores de argumentos predeterminados</title>
    
@@ -359,9 +385,143 @@ Hacer un tazón de yogur acidófilo de frambuensa.
      A partir de PHP 5, los argumentos que son pasados por referencia pueden tener un valor predeterminado.
     </simpara>
    </note>
-   
   </sect2>
-  
+  <sect2 xml:id="functions.scalar-type-declaration">
+   <title>Declaraciones de tipo escalar</title>
+   <para>
+    <note>
+     <para>
+      La declaración de tipos también se conoce como Determinación de tipos.
+     </para>
+     </note>
+     PHP 7 introduce la declaración de tipos escalares. Las funciones ahora pueden forzar a que los parámetros
+     sean <type>string</type>, <type>int</type>, <type>float</type> o <type>bool</type>.
+     Por defecto, todos los ficheros de PHP están en modo de tipificación débil. 
+     Para habilitar la comprobación de tipos escricta, la directiva
+     <link linkend="control-structures.declare">declare(strict_types=1)</link> debe ser la primera
+     sentencia en el fichero. strict_types tiene dos opciones, 1 para la comprobación de tipos
+     estricta y 0 para la comprobación de tipos débil. Esto solamente afecta al fichero al que se le aplica, y no
+     a los ficheros incluidos en este fichero o a otros ficheros que incluyan este fichero.
+     Es irrelevante si la función que está siendo llamada fue declarada en un fichero que emplea la comprobación
+     de tipos estricta o débil. El modo de comprobación de tipos depende del fichero desde donde se llama a la función.
+    </para>
+    <para>
+     <example>
+      <title>Ejemplos de declaración de tipos escalares</title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+declare(strict_types=1); // Error fatal si esta no es la primera sentencia
+include "foo.php";
+
+foo(); // llamada a función con comprobación de tipos stricta
+
+function foobar() {
+    foo(); // llamada a función con comprobación de tipos stricta
+}
+ 
+class baz {
+    function foobar() {
+        foo(); // llamada a función con comprobación de tipos stricta
+    }
+}
+
+]]>
+      </programlisting>
+      <programlisting role="php">
+<![CDATA[
+<?php 
+declare(strict_types=1); // file 1
+
+/*
+ file 1 - con comprobación de tipos estricta
+ file 2 - con comprobación de tipos débil
+*/
+
+include 'file2.php';
+
+a(1); // con comprobación de tipos estricta
+b(1); // con comprobación de tipos estricta
+
+function a(int $a) {
+    return $a;
+}
+
+?>
+
+<?php // file 2
+
+b(1); // con comprobación de tipos débil
+
+function b(int $a) {
+    return $a;
+}
+
+?>
+
+]]>
+      </programlisting>
+      <programlisting role="php">
+<![CDATA[
+<?php // file 1
+
+/*
+ file 1 - con comprobación de tipos débil
+ file 2 - con comprobación de tipos estricta
+*/
+
+include 'file2.php';
+
+a(1); // con comprobación de tipos débil
+b(1); // con comprobación de tipos débil
+
+function a(int $a) {
+    return $a;
+}
+
+
+?>
+
+<?php // file 2
+declare(strict_types=1);
+
+b(1); // con comprobación de tipos estricta
+
+function b(int $a) {
+    return $a;
+}
+
+?>
+
+]]>
+      </programlisting>
+     </example>
+    </para>
+    
+    
+    <sect3>
+     <para>
+      <example>
+       <title>Expansión de tipos</title>
+       <programlisting role="php">
+<![CDATA[
+<?php 
+declare(strict_types=1);
+
+function a(float $a) {    
+    var_dump($a); // float(1)
+}
+
+$a = 1; // int(1)
+var_dump($a);    
+a($a); 
+
+]]>
+       </programlisting>
+      </example>
+     </para>
+    </sect3>
+  </sect2>
   <sect2 xml:id="functions.variable-arg-list">
    <title>Listas de argumentos de longitud variable</title>
    
