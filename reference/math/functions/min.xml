@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 600d8bd2ab15cef307643129adfb6de3a0c78eb2 Maintainer: jpberdejo Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: a7ff20f87d80fe3491b24f0997eadbaf9ddfa477 Maintainer: seros Status: ready -->
+<!-- Reviewed: no Maintainer: seros -->
 <refentry xml:id="function.min" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>min</refname>
@@ -26,12 +26,11 @@
   </para>
   <note>
    <para>
-    PHP evaluará un <type>string</type> no numérico como
-    <literal>0</literal> si se compara con un <type>integer</type>, pero aún devuelve el string si es visto como el
-    valor numérico más bajo. Si varios argumentos se evalúan a
-    <literal>0</literal>, <function>min</function> devolverá el valor de string
-    alfanumérico más bajo si se proporciona algún string, o de lo contrario se devuelve un
-    <literal>0</literal> numérico.
+    Valores de diferentes tipos serán comparados utilizando las <link linkend="language.operators.comparison">
+    reglas de comparación estándar</link>. Por ejemplo,  instance, un <type>string</type> no numérico será
+    comparado con un <type>integer</type> como si fuera <literal>0</literal>, aunque varios
+    valores de tipo <type>string</type> serán comparados alfanuméricamente. El valor real devuelto será del
+    tipo original sin ninguna conversión aplicada.
    </para>
   </note>
  </refsect1>
@@ -80,8 +79,9 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   <function>min</function> devuelve el valor del parámetro
-   numéricamente más bajo.
+   <function>min</function> devuelve el valor del parámetro condierado "el menor" según la comparación
+   estándar. Si varios valores de diferentes tipos se evalúan como iguales (p.ej. <literal>0</literal>
+   y <literal>'abc'</literal>), será devuelto el primero proporcionado a la función.
   </para>
  </refsect1>
  <refsect1 role="examples">
@@ -95,32 +95,33 @@
 echo min(2, 3, 1, 6, 7);  // 1
 echo min(array(2, 4, 5)); // 2
 
+// La cadena 'hola' es tratada como 0 cuando se compara con un número entero
+// Ya que los dos valores son iguales, el orden en el que se proporcionan determina el resultado
 echo min(0, 'hola');     // 0
 echo min('hola', 0);     // hola
+
+// Aquí se compara -1 < 0, por lo que -1 es el valor menor
 echo min('hola', -1);    // -1
 
-// Con varios arrays, min los compara de izquierda a derecha
+// Con varios arrays de diferentes longitudes, min devuelve el más corto
+$val = min(array(2, 2, 2), array(1, 1, 1, 1)); // array(2, 2, 2)
+
+// Varios arrays de la misma longitud son comparados de izquierda a derecha,
 // así que en nuestro ejemplo: 2 == 2, pero 4 < 5
 $val = min(array(2, 4, 8), array(2, 5, 1)); // array(2, 4, 8)
 
-// Si se pasan un array y algo que no sea un array, el array nunca
-// es devuelto, ya que se considera el valor mayor
+// Si se pasan un array y algo que no sea un array, el array nunca es devuelto
+// ya que las comparaciones tratan a los arrays como mayores que cualquier otro valor
 $val = min('string', array(2, 5, 7), 42);   // string
-?>
-]]>
-    </programlisting>
-   </example>
-  </para>
-  
-  <para>
-   <example>
-    <title>Ejemplo de valor NULL/FALSE con <function>min</function></title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// PHP compara variables como booleanas cuando uno de los operandos es booleano.
-var_dump(min(-100,-10, NULL, 10, 100));  // NULL  - (bool)NULL  < (bool)-100 es FALSE < TRUE
-var_dump(min(-100,-10, FALSE, 10, 100)); // FALSE - (bool)FALSE < (bool)-100 es FALSE < TRUE
+
+// Si un argumento es NULL o un booleano, será comparado con
+// otros valores usando la regla FALSE < TRUE independientemente de los otros tipos involucrados
+// En los ejemplos de abajo, -10 y 10 son tratados como TRUE en la comparación
+$val = min(-10, FALSE, 10); // FALSE
+$val = min(-10, NULL, 10);  // NULL
+
+// 0, por el contrario, es tratado como FALSE, por lo que es "menor que" TRUE
+$val = min(0, TRUE); // 0
 ?>
 ]]>
     </programlisting>
