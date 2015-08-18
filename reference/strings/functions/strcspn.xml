@@ -1,26 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: agarzon Status: ready -->
+<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.strcspn">
  <refnamediv>
   <refname>strcspn</refname>
-  <refpurpose>Encuentra la longitud del segmento inicial que no coincida con la máscara</refpurpose>
+  <refpurpose>Averiguar la longitud del segmento inicial que no coincida con una máscara</refpurpose>
  </refnamediv>
  
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>int</type><methodname>strcspn</methodname>
-   <methodparam><type>string</type><parameter>str1</parameter></methodparam>
-   <methodparam><type>string</type><parameter>str2</parameter></methodparam>
+   <methodparam><type>string</type><parameter>subject</parameter></methodparam>
+   <methodparam><type>string</type><parameter>mask</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>start</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>length</parameter></methodparam>
   </methodsynopsis>
   <para>
    Devuelve la longitud del segmento inicial de
-   <parameter>str1</parameter> el cual <emphasis>no</emphasis>
-   contiene ningún caracter de <parameter>str2</parameter>. 
+   <parameter>subject</parameter>, el cual <emphasis>no</emphasis>
+   contiene ningún caracter de <parameter>mask</parameter>. 
+  </para>
+  <para>
+   Si se omiten <parameter>start</parameter> y <parameter>length</parameter>,
+   se examinará <parameter>subject</parameter> al
+   completo. Si se incluyen, el efecto será el mismo que
+   una llamada a <literal>strcspn(substr($subject, $start, $length),
+   $mask)</literal> (véase <xref linkend="function.substr" />
+   para más información).
   </para>
  </refsect1>
  
@@ -29,18 +37,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>str1</parameter></term>
+     <term><parameter>subject</parameter></term>
      <listitem>
       <para>
-       El primer string.
+       El string a examinar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>str2</parameter></term>
+     <term><parameter>mask</parameter></term>
      <listitem>
       <para>
-       El segundo string.
+       El string que contiene cada caracter no permitido.
       </para>
      </listitem>
     </varlistentry>
@@ -48,7 +56,25 @@
      <term><parameter>start</parameter></term>
      <listitem>
       <para>
-       La posición inicial en el string a examinar.
+       La posición en <parameter>subject</parameter> donde
+       comenzar la búsqueda.
+      </para>
+      <para>
+       Si se proporciona <parameter>start</parameter> y no es negativo,
+       <function>strcspn</function> comenzará a
+       examinar <parameter>subject</parameter> en
+       la posición <parameter>start</parameter>-ésima. Por ejemplo, en
+       el '<literal>abcdef</literal>', el caracter en la
+       posición <literal>0</literal> es '<literal>a</literal>', el
+       caracter en la posición <literal>2</literal> es
+       '<literal>c</literal>', etc.
+      </para>
+      <para>
+       Si se proporciona <parameter>start</parameter> y es negativo,
+       <function>strspn</function> comenzará a
+       examinar <parameter>subject</parameter> en
+       la <parameter>start</parameter>-ésima a partir del final
+       de <parameter>subject</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -56,7 +82,20 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud del string a examinar.
+       La longitud del segmento de <parameter>subject</parameter>
+       a examinar. 
+      </para>
+      <para>
+       Si se proporcina <parameter>length</parameter> y no es negativo,
+       <parameter>subject</parameter> será examinado
+       desde <parameter>length</parameter> caracteres después de la
+       posición inicial.
+      </para>
+      <para>
+       Si se proporcina <parameter>length</parameter> y es negativo,
+       <parameter>subject</parameter> será examinado desde la
+       posición inicial hasta <parameter>length</parameter>
+       caracteres a partir del final de <parameter>subject</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -67,14 +106,22 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la longitud del segmento como un integer.
+   Devuelve la longitud del segmento inicial de <parameter>subject</parameter>,
+   el cual consiste en todos los caracteres <emphasis>no</emphasis> presentes en <parameter>mask</parameter>.
   </para>
+  <note>
+   <para>
+    Cuando se establece el parámetro <parameter>start</parameter>, la longitud devuelta
+    se cuenta a partir de esta posición, no desde el comienzo de
+    <parameter>subject</parameter>.
+   </para>
+  </note>
  </refsect1>
  
  <refsect1 role="examples">
   &reftitle.examples;
   <example xml:id="strcspn.example">
-   <title><function>strcspn</function> example</title>
+   <title>Ejemplo de <function>strcspn</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -82,11 +129,15 @@ $a = strcspn('abcd',  'apple');
 $b = strcspn('abcd',  'banana');
 $c = strcspn('hello', 'l');
 $d = strcspn('hello', 'world');
+$e = strcspn('abcdhelloabcd', 'abcd', -9);
+$f = strcspn('abcdhelloabcd', 'abcd', -9, -5);
 
 var_dump($a);
 var_dump($b);
 var_dump($c);
 var_dump($d);
+var_dump($e);
+var_dump($f);
 ?>
 ]]>
    </programlisting>
@@ -97,6 +148,8 @@ int(0)
 int(0)
 int(2)
 int(2)
+int(5)
+int(4)
 ]]>
    </screen>
   </example>
