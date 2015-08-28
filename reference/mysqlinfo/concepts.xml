@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0aa774414ae3ca9032fa586b59554dd66fc376df Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4fd68bd86c4b6d2766765bf9ab902082eff9aa62 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mysqlinfo.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Conceptos</title>
@@ -147,15 +147,17 @@ if ($res_sin_buffer) {
 
 $mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
 
-// No afectará a $mysqli->real_escape_string();
+// NO afectará a $mysqli->real_escape_string();
 $mysqli->query("SET NAMES utf8");
 
-// No afectará a $mysqli->real_escape_string();
+// NO afectará a $mysqli->real_escape_string();
 $mysqli->query("SET CHARACTER SET utf8");
 
 // Pero esto sí afectará a $mysqli->real_escape_string();
 $mysqli->set_charset('utf8'));
 
+// Y esto NO le afectará (utf-8 frente a utf8) -- no emplee guiones aquí
+$mysqli->set_charset('utf-8');
 ?>
 ]]>
    </programlisting>
@@ -166,20 +168,31 @@ $mysqli->set_charset('utf8'));
    usando cada API.
   </para>
   
+  <note>
+   <title>Posible confusión con UTF-8</title>
+   <para>
+    Debido a que los nombres de los conjuntos de caracteres no contienen guiones, la cadena
+    "utf8" es válida en MySQL para establecer el conjunto de caracteres a UTF-8. La cadena
+    "utf-8" no es válida para cambiar el
+    conjunto de caracteres.
+   </para>
+  </note>
+  
   <example>
    <title>Ejemplo para establecer el conjunto de caracteres: mysqli</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-
 $mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+
+printf("Conjunto de caracteres inicial: %s\n", $mysqli->character_set_name());
 
 if (!$mysqli->set_charset('utf8')) {
     printf("Error cargando el conjunto de caracteres utf8: %s\n", $mysqli->error);
-} else {
-    printf("Conjunto de caracteres actual: %s\n", $mysqli->character_set_name());
+    exit;
 }
 
+echo "Información del nuevo conjunto de caracteres:\n";
 print_r( $mysqli->get_charset() );
 
 ?>
@@ -190,7 +203,7 @@ print_r( $mysqli->get_charset() );
   <example>
    <title>Ejemplo para establecer el conjunto de caracteres: <link linkend="ref.pdo-mysql.connection">pdo_mysql</link></title>
    <para>
-    Nota: Esto sólo funciona a partir de PHP 5.3.6.
+    Nota: Sólo funciona a partir de PHP 5.3.6.
    </para>
    <programlisting role="php">
 <![CDATA[
@@ -206,9 +219,10 @@ $pdo = new PDO("mysql:host=localhost;dbname=world;charset=utf8", 'mi_usuario', '
    <programlisting role="php">
 <![CDATA[
 <?php
-
 $conexión = mysql_connect("localhost", "mi_usuario", "mi_contraseña");
 $bd   = mysql_select_db("world");
+
+echo 'Conuunto de caracteres inicial: ' .  mysql_client_encoding($conexión) . "\n";
 
 if (!mysql_set_charset('utf8', $conexión)) {
     echo "Error: No se pudo establecer el conjunto de caracteres.\n";
@@ -216,7 +230,6 @@ if (!mysql_set_charset('utf8', $conexión)) {
 }
 
 echo 'El conjunto de caracteres actual es: ' .  mysql_client_encoding($conexión);
-
 ?>
 ]]>
    </programlisting>
