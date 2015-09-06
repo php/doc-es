@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b1ab1b184052aa6f5c73f64fe6438e834cfd6e0d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 42238e5d2034bb8a78988b0ffd395e8af19cd733 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="mongo.connecting" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -495,6 +495,67 @@ $m = new MongoClient("mongodb://username:password@/tmp/mongo-27017.sock:0/foo");
   
  </section>
  
+ <section xml:id="mongo.connecting.persistent">
+  <title>Conexiones persistentes (versión 1.3.0+)</title>
+   
+   <para>
+    Todas las versiones del controlador desde la 1.3.0 utilizan conexiones persistentes para
+    minimizar el número de conexiones realizadas a cada servidor de bases de datos. Estas
+    conexiones son guardadas por el proceso obrero de PHP, pudiéndo ser reutilizadas entre
+    varias peticiones.
+   </para>
+   
+   <para>
+    Antes de conectar a servidor de bases de datos, el controlador creará un hash para la
+    conexión basándose en su host, puerto, nombre del conjunto  de réplica (si lo hay), cualquier
+    credencial de autenticación (p. ej., nombre de usuario, contraseña, base de datos), y el
+    ID del proceso. Si una conexión ya existe para dicho hash será utilizada en
+    lugar de crear una nueva conexión asociada este hash.
+    Se puede usar <function>MongoClient::getConnections</function> para obtener información
+    sobre cada conexión persistente. Considérese el siguiente programa:
+   </para>
+   
+   <example xml:id="mongo.connecting.persistent-example">
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$m1 = new MongoClient('mongodb://localhost');
+$m2 = new MongoClient('mongodb://localhost');
+$m3 = new MongoClient('mongodb://user:pw@localhost');
+$m4 = new MongoClient('mongodb://127.0.0.1');
+$m5 = new MongoClient('mongodb://rs1.local:30017,rs2.local:30018/?replicaSet=rs');
+$m6 = new MongoClient('mongodb://sharding.local:40017');
+
+foreach (MongoClient::getConnections() as $conn) {
+    echo $conn['hash'], "\n";
+}
+
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+localhost:27017;-;X;15487
+localhost:27017;-;admin/user/c56c…8bbc;15487
+127.0.0.1:27017;-;X;15487
+rs1.local:30017;rs;X;15487
+rs2.local:30018;rs;X;15487
+sharding.local:40017;-;X;15487
+]]>
+   </screen>
+   </example>
+   
+   <para>
+    En este ejemplo <literal>$m1</literal> y <literal>$m2</literal> tienen el
+    mismo hash y comparten una conexión persistente. Las conexiones para los demás
+    instancias de MongoClient poseen valores únicos de hash y utilizan sus propios sockets. Observe
+    que "localhost" y "127.0.0.1" no comparten el mismo hash; la resolución de DNS
+    no se toma en cuenta.
+   </para>
+ </section>
+ 
  <section xml:id="mongo.connecting.pools">
   <title>Agrupación de conexiones (versión 1.2.0-1.2.12 *solamente*)</title>
   <note>
@@ -615,8 +676,8 @@ $m = new MongoClient("mongodb://username:password@/tmp/mongo-27017.sock:0/foo");
   </section>
  </section>
  
- <section xml:id="mongo.connecting.persistent">
-  <title>Connexiones persistentes (versiones hasta 1.1.4 *solamente*</title>
+ <section xml:id="mongo.connecting.persistent.manual">
+  <title>Connexiones persistentes manuales (versiones hasta 1.1.4 *solamente*</title>
   <note>
    <para>
     Esta sección no es relevante para 1.2.0+. En 1.2.0+, siempre las conexiones
@@ -637,7 +698,7 @@ $m = new MongoClient("mongodb://username:password@/tmp/mongo-27017.sock:0/foo");
    Por ejemplo, este simple programa para conectarse 1000 veces a la base de datos:
   </para>
   
-  <example xml:id="mongo.connecting.no-persistent-example">
+  <example xml:id="mongo.connecting.no-manual-persist-example">
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -656,7 +717,7 @@ for ($i=0; $i<1000; $i++) {
    una conexión persistente:
   </para>
   
-  <example xml:id="mongo.connecting.persistent-example">
+  <example xml:id="mongo.connecting.manual-persist-example">
    <programlisting role="php">
 <![CDATA[
 <?php

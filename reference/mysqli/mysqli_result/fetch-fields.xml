@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d316f465df3ecaf4fe09440a05c261553c27d12d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 809b8ab4fd8bce37105d2e65a5267095ad470cf8 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
-
 <refentry xml:id="mysqli-result.fetch-fields" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_result::fetch_fields</refname>
@@ -79,11 +78,16 @@
       </row>
       <row>
        <entry>length</entry>
-       <entry>El ancho del campo, como fue especificado en la definición de la tabla.</entry>
+       <entry>
+        El ancho del campo, en bytes, como se especificó en la definición de la tabla. Observe que
+        este número (bytes) podría diferir del valor de la definición de la tabla (caracteres), dependiendo
+        del conjunto de caracteres que se emplee. Por ejemplo, el conjunto de caracteres utf8 tiene 3 bytes por carácter, 
+        por lo que varchar(10) devolverá una longitud de 30 para utf8 (10*3), aunque devuelve 10 para latin1 (10*1).
+       </entry>
       </row>
       <row>
        <entry>charsetnr</entry>
-       <entry>El número del conjunto de caracteres del campo.</entry>
+       <entry>El número del conjunto de caracteres (id) del campo.</entry>
       </row>
       <row>
        <entry>flags</entry>
@@ -110,32 +114,42 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+$mysqli = new mysqli("127.0.0.1", "root", "foofoo", "sakila");
 
 /* comprobar la conexión */
 if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
+    printf("Falló la conexión: %s\n", $mysqli->connect_error);
     exit();
 }
 
-$consulta = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
+foreach (array('latin1', 'utf8') as $conj_caract) {
 
-if ($resultado = $mysqli->query($consulta)) {
+    // Establecer el conjunto de caracteres para mostrar su impacto en algunos valores (p.ej., longitud en bytes)
+    $mysqli->set_charset($conj_caract);
 
-    /* Obtener la información de campo de todas las columnas */
-    $info_campo = $resultado->fetch_fields();
+    $consulta = "SELECT actor_id, last_name from actor ORDER BY actor_id";
 
-    foreach ($info_campo as $valor) {
-        printf("Nombre:        %s\n", $valor->name);
-        printf("Tabla:         %s\n", $valor->table);
-        printf("Longitud máx.: %d\n", $valor->max_length);
-        printf("Banderas:      %d\n", $valor->flags);
-        printf("Tipo:          %d\n", $valor->type);
+    echo "======================\n";
+    echo "Conjunto de caracteres: $conj_caract\n";
+    echo "======================\n";
+    
+    if ($resultado = $mysqli->query($consulta)) {
+
+        /* Obtener la información del campo para todas las columnas */
+        $info_campo = $resultado->fetch_fields();
+
+        foreach ($info_campo as $valor) {
+            printf("Nombre:           %s\n",   $valor->name);
+            printf("Tabla:            %s\n",   $valor->table);
+            printf("Longitud máx.:    %d\n",   $valor->max_length);
+            printf("Longitud:         %d\n",   $valor->length);
+            printf("Nº conj. caract.: %d\n",   $valor->charsetnr);
+            printf("Banderas:         %d\n",   $valor->flags);
+            printf("Tipo:             %d\n\n", $valor->type);
+        }
+        $resultado->free();
     }
-    $resultado->close();
 }
-
-/* cerrar la conexión */
 $mysqli->close();
 ?>
 ]]>
@@ -146,7 +160,7 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
+$enlace = mysqli_connect("127.0.0.1", "mi_usuario", "mi_contraseña", "sakila");
 
 /* comprobar la conexión */
 if (mysqli_connect_errno()) {
@@ -154,24 +168,35 @@ if (mysqli_connect_errno()) {
     exit();
 }
 
-$consulta = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
+foreach (array('latin1', 'utf8') as $conj_caract) {
 
-if ($resultado = mysqli_query($enlace, $consulta)) {
+    // Establecer el conjunto de caracteres para mostrar su impacto en algunos valores (p.ej., longitud en bytes)
+    mysqli_set_charset($enlace, $conj_caract);
 
-    /* Obtener la información de campo de todas las columnas */
-    $info_campo = mysqli_fetch_fields($resultado);
+    $consulta = "SELECT actor_id, last_name from actor ORDER BY actor_id";
 
-    foreach ($info_campo as $valor) {
-        printf("Nombre:        %s\n", $valor->name);
-        printf("Tabla:         %s\n", $valor->table);
-        printf("Longitud máx.: %d\n", $valor->max_length);
-        printf("Banderas:      %d\n", $valor->flags);
-        printf("Tipo:          %d\n", $valor->type);
+    echo "===============================\n";
+    echo "Conjunto de caracteres: $conj_caract\n";
+    echo "===============================\n";
+
+    if ($resultado = mysqli_query($enlace, $consulta)) {
+
+        /* Obtener la información del campo para todas las columnas */
+        $info_campo = mysqli_fetch_fields($resultado);
+
+        foreach ($info_campo as $valor) {
+            printf("Nombre:           %s\n",   $valor->name);
+            printf("Tabla:            %s\n",   $valor->table);
+            printf("Longitud máx.:    %d\n",   $valor->max_length);
+            printf("Longitud:         %d\n",   $valor->length);
+            printf("Nº conj. caract.: %d\n",   $valor->charsetnr);
+            printf("Banderas:         %d\n",   $valor->flags);
+            printf("Tipo:             %d\n\n", $valor->type);
+        }
+        mysqli_free_result($resultado);
     }
-    mysqli_free_result($resultado);
 }
 
-/* cerrar la conexión */
 mysqli_close($enlace);
 ?>
 ]]>
@@ -179,18 +204,42 @@ mysqli_close($enlace);
    &examples.outputs;
    <screen>
 <![CDATA[
-Nombre:        Name
-Tabla:         Country
-Longitud máx.: 11
-Banderas:      1
-Tipo:          254
+===============================
+Conjunto de caracteres: latin1
+===============================
+Nombre:           actor_id
+Tabla:            actor
+Longitud máx.:    3
+Longitud:         5
+Nº conj. caract.: 63
+Banderas:         49699
+Tipo:             2
 
-Nombre:        SurfaceArea
-Tabla:         Country
-Longitud máx.: 10
-Banderas:      32769
-Tipo:          4
+Nombre:           last_name
+Tabla:            actor
+Longitud máx.:    12
+Longitud:         45
+Nº conj. caract.: 8
+Banderas:         20489
+Tipo:             253
 
+===============================
+Conjunto de caracteres: utf8
+===============================
+Nombre:           actor_id
+Tabla:            actor
+Longitud máx.:    3
+Longitud:         5
+Nº conj. caract.: 63
+Banderas:         49699
+Tipo:             2
+
+Nombre:           last_name
+Tabla:            actor
+Longitud máx.:    12
+Longitud:         135
+Nº conj. caract.: 33
+Banderas:         20489
 ]]>
    </screen>
   </example>
