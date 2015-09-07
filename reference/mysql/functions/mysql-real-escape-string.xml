@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 65e697ff671608989432a6e6bf8ae8128b2be2c7 Maintainer: jpberdejo Status: ready -->
+<!-- EN-Revision: 4aac5d83bda58b18c6a577bcf1599a9afca2d022 Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.mysql-real-escape-string" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysql_real_escape_string</refname>
-  <refpurpose>Escapa caracteres especiales en un string para su uso en una sentencia SQL</refpurpose>
+  <refpurpose>Escapa caracteres especiales en una cadena para su uso en una sentencia SQL</refpurpose>
  </refnamediv>
  
  <refsynopsisdiv>
@@ -26,7 +26,7 @@
    <methodparam choice="opt"><type>resource</type><parameter>link_identifier</parameter><initializer>NULL</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Escapa caracteres especiales en el string dado por <parameter>unescaped_string</parameter>,
+   Escapa caracteres especiales en la cadena dada por <parameter>unescaped_string</parameter>,
    teniendo en cuenta el conjunto de caracteres en uso de la conexión, para que
    sea seguro usarla en <function>mysql_query</function>. Si se van a insertar
    datos binarios, se ha de usar esta función.
@@ -63,7 +63,7 @@
      <term><parameter>unescaped_string</parameter></term>
      <listitem>
       <para>
-       El string que va a ser escapado.
+       La cadena a escapar.
       </para>
      </listitem>
     </varlistentry>
@@ -75,7 +75,16 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un string escapado, o &false; en caso de error.
+   Devuelve la cadena escapada, o &false; en caso de error.
+  </para>
+ </refsect1>
+ 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Ejecutar esta función sin una conexión de MySQL presente también
+   emitirá errores de nivel <constant>E_WARNING</constant> de PHP. Solo
+   se ha de ejecutar con una conexión de MySQL válida presente.
   </para>
  </refsect1>
  
@@ -102,7 +111,41 @@ $consulta = sprintf("SELECT * FROM users WHERE user='%s' AND password='%s'",
   </para>
   <para>
    <example>
-    <title>Un ejemplo de ataque de inyección SQL</title>
+    <title><function>mysql_real_escape_string</function> requiere una conexión</title>
+    <para>
+     Este ejemplo muestra lo que sucede si no hay presente una conexión
+     de MySQL al invocar a esta función.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// No nos hemos conectado a MySQL
+
+$apellido  = "O'Reilly";
+$_apellido = mysql_real_escape_string($apellido);
+
+$consulta = "SELECT * FROM actors WHERE last_name = '$_apellido'";
+
+var_dump($_apellido);
+var_dump($consulta);
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Warning: mysql_real_escape_string(): No such file or directory in /this/test/script.php on line 5
+Warning: mysql_real_escape_string(): A link to the server could not be established in /this/test/script.php on line 5
+
+bool(false)
+string(41) "SELECT * FROM actors WHERE last_name = ''"
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Un ejemplo de ataque de inyección de SQL</title>
     <programlisting role="php">
 <![CDATA[
 <?php
