@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d53c79d392b1e9e9295ae33795b3f851983d12db Maintainer: seros Status: ready -->
+<!-- EN-Revision: d8849b5554a4b934cc8aacce047d8ec7b7cdec80 Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-start">
  <refnamediv>
   <refname>session_start</refname>
@@ -11,7 +12,7 @@
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>session_start</methodname>
-   <void/>
+   <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>[]</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>session_start</function> crea una sesión o reanuda la
@@ -44,7 +45,31 @@
    <literal>ob_gzhandler</literal> se debe registrar antes de iniciar una sesión.
   </para>
  </refsect1>
-
+ 
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>options</parameter></term>
+    <listitem>
+     <para>
+      Si se proporciona, este array asociativo de opciones sobrescribirá las
+      <link linkend="session.configuration">directivas de configuración de sesiones</link>
+      establecidas actualmente.
+      Las claves no deben incluir el prefijo <literal>session.</literal>.
+     </para>
+     <para>
+      Además del conjunto habitual de directivas de configuración, también se
+      puede proporcionar la opción <literal>read_and_close</literal>. Si se establece a
+      &true;, resultará en el cierre inmediato de la sesión después de haber
+      sido leída, evitando así el bloqueo inncesario si los datos de la sesión
+      no han cambiado.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+ 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
@@ -52,7 +77,7 @@
    si no, devuelve &false;.
   </para>
  </refsect1>
-
+ 
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -65,6 +90,12 @@
       </row>
      </thead>
      <tbody>
+      <row>
+       <entry>7.0.0</entry>
+        <entry>
+         Se añadió el parámetro <parameter>options</parameter>.
+        </entry>
+      </row>
       <row>
        <entry>5.3.0</entry>
        <entry>
@@ -86,13 +117,16 @@
    </informaltable>
   </para>
  </refsect1>
-
+ 
  <refsect1 role="examples">
   &reftitle.examples;
-  <para>
-   <example>
-    <title>Un ejemplo se sesión: <filename>pagina1.php</filename></title>
-    <programlisting role="php">
+  <refsect2>
+   <title>Un ejemplo de sesión básico</title>
+   
+   <para>
+    <example>
+     <title><filename>pagina1.php</filename></title>
+     <programlisting role="php">
 <![CDATA[
 <?php
 // pagina1.php
@@ -103,9 +137,9 @@ echo 'Bienvenido a la página #1';
 
 $_SESSION['color']  = 'verde';
 $_SESSION['animal'] = 'gato';
-$_SESSION['time']   = time();
+$_SESSION['instante']   = time();
 
-// Trabajar si la cookie de sesión fue aceptada
+// Funciona si la cookie de sesión fue aceptada
 echo '<br /><a href="pagina2.php">página 2</a>';
 
 // O quizás pasar el id de sesión, si fuera necesario
@@ -114,19 +148,19 @@ echo '<br /><a href="pagina2.php?' . SID . '">página 2</a>';
 ]]>
     </programlisting>
    </example>
-  </para>
-  <para>
-   Después de ver <filename>pagina1.php</filename>, la segunda página
-   <filename>pagina2.php</filename> contendrá mágicamente la información de la
-   sesión. Lea la <link linkend="ref.session">referencia de sesiones</link>
-   para informarse sobre <link linkend="session.idpassing">propagar
-   las id de sesiones</link> ya que explica, por ejemplo, en qué consiste la constante
-   <constant>SID</constant>.
-  </para>
-  <para>
-   <example>
-    <title>Un ejemplo de sesión: <filename>pagina2.php</filename></title>
-    <programlisting role="php">
+   </para>
+   <para>
+    Después de ver <filename>pagina1.php</filename>, la segunda página
+    <filename>pagina2.php</filename> contendrá mágicamente la información de la
+    sesión. Consulte la <link linkend="ref.session">referencia de sesiones</link>
+    para informarse sobre la <link linkend="session.idpassing">propagación de
+    los ID de sesiones</link> ya que explica, por ejemplo, en qué consiste la constante
+    <constant>SID</constant>.
+   </para>
+   <para>
+    <example>
+     <title><filename>pagina2.php</filename></title>
+     <programlisting role="php">
 <![CDATA[
 <?php
 // pagina2.php
@@ -137,17 +171,51 @@ echo 'Bienvenido a la página #2<br />';
 
 echo $_SESSION['color'];  // verde
 echo $_SESSION['animal']; // gato
-echo date('Y m d H:i:s', $_SESSION['time']);
+echo date('Y m d H:i:s', $_SESSION['instante']);
 
-// Puede querer usar SID aquí, como hicimos en pagina1.php
+// Puede ser conveniente usar el SID aquí, como hicimos en pagina1.php
 echo '<br /><a href="pagina1.php">página 1</a>';
 ?>
 ]]>
     </programlisting>
    </example>
-  </para>
+   </para>
+  </refsect2>
+  <refsect2>
+   <title>Proporcionar opciones a <function>session_start</function></title>
+   
+   <example>
+    <title>Sobrescribir el tiempo de vida de la cookie</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Esto envía una cookie persistente que dura un día day.
+session_start([
+    'cookie_lifetime' => 86400,
+]);
+?>
+]]>
+    </programlisting>
+   </example>
+   
+   <example>
+    <title>Leer la sesión y cerrarla</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Si sabemos que no necesitamos cambiar nada de la sesión,
+// podemos simplemente leerla y cerrarla inmediatamente para evitar
+// bloquear el fichero de sesión y otras páginas
+session_start([
+    'cookie_lifetime' => 86400,
+    'read_and_close'  => true,
+]);
+]]>
+    </programlisting>
+   </example>
+  </refsect2>
  </refsect1>
-
+ 
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
@@ -170,7 +238,7 @@ echo '<br /><a href="pagina1.php">página 1</a>';
    </para>
   </note>
  </refsect1>
-
+ 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>

@@ -386,29 +386,29 @@ bool(true)
   <title>Previsiones</title>
   
   <para>
-   Las previsiones son una mejora retrocompatible con la antigua
-   función <function>assert</function>. Con ellas se pueden realizar afirmaciones sin coste
-   en código de producción, proporcionando la capacidad de lanzar excepciones personalizadas
-   en caso de error.
+   Las <link linkend="function.assert.expectations">previsiones</link> son una
+   mejora retrocompatible con la antigua función <function>assert</function>.
+   Con ellas se pueden realizar afirmaciones sin coste en código de producción,
+   proporcionando la capacidad de lanzar excepciones personalizadas cuando la afirmación falla.
   </para>
   
   <para>
-   Al igual que en la API antigua, si el primer argumento es un string, este será
-   evaluado. El segundo argumento puede ser un string puro (ocasionando una
-   AssertionException), o un objeto de excepción personalizado que contenga
-   un mensaje de error.
+   Mientras que la API antigua se siguie manteniendo por compatibilidad,
+   <function>assert</function> ahora es un constructor de lenguaje, permitiendo que el primer
+   parámetro sea una expresión en lugar de solamente un <type>string</type> a
+   evaluar o un valor de tipo <type>boolean</type> a probar.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-
 ini_set('assert.exception', 1);
 
 class ErrorPersonalizado extends AssertionError {}
 
 assert(false, new ErrorPersonalizado('Un mensaje de error'));
+?>
 ]]>
    </programlisting>
    &example.outputs;
@@ -420,63 +420,25 @@ Fatal error: Uncaught ErrorPersonalizado: Un mensaje de error
   </informalexample>
   
   <para>
-   Con esta característica vienen dos ajustes de PHP.ini (junto con sus valores predeterminados):
-  </para>
-  <itemizedlist>
-   <listitem>
-    <simpara>
-     <link linkend="ini.zend.assertions">zend.assertions</link> = 1
-    </simpara>
-   </listitem>
-   <listitem>
-    <simpara>
-     <link linkend="ini.assert.exception">assert.exception</link> = 0
-    </simpara>
-   </listitem>
-  </itemizedlist>
-  <para>
-   <link linkend="ini.zend.assertions">zend.assertions</link> has three values:
-  </para>
-  
-  <itemizedlist>
-   <listitem>
-    <simpara>
-     1 = generar y ejecutar código (modo desarrollo)
-    </simpara>
-   </listitem>
-   <listitem>
-    <simpara>
-     0 = generar código y saltarlo en tiempo de ejecución
-    </simpara>
-   </listitem>
-   <listitem>
-    <simpara>
-     -1 = no generar código (coste cero, modo produción)
-    </simpara>
-   </listitem>
-  </itemizedlist>
-  
-  <para>
-   <link linkend="ini.assert.exception">assert.exception</link> significa que se
-   lanza una excepción cuando falla una afirmación. Está desactivado por defecto
-   por compatibilidad con la antigua función <function>assert</function>.
+   Se pueden encontrar los detalles completos de esta característica, incluyendo cómo
+    configurarla tanto en entornos de desarrollo como de producción, en la
+    <link linkend="function.assert.expectations">sección de previsiones</link>
+    de la referencia de <function>assert</function>.
   </para>
  </sect2>
+ 
  <sect2 xml:id="migration70.new-features.group-use-declarations">
   <title>Declaraciones de <literal>use</literal> en grupo</title>
   
   <para>
-   Esto porporciona la capacidad de agrupar varias declaraciones de <literal>use</literal>
-   según el espacio de nombres padre. Se busca eliminar la verbosidad de código al
-   importar varias clases, interfaces, funciones, o constantes que están bajo el mismo
-   espacio de nombres.
+   Las clases, funciones y constantes que se importen desde el mismo &namespace;
+   ahora pueden ser agrupadas en una única sentencia &use.namespace;.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-
 // Código anterior a PHP 7
 use un\espacioDeNombres\ClaseA;
 use un\espacioDeNombres\ClaseB;
@@ -494,12 +456,14 @@ use const un\espacioDeNombres\ConstC;
 use un\espacioDeNombres\{ClaseA, ClaseA, ClaseC as C};
 use function un\espacioDeNombres\{fn_a, fn_b, fn_c};
 use const un\espacioDeNombres\{ConstA, ConstB, ConstC};
+?>
 ]]>
    </programlisting>
   </informalexample>
  </sect2>
+ 
  <sect2 xml:id="migration70.new-features.generator-return-expressions">
-  <title>Expresiones return en generadores</title>
+  <title>Expresiones 'return' en generadores</title>
   
   <para>
    Esta característica se basa en la funcionalidad de los generadores introducida en PHP 5.5.
@@ -552,44 +516,34 @@ echo $gen->getReturn(), PHP_EOL;
   <title>Delegación de generadores</title>
   
   <para>
-   La delegación de generadores se basa en la capacidad de devolver
-   expresiones desde generadores. Se realiza empleando una nueva sintaxis,
-   <literal>yield from &lt;expr&gt;</literal>, donde &lt;expr&gt; puede ser cualquier
-   <type>object</type> o <type>array</type> <literal>Traversable</literal>.
-   Se avanzará por &lt;expr&gt; hasta que no sea válido, continuando la
-   ejecución en el generador invocador. Esta característica hace posible
-   romper las sentencias <literal>yield</literal> en operaciones más
-   pequeñas, promoviendo así un código más limpio con mayor reusabilidad.
+   Los generadores ahora pueden delegar a otro generador,
+   objeto <classname>Traversable</classname> o <type>array</type>
+   de forma automática, sin la necesidad de escribir «clichés» en el generador
+   más externo con la construcción &yield.from;.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-
 function gen()
 {
     yield 1;
     yield 2;
-
-    return yield from gen2();
+    yield from gen2();
 }
 
 function gen2()
 {
     yield 3;
-
-    return 4;
+    yield 4;
 }
 
-$gen = gen();
-
-foreach ($gen as $val)
+foreach (gen() as $val)
 {
     echo $val, PHP_EOL;
 }
-
-echo $gen->getReturn();
+?>
 ]]>
    </programlisting>
    &example.outputs;
@@ -603,20 +557,21 @@ echo $gen->getReturn();
    </screen>
   </informalexample>
  </sect2>
+ 
  <sect2 xml:id="migration70.new-features.intdiv">
   <title>División entera con <function>intdiv</function></title>
   
   <para>
-   La función <function>intdiv</function> ha sido introducida para manejar
-   divisiones donde se va a devolver un número entero.
+   La nueva función <function>intdiv</function> realiza una división entera
+    de sus operandos y la devuelve.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-
 var_dump(intdiv(10, 3));
+?>
 ]]>
    </programlisting>
    &example.outputs;
@@ -627,41 +582,57 @@ int(3)
    </screen>
   </informalexample>
  </sect2>
- <sect2 xml:id="migration70.new-features.session-start-options">
-  <title>Opciones de <function>session_start</function></title>
+ 
+ <sect2 xml:id="migration70.new-features.session-options">
+  <title>Opciones de sesión</title>
   
   <para>
-   Esta característica proprociona la capacidad de pasar un array de opciones a la
-   función <function>session_start</function>. Se emplea para establecer
-   opciones de php.ini basadas en sesiones:
+   <function>session_start</function> ahora acepta un <type>array</type> de
+   opciones que sobrescriben las
+   <link linkend="session.configuration">directivas de configuración de sesiones</link>
+   establecidas normalmente en php.ini.
+  </para>
+  
+  <para>
+   Estas opciones también se han ampliado para admitir
+   <link linkend="ini.session.lazy-write">session.lazy_write</link>, la cual está
+   activada de forma predeterminada y causa que PHP solamente sobrescriba cualquier fichero de sesión si los
+   datos de sesión han cambiado, y <literal>read_and_close</literal>, la cual es
+   uan opción que se puede pasar solo a <function>session_start</function> para
+   indicar que los datos de sesión deberían ser leídos y luego la sesión debería
+   ser cerrada inmediatamente sin cambios.
+  </para>
+  
+  <para>
+   Por ejemplo, para establecer
+   <link linkend="ini.session.cache-limiter">session.cache_limiter</link> a
+   <literal>private</literal> e inmediatamente cerrar la sesión después de
+   leerla:
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-
-session_start(['cache_limiter' => 'private']); // establece la opción session.cache_limiter a privada
+session_start([
+    'cache_limiter' => 'private',
+    'read_and_close' => true,
+]);
+?>
 ]]>
    </programlisting>
   </informalexample>
-  
-  <para>
-   También introduce un nuevo ajuste php.ini (session.lazy_write)
-   que es, por omisión, establecido a verdadero, lo que significa que los datos de la sesión
-   solamente son rescritros si cambian.
-  </para>
  </sect2>
+ 
  <sect2 xml:id="migration70.new-features.preg-repace-callback-array-function">
-  <title>Función <function>preg_replace_callback_array</function></title>
+  <title><function>preg_replace_callback_array</function></title>
   
   <para>
-   Con esta nueva función, el código escrito es más claro al emplear la
+   Con la nueva función <function>preg_replace_callback_array</function>,
+   el código escrito es más claro al emplear la
    función <function>preg_replace_callback</function>. Antes de PHP 7,
    las retrollamadas que necesitaban ser ejecutadas por cada expresión regular requerían
-   que la función de retrollamda (segundo argumento de
-   <function>preg_replace_callback</function>) fuera contaminada con muchas
-   ramificaciones (un método de hackeo en el mejor de los casos).
+   que la función de retrollamda fuera contaminada con muchas ramificaciones.
   </para>
   
   <para>
@@ -669,101 +640,15 @@ session_start(['cache_limiter' => 'private']); // establece la opción session.c
    array asociativo, donde la clave es una expresión regular y el valor es una
    retrollamada.
   </para>
-  
-  <para>
-   Signatura de la función:
-  </para>
-  
-  <programlisting>
-<![CDATA[
-string preg_replace_callback_array(array $regexesAndCallbacks, string $input);
-]]>
-  </programlisting>
-  
-  <informalexample>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-$flujoSímbolos = []; // pares [nombreSímbolo, lexema]
-
-$input = <<<'end'
-$a = 3; // inicialización de la variable
-end;
-
-// Código anterior a PHP 7
-preg_replace_callback(
-    [
-        '~\$[a-z_][a-z\d_]*~i',
-        '~=~',
-        '~[\d]+~',
-        '~;~',
-        '~//.*~'
-    ],
-    function ($coincidencia) use (&$flujoSímbolos) {
-        if (strpos($coincidencia[0], '$') === 0) {
-            $flujoSímbolos[] = ['T_VARIABLE', $coincidencia[0]];
-        } elseif (strpos($coincidencia[0], '=') === 0) {
-            $flujoSímbolos[] = ['T_ASSIGN', $coincidencia[0]];
-        } elseif (ctype_digit($coincidencia[0])) {
-            $flujoSímbolos[] = ['T_NUM', $coincidencia[0]];
-        } elseif (strpos($coincidencia[0], ';') === 0) {
-            $flujoSímbolos[] = ['T_TERMINATE_STMT', $coincidencia[0]];
-        } elseif (strpos($coincidencia[0], '//') === 0) {
-            $flujoSímbolos[] = ['T_COMMENT', $coincidencia[0]];
-        }
-    },
-    $input
-);
-
-// Código de PHP 7+
-preg_replace_callback_array(
-    [
-        '~\$[a-z_][a-z\d_]*~i' => function ($coincidencia) use (&$flujoSímbolos) {
-            $flujoSímbolos[] = ['T_VARIABLE', $coincidencia[0]];
-        },
-        '~=~' => function ($coincidencia) use (&$flujoSímbolos) {
-            $flujoSímbolos[] = ['T_ASSIGN', $coincidencia[0]];
-        },
-        '~[\d]+~' => function ($coincidencia) use (&$flujoSímbolos) {
-            $flujoSímbolos[] = ['T_NUM', $coincidencia[0]];
-        },
-        '~;~' => function ($coincidencia) use (&$flujoSímbolos) {
-            $flujoSímbolos[] = ['T_TERMINATE_STMT', $coincidencia[0]];
-        },
-        '~//.*~' => function ($coincidencia) use (&$flujoSímbolos) {
-            $flujoSímbolos[] = ['T_COMMENT', $coincidencia[0]];
-        }
-    ],
-    $input
-);
-]]>
-   </programlisting>
-  </informalexample>
  </sect2>
+ 
  <sect2 xml:id="migration70.new-features.csprng-functions">
   <title>Funciones de <link linkend="book.csprng">CSPRNG</link></title>
   
   <para>
-   Esta característica introduce dos nuevas funciones para generar números enteros y string
-   criptográficamente seguros. Exponen unas API sencillas y son
-   independientes de la plataforma.
-  </para>
-  
-  <para>
-   Signaturas de las funciones:
-  </para>
-  
-  <programlisting>
-<![CDATA[
-string random_bytes(int length);
-int random_int(int min, int max);
-]]>
-  </programlisting>
-  
-  <para>
-   Ambas funciones emitirán un E_WARNING y devolverán <literal>false</literal> si
-   no se puede encontrar una fuente de suficiente aleatoriedad.
+   Se han añadido dos nuevas funciones para generar números enteros y cadenas de
+   caractéres criptográficamente seguros de una forma multiplataforma:
+   <function>random_bytes</function> y <function>random_int</function>.
   </para>
  </sect2>
  
@@ -774,6 +659,9 @@ int random_int(int min, int max);
   </title>
   
   <para>
+   Anteriormente, no se garantizaba que <function>list</function> operase
+   correctamente con objetos que implementasen <classname>ArrayAccess</classname>.
+   Esto ha sido arreglado.
   </para>
  </sect2>
 </sect1>
