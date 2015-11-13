@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 377cbed58017458cd07b087a70d26624def218a4 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ff4c97050881f69e37bc44cd4034c268566e376d Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <chapter xml:id="eio.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -192,8 +192,8 @@ bool(true)
  
  <para>
   <example>
-   <title>Usar eio con libevent</title>
-   <programlisting role="php"><![CDATA[
+   <title>Emplear eio con la extensión libevent</title>
+<programlisting role="php"><![CDATA[
 <?php
 function mi_eio_poll($df, $eventos, $argumentos) {
     /* Algunas regulaciones de libevent podrían ir aquí .. */
@@ -245,6 +245,51 @@ string(10) "mkdir data"
  ]]>
    </screen>
   </example>
+ </para>
+ 
+ <para>
+  <example>
+   <title>Emplear eio con la extensión event</title>
+<programlisting role="php"><![CDATA[
+<?php
+$base = new EventBase();
+
+// Recuperar el flujo de sondeo de eio.
+// Observe, esta variable debería permanecer viva mientras se ejecute el bucle.
+$eio_stream = eio_get_event_stream();
+
+// Vincular el flujo de sondeo de eio al bucle de evento.
+$poll_event = new Event($base, $eio_stream, Event::READ, function () {
+  if (eio_nreqs()) {
+    eio_poll();
+  }
+});
+$poll_event->add();
+
+// Añadir trabajos de eio
+eio_nop(EIO_PRI_DEFAULT, function () {
+  echo "eio_nop\n";
+});
+
+// Añadir eventos
+$timer = Event::timer($base, function () {
+  echo "2 segundos transcurridos\n";
+});
+$timer->add(2);
+
+// Despachar eventos.
+$base->dispatch();
+?>
+]]></programlisting>
+   
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+eio_nop
+2 segundos transcurridos
+ ]]>
+   </screen>
+ </example>
  </para>
  
 </chapter>
