@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 20e3046af35c1716b12167542c07e974cb5537bd Maintainer: seros Status: ready -->
+<!-- Reviewed: no -->
+
+<section xml:id="mongodb.tutorial.install.hhvm" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Instalación con HHVM</title>
+
+ <para>
+  En esta sección aprenderá cómo configurar NGINX con HHVM y MongoDB.
+  Sin embargo, este tutorial no pretende ser una guia exclusiva de cómo
+  ejecutar NGINX y HHVM en un entorno de producción.
+ </para>
+
+ <para>
+  En este tutorial emplearemos un sistema Debian con NGINX instalado
+  a través de <code>apt-get</code> y HHVM instalado desde el
+  <emphasis>código fuente</emphasis> a <code>/usr/local/hhvm/3.9.1</code>
+  (con los binarios ubicados en <code>/usr/local/hhvm/3.9.1/bin/hhvm</code>).
+ </para>
+
+ <section xml:id="mongodb.tutorial.install.hhvm.nginx">
+  <title>NGINX</title>
+
+  <para>
+   Simplemente instalamos NGINX ejecutando <code>apt-get install nginx-full</code>.
+   Si NGINX no se iniciase después de su instalación, probablemente sea porque ya se
+   tenga otro servidor web (p.ej. Apache) ejecutándose en el mismo puerto. En este daso,
+   se podrán ver las siguientes líneas en <code>/var/log/nginx/error.log</code>:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+2015/09/29 10:19:27 [emerg] 22445#22445: bind() to 0.0.0.0:80 failed (98:Address already in use)
+2015/09/29 10:19:27 [emerg] 22445#22445: bind() to [::]:80 failed (98: Address already in use)
+]]>
+  </programlisting>
+
+  <para>
+   Para solucionar este problema, se puede o bien cambiar el puerto predeterminado para NGINX o Apache,
+   o bien detener el proceso de Apache con <code>service apache2 stop</code>, o bien eliminar
+   Apache por completo con <code>apt-get remove apache2</code>.
+  </para>
+ </section>
+
+ <section xml:id="mongodb.tutorial.install.hhvm.hhvm">
+  <title>HHVM</title>
+
+  <para>
+   Este tutorial está escrito desde la perspectiva de un desarrollador de extensiones, por lo que
+   hemos instalado HHVM desde el código fuente para facilitar el desarrollo de parches y asegurar
+   la disponibilidad de los símbolos de depuración. Dicho esto, la gente en Facebook también
+   proporcionan paquetes preconstruidos, que es lo que probablemente <emphasis>usted</emphasis>
+   utilice en producción y desarrollo. Se pueden encontrar las instrucciones de instalación
+   de esto paquetes en la
+   <link xlink:href="&url.facebook.hhvm.prebuild;">Wiki de HHVM</link>.
+  </para>
+
+  <para>
+   Será necesario instalar los paquetes <code>hhvm</code>
+   <emphasis>y</emphasis> <code>hhvm-dev</code>. Este último es necesario
+   para poder compilar la extensión MongoDB HHVM después.
+  </para>
+
+  <para>
+   Si está compilando HHVM desde el código fuente, será necesario crear
+   <code>/var/run/hhvm</code>:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+sudo mkdir -p /var/run/hhvm
+sudo chown www-data.www-data /var/run/hhvm
+sudo mkdir /etc/hhvm
+sudo touch /etc/hhvm/php.ini
+# Así no tendrá que hacer ``sudo`` para editar el fichero
+sudo chown derick /etc/hhvm/php.ini
+# Para ver si realmente funciona
+echo "date.timezone=Europe/London" >> /etc/hhvm/php.ini
+]]>
+  </programlisting>
+
+  <para>
+   HHVM debería iniciarse como el usuario <code>www-data</code>. Para los propósitos de
+   este tutorial, lo podremos ejecutar en segundo plano en el  modo
+   <emphasis>server</emphasis> como sigue:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+sudo -u www-data -s /usr/local/hhvm/3.9.1/bin/hhvm \
+ --mode server \
+ -vServer.Type=fastcgi \
+ -vServer.FileSocket=/var/run/hhvm/sock
+]]>
+  </programlisting>
+ </section>
+
+ <section xml:id="mongodb.tutorial.install.hhvm.nginxandhhvm">
+  <title>Comunicación entre NGINX y HHVM</title>
+
+  <para>
+   Una vez se esté ejecutando HHVM, necesitamos indicar a NGINX cómo comunicarse con HHVM para ejecutar
+   ficheros <code>.php</code>. Aunque esta no sea la estrategia más limpia,
+   se puede añadir el siguiente código a
+   <code>/etc/nginx/sites-enabled/default</code>, justo depués de la
+   sección <code>location / { … }</code>:
+  </para>
+
+  <programlisting>
+<![CDATA[
+location ~ \.php$ {
+   fastcgi_pass unix:/var/run/hhvm/sock;
+   fastcgi_index index.php;
+   fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+   include fastcgi_params;
+}
+]]>
+  </programlisting>
+
+  <para>
+   Después de añadir este código se debe reiniciar NGINX:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+sudo service nginx restart
+]]>
+  </programlisting>
+
+  <para>
+   Para confirmar que todo funciona bien, crearemos un directorio de proyecto
+   con un fichero <code>index.php</code> que llame a <code>phpinfo()</code>:
+  </para>
+
+  <para>
+   <itemizedlist>
+    <listitem>
+     <para>
+      Crear el directorio de proyecto:
+      <code>sudo mkdir -p /var/www/html/mi-primer-proyecto</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Cambiar los permisos a su usuario y al grupo <code>www-data</code>:
+      <code>sudo chown derick.www-data /var/www/html/mi-primer-proyecto</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Crear el fichero <code>/var/www/html/mi-primer-proyecto/index.php</code>.
+      Desde ahora, <emphasis>no</emphasis> incluiré la ruta completa
+      <code>/var/www/html/mi-primer-proyecto/</code> al mencionar nombres de ficheros.
+      Poner el siguiente contenido en este fichero:
+     </para>
+
+     <programlisting role="php">
+<![CDATA[
+<?php
+phpinfo();
+?>
+]]>
+     </programlisting>
+    </listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+  Ahora, en el navegador, solicite la página
+  <code>http://gargleblaster/mi-primer-proyecto/index.php</code> (ajustando el
+  nombre del host). Se debería mostrar una página comenzando con "HHVM Version 3.9.1"
+  seguido de varias tablas con información.
+  </para>
+ </section>
+
+ <section xml:id="mongodb.tutorial.install.hhvm.driver">
+  <title>Controlador de MongoDB para HHVM</title>
+
+  <para>
+   El controlador de MongoDB es la parte que conecta el PHP de HHVM con el
+   servidor de bases de datos. Para instalar y registrar el controlador con HHVM, es necesario
+   seguir los siguientes pasos:
+   <itemizedlist>
+    <listitem>
+     <para>
+      Descargar el último controlador desde
+      <link xlink:href="&url.mongodb.hhvm.releases;">GitHub</link> (en el momoento
+      de escribir, HHVM no posee un gestor de paquetes para extensiones). En
+      los ejemplos de abajo, usaremos "x.y.z" como indicador de la versión.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Desempaquetar el archivo: <code>tar -xvzf hhvm-mongodb-x.y.z.tgz</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Cambiar al directorio recién creado: <code>cd hhvm-mongodb-x.y.z</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Generar los ficheros <code>configure</code> para las bibliotecas incluidas. Para
+      que esto funcione, es necesario tener instalados los paquetes <code>automake</code>,
+      <code>autoconf</code>, and <code>libtool</code> 
+      (mediante <code>apt-get</code>).
+     </para>
+
+     <programlisting>
+<![CDATA[
+cd libbson; ./autogen.sh; cd ..
+cd libmongoc; ./autogen.sh; cd ..
+]]>
+     </programlisting>
+    </listitem>
+    <listitem>
+     <para>
+      Generar el Makefile: <code>hphpize &amp;&amp; cmake .</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Construir el controlador: <code>make -j 5</code>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Instalar el controlador: <code>sudo make install</code>. Este último paso
+      notificará dónde se ha instalado el fichero binario <code>mongodb.so</code>.
+      Debería mostrar algo similar a: <code>Installing:
+      /usr/local/hhvm/3.9.1/lib/hhvm/extensions/20150212/mongodb.so</code>
+     </para>
+    </listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   Ahora que el controlador está instalado, es necesario habilitarlo en HHVM. Añada las
+   siguientes líneas a <code>/etc/hhvm/php.ini</code>, cambiando el directorio
+   de este ejemplo por la ruta mostrada después de ejecutar <code>make install</code>:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+hhvm.dynamic_extension_path=/usr/local/hhvm/3.9.1/lib/hhvm/extensions/20150212
+hhvm.dynamic_extensions[mongodb]=mongodb.so
+]]>
+  </programlisting>
+
+  <para>
+   Después de realizar esto, HHVM necesitará reiniciarse. Si se tenía HHVM
+   ejecutándose en el «shell» anteriormente, detnéngalo con Ctrl-C y reinicielo de nuevo
+   como antes:
+  </para>
+
+  <programlisting role="shell">
+<![CDATA[
+sudo -u www-data -s /usr/local/hhvm/3.9.1/bin/hhvm \
+   --mode server \
+   -vServer.Type=fastcgi \
+   -vServer.FileSocket=/var/run/hhvm/sock
+]]>
+  </programlisting>
+
+  <para>
+   Para porbar que el controlador está cargado, edite el fichero <code>index.php</code>
+   y reemplace su contenido con:
+  </para>
+
+  <programlisting role="php">
+<![CDATA[
+<?php
+var_dump(phpversion("mongodb"));
+?>
+]]>
+  </programlisting>
+
+  <para>Esto debería mostrar algo similar a:</para>
+
+  <programlisting>
+<![CDATA[
+string(5) "x.y.z"
+]]>
+  </programlisting>
+ </section>
+
+ <section>
+  <title>Otras lecturas</title>
+
+  <para>
+   Continúe este tutorial en
+   <xref linkend="mongodb.tutorial.library"/>
+  </para>
+ </section>
+</section>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
