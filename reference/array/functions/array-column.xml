@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5be9b3288b378c3c837d7d0c367ea6e334f5e9ae Maintainer: seros Status: ready -->
+<!-- EN-Revision: 424e4bdde84f9b975515f6ce88b8d12662f5c87d Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="function.array-column" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -11,17 +11,17 @@
   &reftitle.description;
   <methodsynopsis>
    <type>array</type><methodname>array_column</methodname>
-   <methodparam><type>array</type><parameter>array</parameter></methodparam>
+   <methodparam><type>array</type><parameter>input</parameter></methodparam>
    <methodparam><type>mixed</type><parameter>column_key</parameter></methodparam>
    <methodparam choice="opt"><type>mixed</type><parameter>index_key</parameter><initializer>null</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>array_column</function> devuelve los valores de una sola columna de
-   <parameter>array</parameter>, identificado por la clave de columna
-   <parameter>column_key</parameter>. Opcionalmente, se podría proporcionar una clave de índice,
-   <parameter>index_key</parameter>, para indexar los valores del array devuelto por
-   los valores de la columna <parameter>index_key</parameter> del array de
-   entrada.
+   <parameter>input</parameter>, identificado por la clave de columna
+   <parameter>column_key</parameter>. Opcionalmente, se
+   podría proporcionar una clave de índice, <parameter>index_key</parameter>,
+   para indexar los valores del array devuelto por los valores de la columna
+   <parameter>index_key</parameter> del array de entrada.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -29,11 +29,15 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>array</parameter></term>
+     <term><parameter>input</parameter></term>
      <listitem>
       <para>
-       Un array multidimensional (conjunto de registros) desde el cual obtener una columna
-       de valores.
+       Un array multidimensional o un array de objetos desde el que extraer una
+       columna de valores. Si se proporciona un array de objetos, entonces se podrá
+       extraer directamente las propiedades públicas. Para poder extraer las proiedades
+       protegidas o privadas, la clase debe implementar los métodos mágicos
+       <function>__get</function> y
+       <function>__isset</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -41,11 +45,11 @@
      <term><parameter>column_key</parameter></term>
      <listitem>
       <para>
-       La columna de valores a devolver. Este valor podría ser la clave de tipo integer de la
-       columna de la cual obtener los datos, o podría ser la clave de tipo string para un
-       array asociativo. También prodría ser &null; para devolver array completos
-       (útil junto con <parameter>index_key</parameter> para reindexar el
-       array).
+       La columna de valores a devolver. Este valor podría ser una clave de tipo integer de la
+       columna de la cual obtener los datos, o podría ser una clave de tipo string para un
+       array asociativo o nombre de propiedad. También prodría ser &null; para devolver
+       array completos u objetos (útil junto con
+       <parameter>index_key</parameter> para reindexar el array).
       </para>
      </listitem>
     </varlistentry>
@@ -65,6 +69,30 @@
   &reftitle.returnvalues;
   <para>
    Devuelve un array de valores que representa una sola columna del array de entrada.
+  </para>
+ </refsect1>
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.0.0</entry>
+       <entry>
+        Se añdió la capacidad de que el parámetro <parameter>input</parameter> sea
+        un array de objetos.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
  <refsect1 role="examples">
@@ -145,6 +173,104 @@ Array
 ]]>
     </screen>
    </example>
+  </para>
+  <para>
+   <example>
+    <title>
+     Obtener la columna de nombres de usuarios de la propiedad pública "nombre_usuario" de un
+     objeto
+    </title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class Usuario
+{
+    public $nombre_usuario;
+
+    public function __construct(string $nombre_usuario)
+    {
+        $this->nombre_usuario = $nombre_usuario;
+    }
+}
+
+$usuarios = [
+    new Usuario('usuario 1'),
+    new Usuario('usuario 2'),
+    new Usuario('usuario 3'),
+];
+
+print_r(array_column($usuarios, 'nombre_usuario'));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen role="php">
+<![CDATA[
+Array
+(
+    [0] => usuario 1
+    [1] => usuario 2
+    [2] => usuario 3
+)
+]]>
+    </screen>
+    </example>
+  </para>
+  <para>
+   <example>
+    <title>
+     Obtener la columna de nombres de la propiedad privada "nombre" de un objeto
+     empleando el método mágico <function>__get</function>.
+    </title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class Persona
+{
+    private $name;
+
+    public function __construct(string $nombre)
+    {
+        $this->nombre = $nombre;
+    }
+
+    public function __get($prop)
+    {
+        return $this->$prop;
+    }
+
+    public function __isset($prop) : bool
+    {
+        return isset($this->$prop);
+    }
+}
+
+$gente = [
+    new Persona('Fred'),
+    new Persona('Jane'),
+    new Persona('John'),
+];
+
+print_r(array_column($gente, 'nombre'));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen role="php">
+<![CDATA[
+Array
+(
+    [0] => Fred
+    [1] => Jane
+    [2] => John
+)
+]]>
+    </screen>
+   </example>
+   Si no se proporciona <function>__isset</function>, será devuelto un array
+   vacío.
   </para>
  </refsect1>
  
