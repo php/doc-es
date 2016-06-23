@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 45fc246e9fa66e3eed77c124f1c7d1681cf46cb1 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4392990fb654c30e30019ef1ed41721956dd5bf8 Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 
 <sect1 xml:id="language.oop5.basic" xmlns="http://docbook.org/ns/docbook">
@@ -10,7 +10,7 @@
   <title>class</title>
   <para>
    La definición básica de una clase comienza con la palabra
-   reservada <literal>class</literal>, seguido de un nombre de clase,
+   reservada <literal>class</literal>, seguida de un nombre de clase,
    y continuando con un par de llaves que encierran las definiciones
    de las propiedades y métodos pertenecientes a dicha clase.
   </para>
@@ -54,10 +54,21 @@ class ClaseSencilla
    puede que sea otro objeto si el método es llamado
    <link linkend="language.oop5.static">estáticamente</link> desde el contexto
    de un objeto secundario).
+   A partir de PHP 7.0.0, la llamada estática a un método no estático desde un contexto
+   incompatible resulta en que $this no esté definido dentro del método. Una llamada
+   estática a un método no estático desde un contexto no compatible está obsoleta
+   desde PHP 5.6.0. A partir de PHP 7.0.0, una llamada estática a un método no
+   estático está obsoleta en general (incluso si se llama desde un contexto
+   compatible). Antes de PHP 5.6.0, tales llamadas ya ocasionaban un aviso de estrictez.
   </para>
   <para>
    <example xml:id="language.oop5.basic.class.this">
     <title>Algunos ejemplos de la pseudovariable <varname>$this</varname></title>
+    <simpara>
+     Se asume que para este ejemplo error_reporting está inhabilitado;
+     de lo contrario, el siguiente código emitirá avisos de estrictez y obsolescencia,
+     respectivamente, dependiendo de la versión de PHP.
+    </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -79,7 +90,6 @@ class B
 {
     function bar()
     {
-        // Nota: la siguiente línea arrojará una advertencia si E_STRICT está habilitado.
         A::foo();
     }
 }
@@ -87,22 +97,29 @@ class B
 $a = new A();
 $a->foo();
 
-// Nota: la siguiente línea arrojará una advertencia si E_STRICT está habilitado.
 A::foo();
 $b = new B();
 $b->bar();
 
-// Nota: la siguiente línea arrojará una advertencia si E_STRICT está habilitado.
 B::bar();
 ?>
 ]]>
     </programlisting>
-    &example.outputs;
+    &example.outputs.5;
     <screen>
 <![CDATA[
 $this está definida (A)
 $this no está definida.
 $this está definida (B)
+$this no está definida.
+]]>
+    </screen>
+    &example.outputs.7;
+    <screen>
+<![CDATA[
+$this está definida (A)
+$this no está definida.
+$this no está definida.
 $this no está definida.
 ]]>
     </screen>
@@ -252,20 +269,21 @@ class Foo
 $obj = new Foo();
 echo $obj->bar, PHP_EOL, $obj->bar(), PHP_EOL;
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 propiedad
 método
 ]]>
-    </screen>
+   </screen>
   </example>
   <para>
    Esto significa que llamar a una <link linkend="functions.anonymous">función
    anónima</link> que ha sido asignada a una propiedad no es posible
    directamte. En su lugar, la propiedad ha de ser asignada primero a una variable, por
-   ejemplo.
+   ejemplo. A partir de PHP 7.0.0, es posible llamar a dicha propiedad directamente
+   encerrándola entre paréntesis.
   </para>
   <example>
    <title>Llamar a una función anónima almacenada en una propiedad</title>
@@ -282,17 +300,21 @@ class Foo
     }
 }
 
+// A partir de PHP 5.3.0:
 $obj = new Foo();
 $func = $obj->bar;
 echo $func(), PHP_EOL;
+
+// Alternativamente, a partir de PHP 7.0.0:
+echo ($obj->bar)(), PHP_EOL;
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 42
 ]]>
-    </screen>
+   </screen>
   </example>
  </sect2>
  
@@ -382,14 +404,14 @@ NS\NombreClase
     </screen>
    </example>
   </para>
-   <note>
-    <para>La resolución de nombres de clases con <literal>::class</literal> es una transformación
-     durante la compilación. Esto significa que, en el instante de crear el string del nombre
-     de la clase, aún no se ha realizado ninguna autocarga. Como consecuencia, los nombres de clases
-     se expanden incluso si la clase no existe. No se emite ningún error en tal
-     caso.
-    </para>
-   </note>
+  <note>
+   <para>La resolución de nombres de clases con <literal>::class</literal> es una transformación
+    durante la compilación. Esto significa que, en el instante de crear el string del nombre
+    de la clase, aún no se ha realizado ninguna autocarga. Como consecuencia, los nombres de clases
+    se expanden incluso si la clase no existe. No se emite ningún error en tal
+    caso.
+   </para>
+  </note>
  </sect2>
 </sect1>
 
