@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b71889694a693b789c6e67d414ccc26c5739d0c9 Maintainer: seros Status: ready -->
+<!-- EN-Revision: e440c79af15cf829549736b2a292b5f8f6887142 Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 <refentry xml:id="pdostatement.fetch" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -55,7 +55,9 @@
         <listitem><para>
          <literal>PDO::FETCH_CLASS</literal>: devuelve una nueva instancia de la
          clase solicitada, haciendo corresponder las columnas del conjunto de resultados con los
-         nombres de las propiedades de la clase. Si <parameter>fetch_style</parameter>
+         nombres de las propiedades de la clase, y llamando al constructor después, a menos
+         que también se proporcione <literal>PDO::FETCH_PROPS_LATE</literal>.
+         Si <parameter>fetch_style</parameter>
          incluye PDO::FETCH_CLASSTYPE (por ejemplo, <literal>PDO::FETCH_CLASS |
          PDO::FETCH_CLASSTYPE</literal>), entonces el nombre de la clase
          se determina a partir del valor de la primera columna.
@@ -86,6 +88,12 @@
          <literal>PDO::FETCH_OBJ</literal>: devuelve un objeto anónimo con 
          nombres de propiedades que se corresponden a los nombres de las columnas devueltas
          en el conjunto de resultados.
+         </para></listitem>
+        <listitem><para>
+         <literal>PDO::FETCH_PROPS_LATE</literal>: cuando se usa con
+         <literal>PDO::FETCH_CLASS</literal>, se llama al constructor de la
+         clase antes de que las proiedades sean asignadas desde los valores de la
+         columna respectiva.
          </para></listitem>
        </itemizedlist>
       </para>
@@ -264,6 +272,56 @@ Reading backwards:
     </screen>
    </example>
    
+   <example><title>Orden de construcción</title>
+    <simpara>
+     Cuando los objetos se obtienen mediante <literal>PDO::FETCH_CLASS</literal>, las
+     propiedades del objeto se asignan primero, y luego se invoca al constructor de la
+     clase. Si también se proporciona <literal>PDO::FETCH_PROPS_LATE</literal>, este
+     orden se invierte, es decir, primero se llama al constructor y luego se
+     asignan las propiedades.
+    </simpara>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class Persona
+{
+    private $name;
+
+    public function __construct()
+    {
+        $this->decir();
+    }
+
+    public function decir()
+    {
+        if (isset($this->name)) {
+            echo "Soy {$this->name}.\n";
+        } else {
+            echo "Aún no tengo nombre.\n";
+        }
+    }
+}
+
+$sth = $dbh->query("SELECT * FROM people");
+$sth->setFetchMode(PDO::FETCH_CLASS, 'Persona');
+$persona = $sth->fetch();
+$persona->decir();
+$sth->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, 'Persona');
+$persona = $sth->fetch();
+$persona->decir();
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Soy Alice.
+Soy Alice.
+Aún no tengo nombre.
+Soy Bob.
+]]>
+    </screen>
+   </example>
   </para>
  </refsect1>
  
