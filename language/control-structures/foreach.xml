@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c723b31c1e183971c5b16d6ae3c907f6cfbc170b Maintainer: seros Status: ready -->
+<!-- EN-Revision: 239e96a218079d1211bbf7f1d73947039a00ab5e Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <sect1 xml:id="control-structures.foreach" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -75,9 +75,45 @@ unset($valor); // rompe la referencia con el último elemento
    </programlisting>
   </informalexample>
  </para>
+ <warning>
+  <para>
+   La referencia del <literal>$valor</literal> y el último elemento del array
+   permanecen aún después del bucle <literal>foreach</literal>. Se recomienda
+   destruirlos con <function>unset</function>.
+   De lo contrario, se experimentará el siguiente funcionamiento:
+  </para>
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$array = array(1, 2, 3, 4);
+foreach ($array as &$valor) {
+    $valor = $valor * 2;
+}
+// $array ahora es array(2, 4, 6, 8)
+
+// sin unset($valor), $valor aún es una referencia al último elemento: $array[3]
+
+foreach ($array as $clave => $valor) {
+    // $array[3] se actualizará con cada valor de $array...
+    echo "{$clave} => {$valor} ";
+    print_r($array);
+}
+// ...hasta que finalmente el penúltimo valor se copia al último valor
+
+// salida:
+// 0 => 2 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 2 )
+// 1 => 4 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 4 )
+// 2 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+// 3 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+?>
+]]>
+   </programlisting>
+  </informalexample>
+ </warning>
  <para>
-  Referenciar <literal>$valor</literal> sólo es posible si el array iterado puede ser
-  referenciado (es decir, si es una variable). El siguiente código no funcionará:
+  Antes de PHP 5.5.0, referenciar <literal>$valor</literal> sólo es posible si el array iterado puede ser
+  referenciado (es decir, si es una variable). El siguiente código solamente funciona a partir de PHP 5.5.0:
   <informalexample>
    <programlisting role="php">
 <![CDATA[
@@ -90,13 +126,6 @@ foreach (array(1, 2, 3, 4) as &$valor) {
    </programlisting>
   </informalexample>
  </para>
- <warning>
-  <para>
-   La referencia del <literal>$valor</literal> y el último elemento del array
-   permanecen aún después del bucle <literal>foreach</literal>. Se recomienda
-   destruirlos con <function>unset</function>.
-  </para>
- </warning>
  <para>
   <note>
    <para>
@@ -312,6 +341,44 @@ A: 3; B: 4; C:
    </informalexample>
   </para>
  </sect2>
+ 
+ <sect2 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.0.0</entry>
+       <entry>
+        <literal>foreach</literal> ya no utiliza el puntero interno al array.
+       </entry>
+      </row>
+      <row>
+       <entry>5.5.0</entry>
+       <entry>
+        Hacer referencia a <literal>$valor</literal> está admitido para expresiones.
+        Anteriormente, solamente estaban admitidas las variables.
+       </entry>
+      </row>
+      <row>
+       <entry>5.5.0</entry>
+       <entry>
+        El desempaquetamiento de arrays anidados con <function>list</function> está admitido.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </sect2>
+ 
 </sect1>
 
 <!-- Keep this comment at the end of the file
