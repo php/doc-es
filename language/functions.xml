@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: dcafd6ef3d94c77eee1173d22f2bcad56e7c1a44 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8b269103c2741fb39e44f49ac60825c55aadc395 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: seros -->
 <chapter xml:id="language.functions" xmlns="http://docbook.org/ns/docbook">
  <title>Funciones</title>
@@ -596,11 +596,13 @@ NULL
     </para>
     
     <para>
-     Es posible habilitar el modo escricto en función de cada fichero. El el modo
+     Es posible habilitar el modo estricto en función de cada fichero. El el modo
      estricto solamente será aceptada una variable del tipo exacto de la declaración
      de tipo, o será lanzada una <classname>TypeError</classname>. La
      única excepción a esta regla es que se podría proporcionar un <type>integer</type>
-     a una función que espere un <type>float</type>.
+     a una función que espere un <type>float</type>. Las llamadas a funciones desde dentro
+     de funciones internas no se verán afectadas por la declaración
+     <literal>strict_types</literal>.
     </para>
     
     <para>
@@ -1204,6 +1206,7 @@ Foo::$variable();  // Esto llama a $foo->Variable() leyendo $variable en este á
     <title>Llamables complejos</title>
     <programlisting role="php">
 <![CDATA[
+<?php
 class Foo
 {
     static function bar()
@@ -1218,10 +1221,11 @@ class Foo
 
 $func = array("Foo", "bar");
 $func(); // imprime "bar"
-$f = array(new Foo, "baz");
+$func = array(new Foo, "baz");
 $func(); // imprime "baz"
-$f = "Foo::bar";
+$func = "Foo::bar";
 $func(); // imprime "bar" a partrid de PHP 7.0.0; antes, emitía un error fatal
+?>
 ]]>
     </programlisting>
    </example>
@@ -1325,6 +1329,10 @@ $func(); // imprime "bar" a partrid de PHP 7.0.0; antes, emitía un error fatal
    la creación de funciones que no tienen un nombre especificado. Son más útiles como
    valor de los parámetros de <link linkend="language.types.callback">llamadas de retorno</link>,
    pero tienen muchos otros usos.
+  </simpara>
+  <simpara>
+   Las funciones anónimas están implementadas utilizando la clase <link linkend="class.closure">
+   <classname>Closure</classname></link>.
   </simpara>
   
   <example>
@@ -1500,10 +1508,102 @@ print $mi_carro->obtenerTotal(0.05) . "\n";
    </programlisting>
   </example>
   
-  <simpara>
-   Las funciones anónimas son implementadas usando la clase <link linkend="class.closure">
-   <classname>Closure</classname></link>.
-  </simpara>
+  <example>
+   <title>Vinculación automática de <literal>$this</literal></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+class Test
+{
+    public function testing()
+    {
+        (function() {
+            var_dump($this);
+        })();
+    }
+}
+
+(new Test)->testing(); // a partir de PHP 5.4
+    
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+object(Test)#1 (0) {
+}
+]]>
+   </screen>
+  </example>
+  
+  <para>
+   Cuando se declara en el contexto de una clase, la clase actual está
+   vinculada a ella automáticamente, haciendo que <literal>$this</literal> esté disponible
+   dentro del ámbito de la función. Si no se desea esta vinculación automática
+   de la clase actual, se deberían usar
+   <link linkend="functions.anonymous-functions.static">funcions anónimas
+    estáticas</link> en su lugar.
+  </para>
+  
+  <sect2 xml:id="functions.anonymous-functions.static">
+   <title>Static anonymous functions</title>
+   <para>
+    A partir de PHP 5.4, las funciones anónimas pueden ser declaradas estáticamente. Esto
+    evita tener la clase actual vinculada automáticamente a
+    ellas. Los objetos tampoco podrían vincularse a ellas durante la ejecución.
+   </para>
+   <para>
+    <example>
+     <title>Intentar usar <literal>$this</literal> dentro de una función anónima estática</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+new class {
+    function __construct()
+    {
+        (static function() {
+            var_dump($this);
+        })();
+    }
+};
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Notice: Undefined variable: this in %s on line %d
+NULL
+]]>
+     </screen>
+    </example>
+   </para>
+   
+   <para>
+    <example>
+     <title>Intentar vincular un objeto a una función anónima estática</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+(static function() {
+    // function body
+})->call(new StdClass);
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Warning: Cannot bind an instance to a static closure in /in/sLLS9 on line 5
+]]>
+     </screen>
+    </example>
+   </para>
+  </sect2>
   
   <sect2 role="changelog">
    &reftitle.changelog;
@@ -1520,7 +1620,8 @@ print $mi_carro->obtenerTotal(0.05) . "\n";
        <row>
         <entry>5.4.0</entry>
         <entry>
-         <varname>$this</varname> puede ser usado en funciones anónimas.
+         Las funciones anónimas pueden usar <varname>$this</varname>, así como ser
+         declaradas státicamente.
         </entry>
        </row>
        <row>

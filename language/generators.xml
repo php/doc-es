@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 19059652f1059bf80f0290c0f65870ded996a02b Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8c3557271d9ae71bbc8ec2a47ad83960d4272184 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <chapter xml:id="language.generators" xmlns="http://docbook.org/ns/docbook">
  <title>Generadores</title>
@@ -403,6 +403,61 @@ foreach (gen_reference() as &$number) {
      expresión <command>yield from</command> también devolverá cualquier valor
      devuelto por el generador interno.
     </para>
+    
+    <caution>
+     <title>Almacenamiento en un array (p.ej. con <function>iterator_to_array</function>)</title>
+     
+     <para>
+      <command>yield from</command> no reinicia las claves. Preserva
+      las claves devueltas por el objeto <classname>Traversable</classname> o
+      <type>array</type>. Por tanto, algunos valores podrían compartir una clave en común con otro
+      <command>yield</command> o <command>yield from</command>, los cuales, en el momento
+      de la inserción en el array, sobrescribirán los valores antiguos con esa clave.
+     </para>
+     
+     <para>
+      Un caso común donde esto importa es cuando <function>iterator_to_array</function>
+      devuelve un array con claves por defecto, conduciendo a posibles resultados inesperados.
+      <function>iterator_to_array</function> tiene un segundo parámetro,
+      <parameter>use_keys</parameter>, que puede ser establecido a &false; para recoger
+      todos los valores mientras ignora las claves devueltas por el <classname>Generator</classname>.
+     </para>
+     
+     <example>
+      <title><command>yield from</command> con <function>iterator_to_array</function></title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+function from() {
+    yield 1; // clave 0
+    yield 2; // clave 1
+    yield 3; // clave 2
+}
+function gen() {
+    yield 0; // clave 0
+    yield from from(); // claves 0-2
+    yield 4; // clave 1
+}
+// pasar false como segundo parámetro para obtener un array [0, 1, 2, 3, 4]
+var_dump(iterator_to_array(gen()));
+?>
+]]>
+       </programlisting>
+       &example.outputs;
+       <screen>
+<![CDATA[
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(4)
+  [2]=>
+  int(3)
+}
+]]>
+       </screen>
+     </example>
+    </caution>
     
     <example>
      <title>Uso básico de <command>yield from</command></title>
