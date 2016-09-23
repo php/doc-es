@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 6bfcf7d9af614b4155c72e84814a61607be21229 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 0a7a550a651bf837463ea57270bdbd4697b66fb9 Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
-<!-- splitted from ./index.xml, last change in rev 1.66 -->
 <chapter xml:id="security.database" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Seguridad en bases de datos</title>
  
  <simpara>
   Hoy en día, las bases de datos son componentes esenciales de cualquier aplicación web,
   permitiendo a los sitios web proveer variedad de contenido dinámico. Puesto que se puede
-  almacenar información muy sensible o secreta en una base de datos, debería considerarse
-  ampliamente la protección de las bases de datos.
+  almacenar información muy delicada o secreta en una base de datos, debería considerarse
+  ampliamente proteger las bases de datos.
  </simpara>
  <simpara>
   Para obtener o almacenar cualquier información, es necesario conectarse a la base de datos,
@@ -108,18 +107,63 @@
    desencripta al obtenerlos. Véanse las referencias para ejemplos adicionales del
    funcionamiento de la encriptación.
   </simpara>
-  <simpara>
-   En caso de datos que deban estar realmente ocultos, si no fuera necesaria su representación real,
-   (es decir, que no sean mostrados), quizás convenga utilizar algoritmos hash.
-   El ejemplo más típico del uso del hash es a la hora de almacenar el hash criptográfico de una
-   contraseña en una base de datos, en lugar de almacenar la contraseña en sí. Véase también
-   <function>crypt</function>.
-  </simpara>
-  <example>
-   <title>Utilización de campos de contraseña con hash</title>
-   <programlisting role="php">
+  
+  <sect2 xml:id="security.database.storage.hashing">
+   <title>'Hashing'</title>
+   <simpara>
+    En caso de datos que deban estar realmente ocultos, si no fuera necesaria su representación real,
+    (es decir, que no sean mostrados), quizás convenga utilizar algoritmos hash.
+    El ejemplo más típico del uso del hash es a la hora de almacenar el hash criptográfico de una
+    contraseña en una base de datos, en lugar de almacenar la contraseña en sí.
+   </simpara>
+   <simpara>
+    En PHP 5.5 o posterior las funciones de <link linkend="ref.password">password</link>
+    proporcionan una forma adecuada de utilizar hash con datos delicados y trabajar con estos hash.
+    En PHP 5.3.7+ se puede utilizar también la biblioteca <link xmlns:xlink="http://www.w3.org/1999/xlink"
+    xlink:href="&url.password.compat;">password_compat</link>.
+   </simpara>
+   <simpara>
+    <function>password_hash</function> se emplea para usar un hash con una cadena dada utilizando
+    el algoritmo más fuerte actualmente disponible, mientras que <function>password_verify</function>
+    comprueba si la contraseña dada coincide con el hash almacenado en la base de datos.
+   </simpara>
+   <example>
+    <title>Campo de contraseña con hash</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
+
+// Almacenar el hash de la contraseña
+$consulta  = sprintf("INSERT INTO users(name,pwd) VALUES('%s','%s');",
+                pg_escape_string($nombre_usuario),
+                password_hash($contraseña, PASSWORD_DEFAULT));
+$resultado = pg_query($conexión, $consulta);
+
+// Consultar si el usuario envió la contraseña correcta
+$consulta = sprintf("SELECT pwd FROM users WHERE name='%s';",
+                pg_escape_string($nombre_usuario));
+$fila = pg_fetch_assoc(pg_query($conexión, $consulta));
+
+if ($fila && password_verify($contraseña, $fila['pwd'])) {
+    echo 'Bienvenido, ' . htmlspecialchars($nombre_usuario) . '!';
+} else {
+    echo 'La autenticación ha fallado para ' . htmlspecialchars($nombre_usuario) . '.';
+}
+
+?>
+]]>
+    </programlisting>
+   </example>
+   <simpara>
+    En versiones anteriores de PHP esto se puede realizar con la función
+    <function>crypt</function>.
+   </simpara>
+   <example>
+    <title>Contraseña con hash utilizando <function>crypt</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
 
 // Almacenar el hash de la contraseña
 // $caracteres_aleatorios se obtuvo, p.ej., utilizando /dev/random
@@ -141,8 +185,9 @@ if ($fila && crypt($contraseña, $fila['pwd']) == $fila['pwd']) {
 
 ?>
 ]]>
-   </programlisting>
-  </example>
+    </programlisting>
+   </example>
+  </sect2>
  </sect1>
  
  <sect1 xml:id="security.database.sql-injection">
