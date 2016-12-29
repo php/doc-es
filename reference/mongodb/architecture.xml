@@ -6,11 +6,11 @@
 <book xml:id="mongodb.architecture" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <titleabbrev>Arquitectura del controlador y sus entresijos</titleabbrev>
  <title>Explicación de la arquitectura del controlador y de características especiales</title>
-
+ 
  <article xml:id="mongodb.overview">
   <titleabbrev>Arquitectura</titleabbrev>
   <title>Vista general de la arquitectura</title>
-
+  
   <para>
    Esta sección explica cómo todas las diferentes partes del controlador encajan
    entre sí, desde tiempos de ejecución de lenguaje diferentes, a través de extensiones y
@@ -46,7 +46,7 @@
    <link xlink:href="&url.mongodb.libbson;">libbson</link>). Estas extensiones
    expondrán una API pública idéntica para la funcionalidad más
    esencial y sensible al rendimiento:
-
+   
    <simplelist>
     <member>Administración de conexiones</member>
     <member>Codificación y decodificación de BSON</member>
@@ -55,7 +55,7 @@
     <member>Manejo de consultas y cursores</member>
    </simplelist>
   </para>
-
+  
   <para>
    Al separar los entresijos del contrlador y la API de alto nivel en extensiones y
    bibliotecas de PHP, respectivamente, esperamos reducir nuestra carga de manteminiento y 
@@ -94,7 +94,7 @@
    usuarios para el futuro próximo, invitamos a todo el mundo a utilizar el
    controlador de nueva generación y considerarlo para cualquier proyecto nuevo por venir.
    Los componentes esenciales se pueden encontrar a través de GitHub y JIRA:
-
+   
    <table>
     <title>Ubicaciones del código fuente del controlador y JIRA</title>
     <tgroup cols="3">
@@ -125,7 +125,7 @@
     </tgroup>
    </table>
   </para>
-
+  
   <para>
    El proyecto <link xlink:href="&url.mongodb.jira;">PHP</link> existente en JIRA
    permanecerá abierto para la notificación de errores del controlador antiguo de mongo, aunque
@@ -133,7 +133,137 @@
    nuestros controladores de la siguiente generación.
   </para>
  </article>
+ 
+ <article xml:id="mongodb.connection-handling">
+  <titleabbrev>Connections</titleabbrev>
+  <title>Connection handling and persistence</title>
   
+  &mongodb.note.forking;
+  
+  <section>
+   <title>Persistencia de conexión y topología (PHP y HHVM desde versión 1.2.0)</title>
+   
+   <para>
+    Todas las versiones del controlador desde la 1.2.0 hacen persistente el
+    objeto cliente <link xlink:href="&url.mongodb.libbson;">libmongoc</link> del
+    proceso trabajador de PHP, lo que le permite reutilizar conexiones a bases de datos,
+    estadod de autenticación, <emphasis>e</emphasis> información de topología entre
+    varias peticiiones.
+   </para>
+   
+   <para>
+    Cuando <methodname>MongoDB\Driver\Manager::__construct</methodname> se
+    invoca, se crea un hash con sus argumentos (esto es, cadena de URI y opciones
+    de array). El controlador intentará encontrar un objeto cliente
+    <link xlink:href="&url.mongodb.libbson;">libmongoc</link> persistente anterior par
+    tal hash. Si no se puede encontrar un cliente existente  para el hash, se creará
+    un nuevo cliente (y se hará persistente para un uso futuro).
+   </para>
+   
+   <para>
+    Cada cliente contiene su propia conexión a una base de datos y una vista de la topología
+    del servidor (p.ej., independiente, conjunto réplica, 'clúster' fragmentado). Haciendo persistente
+    el cliente entre peticiones de PHP, el controlador es capaz de reutilizar conexiones de bases
+    de datos establecidas y eliminar la necesidad de
+    <link xlink:href="&url.mongodb.sdam;">descubrir la topología del servidor</link>
+    en cada petición.
+   </para>
+   
+   <para>
+    Considere el siguiente ejemplo:
+   </para>
+   
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$managers = [
+    new MongoDB\Driver\Manager('mongodb://127.0.0.1'),
+    new MongoDB\Driver\Manager('mongodb://127.0.0.1'),
+    new MongoDB\Driver\Manager('mongodb://127.0.0.1:27017'),
+    new MongoDB\Driver\Manager('mongodb://rs1.example.com,rs2.example.com/', ['replicaSet' => 'myReplicaSet']),
+];
+
+foreach ($managers as $manager) {
+    $manager->executeCommand('test', new MongoDB\Driver\Command(['ping' => 1]));
+}
+
+?>
+]]>
+   </programlisting>
+   
+   <para>
+    Los primeros dos objetos Manager compartirán el mismo cliente
+    <link xlink:href="&url.mongodb.libbson;">libmongoc</link> ya que
+    los argumentos de sus constructores son idénticos. El tercer y cuarto objetos
+    utilizarán cada un su propio cliente. En total, se crearán tres clientes y el
+    trabajador de PHP que ejecute este script abrirá dos conexiones a
+    <literal>127.0.0.1</literal> y una conexión a
+    <literal>rs1.example.com</literal> y otra a <literal>rs2.example.com</literal>.
+    Si el controlador descubre miembros adicionales de un conjunto réplica después de emitir
+    comandos <literal>isMaster</literal>, abrirá conexiones adicionales también
+    para esos servidores.
+   </para>
+   
+   <para>
+    Si el mismo trabajador ejecuta el script de nuevo en una segunda petición, los tres
+    clientes serán reutilizados y no deberían hacerse nuevas conexiones. Dependiendo del
+    hace cuánto tiempo se sirvió la petición anteriior, el controlador podría necesitar emitir
+    comandos <literal>isMaster</literal> adicionales para actualizar su vista de las
+    topologías.
+   </para>
+  </section>
+  
+  <section>
+   <title>Persistencia de socket (PHP versiones anteriores a la 1.2.0)</title>
+   
+   <para>
+    Las versiones del controlador de PHP anteriores a la 1.2.0 utilizan la API de Flujos de PHP para
+    conexiones a bases de datos, empleando una API dentro de
+    <link xlink:href="&url.mongodb.libbson;">libmongoc</link> para designar
+    manejadores propios para la comunicación de sockets. Sin embargo, se crea un nuevo cliente
+    libmongoc para cada <classname>MongoDB\Driver\Manager</classname>. Como resultado,
+    el controlador hace persistir conexiones a bases de datos individuales, aunque no el estado
+    de autenticación o la información de la topología. Esto sifgnifica que el controlador necesita emitir
+    comandos al inicio de cada petición para autenticar y
+    <link xlink:href="&url.mongodb.sdam;">descubrir la topología del servidor</link>.
+   </para>
+   
+   <para>
+    Las conexiones a bases de datos son persistentes mediante un hash derivador del puerto,
+    host y cadena URI del servidor empleados para construit el
+    <classname>MongoDB\Driver\Manager</classname>. Las opciones de array del
+    constructor no estan incluidas en este hash.
+   </para>
+   
+   <note>
+    <simpara>
+     Las versiones del controlador &gt;= 1.1.8 y &lt; 1.2.0 no hacen persistentes sockets
+     para conexinoes SSL. Véase
+     <link xlink:href="&url.mongodb.jira.phpc;-720">PHPC-720</link> para
+     más información.
+    </simpara>
+   </note>
+   
+   <para>
+    A pesar de sus deficiencias con conexiones SSL persistentes e información de
+    topología, esta versioón del controlador admite todas las
+    <link linkend="context.ssl">opciones de contexto SSL</link> debido a que utiliza
+    la API de Flujos de PHP.
+   </para>
+  </section>
+  
+  <section>
+   <title>Sin persistencia (versiones de HHVM anteriores a la 1.2.0)</title>
+   
+   <para>
+    Las versiones del controlador HHVM anteriores a la 1.2.0 no hacen persistentes sockets,
+    estados de autenticación o información de topología, La comunicación de socket emplea
+    <link xlink:href="&url.mongodb.libbson;">libmongoc</link> completamente.
+   </para>
+  </section>
+ </article>
+ 
  <article xml:id="mongodb.persistence">
   <titleabbrev>Persistencia de datos</titleabbrev>
   <title>Serialización y deserialización de variables de PHP en MongoDB</title>
@@ -305,7 +435,7 @@
     <section>
      <title>Ejemplos</title>
      
-      <programlisting role="php">
+     <programlisting role="php">
 <![CDATA[
 <?php
 
@@ -624,7 +754,7 @@ UpperClass implements MongoDB\BSON\Persistable {
      sin modificaciones. <emphasis>También</emphasis> establece la propiedad
      <literal>$no_serializada</literal> a <literal>true</literal>:
      
-      <programlisting role="php">
+     <programlisting role="php">
 <![CDATA[
 <?php
 
@@ -637,11 +767,11 @@ function bsonUnserialize( array $map )
     $this->unserialized = true;
 }
 ]]>
-      </programlisting>
+     </programlisting>
     </para>
     
     <para>
-      <programlisting role="text">
+     <programlisting role="text">
 <![CDATA[
 /* typemap: [] (all defaults) */
 { "foo": "yes", "bar" : false }
@@ -672,7 +802,7 @@ function bsonUnserialize( array $map )
     </para>
     
     <para>
-      <programlisting role="text">
+     <programlisting role="text">
 <![CDATA[
 /* typemap: [ "root" => "MissingClass" ] */
 { "foo": "yes" }
@@ -706,21 +836,21 @@ function bsonUnserialize( array $map )
 { foo: "yes", "__pclass" : { "$type": "80", "$binary": "TheirClass" } }
   -> TheirClass { $foo => "yes", $__pclass => Binary(0x80, "TheirClass"), $unserialized => true }
 ]]>
-      </programlisting>
-     </para>
-
-     <para>
-      <programlisting role="text">
+     </programlisting>
+    </para>
+    
+    <para>
+     <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'YourClass' ] */
 { foo: "yes", "__pclass" : { "$type": "80", "$binary": "YourClass" } }
   -> YourClass { $foo => 'yes', $__pclass => Binary(0x80, 'YourClass'), $unserialized => true }
 ]]>
-      </programlisting>
-     </para>
-
-     <para>
-      <programlisting role="text">
+     </programlisting>
+    </para>
+    
+    <para>
+     <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'array', 'document' => 'array' ] */
 { "foo": "yes", "bar" : false }
@@ -741,17 +871,17 @@ function bsonUnserialize( array $map )
 { "foo": "yes", "__pclass" : { "$type": "80", "$binary": "OurClass" } }
   -> [ "foo" => "yes", "__pclass" => Binary(0x80, "OurClass") ]
 ]]>
-      </programlisting>
-     </para>
-
-     <para>
-      <programlisting role="text">
+     </programlisting>
+    </para>
+    
+    <para>
+     <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'object', 'document' => 'object' ] */
 { "foo": "yes", "__pclass": { "$type": "80", "$binary": "MyClass" } }
   -> stdClass { $foo => "yes", "__pclass" => Binary(0x80, "MyClass") }
 ]]>
-      </programlisting>
+     </programlisting>
     </para>
     
    </section>
