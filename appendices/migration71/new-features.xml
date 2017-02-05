@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ed0816f0b0e500f668eb8e89e28cb034afb52c81 Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 
 <sect1 xml:id="migration71.new-features" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -10,25 +10,47 @@
   <title>Tipos 'nullable'</title>
   
   <para>
-   Los tipos ahora pueden ser nullables, pudiendo pasar a, o devolver desde
-   una función el tipo especificado o <type>null</type>. Esto se hace utilizando
-   un signo de cierre de interrogación para prefijar un tipo y denotarlo así como nullable.
+   Las declaraciones de tipos para parámetros y valores de retorno ahora se pueden marcar como
+   «nullable» prefijando el nombre del tipo con un signo de cierre de interrogación. Esto significa
+   que, así como el tipo especificado, se puede pasar <type>null</type> como un 
+   argumento, o ser devuelto como un valor, respectivamente.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
+
+function testReturn(): ?string
+{
+    return 'elePHPant';
+}
+
+var_dump(testReturn());
+
+function testReturn(): ?string
+{
+    return null;
+}
+
+var_dump(testReturn());
+
 function test(?string $name)
 {
     var_dump($name);
 }
+
+test('elePHPant');
+test(null);
+test();
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-string(5) "tpunt"
+string(10) "elePHPant"
+NULL
+string(10) "elePHPant"
 NULL
 Uncaught Error: Too few arguments to function test(), 0 passed in...
 ]]>
@@ -40,11 +62,10 @@ Uncaught Error: Too few arguments to function test(), 0 passed in...
   <title>Funciones 'void'</title>
   
   <para>
-   Se ha introducido un tipo de retorno, <type>void</type>, para amalgamar los otros
-   tipos de retorno introducidos en PHP 7. Las funciones declaradas con 'void' como su
-   tipo de retorno pueden o bien omitir su sentencia 'return' totalmente, o utilizar una
-   senetencia 'return' vacía. 'null' no es un valor de retorno válido para una función
-   'void'.
+   Se ha introducido un tipo de retorno, <type>void</type>. Las funciones declaradas con
+   'void' como su tipo de retorno deben o bien omitir su sentencia 'return' totalmente,
+   o utilizar una senetencia 'return' vacía. <type>null</type> no es un valor de retorno
+   válido para una función 'void'.
   </para>
   
   <informalexample>
@@ -78,33 +99,45 @@ int(1)
   </informalexample>
   
   <para>
-   El uso del valor de retorno de una función 'void' simplemente se evalúa a null,
-   sin emitir advertencias. Las razón de esto es porque las advertencias
-   implicarían el uso de funciones genéricas de orden mayor.
+   El uso del valor de retorno de una función 'void' simplemente se evalúa a
+   <type>null</type>, sin emitir advertencias. Las razón de esto es porque
+   las advertencias implicarían el uso de funciones genéricas de orden mayor.
   </para>
  </sect2>
  
  <sect2 xml:id="migration71.new-features.symmetric-array-destructuring">
-  <title>Symmetric array destructuring</title>
+  <title>Desestructuración de arrays simétricos</title>
   
   <para>
    La sintaxis abreviada de array (<literal>[]</literal>) se puede usar ahora para
    desestructurar arrays para asignaciones (incluyendo dentro de
-   <literal>foreach</literal>). Con esta capacidad de This pattern matching ability enables for
-   values to be more easily extracted from arrays.
+   <literal>foreach</literal>) como alternativa a la sintaxis
+   <function>list</function> existente, la cual aún se admite.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-$data = [
-    ['id' => 1, 'name' => 'Tom'],
-    ['id' => 2, 'name' => 'Fred'],
+$datos = [
+    [1, 'Tom'],
+    [2, 'Fred'],
 ];
 
-while (['id' => $id, 'name' => $name] = $data) {
-    // logic here with $id and $name
+// Estilo de list()
+list($id1, $nombre1) = $datos[0];
+
+// Estilo de []
+[$id1, $list] = $datos[0];
+
+// Estilo de list()
+foreach ($datos as list($id, $nombre)) {
+    // aquí va la lógica con $id y $nombre
+}
+
+// Estilo de []
+foreach ($datos as [$id, $name]) {
+    // aquí va la lógica con $id y $nombre
 }
 ]]>
    </programlisting>
@@ -112,10 +145,10 @@ while (['id' => $id, 'name' => $name] = $data) {
  </sect2>
  
  <sect2 xml:id="migration71.new-features.class-constant-visibility">
-  <title>Class constant visibility</title>
+  <title>Visibilidad de las constantes de clase</title>
   
   <para>
-   Support for specifying the visibility of class constants has been added.
+   Se ha añadido soporte para especificar la visibilidad de constantes de clase.
   </para>
   
   <informalexample>
@@ -135,18 +168,17 @@ class ConstDemo
  </sect2>
  
  <sect2 xml:id="migration71.new-features.iterable-pseudo-type">
-  <title><type>iterable</type> pseudo-type</title>
+  <title>El seudotipo <type>iterable</type></title>
   
   <para>
-   A new pseudo-type (similar to <type>callable</type>) called
-   <type>iterable</type> has been introduced. It may be used in parameter
-   and return types, where it accepts either arrays or objects that implement
-   the <classname>Traversable</classname> interface. With respect to subtyping,
-   parameter types of child classes may narrow a parent's <type>iterable</type>
-   type to either <type>array</type> or an object (that implements
-   <classname>Traversable</classname>). With return types, child classes may
-   widen a parent's return type of <type>array</type> or an object to
-   <type>iterable</type>.
+   Se ha introducido un nuevo seudotipo (similar a <type>callable</type>)
+   llamado <type>iterable</type>. Se puede utilizar en parámetros
+   y tipos de retorno, donde acepta tanto arrays u objetos que implementen
+   la interfaz <classname>Traversable</classname>. Con respecto a la subtipificación,
+   los tipos de parámetros de clases hijas podrían ampliar una declaración de la madre de <type>array</type> 
+   o <classname>Traversable</classname> a <type>iterable</type>. Con los tipos de retorno,
+   las clases hijas podrían reducir un tipo de retorno de la madre de <type>iterable</type> a
+   <type>array</type> o un objeto que implemente <classname>Traversable</classname>.
   </para>
   
   <informalexample>
@@ -165,12 +197,12 @@ function iterator(iterable $iter)
  </sect2>
  
  <sect2 xml:id="migration71.new-features.mulit-catch-exception-handling">
-  <title>Multi catch exception handling</title>
+  <title>Manejo de multicaptura de excepciones</title>
   
   <para>
-   Multiple exceptions per catch block may now be specified using the pipe
-   character (<literal>|</literal>). This is useful for when different
-   exceptions from different class hierarchies are handled the same.
+   Ahora se pueden especificar múltiples excepciones por bloque catch con el carácter
+   tubería (<literal>|</literal>). Esto es útil para cuando diferentes
+   excepciones de diferentes jerarquías de clases son manejadas como la misma.
   </para>
   
   <informalexample>
@@ -178,9 +210,9 @@ function iterator(iterable $iter)
 <![CDATA[
 <?php
 try {
-    // some code
+    // algo de código
 } catch (FirstException | SecondException $e) {
-    // handle first and second exceptions
+    // manejar la primera y segunda excepción
 }
 ]]>
    </programlisting>
@@ -188,25 +220,37 @@ try {
  </sect2>
  
  <sect2 xml:id="migration71.new-features.support-for-keys-in-list">
-  <title>Support for keys in <function>list</function></title>
+  <title>Soporte para claves en <function>list</function></title>
   
   <para>
-   <function>list</function> now enables for keys to be specified inside of it.
-   This means that it can now destructure any type of arrays (likewise the 
-   shorthand array syntax).
+   Ahora se pueden especificar claves en <function>list</function>, o en su nueva sintaxis
+   abrebiada <literal>[]</literal>. Esto habilita la desestructuración de arrays con
+   claves no enteras o no secuenciales.
   </para>
   
   <informalexample>
    <programlisting role="php">
 <![CDATA[
 <?php
-$data = [
-    ['id' => 1, 'name' => 'Tom'],
-    ['id' => 2, 'name' => 'Fred'],
+$datos = [
+    ["id" => 1, "nombre" => 'Tom'],
+    ["id" => 2, "nombre" => 'Fred'],
 ];
 
-while (list('id' => $id, 'name' => $name) = $data) {
-    // logic here with $id and $name
+// Estilo de list()
+list("id" => $id1, "nombre" => $nombre1) = $datos[0];
+
+// Estilo de []
+["id" => $id1, "nombre" => $nombre1] = $datos[0];
+
+// Estilo de list()
+foreach ($datos as list("id" => $id, "nombre" => $nombre)) {
+    // aquí va la lógica con $id y $nombre
+}
+
+// Estilo de []
+foreach ($datos as ["id" => $id, "nombre" => $nombre]) {
+    // aquí va la lógica con $id y $nombre
 }
 ]]>
    </programlisting>
@@ -214,12 +258,15 @@ while (list('id' => $id, 'name' => $name) = $data) {
  </sect2>
  
  <sect2 xml:id="migration71.new-features.support-for-negative-string-offsets">
-  <title>Support for Negative String Offsets</title>
+  <title>Soporte para índices negativos de cadenas</title>
   
   <para>
-   Support for negative string offsets has been added to all string-based
-   built-in functions that accept offsets, as well as to the array
-   dereferencing operator (<literal>[]</literal>).
+   Se ha añadido soporte para índices negativos de cadenas a las
+   <link linkend="book.strings">funciones de manipulación de cadenas</link>
+   que acepten índices, así como a la
+   <link linkend="language.types.string.substr">indexación de cadenas</link> con
+   <literal>[]</literal> o <literal>{}</literal>. En tales casos, un índice
+   negativo se interpreta como un índice desde el final de la cadena.
   </para>
   
   <informalexample>
@@ -238,25 +285,47 @@ int(3)
 ]]>
    </screen>
   </informalexample>
+  
+  <para>
+   Los índices negativos de cadenas y arrays ahora tambíen se admiten en la sintaxis
+   del paso de una variable dentro de cadenas.
+  </para>
+  
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$string = 'bar';
+echo "The last character of '$string' is '$string[-1]'.\n";
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+The last character of 'bar' is 'r'.
+]]>
+   </screen>
+  </informalexample>
  </sect2>
  
  <sect2 xml:id="migration71.new-features.support-for-aead-in-ext-openssl">
-  <title>Support for AEAD in ext/openssl</title>
+  <title>Soporte para AEAD en ext/openssl</title>
   
   <para>
-   Support for AEAD (modes GCM and CCM) have been added by extending the
-   <function>openssl_encrypt</function> and
-   <function>openssl_decrypt</function> functions with additional parameters.
+   Se ha añadido soporte para AEAD (modos GCM y CCM) ampliando las funciones
+   <function>openssl_encrypt</function> y
+   <function>openssl_decrypt</function> con parámetros adicionales.
   </para>
  </sect2>
  
  <sect2 xml:id="migration71.new-features.convert-callables-to-closures">
-  <title>Convert callables to `Closure`s with <methodname>Closure::fromCallable</methodname></title>
+  <title>Conversión de 'callables' <classname>Closure</classname> con <methodname>Closure::fromCallable</methodname></title>
   
   <para>
-   A new static method has been introduced to the <classname>Closure</classname>
-   class to allow for <type>callable</type>s to be easily converted into
-   <classname>Closure</classname> objects.
+   Se ha introducido un nuevo método estático a la clase <classname>Closure</classname>
+   para poder convertir de forma sencilla <type>callable</type>s a
+   objetos <classname>Closure</classname>.
   </para>
   
   <informalexample>
@@ -290,12 +359,12 @@ string(10) "some value"
  </sect2>
  
  <sect2 xml:id="migration71.new-features.asynchronous-signal-handling">
-  <title>Asynchronous signal handling</title>
+  <title>Manejor de señales asíncronas</title>
   
   <para>
-   A new function called <function>pcntl_async_signals</function> has been
-   introduced to enable asynchronous signal handling without using ticks (which
-   introduce a lot of overhead).
+   Se ha introducido una nueva función llamada <function>pcntl_async_signals</function>
+   para habilitar el manejo de señales asíncronas sin el empleo de «ticks» (lo cual
+   introduce mucha sobrecarga).
   </para>
   
   <informalexample>
@@ -321,16 +390,16 @@ SIGHUP
  </sect2>
  
  <sect2 xml:id="migration71.new-features.http2-server-push-support-in-ext-curl">
-  <title>HTTP/2 server push support in ext/curl</title>
+  <title>Soporte para 'push' del servidor HTTP/2 en ext/curl</title>
   
   <para>
-   Support for server push has been added to the CURL extension (requires
-   version 7.46 and above). This can be leveraged through the
-   <function>curl_multi_setopt</function> function with the new
-   <constant>CURLMOPT_PUSHFUNCTION</constant> constant. The constants
-   <constant>CURL_PUST_OK</constant> and <constant>CURL_PUSH_DENY</constant> have also been
-   added so that the execution of the server push callback can either be
-   approved or denied.
+   Se ha añadido soporte para 'push' del servidor a la extensión CURL (requiere
+   la versión 7.46 y superior). Esto se puede aprovechar a través de la
+   función <function>curl_multi_setopt</function> con la nueva
+   constante <constant>CURLMOPT_PUSHFUNCTION</constant>. Las constantes
+   <constant>CURL_PUSH_OK</constant> y <constant>CURL_PUSH_DENY</constant> también han sido
+   añadidas, por lo que la ejecución de la retrollamada 'push' del servidor pueda ser
+   aprobada o denegada.
   </para>
  </sect2>
 </sect1>
