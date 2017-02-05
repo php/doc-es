@@ -1,47 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
 <!-- EN-Revision: bae6b5c7e070e7969cd99e5d72f9110878a4a538 Maintainer: chuso Status: ready -->
- <sect1 xml:id="language.oop5.late-static-bindings" xmlns="http://docbook.org/ns/docbook">
-  <title>Enlace estático en tiempo de ejecución</title>
-  <para>
-   Desde PHP 5.3.0, PHP incorpora una nueva funcionalidad llamada enlace estático en tiempo de
-   ejecución que permite hacer referencias a la clase en uso dentro de un contexto de herencia estática.
-  </para>
+<!-- Reviewed: no Maintainer: seros -->
+<sect1 xml:id="language.oop5.late-static-bindings" xmlns="http://docbook.org/ns/docbook">
+ <title>Enlaces estáticos en tiempo de ejecución</title>
+ <para>
+  Desde su versión 5.3.0, PHP incorpora una nueva funcionalidad llamada enlace estático en tiempo de
+  ejecución ("late static bindings" en inglés) que permite referirse referencias a la clase invocada en un contexto de herencia estática.
+ </para>
+ 
+ <para>
+  De forma más precisa, un enlace estático en tiempo de ejecución funciona almacenando el nombre de clase de
+  la última llamada que no tenga «propagación». En el caso de llamadas a métodos estáticos,
+  se trata de la clase nombrada explícitamente (normalmente la que precede al operador 
+  <link linkend="language.oop5.paamayim-nekudotayim"><literal>::</literal></link>);
+  en los casos de llamadas a métodos no estáticos, es clase del objeto. Una
+  «llamada con propagación» es una llamada estática que precedida por <literal>self::</literal>,
+  <literal>parent::</literal>, <literal>static::</literal>, o, siguiendo
+  la jerarquía de clases, <function>forward_static_call</function>.
+  <!-- technically, static:: may be non forwarding, but it's irrelevant -->
   
+  La función <function>get_called_class</function> puede utilizarse para obtener
+  una cadena con el nombre de la clase invocada, y <literal>static::</literal>
+  revela cuál es su alcance. 
+ </para>
+ 
+ <para>
+  A esta funcionalidad se le ha llamado «enlace estático en tiempo de ejecución» teniendo en cuenta un punto
+  de vista interno. «Enlace en tiempo de ejecución» viene del hecho de que <literal>static::</literal>
+  no será resuelto usando la clase donde el método está definido, sino que en su lugar se
+  calculará utilizando información en tiempo de ejecución.
+  
+  También se le llamó «enlace estático» debido a que se puede utilizar
+  (entre otras cosas) para llamadas a métodos estáticos.
+ </para>
+ 
+ <sect2 xml:id="language.oop5.late-static-bindings.self">
+  <title>Limitaciones de <literal>self::</literal></title>
   <para>
-   De forma más precisa, un enlace estático en tiempo de ejecución para funcionar almacena
-   el nombre de clase de la última llamada que no tenga "propagación". En el caso de las llamadas a métodos
-   estáticos, se trata de la clase a la que se llamó explícitamente (normalmente, la que precede al
-   operador <link linkend="language.oop5.paamayim-nekudotayim"><literal>::</literal></link>);
-   en los casos de llamadas a métodos que no son estáticos, se resolvería a la clase del objeto. Una
-   "llamada con propagación" es una llamada estática que está precedida por <literal>self::</literal>,
-   <literal>parent::</literal>, <literal>static::</literal>, o, si seguimos la jerarquía de clases,
-   <function>forward_static_call</function>.
-   <!-- technically, static:: may be non forwarding, but it's irrelevant -->
-   
-   La función <function>get_called_class</function> puede utilizarse para obtener
-   un string con el nombre de la clase que realiza la llamada, y <literal>static::</literal>
-   revela cuál es su alcance. 
+   Las referencias estáticas a la clase en uso, como <literal>self::</literal> o 
+   <literal>__CLASS__</literal>, se resuelven empleando la clase a la que
+   pertenece la función:
   </para>
-
-  <para>
-   Se le ha llamado "enlace estático en tiempo de ejecución" teniendo en cuenta un punto
-   de vista interno. "Enlace en tiempo de ejecución" viene del hecho de que <literal>static::
-   </literal> ya resuelve a la clase en la que se definió el método, sino que en su lugar se
-   resolverá utilizando información en tiempo de ejecución debido a que se puede utilizar 
-   (entre otras cosas) para las llamadas de métodos estáticos, se le llamó también "enlace estático".
-  </para>
-
-  <sect2 xml:id="language.oop5.late-static-bindings.self">
-   <title>Limitaciones de <literal>self::</literal></title>
-   <para>
-    Las referencias estáticas que hay dentro de la clase en uso, como
-    <literal>self::</literal> o <literal>__CLASS__</literal>, se resuelven
-    empleando el nombre de la clase a la que pertenece la función:
-   </para>
-   <example>
-    <title>Uso de <literal>self::</literal></title>
-    <programlisting role="php">
+  <example>
+   <title>Uso de <literal>self::</literal></title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 class A {
@@ -62,32 +65,32 @@ class B extends A {
 B::test();
 ?>
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 A
 ]]>
-    </screen>
-   </example>
-
-  </sect2>
-
-  <sect2 xml:id="language.oop5.late-static-bindings.usage">
-   <title>Uso de Enlace Estático en Tiempo de ejecución</title>
-
-   <para>
-    Los enlaces estáticos en tiempo de ejecución tratan de resolver estas limitaciones
-    empleando una palabra clave que haga referencia a la clase que realizó
-    la llamada en tiempo de ejecución. Es decir, una palabra clave que en 
-    el ejemplo anterior permita hacer referencia desde <literal>test()</literal>
-    a <literal>B</literal>. Se decidió no crear una nueva palabra clave, por
-    lo que en su lugar se ha utilizado la palabra reservada <literal>static</literal>.
-   </para>
-
-   <example>
-    <title>Uso básico de <literal>static::</literal></title>
-    <programlisting role="php">
+   </screen>
+  </example>
+  
+ </sect2>
+ 
+ <sect2 xml:id="language.oop5.late-static-bindings.usage">
+  <title>Uso de enlaces estático en tiempo de ejecución</title>
+  
+  <para>
+   Los enlaces estáticos en tiempo de ejecución tratan de resolver esta limitación empleando una
+   palabra reservada que se refiera a la clase invocada inicialmente en tiempo de ejecución;
+   básicamente, una palabra reservada que permita referirse a
+   a <literal>B</literal> desde <literal>test()</literal>, según el ejemplo
+   anterior. Se decidió no crear una nueva palabra reservada, si no utilizar
+   en su lugar <literal>static</literal>, que ya era reservada.
+  </para>
+  
+  <example>
+   <title>Uso básico de <literal>static::</literal></title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 class A {
@@ -108,26 +111,26 @@ class B extends A {
 B::test();
 ?>
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 B
 ]]>
-    </screen>
-   </example>
-   <note>
-    <para>
-     En contextos no estáticos, la clase que realiza la llamada
-     será la clase del objeto instanciado. Dado que <literal>$this-></literal>
-     tratará de invocar métodos privados en su mismo ámbito, el uso de
-     <literal>static::</literal> puede provocar diferents resultados. Otra diferencia es
-     que <literal>static::</literal> sólo puede hacer referencia a propiedades estáticas.
-    </para>
-   </note>
-   <example>
-    <title>Uso de <literal>static::</literal> en un contexto no estático</title>
-    <programlisting role="php">
+   </screen>
+  </example>
+  <note>
+   <para>
+    En contextos no estáticos, la clase invocada será la clase de la instancia del
+    objeto. Dado que <literal>$this-></literal> trata de invocar métodos
+    privados desde su mismo ámbito, el uso de <literal>static::</literal> puede dar
+    diferentes resultados. Otra diferencia es que <literal>static::</literal>
+    sólo puede referirse a propiedades estáticas.
+   </para>
+  </note>
+  <example>
+   <title>Uso de <literal>static::</literal> en un contexto no estático</title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 class A {
@@ -157,9 +160,9 @@ $c = new C();
 $c->test();   //falla
 ?>
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
 ¡Éxito!
 ¡Éxito!
@@ -168,18 +171,18 @@ $c->test();   //falla
 
 Fatal error:  Call to private method C::foo() from context 'A' in /tmp/test.php on line 9
 ]]>
-    </screen>
-   </example>
-   <note>
-    <para>
-     En una llamada que se resuelva como estática, la resolución de enlaces estáticos
-     en tiempo de ejecución se dentendrá sin propagarse. Por otra parte, las
-     llamadas estáticas que utilicen palabras clave como <literal>parent::</literal> o
-     <literal>self::</literal> sí propagarán la información.
-    </para>
-    <example>
-     <title>Llamadas que propagan y que no propagan</title>
-     <programlisting role="php">
+   </screen>
+  </example>
+  <note>
+   <para>
+    En una llamada que se resuelva como estática, la resolución de enlaces estáticos
+    en tiempo de ejecución se detendrá sin propagarse. Por otra parte, las
+    llamadas estáticas que utilicen palabras reservadas como <literal>parent::</literal> o
+    <literal>self::</literal> sí propagarán la información de llamada.
+   </para>
+   <example>
+    <title>Llamadas que propagan y que no propagan la información de llamada</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 class A {
@@ -212,19 +215,19 @@ class C extends B {
 C::test();
 ?>
 ]]>
-     </programlisting>
-     &example.outputs;
-     <screen>
+    </programlisting>
+    &example.outputs;
+    <screen>
 <![CDATA[
 A
 C
 C
 ]]>
-     </screen>
-    </example>
-   </note>
-  </sect2>
- </sect1>
+    </screen>
+   </example>
+  </note>
+ </sect2>
+</sect1>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
@@ -245,3 +248,4 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
+
