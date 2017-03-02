@@ -7,6 +7,7 @@
  <para>
   FPM usa la sintaxis de &php.ini; para su fichero de configuración - <filename>php-fpm.conf</filename>, y agrupa ficheros de configuración.
  </para>
+ 
  <sect2> 
   <title>Lista de directivas globales de <filename>php-fpm.conf</filename></title>
   <variablelist>
@@ -28,8 +29,9 @@
     </term>
     <listitem>
      <para>
-      Ruta al fichero de registro de errores. Default value:
+      Ruta al fichero de registro de errores. Valor por defecto:
       <literal>#INSTALL_PREFIX#/log/php-fpm.log</literal>.
+      Si se establece a "syslog", los registros son enviados a syslogd en lugar de escribir en un archivo local.
      </para> 
     </listitem>
    </varlistentry>
@@ -43,6 +45,32 @@
       Nivel de registro de errores. Posibles valores: alert, error, warning, notice,
       debug. Valor por defecto: notice.
      </para> 
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="syslog-facility">
+    <term>
+     <parameter>syslog.facility</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Usado para especificar qué tipo de programa está recibiendo los mensajes de  registro.
+      Valor por defecto: daemon.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="syslog-ident">
+    <term>
+     <parameter>syslog.ident</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Anteponer a cada mensaje.
+      Si hay varias instancias FPM ejecutándose en el mismo servidor,
+      puede cambiar el valor por defecto que debe adaptarse a sus necesidades.
+      Valor por defecto: php-fpm.
+     </para>
     </listitem>
    </varlistentry>
    <varlistentry xml:id="emergency-restart-threshold">
@@ -65,7 +93,7 @@
     </term>
     <listitem>
      <para>
-      Intervalo de tiempo usado por emergency_restart_interval para determinar cuando 
+      Intervalo de tiempo usado por <literal>emergency_restart_interval</literal> para determinar cuando 
       un reinicio agraciado será realizado. Esto puede ser útil trabajar sobre 
       corrupciones accidentales in en acelerador de memoria compartida.
       Unidades disponibles:: s(segundos), m(inutos), h(oras), o d(ías).
@@ -86,6 +114,28 @@
      </para> 
     </listitem>
    </varlistentry>
+   <varlistentry xml:id="process-max">
+    <term>
+     <parameter>process.max</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      El número máximo de procesos FPM creará. Esto ha sido diseñado para controlar el número global de procesos cuando se utiliza PM dinámico dentro de muchos pools. Utilícelo con precaución. Valor por defecto: 0.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="process-priority">
+    <term>
+     <parameter>process.priority</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      Especifique la prioridad nice(2) que se aplicará al proceso maestro (sólo si se establece). El valor puede variar entre -19 (prioridad más alta) hasta 20 (prioridad más baja). Valor por defecto: no establecido.
+     </para>
+    </listitem>
+   </varlistentry>
    <varlistentry xml:id="daemonize">
     <term>
      <parameter>daemonize</parameter>
@@ -95,10 +145,62 @@
      <para>
       Envía a FPM al background. Establezca a 'no' para mantener FPM en foreground para 
       depuración. Valor por defecto: yes.
-     </para> 
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="rlimit-files-master">
+    <term>
+     <parameter>rlimit_files</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      Establece el descriptor rlimit de archivos abiertos para el proceso maestro.
+      Valor predeterminado: Establece el descriptor rlimit de archivos abiertos para el proceso maestro.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="rlimit-core-master">
+    <term>
+     <parameter>rlimit_core</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      Establece el tamaño máximo del núcleo rlimit para el proceso maestro.
+      Valor por defecto: 0.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="events-mechanism">
+    <term>
+     <parameter>events.mechanism</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Especifica el mecanismo de eventos que FPM utilizará.
+      Los siguientes están disponibles: select, pool, epoll, kqueue (*BSD), port (Solaris).
+      Valor por defecto: no establecido (auto-detección).
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="systemd-interval">
+    <term>
+     <parameter>systemd_interval</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      Cuando FPM es compilado con integración con systemd, especifique el intervalo,
+      en segundos, entre notificaciones de reporte de salud a systemd.
+      Coloque a 0 para deshabilitar.
+      Valor por defecto: 10.
+     </para>
     </listitem>
    </varlistentry>
   </variablelist>
+  
  </sect2>
  
  <sect2> 
@@ -128,8 +230,7 @@
     </term>
     <listitem>
      <para>
-      Establece listen(2) backlog. Un valor de '-1' significa ilimitado. Valor por defecto:
-      -1.
+      Establece listen(2) backlog. Un valor de '-1' significa ilimitado. Valor por defecto: -1.
      </para> 
     </listitem>
    </varlistentry>
@@ -142,9 +243,7 @@
      <para>
       Lista de direcciones ipv4 de clientes FastCGI que tienen permiso para conectarse. 
       El equivalente a la variable de entorno FCGI_WEB_SERVER_ADDRS en el 
-      PHP FastCGI (5.2.2+) original. Tiene sentido solamente con un socket tcp escuchando.
-      Cada dirección debe ser separada por coma. Si este valor es dejado en blanco,
-      las conexiones serán aceptas desde cualquier dirección ip. Valor por defecto: any.
+      PHP FastCGI (5.2.2+) original. Tiene sentido solamente con un socket tcp escuchando. Cada dirección debe ser separada por coma. Si este valor es dejado en blanco, las conexiones serán aceptas desde cualquier dirección ip. Valor por defecto: any.
      </para> 
     </listitem>
    </varlistentry>
@@ -155,8 +254,7 @@
     </term>
     <listitem>
      <para>
-      Establece permisos para sockets unix, si uno es usado. En Linux, los permisos de lectura/escritura 
-      deben ser puestos a fin de permitir conexiones desde un servidor web. 
+      Establece permisos para sockets unix, si uno es usado. En Linux, los permisos de lectura/escritura deben ser puestos a fin de permitir conexiones desde un servidor web. 
       Muchos sistemas derivados de BSD permiten conexiones sin considerar los permisos.
       Valor por defecto: usuario y grupo son establecidos según el usuario ejecutor, permisos puestos a 0660.
      </para> 
@@ -181,7 +279,32 @@
     <listitem>
      <para>
       Ver <literal>listen.owner</literal>.
-     </para> 
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="listen-acl-users">
+    <term>
+     <parameter>listen.acl_users</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Cuando las lsitas de control de acceso POSIX están soportadas, usted puede configurarlas usando esta opción.
+      Cuando se establece, <literal>listen.owner</literal> y <literal>listen.group</literal>
+      son ignoradas. El valor es una lista de nombres de usuario separado por comas. Desde PHP 5.6.5.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="listen-acl-groups">
+    <term>
+     <parameter>listen.acl_groups</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Ver <literal>listen.acl_users</literal>.
+      El valor es una lista de nombres de grupo separado por comas. Desde PHP 5.6.5.
+     </para>
     </listitem>
    </varlistentry>
    <varlistentry xml:id="user">
@@ -228,9 +351,7 @@
       cuando el servicio está iniciado.
      </para>
      <para>
-      <literal>dynamic</literal> - el número de hilos de proceso será basado dinámicamente basado en las siguientes  
-      directivas: <literal>pm.max_children</literal>, <literal>pm.start_servers</literal>, 
-      <literal>pm.min_spare_servers</literal>, <literal>pm.max_spare_servers</literal>.
+      <literal>dynamic</literal> - el número de hilos de proceso será basado dinámicamente basado en las siguientes directivas: <literal>pm.max_children</literal>, <literal>pm.start_servers</literal>, <literal>pm.min_spare_servers</literal>, <literal>pm.max_spare_servers</literal>.
      </para>
     </listitem>
    </varlistentry>
@@ -294,6 +415,20 @@
      </para> 
     </listitem>
    </varlistentry>
+   <varlistentry xml:id="pm.process-idle-timeout">
+    <term>
+     <parameter>pm.process_idle_timeout</parameter>
+     <type>mixed</type>
+    </term>
+    <listitem>
+     <para>
+      El número de segundos después de los cuales se matará un proceso inactivo. 
+      Usado sólo cuando <literal>pm</literal> está establecido como <literal>ondemand</literal>.
+      Unidades disponibles: s(segundos)(predeterminado), m(inutos), h(horas), o d(ías).
+      Valor por defecto: 10s.
+     </para>
+    </listitem>
+   </varlistentry>
    <varlistentry xml:id="pm.max-requests">
     <term>
      <parameter>pm.max_requests</parameter>
@@ -345,6 +480,28 @@
       La respuesta es formateada como text/plain con un código de respuesta 200.
       Valor por defecto: pong.
      </para> 
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="worker-process-priority">
+    <term>
+     <parameter>process.priority</parameter>
+     <type>int</type>
+    </term>
+    <listitem>
+     <para>
+      Especifique la prioridad nice(2) que se aplicará al proceso maestro (sólo si se establece). El valor puede variar entre -19 (prioridad más alta) hasta 20 (prioridad más baja). Valor por defecto: no establecido.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="prefix">
+    <term>
+     <parameter>prefix</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Establece un prefijo para la ruta de evaluación
+     </para>
     </listitem>
    </varlistentry>
    <varlistentry xml:id="request-terminate-timeout">
@@ -442,10 +599,60 @@
     </term>
     <listitem>
      <para>
-      Redirige los worker stdout y stderr en el fichero de registro principal. Sí no es establecido,
-      stdout y stderr serán redirigidos a /dev/null de acuerdo a las especificaciones FastCGI.
+      Redirige los worker stdout y stderr en el fichero de registro principal. Sí no es establecido, stdout y stderr serán redirigidos a /dev/null de acuerdo a las especificaciones FastCGI.
       Valor por defecto: no.
      </para> 
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="clear-env">
+    <term>
+     <parameter>clear_env</parameter>
+     <type>boolean</type>
+    </term>
+    <listitem>
+     <para>
+      Entorno limpio in workers FPM.
+      Evita que variables de entorno arbitrarias lleguen a los procesos FPM mediante la limpieza del entorno en los workers antes de que se añadan las variables env a las pools correspondientes a esta configuración. Desde PHP 5.4.27, 5.5.11, y 5.6.0.
+      Valor por defecto: Yes.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="security-limit-extensions">
+    <term>
+     <parameter>security.limit_extensions</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Limita las extensiones del script principal que FPM procesará.
+      Esto puede evitar errores de configuración del lado del servidor.
+      Usted debería limitar su FPM a procesar unicamente extensiones .php para evitar que usuarios malintencionados usen diferentes extensiones para ejecutar código PHP.      
+      Valor por defecto: .php .phar
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="access-log">
+    <term>
+     <parameter>access.log</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Archivo de registro de acceso.
+      Valor por defecto: no establecido
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry xml:id="access-format">
+    <term>
+     <parameter>access.format</parameter>
+     <type>string</type>
+    </term>
+    <listitem>
+     <para>
+      Formato del archivo de registro de acceso.
+      Valor por defecto: "%R - %u %t \"%m %r\" %s"
+     </para>
     </listitem>
    </varlistentry>
   </variablelist>
