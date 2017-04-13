@@ -1325,7 +1325,7 @@ $func(); // imprime "bar" a partrid de PHP 7.0.0; antes, emitía un error fatal
   <title>Funciones anónimas</title>
   
   <simpara>
-   Las funciones anónimas, también conocidas como <literal>clausuras</literal> (closures), permiten
+   Las funciones anónimas, también conocidas como <literal>cierres</literal> (closures), permiten
    la creación de funciones que no tienen un nombre especificado. Son más útiles como
    valor de los parámetros de <link linkend="language.types.callback">llamadas de retorno</link>,
    pero tienen muchos otros usos.
@@ -1350,10 +1350,10 @@ echo preg_replace_callback('~-([a-z])~', function ($coincidencia) {
   </example>
   
   <simpara>
-   Las clausuras también se pueden usar como valores de variables; PHP automáticamente
+   Los cierres también se pueden usar como valores de variables; PHP automáticamente
    convierte tales expresiones en instancias de la
-   clase interna <classname>Closure</classname>. Se asume que una clausura a una
-   variable usa la misma sintaxis que cualquier otra asignación, incluido el
+   clase interna <classname>Closure</classname>. La asignación de un cierre a una
+   variable emplea la misma sintaxis que cualquier otra asignación, incluido el
    punto y coma final:
   </simpara>
   
@@ -1375,8 +1375,10 @@ $saludo('PHP');
   </example>
   
   <simpara>
-   Las clausuras también pueden heredar variables del ámbito padre. Cualquier
-   variable de estas debe ser pasado al constructor del lenguaje <literal>use</literal>.
+   Los cierres también pueden heredar variables del ámbito padre. Cualquier
+   variable debe ser pasada al constructor de lenguaje <literal>use</literal>.
+   Desde PHP 7.1, estas variables no deben incluir &link.superglobals;,
+   <varname>$this</varname>, o variables con el mismo nombre que un parámetro.
   </simpara>
   
   <example>
@@ -1417,7 +1419,7 @@ $ejemplo();
 $mensaje = 'mundo';
 $ejemplo();
 
-// Las clausuras también aceptan argumentos normales
+// Los cierres también aceptan argumentos normales
 $ejemplo = function ($arg) use ($mensaje) {
     var_dump($arg . ' ' . $mensaje);
 };
@@ -1443,20 +1445,20 @@ string(10) "hola mundo"
    Heredar variables del ámbito padre <emphasis>no</emphasis>
    es lo mismo que usar variables globales.
    Las variables globales existen en el ámbito global, lo que implica que no
-   importa qué función se esté ejecutando. El ámbito padre de una clausura es la
-   función en la que la clausura fue declarado (no necesariamente la función
+   importa qué función se esté ejecutando. El ámbito padre de un cierre es la
+   función en la que dicho cierre fue declarado (no necesariamente la función
    desde la que se llamó). Vea el siguiente ejemplo:
   </simpara>
   
   <example>
-   <title>Clausuras y ámbito</title>
+   <title>Cierres y ámbito</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 // Un carro de compras básico que contiene una lista de productos añadidos
 // y la cantidad de cada producto. Incluye un método que
-// calcula el precio total de los artículos del carro usando una
-// clausura como llamada de retorno.
+// calcula el precio total de los artículos del carro usando un
+// cierre como llamada de retorno.
 class Carro
 {
     const PRECIO_MANTEQUILLA = 1.00;
@@ -1569,14 +1571,18 @@ NULL]]>
 <![CDATA[
 <?php
 
-new class {
+class Foo
+{
     function __construct()
     {
-        (static function() {
+        $func = static function() {
             var_dump($this);
-        })();
+        };
+        $func();
     }
 };
+new Foo();
+
 ?>
 ]]>
      </programlisting>
@@ -1597,16 +1603,19 @@ NULL
 <![CDATA[
 <?php
 
-(static function() {
-    // function body
-})->call(new StdClass);
+$func = static function() {
+    // cuerpo de la función
+};
+$func = $func->bindTo(new StdClass);
+$func();
+
 ?>
 ]]>
      </programlisting>
      &example.outputs;
      <screen>
 <![CDATA[
-Warning: Cannot bind an instance to a static closure in /in/sLLS9 on line 5
+Warning: Cannot bind an instance to a static closure in %s on line %d
 ]]>
      </screen>
     </example>
@@ -1625,6 +1634,14 @@ Warning: Cannot bind an instance to a static closure in /in/sLLS9 on line 5
        </row>
       </thead>
       <tbody>
+       <row>
+        <entry>7.1.0</entry>
+        <entry>
+         Las funciones anónimas no pueden tener un cierre sobre &link.superglobals;,
+         <varname>$this</varname>, o cualquier variable con el mismo nombre que un
+         parámetro.
+        </entry>
+       </row>
        <row>
         <entry>5.4.0</entry>
         <entry>
@@ -1650,7 +1667,7 @@ Warning: Cannot bind an instance to a static closure in /in/sLLS9 on line 5
     <simpara>
      Es posible usar <function>func_num_args</function>,
      <function>func_get_arg</function>, y <function>func_get_args</function>
-     desde dentro de una clausura.
+     desde dentro de un cierre.
     </simpara>
    </note>
   </sect2>
