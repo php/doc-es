@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 6e6d82f0970ebfa4f3322e96efb6f9d0cc114205 Maintainer: aeoris Status: ready -->
-<!-- Reviewed: no Maintainer: aeoris -->
+<!-- EN-Revision: 64642ea9c35700b3d3a584b0020d4e15a79a0a89 Maintainer: aeoris Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.unserialize" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>unserialize</refname>
@@ -21,6 +21,22 @@
    <function>unserialize</function> toma una única variable serializada y
    la vuelve a convertir a un valor de PHP.
   </simpara>
+  <warning>
+   <para>
+    No pases valores no confiables proporcionados por el usuario a <function>unserialize</function> con independencia
+    del valor dado en <parameter>options</parameter> a <literal>allowed_classes</literal>.
+    La deserialización puede resultar en que el código sea cargado y ejecutado debido a la instanciación
+    y autocarga de objetos, y un usuario malicioso podría ser capaz de explotar
+    este comportamiento. Utiliza un formato de intercambio de datos estándar y seguro como JSON (mediante
+    <function>json_decode</function> y <function>json_encode</function>) si
+    necesitas pasar datos serializados al usuario.
+   </para>
+   <para>
+    Si necesitas deserializar datos almacenados externamente, considera utilizar
+    <function>hash_hmac</function> para verificarlos. Asegúrate de que los datos
+    no son modificados por nadie excepto por ti.
+   </para>
+  </warning>
  </refsect1>
  
  <refsect1 role="parameters">
@@ -47,8 +63,8 @@
          llamada si una clase no definida debería ser instanciada durante el
          proceso de revertir la seriación(para prevenir que se reciba un <type>object</type> incompleto "__PHP_Incomplete_Class".)
          Use su &php.ini;, <function>ini_set</function> o &htaccess; 
-         para definir '<literal>unserialize_callback_func</literal>'. Cada vez que una clase no definida
-         deba ser instanciada, esta función será llamada. Para deshabilitar esta característica simplemente 
+         para definir <link linkend="ini.unserialize-callback-func">unserialize_callback_func</link>.
+         Cada vez que una clase no definida deba ser instanciada, esta función será llamada. Para deshabilitar esta característica simplemente 
          asigne un valor vacío a este parámetro.
         </para>
        </note>
@@ -127,6 +143,16 @@
      </thead>
      <tbody>
       <row>
+       <entry>7.1.0</entry>
+       <entry>
+        El elemento <literal>allowed_classes</literal> de
+        <parameter>options</parameter>) es ahora estrictamente tipado, es decir: si cualquier cosa
+        distinta de un <type>array</type> o un <type>boolean</type> es proporcionada,
+        <function>unserialize</function> retornará &false; y lanzará un
+        <constant>E_WARNING</constant>.
+       </entry>
+      </row>
+      <row>
        <entry>7.0.0</entry>
        <entry>
         Se añadió el parámetro <parameter>options</parameter>.
@@ -187,7 +213,6 @@ if (!odbc_execute($sent, &$datos_sql) || !odbc_fetch_into($sent, &$tmp)) {
 <?php
 $objeto_seriado='O:1:"a":1:{s:5:"valor";s:3:"100";}';
 
-// la directiva unserialize_callback_func está disponible a partir de PHP 4.2.0
 ini_set('unserialize_callback_func', 'mi_llamada_de_retorno'); // defina su callback_function
 
 function mi_llamada_de_retorno($nombre_clase)
@@ -213,25 +238,18 @@ function mi_llamada_de_retorno($nombre_clase)
     <constant>E_NOTICE</constant> generado.
    </para>
   </warning>
-  <warning>
-   <para>
-    No proporcione datos no fiables provenientes del usuario a <function>unserialize</function>.
-    Revertir la serialización puede resultar en que haya código que se cargue y ejecute debido a la instanciación
-    y autocarga de objetos, y un usuario malicioso podría ser capaz de explotar
-    esto. Se debe utilizar un formato de intercambio de datos seguro y estándar, como JSON (a través de
-    <function>json_decode</function> y <function>json_encode</function>) si
-    es necesario pasar datos serializados al usuario.
-   </para>
-  </warning>
  </refsect1>
  
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>json_encode</function></member>
+    <member><function>json_decode</function></member>
+    <member><function>hash_hmac</function></member>
     <member><function>serialize</function></member>
     <member><link linkend="language.oop5.autoload">Autocarga de clases</link></member>
-    <member><link linkend="unserialize-callback-func">unserialize_callback_func</link></member>
+    <member><link linkend="ini.unserialize-callback-func">unserialize_callback_func</link></member>
     <member><link linkend="object.wakeup">__wakeup()</link></member>
    </simplelist>
   </para>
