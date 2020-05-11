@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b6d169424ff189bb563ef4c3f35f8adff3f42c5 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 8f828979a0e43b2eec86c2023a958a76f02d98bc Maintainer: andresdzphp Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="splfileobject.fgetcsv" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>SplFileObject::fgetcsv</refname>
-  <refpurpose>Obtiene una línea de un fichero y la analiza como campos CSV</refpurpose>
+  <refpurpose>Obtiene la línea del archivo y analiza como campos CSV</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -18,10 +18,17 @@
    <methodparam choice="opt"><type>string</type><parameter>escape</parameter><initializer>"\\"</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene una línea del fichero la cual está en formato <acronym>CSV</acronym> y devuelve un array que contiene los campos leídos.
+   Obtiene una línea del archivo que está en formato <acronym>CSV</acronym> y devuelve un array que contiene los campos leídos.
   </para>
+  <note>
+   <para>
+    Esta función tiene en cuenta los ajustes de localización. Si
+    <literal>LC_CTYPE</literal> es p.e. <literal>en_US.UTF-8</literal>, los archivos
+    en codificaciones de un byte pueden ser leídos erróneamente por esta función.
+   </para>
+  </note>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,7 +37,7 @@
      <term><parameter>delimiter</parameter></term>
      <listitem>
       <para>
-       El delimitador de campos (sólo un carácter). Por omisión, es una coma o el valor establecido por <methodname>SplFileObject::setCsvControl</methodname>.
+       El delimitador de campo (un solo carácter). El valor por defecto es una coma o el valor establecido usando <methodname>SplFileObject::setCsvControl</methodname>.
       </para>
      </listitem>
     </varlistentry>
@@ -46,28 +53,66 @@
      <term><parameter>escape</parameter></term>
      <listitem>
       <para>
-       El carácter de escape (sólo un carácter). Por omisión, es una barra invertida (<literal>\</literal>) o el valor establecido por <methodname>SplFileObject::setCsvControl</methodname>.
+       El carácter de escape (a lo sumo un carácter). Por defecto es una barra invertida (<literal>\</literal>) o el valor establecido usando <methodname>SplFileObject::setCsvControl</methodname>.
+       Un string vacío (<literal>""</literal>) desactiva el mecanismo de escape propio.
       </para>
+      <note>
+       <simpara>
+        Normalmente un carácter <parameter>enclosure</parameter> se escapa dentro
+        de un campo duplicándolo; sin embargo, el carácter <parameter>escape</parameter>
+        puede ser usado como una alternativa. Así que para los valores de parámetros
+        por defecto <literal>""</literal> y <literal>\"</literal> tienen el mismo
+        significado. Aparte de permitir espacar el carácter
+        <parameter>enclosure</parameter> el carácter
+        <parameter>escape</parameter> no tiene un significado especial; ni siquiera está
+        destinado a escapar de sí mismo.
+       </simpara>
+      </note>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array indexado que contiene los campos leídos, o &false; en caso de error.
+   Devuelve un array indexado que contiene los campos que se leen, o &false; en caso de error.
   </para>
   <note>
    <para>
-    Una línea en blanco en un fichero CSV será devuelta como un array constituido
-    por un campo &null; a menos que se establezca <constant>SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE</constant>, 
-    en cuyo caso se omiten las líneas vacías.
+    Una línea en blanco en un archivo CSV será devuelto como un array que
+    comprende un único &null; a menos que se utilice <constant>SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE</constant>, 
+    en cuyo caso se saltan las líneas vacías.
    </para>
   </note>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.4.0</entry>
+       <entry>
+        El parámetro <parameter>escape</parameter> ahora también acepta un 
+        string vacío para desactivar el mecanismo de escape propio.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -76,9 +121,9 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$fichero = new SplFileObject("datos.csv");
-while (!$fichero->eof()) {
-    var_dump($fichero->fgetcsv());
+$file = new SplFileObject("data.csv");
+while (!$file->eof()) {
+    var_dump($file->fgetcsv());
 }
 ?>
 ]]>
@@ -91,39 +136,39 @@ while (!$fichero->eof()) {
     <programlisting role="php">
 <![CDATA[
 <?php
-$fichero = new SplFileObject("animales.csv");
-$fichero->setFlags(SplFileObject::READ_CSV);
-foreach ($fichero as $fila) {
-    list($animal, $clase, $patas) = $fila;
-    printf("Un %s es un %s con %d patas\n", $animal, $clase, $patas);
+$file = new SplFileObject("animals.csv");
+$file->setFlags(SplFileObject::READ_CSV);
+foreach ($file as $row) {
+    list($animal, $class, $legs) = $row;
+    printf("A %s is a %s with %d legs\n", $animal, $class, $legs);
 }
 ?>
 ]]>
     </programlisting>
-    <para>Contenido de animales.csv</para>
+    <para>El contenido de animals.csv</para>
     <programlisting role="txt">
 <![CDATA[
-cocodrilo,reptil,4
-delfín,mamífero,0
-pato,ave,2
-koala,mamífero,4
-salmón,pez,0
+crocodile,reptile,4
+dolphin,mammal,0
+duck,bird,2
+koala,mammal,4
+salmon,fish,0
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Un cocodrilo es un reptil con 4 patas
-Un delfín es un mamífero con 0 patas
-Un pato es un ave con 2 patas
-un koala es un mamífero con 4 patas
-Un salmón es un pez con 0 patas
+A crocodile is a reptile with 4 legs
+A dolphin is a mammal with 0 legs
+A duck is a bird with 2 legs
+A koala is a mammal with 4 legs
+A salmon is a fish with 0 legs
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -135,7 +180,7 @@ Un salmón es un pez con 0 patas
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file
