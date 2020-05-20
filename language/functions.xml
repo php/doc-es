@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b7db81dd3f683e16ae6b461df91c54d85313a3df Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: 9268006bcf989f31baeaa9035e4ef7cfc7690c28 Maintainer: seros Status: ready -->
+<!-- Reviewed: no Maintainer: andresdzphp -->
 <chapter xml:id="language.functions" xmlns="http://docbook.org/ns/docbook">
  <title>Funciones</title>
  
@@ -38,7 +38,7 @@ function foo($arg_1, $arg_2, /* ..., */ $arg_n)
    nombre de función válido comienza con una letra o guión bajo, seguido de
    cualquier número de letras, números o guiones bajos. Como expresión regular
    se expresaría así:
-   <literal>[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*</literal>.
+   <code>^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$</code>.
   </para>
   &tip.userlandnaming;
   <simpara>
@@ -452,6 +452,20 @@ Hacer un tazón de yogur acidófilo de frambuensa.
         </entry>
         <entry>PHP 7.0.0</entry>
        </row>
+        <row>
+         <entry><literal>iterable</literal></entry>
+         <entry>
+          El parámetro debe ser un <type>array</type> o una &instanceof; <classname>Traversable</classname>.
+         </entry>
+         <entry>PHP 7.1.0</entry>
+        </row>
+        <row>
+         <entry><literal>object</literal></entry>
+         <entry>
+          El parámetro debe ser un <type>object</type>.
+         </entry>
+         <entry>PHP 7.2.0</entry>
+        </row>
       </tbody>
      </tgroup>
     </informaltable>
@@ -558,9 +572,39 @@ Stack trace:
      </screen>
     </example>
     
-    <example>
-     <title>Declaración de tipo null</title>
-     <programlisting role="php">
+     <example>
+      <title>Tipos de parámetros pasados por referencia</title>
+      <simpara>
+       Los tipos declarados de parámetros de referencia se comprueban en la entrada de la función, pero
+       no cuando la función vuelve, así que después de que la función haya vuelto, el
+       el tipo de argumento puede haber cambiado.
+      </simpara>
+      <programlisting role="php">
+<![CDATA[
+<?php
+function array_baz(array &$param)
+{
+    $param = 1;
+}
+$var = [];
+array_baz($var);
+var_dump($var);
+array_baz($var);
+?>
+]]>
+      </programlisting>
+      &example.outputs.similar;
+      <screen>
+<![CDATA[
+int(1)
+
+Fatal error: Uncaught TypeError: Argument 1 passed to array_baz() must be of the type array, int given, called in %s on line %d
+]]>
+      </screen>
+     </example>
+     <example>
+      <title>Declaración de tipo nulo</title>
+      <programlisting role="php">
 <![CDATA[
 <?php
 class C {}
@@ -573,17 +617,17 @@ f(new C);
 f(null);
 ?>
 ]]>
-     </programlisting>
-     &example.outputs;
-     <screen>
+      </programlisting>
+      &example.outputs;
+      <screen>
 <![CDATA[
 object(C)#1 (0) {
 }
 NULL
 ]]>
-     </screen>
-    </example>
-   </sect3>
+      </screen>
+     </example>
+    </sect3>
    
    <sect3 xml:id="functions.arguments.type-declaration.strict">
     <title>Tipificación estricta</title>
@@ -1002,6 +1046,12 @@ $nuevaref =& devolver_referencia();
     tipo correcto, o de lo contrario se lanzará una excepción <classname>TypeError</classname>.
    </para>
    
+    <para>
+    A partir de PHP 7.1.0, los valores de retorno pueden ser marcados como anulables anteponiendo el prefijo
+    nombre de tipo con un signo de interrogación (<literal>?</literal>). Esto significa que
+    la función devuelve el tipo especificado o &null;.
+   </para>
+   
    <note>
     <para>
      Al sobrescribir un método padre, el método hijo debe hacer coincidir cualquier
@@ -1088,6 +1138,23 @@ object(C)#1 (0) {
 ]]>
      </screen>
     </example>
+    
+    <example>
+      <title>Declaración de tipo de retorno anulable (a partir de PHP 7.1.0)</title>
+      <programlisting role="php">
+<![CDATA[
+<?php
+function get_item(): ?string {
+    if (isset($_GET['item'])) {
+        return $_GET['item'];
+    } else {
+        return null;
+    }
+}
+?>
+]]>
+      </programlisting>
+     </example>
    </sect3>
   </sect2>
  </sect1>
@@ -1278,7 +1345,7 @@ $func(); // imprime "bar" a partrid de PHP 7.0.0; antes, emitía un error fatal
    <function>imagecreatetruecolor</function>, PHP debe ser compilado con
    soporte para <productname>GD</productname>. O para usar
    <function>mysql_connect</function>, PHP debe ser compilado con
-   soporte para <link linkend="ref.mysql">MySQL</link>. Hay muchas funciones de núcleo
+   soporte para <link linkend="book.mysqli">MySQLi</link>. Hay muchas funciones de núcleo
    que está incluidas en cada versión de PHP, tales como las
    funciones de <link linkend="ref.strings">string</link> y de
    <link linkend="ref.var">variable</link>. Una llamada
@@ -1660,20 +1727,184 @@ Warning: Cannot bind an instance to a static closure in %s on line %d
    </para>
   </sect2>
   
-  <sect2 role="notes">
-   &reftitle.notes;
-   <note>
-    <simpara>
-     Es posible usar <function>func_num_args</function>,
-     <function>func_get_arg</function>, y <function>func_get_args</function>
-     desde dentro de un cierre.
-    </simpara>
-   </note>
-  </sect2>
-  
- </sect1>
+<sect2 role="notes">
+    &reftitle.notes;
+    <note>
+     <simpara>
+      Es posible utilizar <function>func_num_args</function>,
+      <function>func_get_arg</function>, y <function>func_get_args</function>
+      desde dentro de un cierre.
+     </simpara>
+    </note>
+   </sect2>
+
+  </sect1>
+  <sect1 xml:id="functions.arrow">
+   <title>Funciones de flecha</title>
+
+   <simpara>
+    Las funciones de flecha fueron introducidas en PHP 7.4 como una sintaxis más concisa para 
+    <link linkend="functions.anonymous">las funciones anónimas</link>.
+   </simpara>
+   <simpara>
+    Tanto las funciones anónimas como las funciones de flecha se implementan utilizando la 
+    clase <link linkend="class.closure"><classname>Closure</classname></link>.
+   </simpara>
+
+   <simpara>
+    Las funciones de las flechas tienen la forma básica 
+    <code>fn (argument_list) =&gt; expr</code>.
+   </simpara>
+
+   <simpara>
+    Las funciones de las flechas soportan las mismas características que 
+    <link linkend="functions.anonymous">las funciones anónimas</link>, 
+    excepto que el uso de variables del ámbito padre siempre es automático.
+   </simpara>
+
+   <simpara>
+    Cuando una variable utilizada en la expresión se define en el ámbito padre 
+    será implícitamente capturada por valor.
+    En el siguiente ejemplo, las funciones <varname>$fn1</varname> y 
+    <varname>$fn2</varname> se comportan de la misma manera.
+   </simpara>
+
+   <para>
+    <example>
+     <title>Las funciones de flecha capturan las variables por valor automáticamente</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+$y = 1;
  
-</chapter>
+$fn1 = fn($x) => $x + $y;
+// equivalent to using $y by value:
+$fn2 = function ($x) use ($y) {
+    return $x + $y;
+};
+
+var_export($fn1(3));
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+4
+]]>
+      </screen>
+    </example>
+   </para>
+   <simpara>
+    Esto también funciona si las funciones de la flecha están anidadas: 
+   </simpara>
+   <para>
+    <example>
+     <title>Las funciones de flecha capturan variables por valor automáticamente, incluso cuando están anidadas</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+$z = 1;
+$fn = fn($x) => fn($y) => $x * $y + $z;
+// Outputs 51
+var_export($fn(5)(10));
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <simpara>
+    De manera similar a las funciones anónimas, 
+    la sintaxis de la función de la flecha permite firmas de funciones arbitrarias,
+    incluyendo los tipos de parámetros y de retorno, valores por defecto, variadades,
+    así como por referencia al pasar y al regresar.
+    Todos los siguientes son ejemplos válidos de las funciones de las flechas: 
+   </simpara>
+   <para>
+    <example>
+     <title>Ejemplos de funciones de flecha</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+fn(array $x) => $x;
+static fn(): int => $x;
+fn($x = 42) => $x;
+fn(&$x) => $x;
+fn&($x) => $x;
+fn($x, ...$rest) => $rest;
+
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <simpara>
+    Las funciones de flecha utilizan la unión variable por valor.
+    Esto es aproximadamente equivalente a realizar un <code>use($x)</code> para cada 
+    variable  <varname>$x</varname> usada dentro de la función de la flecha.
+    Una unión por valores significa que no es posible modificar ningún valor 
+    desde el ámbito exterior.
+    <link linkend="functions.anonymous">Funciones anónimas</link> 
+    se pueden utilizar en su lugar para las asignaciones por referencia.
+   </simpara>
+   <para>
+    <example>
+     <title>Los valores del alcance exterior no pueden ser modificados por las funciones de flecha</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+$x = 1;
+$fn = fn() => $x++; // No tiene ningún efecto
+$fn();
+var_export($x);  // Salida 1
+
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   
+   <sect2 role="changelog">
+    &reftitle.changelog;
+    <para>
+     <informaltable>
+      <tgroup cols="2">
+       <thead>
+        <row>
+         <entry>&Version;</entry>
+         <entry>&Description;</entry>
+        </row>
+       </thead>
+       <tbody>
+        <row>
+         <entry>7.4.0</entry>
+         <entry>
+          Las funciones de flecha se hicieron disponibles.
+         </entry>
+        </row>
+       </tbody>
+      </tgroup>
+     </informaltable>
+    </para>
+   </sect2>
+
+   <sect2 role="notes">
+    &reftitle.notes;
+    <note>
+     <simpara>
+      Es posible utilizar <function>func_num_args</function>,
+      <function>func_get_arg</function>, y <function>func_get_args</function>
+      desde dentro de una función de flecha.
+     </simpara>
+    </note>
+   </sect2>
+  </sect1>
+
+ </chapter>
 
 <!-- Keep this comment at the end of the file
 Local variables:

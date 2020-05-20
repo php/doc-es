@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: f616f360e1988ed68d5120e1c43e1e473a5b9e13 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: 74a8bfdfceb206ee8fe5751d841a205049a9fe35 Maintainer: seros Status: ready -->
+<!-- Reviewed: no Maintainer: andresdzphp -->
 <sect1 xml:id="language.types.array">
  <title>Arrays</title>
  
@@ -81,15 +81,15 @@ $array = [
     de cualquier tipo.
    </para>
    
-   <para>
+   <para xml:id="language.types.array.key-casts">
     Además, se darán los siguientes amoldamientos de <replaceable>clave</replaceable>:
     <itemizedlist>
      <listitem>
-      <simpara>
-       Un <type>string</type>s que contenga un <type>integer</type> válido será amoldado 
-       al tipo <type>integer</type>. P.ej. la clave <literal>"8"</literal> en realidad será
-       almacenada como <literal>8</literal>. Por otro lado <literal>"08"</literal> no será
-       convertido, ya que no es un número integer decimal válido.
+     <simpara>
+       <type>String</type>s que contiene un decimal válido <type>integer</type>, a menos que el número esté precedido por un signo <literal>+</literal>, será amoldado al
+       tipo <type>integer</type>. Por ejemplo, la llave <literal>"8"</literal> será en realidad
+       almacenado como <literal>8</literal>. Por otro lado <literal>"08"</literal> no será
+       moldeado, ya que no es un entero decimal válido.
       </simpara>
      </listitem>
      <listitem>
@@ -354,6 +354,12 @@ list(, $secondElement) = getArray();
      y el resultado será &null;.
     </para>
    </note>
+    <note>
+    <para>
+     Array que dereferencia un valor escalar que no es un <type>string</type>
+     silenciosamente arroja &null;, es decir, sin emitir un mensaje de error.
+    </para>
+   </note>
   </sect3>
   
   <sect3 xml:id="language.types.array.syntax.modifying">
@@ -383,9 +389,15 @@ list(, $secondElement) = getArray();
     algún valor (p.ej. un <type>string</type> de una variable de petición), este
     estará en su lugar y <literal>[]</literal> puede significar realmente
     el <link linkend="language.types.string.substr">operador de acceso a
-    cadenas</link>. Siempre es mejor inicializar variables mediante una asignación
+    strings</link>. Siempre es mejor inicializar variables mediante una asignación
     directa.
    </para>
+    <note>
+    <simpara>
+     A partir de PHP 7.1.0, la aplicación del operador de índice vacío en un string lanza un fatal
+     error. Antes, el string se convertía silenciosamente en un array.
+    </simpara>
+   </note>
    
    <para>
     Para cambiar un valor determinado
@@ -555,15 +567,21 @@ echo $foo[bar];
    
    <para>
     Esto está mal, pero funciona. La razón es que este código tiene una constante
-    indefinida (bar) en lugar de un <type>string</type> ('bar' - observe las
-    comillas). Puede que en el futuro PHP defina constantes que, desafortunadamente para
-    tales tipo de código, tengan el mismo nombre. Funciona porque PHP automáticamente convierte un
+    indefinida (<literal>bar</literal>) en lugar de un <type>string</type> (<literal>'bar'</literal> - observe las
+    comillas). Funciona porque PHP automáticamente convierte un
     <emphasis>string puro</emphasis> (un <type>string</type> sin comillas que no
     corresponde con ningún símbolo conocido) en un <type>string</type> que contiene el
     <type>string</type> puro. Por ejemplo, si no se ha definido una constante llamada
     <constant>bar</constant>, entonces PHP reemplazará su valor por el
     <type>string</type> <literal>'bar'</literal> y usará éste último.
    </para>
+   <warning>
+    <simpara>
+     La alternativa de tratar una constante indefinida como string vacío está obsoleto a partir
+     de PHP 7.2.0, y emite un error de nivel <constant>E_WARNING</constant>.
+     Anteriormente, un error de nivel <constant>E_NOTICE</constant> era emitido.
+    </simpara>
+   </warning>
    
    <note>
     <simpara>
@@ -762,7 +780,7 @@ $error_descriptions[8] = "Esta es una noticia informal";
   <title>Conversión a array</title>
   
   <para>
-   Para cualquiera de los tipos: <type>integer</type>, <type>float</type>,
+   Para cualquiera de los tipos <type>integer</type>, <type>float</type>,
    <type>string</type>, <type>boolean</type> y <type>resource</type>,
    convertir un valor a un <type>array</type> resulta en un array con un
    solo elemento, con índice 0, y el valor del escalar que fue convertido.
@@ -933,8 +951,8 @@ foreach ($colors as $color) {
   </example>
   
   <para>
-   Modificar los valores del <type>array</type> directamente es posible a partir de
-   PHP 5, pasándolos por referencia. Las versiones anteriores necesitan una solución alternativa:
+   Modificar los valores del <type>array</type> directamente es posible 
+   pasándolos por referencia.
   </para>
   
   <example xml:id="language.types.array.examples.changeloop">
@@ -942,17 +960,11 @@ foreach ($colors as $color) {
    <programlisting role="php">
 <![CDATA[
 <?php
-// PHP 5
 foreach ($colors as &$color) {
     $color = strtoupper($color);
 }
 unset($color); /* se asegura de que escrituras subsiguientes a $color
 no modifiquen el último elemento del arrays */
-
-// Alternativa para versiones anteriores
-foreach ($colors as $key => $color) {
-    $colors[$key] = strtoupper($color);
-}
 
 print_r($colors);
 ?>
