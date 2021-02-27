@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: lboshell Status: ready -->
+<!-- EN-Revision: 3e08a8aae657492bdcdc7c550099ddf072042fa9 Maintainer: lboshell Status: ready -->
+<!-- Reviewed: yes Maintainer: lboshell -->
+
  <chapter xml:id="faq.misc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
   <title>Preguntas Varias</title>
   <titleabbrev>Preguntas Varias</titleabbrev>
@@ -77,131 +79,6 @@
       única diferencia es que recibe un archivo php_manual_lang.tar. Se
       conoce que el formato tar es tratado por la mayoría de archivadores en
       Windows, como por ejemplo <link xlink:href="&url.winzip;">WinZip</link>.
-     </para>
-    </answer>
-   </qandaentry>
-
-   <qandaentry xml:id="faq.misc.arguments.references">
-    <question>
-     <para>
-      ¿Qué significa un signo &amp; al lado de un argumento en la
-      declaración de una función, como p.ej.  <function>asort</function>?
-     </para>
-    </question>
-    <answer>
-     <para>
-      Quiere decir que el argumento es <link
-      linkend="language.references.pass">pasado por referencia</link> y es
-      probable que la función modifique el argumento de acuerdo con la
-      documentación. Sólo puede pasar variables de este modo y no necesita
-      pasarlas con el signo &amp; en la llamada de la función (tal cosa es
-      considerada <link
-      linkend="ini.allow-call-time-pass-reference">obsoleta</link>).
-     </para>
-    </answer>
-   </qandaentry>
-
-   <qandaentry xml:id="faq.misc.registerglobals">
-    <question>
-     <para>
-      ¿Cómo manejo el parámetro <literal>register_globals</literal>?
-     </para>
-    </question>
-    <answer>
-     <para>
-      Para información sobre las implicaciones de seguridad de
-      <literal>register_globals</literal>, lea el capítulo de seguridad
-      sobre el <link linkend="security.globals">Uso de
-      register_globals</link>.
-     </para>
-     <para>
-      Es recomendable usar <link
-      linkend="language.variables.superglobals">superglobales</link>, en
-      lugar de depender en la activación de
-      <literal>register_globals</literal>.
-     </para>
-     <para>
-      Si se encuentra en un servidor compartido con
-      <literal>register_globals</literal> desactivado y necesita usar
-      aplicaciones antiguas, que requieren que esta opción esté activada, o
-      se encuentra en algún servidor de hospedaje en donde esta
-      característica está habilitada, pero quisiera eliminar los riesgos de
-      seguridad, puede que necesite emular el valor opuesto en PHP. Siempre
-      es buena idea preguntar primero si es posible cambiar la opción de
-      alguna forma en la configuración de PHP, pero si no es posible,
-      entonces puede usar estos segmentos de compatibilidad.
-     </para>
-     <para>
-      <example>
-       <title>Emulación de Register Globals</title>
-        <para>
-         Esto emula el comportamiento de register_globals On. Si ha alterado
-         la directiva <link
-         linkend="ini.variables-order">variables_order</link>, considere
-         modificar <varname>$superglobales</varname> acordemente.
-        </para>
-       <programlisting role="php">
-<![CDATA[
-<?php
-// Emular register_globals on
-if (!ini_get('register_globals')) {
-    $superglobales = array($_SERVER, $_ENV,
-        $_FILES, $_COOKIE, $_POST, $_GET);
-    if (isset($_SESSION)) {
-        array_unshift($superglobales, $_SESSION);
-    }
-    foreach ($superglobales as $superglobal) {
-        extract($superglobal, EXTR_SKIP);
-    }
-}
-?>
-]]>
-       </programlisting>
-       <para>
-        Esto emula register_globals Off. Tenga en cuenta que este código
-        debe ser llamado al comienzo absoluto de su script, o después de
-        <function>session_start</function>, si usa esa función para comenzar
-        su sesión.
-       </para>
-       <programlisting role="php">
-<![CDATA[
-<?php
-// Emular register_globals off
-function retirar_registros_GLOBALS()
-{
-    if (!ini_get('register_globals')) {
-        return;
-    }
-
-    // Puede que desee cambiar esto por un error más amigable
-    if (isset($_REQUEST['GLOBALS']) || isset($_FILES['GLOBALS'])) {
-        die('Se ha detectado un intento de sobreescritura en GLOBALS');
-    }
-
-    // Variables que no deben ser eliminadas
-    $noEliminar = array('GLOBALS',  '_GET',
-                        '_POST',    '_COOKIE',
-                        '_REQUEST', '_SERVER',
-                        '_ENV',     '_FILES');
-
-    $entrada = array_merge($_GET,    $_POST,
-                           $_COOKIE, $_SERVER,
-                           $_ENV,    $_FILES,
-                           isset($_SESSION) && is_array($_SESSION) ? $_SESSION : array());
-
-    foreach ($entrada as $c => $v) {
-        if (!in_array($c, $noEliminar) && isset($GLOBALS[$c])) {
-            unset($GLOBALS[$c]);
-        }
-    }
-}
-
-retirar_registros_GLOBALS();
-
-?>
-]]>
-       </programlisting>
-      </example>
      </para>
     </answer>
    </qandaentry>
