@@ -1,96 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 752eae681267673967d466e305c9c8d424dbf20e Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 8e732e84a1425cf0ab3a5b0da8fe113c7a6da85e Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: julionc -->
+
 <sect1 xml:id="install.windows.manual" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Instalación manual de PHP en Windows</title>
- <sect2>
-  <title>Elección del servidor web</title>
-  <para>
-   <itemizedlist spacing="compact">
-    <listitem>
+  <title>Instalación manual de PHP en Windows</title>
+  <sect2>
+    <title>Elección del servidor web</title>
+    <sect3>
+     <title>IIS</title>
      <para>
       IIS está integrado en Windows.
-      
       En Windows Server, use Server Manager para añadir el rol de IIS. Asegúrese de incluir CGI Role Feature.
-      
-      En Windows Desktop, use Añadir/Eliminar Programas del Panel de Control para añadir IIS. Véase: <link xlink:href="https://msdn.microsoft.com/en-us/library/ms181052%28v=vs.80%29.aspx?f=255&amp;MSPPError=-2147217396">https://msdn.microsoft.com/en-us/library/ms181052%28v=vs.80%29.aspx?f=255&amp;MSPPError=-2147217396</link>
-      
-      Para aplicaciones web de escritorio y desarrollo web también se puede usar IIS/Express o PHP Desktop
-      
+      En Windows Desktop, use Añadir/Eliminar Programas del Panel de Control para añadir IIS.
+      La documentación de Microsoft tiene <link xlink:href="https://docs.microsoft.com/en-us/previous-versions/ms181052(v=vs.80)">instrucciones detallas</link>.
+      Para aplicaciones web de escritorio y desarrollo web, también se puede usar IIS/Express o PHP Desktop.
       <example>
-       <title>Linea de órdenes para configurar IIS y PHP</title>
-       <programlisting>
+        <title>Linea de órdenes para configurar IIS y PHP</title>
+        <programlisting>
 <![CDATA[
-    
-    @echo off
 
-    REM Descargar el fichero .ZIP o la compilación de PHP desde http://windows.php.net/downloads/
-    REM
-    REM Ruta al directorio donde se ha descomprimido el fichero .ZIP de PHP
+@echo off
+
+REM Descargar el fichero .ZIP o la compilación de PHP desde http://windows.php.net/downloads/
+REM
+REM Ruta al directorio donde se ha descomprimido el fichero .ZIP de PHP
 set phpdir=c:\php
-set phppath=php-5.6.19-nts-Win32-VC11-x86
+
 
 REM Limpiar los manejadores actuales de PHP
 %windir%\system32\inetsrv\appcmd clear config /section:system.webServer/fastCGI
+REM El siguiente comando generará un mensaje de error si PHP no está instalado. Esto puede ser ignorado.
 %windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /-[name='PHP_via_FastCGI']
 
 REM Instalar el manejador de PHP
-%windir%\system32\inetsrv\appcmd set config /section:system.webServer/fastCGI /+[fullPath='%phpdir%\%phppath%\php-cgi.exe']
-%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='%phpdir%\%phppath%\php-cgi.exe',resourceType='Unspecified']
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/fastCGI /+[fullPath='%phppath%\php-cgi.exe']
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='%phppath%\php-cgi.exe',resourceType='Unspecified']
 %windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /accessPolicy:Read,Script
 
 REM Configurar las variables de FastCGI
-%windir%\system32\inetsrv\appcmd set config -section:system.webServer/fastCgi /[fullPath='%phpdir%\%phppath%\php-cgi.exe'].instanceMaxRequests:10000
-%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phpdir%\%phppath%\php-cgi.exe'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']"
-%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phpdir%\%phppath%\php-cgi.exe'].environmentVariables.[name='PHPRC',value='%phpdir%\%phppath%\php.ini']"
-
+%windir%\system32\inetsrv\appcmd set config -section:system.webServer/fastCgi /[fullPath='%phppath%\php-cgi.exe'].instanceMaxRequests:10000
+%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phppath%\php-cgi.exe'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']"
+%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phppath%\php-cgi.exe'].environmentVariables.[name='PHPRC',value='%phppath%\php.ini']"
 ]]>
-       </programlisting>
-      </example>
-      
-      <link linkend="install.windows.legacy.iis7">Cómo configurar manualmente IIS</link>
-     </para>
-       </listitem>
-       <listitem>
-        <para>
-         
-         Existen varias compilaciones de Apache2 para Windows.
-         
-         Aquí se da soporte a ApacheLounge, aunque otras opciones pueden ser XAMPP, WampServer y BitNami, las cuales proporcionan herramientas de instalación automática.
-         
-         Se puede utilizar mod_php o mod_fastcgi para cargar PHP en Apache.
-         
-         Si se emplea mod_php, se DEBE utlizar como una compilación TS de Apache construida con la misma versión de Visual C y la misma CPU (x86 o x64).
-         
-         <link linkend="install.windows.legacy.apache2">Cómo configurar manualmente Apache2</link>
-        </para>
-       </listitem>
-     </itemizedlist>
+     </programlisting>
+    </example>
    </para>
+  </sect3>
+
+  <sect3>
+   <title>Apache</title>
+   <para>
+      Existen varias compilaciones de Apache2 para Windows.
+      Se recomiendan las compilaciones Apache de ApacheLounge, aunque otras opciones pueden ser XAMPP, WampServer y BitNami, las cuales proporcionan herramientas de instalación automática.
+      Se puede utilizar mod_php o mod_fastcgi para cargar PHP en Apache.
+      Si se emplea mod_php, se DEBE utilizar una compilación TS de Apache construida con la misma versión de Visual C y la misma CPU (x86 o x64).
+   </para>
+  </sect3>
  </sect2>
- 
- <sect2>
+
+<sect2>
   <title>Elegir una compilación</title>
   <para>
-   Descargue las versiones de producción de PHP desde <link xlink:href="http://windows.php.net/download/">http://windows.php.net/download/</link>.
-   
-   Ya se han realizado muchas pruebas y optimizaciones en las versiones imagen y de aseguramiento de la calidad, aunque cualquier es bienvenido para ayudar a realizar más.
-   
-   Existen cuantro tipos de compilación de PHP:
-   <itemizedlist spacing="compact">
-    <listitem>
-     <para>Thread-Safe(TS) - usada para servidores web monoproceso, como Apache con mod_php</para>
-    </listitem>
-    <listitem>
-     <para>Non-Thread-Safe(NTS) - usada para IIS y otros servidores web FastCGI (Apache con mod_fastcgi) y la recomendad para scripts de línea de órdenes</para>
-    </listitem>
-    <listitem>
-     <para>x86 - producción usada por PHP 5.5 o 5.6 o 7.0.</para>
-    </listitem>
-    <listitem>
-     <para>x64 - producción usada por PHP 7.0+ a menos que sea una versión de Windows de 32 bits solamente. 5.5 y 5.6 x64 son experimentales.</para>
-    </listitem>
+    Descargue las versiones de producción de PHP desde <link xlink:href="http://windows.php.net/download/">http://windows.php.net/download/</link>.
+    Todas las compilaciones están optimizadas (<abbrev>PGO</abbrev>), y las versiones de QA y GA se prueban exhaustivamente.
+  </para>
+  <para>
+    Existen 4 tipos de compilación de PHP:
+    <itemizedlist spacing="compact">
+      <listitem>
+        <para>Thread-Safe(TS) - usada para servidores web monoproceso, como Apache con mod_php</para>
+      </listitem>
+      <listitem>
+        <para>Non-Thread-Safe(NTS) - usada para IIS y otros servidores web FastCGI (Apache con mod_fastcgi) y la recomendad para scripts de línea de comandos</para>
+      </listitem>
+      <listitem>
+        <para>x86 - para sistemas de 32-bits.</para>
+      </listitem>
+      <listitem>
+        <para>x64 - para sistemas de 64 bits.</para>
+      </listitem>
    </itemizedlist>
   </para>
  </sect2>
