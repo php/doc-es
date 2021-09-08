@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 10eeb063bbad9f6ef0d08fdcc71f1d80511b01c0 Maintainer: carlos Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.xml-set-object">
+<!-- EN-Revision: 3db49ee0a331a657dd97b539a749f53d3965b593 Maintainer: carlos Status: ready -->
+<refentry xml:id="function.xml-set-object" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>xml_set_object</refname>
   <refpurpose>Usa un intérprete XML Parser dentro de un objeto</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>xml_set_object</methodname>
-   <methodparam><type>resource</type><parameter>parser</parameter></methodparam>
-   <methodparam><type>object</type><parameter role="reference">object</parameter></methodparam>
+   <methodparam><type>XMLParser</type><parameter>parser</parameter></methodparam>
+   <methodparam><type>object</type><parameter>object</parameter></methodparam>
   </methodsynopsis>
   <para>
 Esta función permite usar <parameter>parser</parameter> dentro de <parameter>object</parameter>. Todas las funciones de retorno se podrian establecer con <function>xml_set_element_handler</function>, etc y asumirlas como métodos de <parameter>object</parameter>.
@@ -50,6 +50,23 @@ Esta función permite usar <parameter>parser</parameter> dentro de <parameter>ob
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+      &xml.changelog.parser-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -58,16 +75,23 @@ Esta función permite usar <parameter>parser</parameter> dentro de <parameter>ob
     <programlisting role="php">
 <![CDATA[
 <?php
-class xml  {
-    var $parser;
+class XMLParser
+{
+    private $parser;
 
-    function xml()
+    function __construct()
     {
         $this->parser = xml_parser_create();
 
         xml_set_object($this->parser, $this);
         xml_set_element_handler($this->parser, "tag_open", "tag_close");
         xml_set_character_data_handler($this->parser, "cdata");
+    }
+
+    function __destruct()
+    {
+        xml_parser_free($this->parser);
+        unset($this->parser);
     }
 
     function parse($data)
@@ -77,26 +101,37 @@ class xml  {
 
     function tag_open($parser, $tag, $attributes)
     {
-        var_dump($parser, $tag, $attributes);
+        var_dump($tag, $attributes);
     }
 
     function cdata($parser, $cdata)
     {
-        var_dump($parser, $cdata);
+        var_dump($cdata);
     }
 
     function tag_close($parser, $tag)
     {
-        var_dump($parser, $tag);
+        var_dump($tag);
     }
+}
 
-} // end of class xml
-
-$xml_parser = new xml();
+$xml_parser = new XMLParser();
 $xml_parser->parse("<A ID='hallo'>PHP</A>");
 ?>
 ]]>
     </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(1) "A"
+array(1) {
+  ["ID"]=>
+  string(5) "hallo"
+}
+string(3) "PHP"
+string(1) "A"
+]]>
+    </screen>
    </example>
   </para>
  </refsect1>
