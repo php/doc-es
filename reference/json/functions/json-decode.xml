@@ -13,9 +13,9 @@
   <methodsynopsis>
    <type>mixed</type><methodname>json_decode</methodname>
    <methodparam><type>string</type><parameter>json</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>assoc</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>bool</type><type>null</type></type><parameter>associative</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>depth</parameter><initializer>512</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>options</parameter><initializer>0</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
    Convierte un string codificado en JSON a una variable de PHP.
@@ -39,11 +39,14 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>assoc</parameter></term>
+     <term><parameter>associative</parameter></term>
      <listitem>
       <para>
-       Cuando es &true;, los <type>object</type> devueltos serán convertidos a
-       <type>array</type> asociativos.
+      Cuando es &true;, los objects JSON devueltos serán convertidos a
+      &array; asociativos, cuando es &false; los objects JSON devueltos serán convertidos 
+      a &object;s. Cuando es &null;, los objects JSON serán convertidos a
+      &array; asociativos u &object;s  dependiendo de si <constant>JSON_OBJECT_AS_ARRAY</constant>
+      es establecida en los <parameter>flags</parameter>
       </para>
      </listitem>
     </varlistentry>
@@ -51,17 +54,22 @@
      <term><parameter>depth</parameter></term>
      <listitem>
       <para>
-       Profundidad de recursividad especificada por el usuario.
+       Profundidad máxima de anidamiento de la estructura que se decodifica.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>options</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Máscara de bit de opciones de decodificación de JSON. Actualmente solamente
-       está soportada <constant>JSON_BIGINT_AS_STRING</constant>
-       (por defecto, convierte enteros grandes en valores de tipo float)
+       Máscara de bit de
+       <constant>JSON_BIGINT_AS_STRING</constant>,
+       <constant>JSON_INVALID_UTF8_IGNORE</constant>,
+       <constant>JSON_INVALID_UTF8_SUBSTITUTE</constant>,
+       <constant>JSON_OBJECT_AS_ARRAY</constant>,
+       <constant>JSON_THROW_ON_ERROR</constant>.
+       El comportamiento de estas constantes está descrito en la pagina de 
+       <link linkend="json.constants">JSON constants</link>.
       </para>
      </listitem>
     </varlistentry>    
@@ -77,6 +85,52 @@
    <literal>null</literal> son devueltos como &true;, &false; y &null;
    respectivamente. &null; es devuelto si el parámetro <parameter>json</parameter> no se puede
    decodificar o si los datos codificados son más profundos que el límite de recursividad.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.3.0</entry>
+       <entry>
+        <constant>JSON_THROW_ON_ERROR</constant>
+        <parameter>flags</parameter> fue añadido.
+       </entry>
+      </row>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        <parameter>associative</parameter> es ahora nullable.
+       </entry>
+      </row>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        <constant>JSON_INVALID_UTF8_IGNORE</constant>, y
+        <constant>JSON_INVALID_UTF8_SUBSTITUTE</constant>
+        <parameter>flags</parameter> fueron añadidas.
+       </entry>
+      </row>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        Un clave JSON vacia ("") puede ser codificada en la propiedad del object vacio
+        en lugar de usar una clave con valor<literal>_empty_</literal>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
  
@@ -147,16 +201,16 @@ print $obj->{'foo-bar'}; // 12345
 
 // el nombre y el valor deben estar entre comillas dobles
 // las comillas simples no son válidas
-$json_erróneo = "{ 'bar': 'baz' }";
-json_decode($json_erróneo); // null
+$bad_json = "{ 'bar': 'baz' }";
+json_decode($bad_json); // null
 
 // el nombre debe estar entre comillas dobles
-$json_erróneo = '{ bar: "baz" }';
-json_decode($json_erróneo); // null
+$bad_json = '{ bar: "baz" }';
+json_decode($bad_json); // null
 
 // las comas finales no están permitidas
-$json_erróneo = '{ bar: "baz", }';
-json_decode($json_erróneo); // null
+$bad_json = '{ bar: "baz", }';
+json_decode($bad_json); // null
 
 ?>
 ]]>
@@ -167,15 +221,15 @@ json_decode($json_erróneo); // null
     <programlisting role="php">
 <![CDATA[
 <?php
-// Codificar los datos.
+// Codificar los datos con una profundidad máxima de 4 (array -> array -> array -> string)
 $json = json_encode(
     array(
         1 => array(
-            'Inglés' => array(
+            'English' => array(
                 'One',
                 'January'
             ),
-            'Francés' => array(
+            'French' => array(
             'Une',
             'Janvier'
             )
@@ -183,20 +237,11 @@ $json = json_encode(
     )
 );
 
-// Definir los errores.
-$constantes = get_defined_constants(true);
-$errores_json = array();
-foreach ($constantes["json"] as $nombre => $valor) {
-    if (!strncmp($nombre, "JSON_ERROR_", 11)) {
-        $errores_json[$valor] = $nombre;
-    }
-}
-
 // Mostrar los errores para diferentes profundidades.
-foreach (range(4, 3, -1) as $profundidad) {
-    var_dump(json_decode($json, true, $profundidad));
-    echo 'Último error: ', $errores_json[json_last_error()], PHP_EOL, PHP_EOL;
-}
+var_dump(json_decode($json, true, 4));
+echo 'Último error: ', json_last_error_msg(), PHP_EOL, PHP_EOL;
+var_dump(json_decode($json, true, 3));
+echo 'Último error: ', json_last_error_msg(), PHP_EOL, PHP_EOL;
 ?>
 ]]>
     </programlisting>
@@ -206,14 +251,14 @@ foreach (range(4, 3, -1) as $profundidad) {
 array(1) {
   [1]=>
   array(2) {
-    ["Inglés"]=>
+    ["English"]=>
     array(2) {
       [0]=>
       string(3) "One"
       [1]=>
       string(7) "January"
     }
-    ["Francés"]=>
+    ["French"]=>
     array(2) {
       [0]=>
       string(3) "Une"
@@ -222,10 +267,10 @@ array(1) {
     }
   }
 }
-Último error: JSON_ERROR_NONE
+Ultimo error: No error
 
 NULL
-Último error: JSON_ERROR_DEPTH
+Ultimo error: Maximum stack depth exceeded
 ]]>
     </screen>
    </example>
@@ -273,53 +318,6 @@ object(stdClass)#1 (1) {
    </para>
   </note>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.6.0</entry>
-       <entry>
-        Ya no se aceptan variantes que no estén en minúsculas de los literales
-        <literal>true</literal>, <literal>false</literal> y <literal>null</literal>
-        como entradas válidas, por lo que se generarán advertencias.
-       </entry>
-      </row>
-      <row>
-       <entry>5.4.0</entry>
-       <entry>
-        Se añadió el parámetro <parameter>options</parameter>.
-       </entry>
-      </row>      
-      <row>
-       <entry>5.3.0</entry>
-       <entry>Se añadió el parámetro opcional <parameter>depth</parameter>. La profundidad de recursividad predeterminada se aumentó de 128 a 512</entry>
-      </row>
-      <row>
-       <entry>5.2.3</entry>
-       <entry>La profundidad de recursividad predeterminada se aumentó de 20 a 128</entry>
-      </row>
-      <row>
-       <entry>5.2.1</entry>
-       <entry>
-        Se añadió soporte para la decodificación de JSON de tipos básicos.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
