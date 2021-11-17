@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a6a1f2a7a647e6b34343bbddbbe8a816903f1bbd Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: d1c3de7ae65dde4440720f1ebdc05734b55e91cc Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: julionc -->
 
 <phpdoc:classref xml:id="class.sessionhandlerinterface" xmlns:phpdoc="http://php.net/ns/phpdoc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
 
@@ -14,8 +14,7 @@
   <section xml:id="sessionhandlerinterface.intro">
    &reftitle.intro;
    <para>
-    <classname>SessionHandlerInterface</classname> es una
-    <link linkend="language.oop5.interfaces">interfaz</link> que define un
+    <classname>SessionHandlerInterface</classname> es una interfaz que define un
     prototipo para crear un gestor de sesiones personalizado. Para pasar un gestor de
     sesiones personalizado a <function>session_set_save_handler</function> usando su
     invocación de <literal>POO</literal>, la clase debe implementar esta interfaz.
@@ -65,6 +64,15 @@
      registramos la función de cierre usando la bandera de parámetro de la función. Esto normalmente es
      aconsejable al registrar objetos como gestores de almacenamiento de sesiones.
     </para>
+    <caution>
+     <para>
+      Por razones de brevedad, este ejemplo omite la validación de entradas. Sin embargo,
+      los parámetros <literal>$id</literal> son en realidad valores suministrados por el usuario
+      que requieren una validación/sanitización adecuada para evitar vulnerabilidades, como
+      problemas de recorrido o cruce en la ruta de acceso. <emphasis>Así que no utilice este ejemplo
+      sin modificar en entornos de producción.</emphasis>
+     </para>
+    </caution>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -72,7 +80,7 @@ class MySessionHandler implements SessionHandlerInterface
 {
     private $savePath;
 
-    public function open($savePath, $sessionName)
+    public function open($savePath, $sessionName): bool
     {
         $this->savePath = $savePath;
         if (!is_dir($this->savePath)) {
@@ -82,22 +90,23 @@ class MySessionHandler implements SessionHandlerInterface
         return true;
     }
 
-    public function close()
+    public function close(): bool
     {
         return true;
     }
 
+    #[ReturnTypeWillChange]
     public function read($id)
     {
         return (string)@file_get_contents("$this->savePath/sess_$id");
     }
 
-    public function write($id, $data)
+    public function write($id, $data): bool
     {
         return file_put_contents("$this->savePath/sess_$id", $data) === false ? false : true;
     }
 
-    public function destroy($id)
+    public function destroy($id): bool
     {
         $file = "$this->savePath/sess_$id";
         if (file_exists($file)) {
@@ -107,6 +116,7 @@ class MySessionHandler implements SessionHandlerInterface
         return true;
     }
 
+    #[ReturnTypeWillChange]
     public function gc($maxlifetime)
     {
         foreach (glob("$this->savePath/sess_*") as $file) {
