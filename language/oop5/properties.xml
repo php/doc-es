@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9ee9eccf455188ab6eb352194eb6f9eb99e15606 Maintainer: seros Status: ready -->
+<!-- EN-Revision: d73c3dcbd6e2b085781115aa42d17b80ea285b9e Maintainer: seros Status: ready -->
 <!-- Reviewed: yes Maintainer: seros -->
 
 <sect1 xml:id="language.oop5.properties" xmlns="http://docbook.org/ns/docbook">
@@ -64,12 +64,12 @@ hola mundo
 EOD;
    public $var3 = 1+2;
    // Declaraciones de propiedades inválidas:
-   public $var4 = self::miMétodoEstático();
+   public $var4 = self::miMetodoEstatico();
    public $var5 = $myVar;
 
    // Declaraciones de propiedades válidas:
    public $var6 = miConstante;
-   public $var7 = array(true, false);
+   public $var7 = [true, false];
 
    public $var8 = <<<'EOD'
 hola mundo
@@ -83,16 +83,15 @@ EOD;
 
  <note>
   <para>
-   Existen varias funciones interesantes para manipular clases y objetos.
-   Puede ser interesante echarle un vistazo a las
-   <link linkend="ref.classobj">Funciones de clases/objetos</link>.
+   Existen varias funciones para manipular clases y objetos.
+   Véase <link linkend="ref.classobj">Las funciones de clases/objetos</link>.
   </para>
  </note>
 
   <sect2 xml:id="language.oop5.properties.typed-properties">
    <title>Declaraciones de tipo</title>
    <para>
-    A partir de PHP 7.4.0, las definiciones de propiedades pueden incluir un
+    A partir de PHP 7.4.0, las definiciones de propiedades pueden incluirse
     <xref linkend="language.types.declarations" />,
     con la excepción de los <type>callable</type>.
     <example>
@@ -189,6 +188,143 @@ string(6) "circle"
 Fatal error: Uncaught Error: Typed property Shape::$numberOfSides must not be accessed before initialization
 ]]>
      </screen>
+    </example>
+   </para>
+  </sect2>
+
+  <sect2 xml:id="language.oop5.properties.readonly-properties">
+   <title>Propiedad Readonly</title>
+   <para>
+    A partir de PHP 8.1.0, una propiedad se puede declarar con el modificador <code>readonly</code> (de solo lectura), lo que impide la modificación de la propiedad después de la inicialización.
+    <example>
+     <title>Ejemplo de propiedades de solo lectura</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+class Test {
+   public readonly string $prop;
+
+   public function __construct(string $prop) {
+       // Inicialización.
+       $this->prop = $prop;
+   }
+}
+
+$test = new Test("foobar");
+// Lectura.
+var_dump($test->prop); // string(6) "foobar"
+
+// Reasignación ilegal. No importa que el valor asignado sea el mismo.
+$test->prop = "foobar";
+// Error: Cannot modify readonly property Test::$prop
+?>
+]]>
+     </programlisting>
+    </example>
+    <note>
+     <para>
+      El modificador readonly solo se puede aplicar a las <link linkend="language.oop5.properties.typed-properties">propiedades tipadas</link>.
+      Se puede crear una propiedad readonly sin restricciones mediante el tipo <xref linkend="language.types.declarations.mixed" />.
+     </para>
+    </note>
+    <note>
+     <para>
+      El modificador readonly no son compatibles en propiedades estáticas.
+     </para>
+    </note>
+   </para>
+   <para>
+    Una propiedad readonly solo se puede inicializar una vez, y solo desde el ámbito en el que se ha declarado. Cualquier otra asignación o modificación de la propiedad dará lugar a una excepción de <classname>Error</classname>.
+    <example>
+     <title>Inicialización ilegal de propiedades readonly</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+class Test1 {
+    public readonly string $prop;
+}
+
+$test1 = new Test1;
+// Inicialización ilegal fuera del ámbito privado.
+$test1->prop = "foobar";
+// Error: Cannot initialize readonly property Test1::$prop from global scope
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <note>
+    <para>
+     No se permite especificar un valor predeterminado explícito en las propiedades readonly, porque una propiedad readonly con un valor predeterminado es esencialmente la misma que una constante y, por lo tanto, no es particularmente útil.
+     <example>
+      <programlisting role="php">
+<![CDATA[
+<?php
+
+class Test {
+    // Fatal error: Readonly property Test::$prop cannot have default value
+    public readonly int $prop = 42;
+}
+?>
+]]>
+      </programlisting>
+     </example>
+    </para>
+   </note>
+   <note>
+    <para>
+     Las propiedades readonly no pueden usarse con la función <function>unset</function> una vez inicializadas. Sin embargo, es posible desactivar una propiedad readonly antes de la inicialización, desde el ámbito donde se ha declarado la propiedad.
+    </para>
+   </note>
+   <para>
+    Las modificaciones no son necesariamente asignaciones simples, todo lo siguiente también dará lugar a una excepción <classname>Error</classname>:
+    <example>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+class Test {
+    public function __construct(
+        public readonly int $i = 0,
+        public readonly array $ary = [],
+    ) {}
+}
+
+$test = new Test;
+$test->i += 1;
+$test->i++;
+++$test->i;
+$test->ary[] = 1;
+$test->ary[0][] = 1;
+$ref =& $test->i;
+$test->i =& $ref;
+byRef($test->i);
+foreach ($test as &$prop);
+?>
+]]>
+     </programlisting>
+    </example>
+   </para>
+   <para>
+    Sin embargo, las propiedades readonly no excluyen la mutabilidad interior. Los objetos (o recursos) almacenados en propiedades readonly aún pueden modificarse internamente:
+    <example>
+     <programlisting role="php">
+<![CDATA[
+<?php
+
+class Test {
+    public function __construct(public readonly object $obj) {}
+}
+
+$test = new Test(new stdClass);
+// Mutación interior.
+$test->obj->foo = 1;
+// Reasignación ilegal.
+$test->obj = new stdClass;
+?>
+]]>
+     </programlisting>
     </example>
    </para>
   </sect2>
