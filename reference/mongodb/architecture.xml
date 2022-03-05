@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 1fc853737aff47054e81741af5ebba3c492ff09a Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 33d23851b05574b9ad0b2adcceb9d9ba713e9c6b Maintainer: seros Status: ready -->
+<!-- Reviewed: yes Maintainer: seros -->
 
 <book xml:id="mongodb.architecture" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <titleabbrev>Arquitectura del controlador y sus entresijos</titleabbrev>
@@ -22,7 +22,7 @@
    <mediaobject>
     <alt>Diagrama de la arquitectura</alt>
     <imageobject>
-     <imagedata fileref="en/reference/mongodb/images/driver_arch.png"/>
+     <imagedata fileref="es/reference/mongodb/images/driver_arch.png"/>
     </imageobject>
    </mediaobject>
   </para>
@@ -39,6 +39,7 @@
    <link xlink:href="&url.mongodb.drivers;">controladores</link> mantenidos por
    MongoDB (y con suerte, también algunos controladores de la comunidad).
   </para>
+  
   <para>
    Justo debajo de la biblioteca tenemos los controladores de nivel más bajo: uno por plataforma.
    Estas extensiones formarán de forma efectiva el «pegamento» entre PHP y HHVM y nuestras
@@ -115,11 +116,6 @@
        <entry>Controlador de PHP 5 y PHP 7 (phongo)</entry>
        <entry><link xlink:href="&url.mongodb.github.phpc;">mongodb/mongo-php-driver</link></entry>
        <entry><link xlink:href="&url.mongodb.jira.phpc;">PHPC</link></entry>
-      </row>
-      <row>
-       <entry>Controlador de HHVM (hippo)</entry>
-       <entry><link xlink:href="&url.mongodb.github.hhvm;">mongodb/mongo-hhvm-driver</link></entry>
-       <entry><link xlink:href="&url.mongodb.jira.hhvm;">HHVM</link></entry>
       </row>
      </tbody>
     </tgroup>
@@ -410,8 +406,8 @@ foreach ($managers as $manager) {
 
     <para>
      Si un objeto es de una clase que implementa la
-     interfaz <classname>MongoDB\BSON\Persistable</classname> (lo que implica que
-     <classname>MongoDB\BSON\Serializable</classname> obtiene las propiedades
+     interfaz <interfacename>MongoDB\BSON\Persistable</interfacename> (lo que implica que
+     <interfacename>MongoDB\BSON\Serializable</interfacename> obtiene las propiedades
      de una forma similar a los párrafos anteriores, aunque
      <emphasis>también</emphasis> añade una propiedad adicional
      <property>__pclass</property> como un valor Binary, con subtipo
@@ -427,8 +423,8 @@ foreach ($managers as $manager) {
      el valor devuelto de <methodname>MongoDB\BSON\Serializable::bsonSerialize</methodname>.
      Para evitar este funcionamiento y establecer un valor de
      <property>__pclass</property> propio, <emphasis>no</emphasis> se debe
-     implementar <classname>MongoDB\BSON\Persistable</classname> y, en su lugar,
-     se deería implementar <classname>MongoDB\BSON\Serializable</classname>
+     implementar <interfacename>MongoDB\BSON\Persistable</interfacename> y, en su lugar,
+     se deería implementar <interfacename>MongoDB\BSON\Serializable</interfacename>
      directamente.
     </para>
 
@@ -439,40 +435,40 @@ foreach ($managers as $manager) {
 <![CDATA[
 <?php
 
-stdClass {
+class stdClass {
   public $foo = 42;
-} => { "foo" : 42 }
+} // => { "foo" : 42 }
 
-MyClass {
+class MyClass {
   public $foo = 42;
   protected $prot = "wine";
   private $fpr = "cheese";
-} => { "foo" : 42 }
+} // => { "foo" : 42 }
 
-AnotherClass1 implements MongoDB\BSON\Serializable {
+class AnotherClass1 implements MongoDB\BSON\Serializable {
   public $foo = 42;
   protected $prot = "wine";
   private $fpr = "cheese";
   function bsonSerialize() {
       return [ 'foo' => $this->foo, 'prot' => $this->prot ];
   }
-} => { "foo" : 42, "prot" : "wine" }
+} // => { "foo" : 42, "prot" : "wine" }
 
-AnotherClass2 implements MongoDB\BSON\Serializable {
+class AnotherClass2 implements MongoDB\BSON\Serializable {
   public $foo = 42;
   function bsonSerialize() {
       return $this;
   }
-} => MongoDB\Driver\Exception\UnexpectedValueException("bsonSerialize() did not return an array or stdClass")
+} // => MongoDB\Driver\Exception\UnexpectedValueException("bsonSerialize() did not return an array or stdClass")
 
-AnotherClass3 implements MongoDB\BSON\Serializable {
+class AnotherClass3 implements MongoDB\BSON\Serializable {
   private $elements = [ 'foo', 'bar' ];
   function bsonSerialize() {
       return $this->elements;
   }
-} => { "0" : "foo", "1" : "bar" }
+} // => { "0" : "foo", "1" : "bar" }
 
-ContainerClass implements MongoDB\BSON\Serializable {
+class ContainerClass implements MongoDB\BSON\Serializable {
   public $things = AnotherClass4 implements MongoDB\BSON\Serializable {
     private $elements = [ 0 => 'foo', 2 => 'bar' ];
     function bsonSerialize() {
@@ -482,9 +478,9 @@ ContainerClass implements MongoDB\BSON\Serializable {
   function bsonSerialize() {
       return [ 'things' => $this->things ];
   }
-} => { "things" : { "0" : "foo", "2" : "bar" } }
+} // => { "things" : { "0" : "foo", "2" : "bar" } }
 
-ContainerClass implements MongoDB\BSON\Serializable {
+class ContainerClass implements MongoDB\BSON\Serializable {
   public $things = AnotherClass5 implements MongoDB\BSON\Serializable {
     private $elements = [ 0 => 'foo', 2 => 'bar' ];
     function bsonSerialize() {
@@ -494,9 +490,9 @@ ContainerClass implements MongoDB\BSON\Serializable {
   function bsonSerialize() {
       return [ 'things' => $this->things ];
   }
-} => { "things" : [ "foo", "bar" ] }
+} // => { "things" : [ "foo", "bar" ] }
 
-ContainerClass implements MongoDB\BSON\Serializable {
+class ContainerClass implements MongoDB\BSON\Serializable {
   public $things = AnotherClass6 implements MongoDB\BSON\Serializable {
     private $elements = [ 'foo', 'bar' ];
     function bsonSerialize() {
@@ -506,9 +502,9 @@ ContainerClass implements MongoDB\BSON\Serializable {
   function bsonSerialize() {
       return [ 'things' => $this->things ];
   }
-} => { "things" : { "0" : "foo", "1" : "bar" } }
+} // => { "things" : { "0" : "foo", "1" : "bar" } }
 
-UpperClass implements MongoDB\BSON\Persistable {
+class UpperClass implements MongoDB\BSON\Persistable {
   public $foo = 42;
   protected $prot = "wine";
   private $fpr = "cheese";
@@ -525,6 +521,18 @@ UpperClass implements MongoDB\BSON\Persistable {
   <section xml:id="mongodb.persistence.deserialization">
    <title>Deserialización desde BSON</title>
 
+   &mongodb.warning.duplicate-keys;
+
+   <para>
+    The legacy <code>mongo</code> extension deserialized
+    both BSON documents and arrays as PHP arrays. While PHP arrays are
+    convenient to work with, this behavior was problematic because different
+    BSON types could deserialize to the same PHP value (e.g.
+    <literal>{"0": "foo"}</literal> and <literal>["foo"]</literal>) and make it
+    impossible to infer the original BSON type. By default, the current driver
+    addresses this concern by ensuring that BSON arrays and documents are
+    converted to PHP arrays and objects, respectively.
+   </para>
    <para>
     Para tipos compuestos, existen tres tipos de datos:
    </para>
@@ -556,6 +564,27 @@ UpperClass implements MongoDB\BSON\Persistable {
       </listitem>
      </varlistentry>
     </variablelist>
+   </para>
+
+   <para>
+    Besides the three collective types, it is also possible to configure
+    specific fields in your document to map to the data types mentioned below.
+    As an example, the following type map allows you to
+    map each embedded document within an <literal>"addresses"</literal> array to
+    an <classname>Address</classname> class <emphasis>and</emphasis> each
+    <literal>"city"</literal> field within those embedded address documents to
+    a <classname>City</classname> class:
+
+    <programlisting role="text">
+<![CDATA[
+[
+    'fieldPaths' => [
+        'addresses.$' => 'MyProject\Address',
+        'addresses.$.city' => 'MyProject\City',
+    ],
+]
+]]>
+    </programlisting>
    </para>
 
    <para>
@@ -705,7 +734,7 @@ UpperClass implements MongoDB\BSON\Persistable {
    </section>
 
    <section>
-    <title>Ejemplo</title>
+    <title>Ejemplos</title>
 
     <para>
      Estos ejemplos utilizan las siguientes clases:
@@ -725,7 +754,7 @@ UpperClass implements MongoDB\BSON\Persistable {
        <term>TuClase</term>
        <listitem>
         <para>
-         que implementa <classname>MongoDB\BSON\Unserializable</classname>
+         que implementa <interfacename>MongoDB\BSON\Unserializable</interfacename>
         </para>
        </listitem>
       </varlistentry>
@@ -733,7 +762,7 @@ UpperClass implements MongoDB\BSON\Persistable {
        <term>NuestraClase</term>
        <listitem>
         <para>
-         que implementa <classname>MongoDB\BSON\Persistable</classname>
+         que implementa <interfacename>MongoDB\BSON\Persistable</interfacename>
         </para>
        </listitem>
       </varlistentry>
@@ -749,10 +778,10 @@ UpperClass implements MongoDB\BSON\Persistable {
     </para>
 
     <para>
-     El método <methodname>bsonUnserialize</methodname> de TuClase,
-     NuestraClase, SuClase recorre el array y establece las propiedades
+     El método <methodname>MongoDB\BSON\Unserializable::bsonUnserialize</methodname>
+     de TuClase, NuestraClase, SuClase recorre el array y establece las propiedades
      sin modificaciones. <emphasis>También</emphasis> establece la propiedad
-     <literal>$no_serializada</literal> a <literal>true</literal>:
+     <literal>$unserialized</literal> a <literal>true</literal>:
 
      <programlisting role="php">
 <![CDATA[
@@ -767,11 +796,11 @@ function bsonUnserialize( array $map )
     $this->unserialized = true;
 }
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
     <para>
-     <programlisting role="text">
+      <programlisting role="text">
 <![CDATA[
 /* typemap: [] (all defaults) */
 { "foo": "yes", "bar" : false }
@@ -796,13 +825,13 @@ function bsonUnserialize( array $map )
   -> OurClass { $foo => 'yes', $__pclass => Binary(0x80, 'OurClass'), $unserialized => true }
 
 { "foo": "yes", "__pclass": { "$type" : "44", "$binary" : "YourClass") }
- -> stdClass { $foo => 'yes', $__pclass => Binary(0x44, 'YourClass') }
+  -> stdClass { $foo => 'yes', $__pclass => Binary(0x44, 'YourClass') }
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
     <para>
-     <programlisting role="text">
+      <programlisting role="text">
 <![CDATA[
 /* typemap: [ "root" => "MissingClass" ] */
 { "foo": "yes" }
@@ -836,21 +865,21 @@ function bsonUnserialize( array $map )
 { foo: "yes", "__pclass" : { "$type": "80", "$binary": "TheirClass" } }
   -> TheirClass { $foo => "yes", $__pclass => Binary(0x80, "TheirClass"), $unserialized => true }
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
-    <para>
-     <programlisting role="text">
+     <para>
+      <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'YourClass' ] */
 { foo: "yes", "__pclass" : { "$type": "80", "$binary": "YourClass" } }
   -> YourClass { $foo => 'yes', $__pclass => Binary(0x80, 'YourClass'), $unserialized => true }
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
-    <para>
-     <programlisting role="text">
+     <para>
+      <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'array', 'document' => 'array' ] */
 { "foo": "yes", "bar" : false }
@@ -871,18 +900,18 @@ function bsonUnserialize( array $map )
 { "foo": "yes", "__pclass" : { "$type": "80", "$binary": "OurClass" } }
   -> [ "foo" => "yes", "__pclass" => Binary(0x80, "OurClass") ]
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
-    <para>
-     <programlisting role="text">
+     <para>
+      <programlisting role="text">
 <![CDATA[
 /* typemap: [ 'root' => 'object', 'document' => 'object' ] */
 { "foo": "yes", "__pclass": { "$type": "80", "$binary": "MyClass" } }
   -> stdClass { $foo => "yes", "__pclass" => Binary(0x80, "MyClass") }
 ]]>
-     </programlisting>
-    </para>
+      </programlisting>
+     </para>
 
    </section>
   </section>
