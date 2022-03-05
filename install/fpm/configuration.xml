@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 1f983228aa30b62d4195b8df304ef6ffcbb0bfa2 Maintainer: agarzon Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 557f8ed419f9798a76539bee44754d4288ceccad Maintainer: agarzon Status: ready -->
+<!-- Reviewed: yes Maintainer: julionc -->
+
 <sect1 xml:id="install.fpm.configuration" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Configuración</title>
  <para>
@@ -47,7 +48,34 @@
      </para> 
     </listitem>
    </varlistentry>
-   <varlistentry xml:id="syslog-facility">
+     <varlistentry xml:id="log-limit">
+      <term>
+       <parameter>log_limit</parameter>
+       <type>int</type>
+      </term>
+      <listitem>
+       <para>
+        Límite de registro para las líneas registradas que permite registrar mensajes de más de
+        1024 caracteres sin envolver.
+        Valor por defecto: 1024.
+        Disponible a partir de PHP 7.3.0.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="log-buffering">
+      <term>
+       <parameter>log_buffering</parameter>
+       <type>bool</type>
+      </term>
+      <listitem>
+       <para>
+        Registro experimental sin almacenamiento adicional en el búfer.
+        Valor por defecto: sí.
+        Disponible a partir de PHP 7.3.0.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="syslog-facility">
     <term>
      <parameter>syslog.facility</parameter>
      <type>string</type>
@@ -450,9 +478,10 @@
     </term>
     <listitem>
      <para>
-      La dirección URI para ver la página de status FPM. Si este valor no es establecido, ninguna dirección URI 
-      será reconocida como una página de status. Valor por defecto: none.
-     </para> 
+      La dirección URI para ver <link linkend="fpm.status">la página de status FPM</link>. Este valor debe
+      comenzar con una barra inclinada (/). Si no se establece este valor, no se reconocerá ninguna URI
+      como página de estado. Valor por defecto: ninguno. . Valor por defecto: none.
+     </para>
     </listitem>
    </varlistentry>
    <varlistentry xml:id="ping.path">
@@ -489,11 +518,27 @@
     </term>
     <listitem>
      <para>
-      Especifique la prioridad nice(2) que se aplicará al proceso maestro (sólo si se establece). El valor puede variar entre -19 (prioridad más alta) hasta 20 (prioridad más baja). Valor por defecto: no establecido.
+      Especifique la prioridad nice(2) que se aplicará al proceso maestro (sólo si se establece).
+      El valor puede variar entre -19 (prioridad más alta) hasta 20 (prioridad más baja).
+      Valor por defecto: no establecido.
      </para>
     </listitem>
    </varlistentry>
-   <varlistentry xml:id="prefix">
+     <varlistentry xml:id="process-dumpable">
+      <term>
+       <parameter>process.dumpable</parameter>
+       <type>bool</type>
+      </term>
+      <listitem>
+       <para>
+        Establece el indicador de proceso descargable (PR_SET_DUMPABLE prctl) incluso si el usuario
+        o grupo del proceso o grupo es diferente al usuario del proceso maestro. Permite crear el proceso
+        core dump y ptrace el proceso para el usuario del pool.
+        Valor por defecto: no. Desde de PHP 7.0.29, 7.1.17 y 7.2.5.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="prefix">
     <term>
      <parameter>prefix</parameter>
      <type>string</type>
@@ -604,7 +649,21 @@
      </para> 
     </listitem>
    </varlistentry>
-   <varlistentry xml:id="clear-env">
+     <varlistentry xml:id="decorate-workers-output">
+      <term>
+       <parameter>decorate_workers_output</parameter>
+       <type>bool</type>
+      </term>
+      <listitem>
+       <para>
+        Habilitar la decoración de salida para la salida de los <link
+        linkend="catch-workers-output">catch_workers_output</link> si está activado.
+        Valor por defecto: sí.
+        Disponible a partir de PHP 7.3.0.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="clear-env">
     <term>
      <parameter>clear_env</parameter>
      <type>boolean</type>
@@ -652,11 +711,132 @@
      <para>
       Formato del archivo de registro de acceso.
       Valor por defecto: "%R - %u %t \"%m %r\" %s"
-     </para>
-    </listitem>
-   </varlistentry>
-  </variablelist>
-  <para>
+     <table xml:id="fpm.configuration.access.format">
+         <title>Opciones válidas</title>
+         <tgroup cols="2">
+          <thead>
+           <row>
+            <entry>Placeholder</entry>
+            <entry>Descripción</entry>
+           </row>
+          </thead>
+          <tbody>
+           <row>
+            <entry>
+             <constant>%C</constant>
+            </entry>
+            <entry>%CPU</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%d</constant>
+            </entry>
+            <entry>duration µs</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%e</constant>
+            </entry>
+            <entry>fastcgi env</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%f</constant>
+            </entry>
+            <entry>script</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%l</constant>
+            </entry>
+            <entry>content length</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%m</constant>
+            </entry>
+            <entry>method</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%M</constant>
+            </entry>
+            <entry>memory</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%n</constant>
+            </entry>
+            <entry>pool name</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%o</constant>
+            </entry>
+            <entry>header output</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%p</constant>
+            </entry>
+            <entry>PID</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%q</constant>
+            </entry>
+            <entry>query string</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%Q</constant>
+            </entry>
+            <entry>the glue between %q and %r</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%r</constant>
+            </entry>
+            <entry>request URI</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%R</constant>
+            </entry>
+            <entry>remote IP address</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%s</constant>
+            </entry>
+            <entry>status</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%T</constant>
+            </entry>
+            <entry>time</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%t</constant>
+            </entry>
+            <entry>time</entry>
+           </row>
+           <row>
+            <entry>
+             <constant>%u</constant>
+            </entry>
+            <entry>remote user</entry>
+           </row>
+          </tbody>
+         </tgroup>
+        </table>
+       </para>
+      </listitem>
+     </varlistentry>
+    </variablelist>
+    <para>
    Es posible pasar las variables de entorno adicionales y actualizar los ajustes PHP de ciertos grupos.
    Para ello, se necesita agregar las siguientes opciones al fichero de configuración.
    <example>
@@ -675,8 +855,8 @@ php_admin_value[error_log] = /var/log/fpm-php.www.log
 php_admin_flag[log_errors] = on
 php_admin_value[memory_limit] = 32M
 ]]>
-    </programlisting>
-   </example>
+      </programlisting>
+     </example>
    Los ajustes PHP pasados con <literal>php_value</literal> o 
    <literal>php_flag</literal> serán sobre-escritos a sus valores previos.
    Por favor note que definiendo 
@@ -712,7 +892,13 @@ fastcgi_param  PHP_ADMIN_VALUE "open_basedir=/var/www/htdocs";
      <link linkend="listen-allowed-clients">listen.allowed_clients</link>.
     </para>
    </caution>
-  </para>  
+     <note>
+      <simpara>
+       Los pools no son un mecanismo de seguridad, porque no proporcionan una separación
+       total; por ejemplo, todos los pools utilizarían una única instancia de OPcache.
+      </simpara>
+     </note>
+    </para>  
  </sect2>
  
 </sect1>
