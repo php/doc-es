@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8e732e84a1425cf0ab3a5b0da8fe113c7a6da85e Maintainer: jorgeolaya Status: ready -->
+<!-- EN-Revision: 2871f7103c7cfcfd95db64eb0930085965fd9330 Maintainer: jorgeolaya Status: ready -->
 <!-- Reviewed: yes Maintainer: julionc -->
 
 <sect1 xml:id="install.windows.apache2" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -42,6 +42,12 @@
 
  <sect2 xml:id="install.windows.apache2.module">
   <title>Instalación como un controlador de Apache</title>
+  <note>
+   <simpara>
+    Cuando se utiliza apache2handler SAPI, se debe utilizar la versión
+    Thread Safe (TS) de PHP.
+   </simpara>
+  </note>
   <para>
    Para cargar el módulo PHP en Apache 2.x las siguientes líneas en el
    fichero de configuración &httpd.conf; de Apache deben ser añadidas:
@@ -49,9 +55,11 @@
     <title>PHP y Apache 2.x como controlador</title>
     <programlisting role="apache-conf">
 <![CDATA[
-#
-LoadModule php8_module "c:/php/php8apache2_4.dll"
-AddHandler application/x-httpd-php .php
+# before PHP 8.0.0 the name of the module was php7_module
+LoadModule php_module "c:/php/php8apache2_4.dll"
+<FilesMatch \.php$>
+    SetHandler application/x-httpd-php
+</FilesMatch>
 # configure the path to php.ini
 PHPIniDir "C:/php"
 ]]>
@@ -60,37 +68,13 @@ PHPIniDir "C:/php"
   </para>
   <note>
    <simpara>
-    Recuerde, la ruta real de PHP debe sustituirse por
+    La ruta real de PHP debe sustituirse por
     <filename>C:/php/</filename> en los ejemplos anteriores.
-    Asegúrese que el fichero al que hace referencia en la directiva LoadModule
+    Asegúrese que el fichero al que hace referencia en la directiva <literal>LoadModule</literal>
     está en la ubicación especificada, y utilize <filename>php7apache2_4.dll</filename>
     para PHP 7, o <filename>php8apache2_4.dll</filename> para PHP 8.
    </simpara>
   </note>
-  <para>
-   The above configuration will enable PHP handling of any file that has a
-   .php extension, even if there are other file extensions. For example, a
-   file named <filename>example.php.txt</filename> will be executed by the
-   PHP handler. To ensure that only files that <emphasis>end in</emphasis>
-   <filename>.php</filename> are executed, use the following configuration
-   instead:
-
-   La configuración anterior permitirá el manejo de PHP de cualquier fichero que
-   contenga la extensión .php, incluso si hay otras extensiones de fichero. Por ejemplo,
-   el fichero llamado <filename>example.php.txt</filename> será ejecutado por el
-   controlador PHP. Para garantizar que solo se ejecuten los ficheros que <emphasis>terminen en</emphasis>
-   <filename>.php</filename>, utilice la siguiente configuración:
-  </para>
-
-  <example>
-   <programlisting role="apache-conf">
-<![CDATA[
-<FilesMatch \.php$>
-    SetHandler application/x-httpd-php
-</FilesMatch>
-]]>
-   </programlisting>
-  </example>
  </sect2>
 
  <sect2 xml:id="install.windows.apache2.cgi">
@@ -142,6 +126,7 @@ PHPIniDir "C:/php"
   <para>
    Configure su servidor web como se muestra a continuación, teniendo cuidado de ajustar cualquier ruta
    que reflejen la forma en que ha instalado las cosas en su sistema particular:
+   
    <example>
     <title>Configurar Apache para ejecutar PHP como FastCGI</title>
     <programlisting>
@@ -149,7 +134,9 @@ PHPIniDir "C:/php"
 LoadModule fcgid_module modules/mod_fcgid.so
 # ¿Dónde está el fichero php.ini?
 FcgidInitialEnv PHPRC        "c:/php"
-AddHandler fcgid-script .php
+<FilesMatch \.php$>
+    SetHandler fcgid-script
+</FilesMatch>
 FcgidWrapper "c:/php/php-cgi.exe" .php
 ]]>
     </programlisting>

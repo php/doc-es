@@ -1,9 +1,324 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 92d94d9c11538fb9f6d79ec7c51dd1e8c2cfd54e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 7a75b854c8c52226d38397e7e8177e339fdb273f Maintainer: seros Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="language.exceptions" xmlns="http://docbook.org/ns/docbook">
  <title>Excepciones</title>
+ <para>
+  PHP tiene un modelo de excepciones similar al de otros lenguajes de programación.
+  Una excepción puede ser lanzada ("&throw;n"), y atrapada ("&catch;ed") dentro de
+  PHP. El código puede estar dentro de un bloque &try; para facilitar la captura
+  de excepciones potenciales. Cada bloque &try; debe tener al menos un
+  bloque &catch; o &finally; correspondiente.
+ </para>
+ <para>
+  Si se lanza una excepción y el alcance de la función actual no tiene un bloque &catch;,
+  la excepción "subirá" por la pila de llamadas hasta encontrar un bloque &catch;
+  que coincida. Todos los bloques &finally; que encuentre en el camino se ejecutarán.
+  Si la pila de llamadas se desenrolla hasta el alcance global sin encontrar un bloque &catch;
+  coincidente, el programa terminará con un error fatal, a menos que se haya
+  configurado un manejador de excepciones global.
+ </para>
+ <para>
+   El objeto lanzado debe ser un &instanceof; <interfacename>Throwable</interfacename>.
+   Intentar lanzar un objeto que no lo sea resultará en un error fatal de PHP.
+ </para>
+ <para>
+   A partir de PHP 8.0.0, la palabra clave &throw; es una expresión y puede usarse en cualquier
+   contexto de expresión. En versiones anteriores, era una declaración y debía estar en su propia línea.
+ </para>
+
+  <sect1 annotations="chunk:false" xml:id="language.exceptions.catch">
+   <title><literal>catch</literal></title>
+  <para>
+   Se pueden usar múltiples bloques &catch; para atrapar diferentes clases de
+   excepciones. La ejecución normal (cuando no es lanzada ninguna excepción dentro del bloque
+   &try;) continuará después del último bloque &catch; definido en la sencuencia.
+   Las excepciones pueden ser lanzadas ("&throw;n") (o relanzadas) dentro de un bloque &catch;.
+  </para>
+  <para>
+   Cuando una excepción es lanzada, el código siguiente a la declaración no será
+   ejecutado, y PHP intentará encontrar el primer bloque &catch; coincidente.
+   Si una excepción no es capturada, se emitirá un Error Fatal de PHP con un
+   mensaje "<literal>Uncaught Exception ...</literal>" ("Excepción No Capturada"), a menos que se haya
+   definido un manejador con <function>set_exception_handler</function>.
+  </para>
+ </sect1>
+ 
+ <sect1 annotations="chunk:false" xml:id="language.exceptions.finally">
+   <title><literal>finally</literal></title>
+   <para>
+   En PHP y posterior, se puede utilizar un bloque &finally; después o
+   en lugar de los bloques &catch;. El código de dentro del bloque &finally; siempre se
+   ejecutará después de los bloques &try; y &catch;, independientemente de que se haya
+   lanzado una excepción o no, y antes de que la ejecución normal continúe.
+  </para>
+ </sect1>
+
+ <sect1 annotations="chunk:false" xml:id="language.exceptions.exception-handler">
+  <title>Manejador global de excepciones</title>
+  <para>
+   Si se permite que una excepción suba hasta el alcance global, puede ser capturada
+   por un manejador global de excepciones si está configurado. La función <function>set_exception_handler</function>
+   puede establecer una función que será llamada en lugar de un bloque &catch; si no se invoca
+   ningún otro bloque. El efecto es esencialmente el mismo que si todo el programa
+   estuviera envuelto en un bloque &try;-&catch; con esa función como el &catch;.
+  </para>
+ </sect1>
+
+<sect1 annotations="chunk:false" xml:id="language.exceptions.notes">
+  &reftitle.notes;
+  
+  <note>
+   <para>
+    Las funciones internas de PHP utilizan principalmente la
+    <link linkend="ini.error-reporting">Información de Errores</link>, sólo las extensiones
+    <link linkend="language.oop5">Orientadas a objetos</link>
+    modernas utilizan excepciones. Sin embargo, los errores se pueden traducir a
+    excepciones simplemente con <link linkend="class.errorexception">ErrorException</link>.
+   </para>
+    <example>
+     <title>Convertir el informe de errores a excepciones</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+function exceptions_error_handler($severity, $message, $filename, $lineno) {
+    throw new ErrorException($message, 0, $severity, $filename, $lineno);
+}
+
+set_error_handler('exceptions_error_handler');
+?>
+]]>
+     </programlisting>
+    </example>
+   </note>
+   <tip>
+    <para>
+     La <link linkend="intro.spl">Biblioteca Estándar de PHP (SPL)</link> proporciona
+     una buena cantidad de <link linkend="spl.exceptions">excepciones integradas</link>.
+    </para>
+   </tip>
+ </sect1>
+ 
+  <sect1 annotations="chunk:false" xml:id="language.exceptions.examples">
+   &reftitle.examples;
+
+   <example>
+    <title>Lanzar una Excepción</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+function inverso($x) {
+    if (!$x) {
+        throw new Exception('División por cero.');
+    }
+    return 1/$x;
+}
+
+try {
+    echo inverso(5) . "\n";
+    echo inverso(0) . "\n";
+} catch (Exception $e) {
+    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
+}
+
+// Continuar la ejecución
+echo 'Hola Mundo\n';
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+0.2
+Excepción capturada: División por cero.
+Hola Mundo
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Manejo de excepciones con un bloque <literal>finally</literal></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+function inverse($x) {
+    if (!$x) {
+        throw new Exception('División por cero.');
+    }
+    return 1/$x;
+}
+
+try {
+    echo inverse(5) . "\n";
+} catch (Exception $e) {
+    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
+} finally {
+    echo "Primer finally.\n";
+}
+
+try {
+    echo inverse(0) . "\n";
+} catch (Exception $e) {
+    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
+} finally {
+    echo "Segundo finally.\n";
+}
+
+// Continuar ejecución
+echo 'Hola Mundo\n';
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+0.2
+Primer finally.
+Excepción capturada: División por cero.
+Segundo finally.
+Hola Mundo
+]]>
+   </screen>
+</example>
+   <example>
+    <title>Interaction between the &finally; block and &return;</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+function test() {
+    try {
+        throw new Exception('foo');
+    } catch (Exception $e) {
+        return 'catch';
+    } finally {
+        return 'finally';
+    }
+}
+
+echo test();
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+finally
+]]>
+    </screen>
+   </example>
+   <example>
+   <title>Excepciones anidadas</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+class MiExcepción extends Exception { }
+
+class Prueba {
+    public function probar() {
+        try {
+            try {
+                throw new MiExcepción('foo!');
+            } catch (MiExcepción $e) {
+                // relanzarla
+                throw $e;
+            }
+        } catch (Exception $e) {
+            var_dump($e->getMessage());
+        }
+    }
+}
+
+$foo = new Prueba;
+$foo->probar();
+
+?>
+]]>
+   </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(4) "foo!"
+]]>
+    </screen>
+   </example>
+   <example>
+    <title>Multi catch exception handling</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class MyException extends Exception { }
+
+class MyOtherException extends Exception { }
+
+class Test {
+    public function testing() {
+        try {
+            throw new MyException();
+        } catch (MyException | MyOtherException $e) {
+            var_dump(get_class($e));
+        }
+    }
+}
+
+$foo = new Test;
+$foo->testing();
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(11) "MyException"
+]]>
+    </screen>
+   </example>
+   <example>
+    <title>Omitting the caught variable</title>
+    <para>Only permitted in PHP 8.0.0 and later.</para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class SpecificException extends Exception {}
+
+function test() {
+    throw new SpecificException('Oopsie');
+}
+
+try {
+    test();
+} catch (SpecificException) {
+    print "A SpecificException was thrown, but we don't care about the details.";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+   <example>
+    <title>Throw as an expression</title>
+    <para>Only permitted in PHP 8.0.0 and later.</para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+function test() {
+    do_something_risky() or throw new Exception('It did not work');
+}
+
+try {
+    test();
+} catch (Exception $e) {
+    print $e->getMessage();
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </sect1>
  
  <sect1 xml:id="language.exceptions.extending">
   <title>Ampliar las Excepciones</title>
@@ -63,7 +378,7 @@ class Exception
    </para>
   </note>
   <example>
-   <title>Extender la clase Exception (PHP 5.3.0+)</title>
+   <title>Extender la clase Exception</title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -179,229 +494,11 @@ echo "\n\n";
 ?>
 ]]>
    </programlisting>
-   <note>
-    <para>
-     Las versiones de PHP 5, anteriores a PHP 5.3.0, no soportan excepciones anidadas.
-     El siguiente fragmento de código se puede usar para reemplazar la clase MiExcepción
-     si se desea ejecutar este ejemplo.
-    </para>
-    <programlisting role="php">
-<![CDATA[
-<?php
-/**
- * Definir una clase de excepción personalizada
- */
-class MiExcepción extends Exception
-{
-    // Redefinir la excepción, por lo que el mensaje no es opcional
-    public function __construct($message, $code = 0) {
-        // algo de código
-    
-        // asegúrese de que todo está asignador apropiadamente
-        parent::__construct($message, $code);
-    }
-
-    // representación de cadena personalizada del objeto
-    public function __toString() {
-        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
-    }
-
-    public function funciónPersonalizada() {
-        echo "Una función personalizada para este tipo de excepción\n";
-    }
-}
-?>
-]]>
-    </programlisting>
-   </note>
   </example>
  </sect1>
+
+ </chapter>
  
- <simplesect xml:id="language.exceptions.introduction">
-  <para>
-   PHP 5 tiene un modelo de excepciones similar al de otros lenguajes de programación.
-   Una excepción puede ser lanzada ("&throw;n"), y atrapada ("&catch;ed") dentro de
-   PHP. El código puede estar dentro de un bloque &try; para facilitar la captura
-   de excepciones potenciales. Cada bloque &try; debe tener al menos un
-   bloque &catch; o &finally; correspondiente.
-  </para>
-  
-  <para>
-   El objeto lanzado debe ser una instancia de la
-   clase <classname>Exception</classname> o una subclase de
-   <classname>Exception</classname>. Intentar lanzar un objeto que no lo sea
-   resultará en un Error Fatal de PHP.
-  </para>
- </simplesect>
- 
- <simplesect xml:id="language.exceptions.catch">
-  <title><literal>catch</literal></title>
-  <para>
-   Se pueden usar múltiples bloques &catch; para atrapar diferentes clases de
-   excepciones. La ejecución normal (cuando no es lanzada ninguna excepción dentro del bloque
-   &try;) continuará después del último bloque &catch; definido en la sencuencia.
-   Las excepciones pueden ser lanzadas ("&throw;n") (o relanzadas) dentro de un bloque &catch;.
-  </para>
-  <para>
-   Cuando una excepción es lanzada, el código siguiente a la declaración no será
-   ejecutado, y PHP intentará encontrar el primer bloque &catch; coincidente.
-   Si una excepción no es capturada, se emitirá un Error Fatal de PHP con un
-   mensaje "<literal>Uncaught Exception ...</literal>" ("Excepción No Capturada"), a menos que se haya
-   definido un manejador con <function>set_exception_handler</function>.
-  </para>
- </simplesect>
- 
- <simplesect xml:id="language.exceptions.finally">
-  <title><literal>finally</literal></title>
-  <para>
-   En PHP 5.5 y posterior, se puede utilizar un bloque &finally; después o
-   en lugar de los bloques &catch;. El código de dentro del bloque &finally; siempre se
-   ejecutará después de los bloques &try; y &catch;, independientemente de que se haya
-   lanzado una excepción o no, y antes de que la ejecución normal continúe.
-  </para>
- </simplesect>
- 
- <simplesect xml:id="language.exceptions.notes">
-  &reftitle.notes;
-  
-  <note>
-   <para>
-    Las funciones internas de PHP utilizan principalmente la
-    <link linkend="ini.error-reporting">Información de Errores</link>, sólo las extensiones
-    <link linkend="language.oop5">Orientadas a objetos</link>
-    modernas utilizan excepciones. Sin embargo, los errores se pueden traducir a
-    excepciones simplemente con <link linkend="class.errorexception">ErrorException</link>.
-   </para>
-  </note>
-  <tip>
-   <para>
-    La <link linkend="intro.spl">Biblioteca Estádar de PHP (SPL)</link> proporciona
-    un buen número de <link linkend="spl.exceptions">excepciones
-    internas</link>.
-   </para>
-  </tip>
- </simplesect>
- 
- <simplesect xml:id="language.exceptions.examples">
-  &reftitle.examples;
-  
-  <example>
-   <title>Lanzar una Excepción</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-function inverso($x) {
-    if (!$x) {
-        throw new Exception('División por cero.');
-    }
-    return 1/$x;
-}
-
-try {
-    echo inverso(5) . "\n";
-    echo inverso(0) . "\n";
-} catch (Exception $e) {
-    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
-}
-
-// Continuar la ejecución
-echo 'Hola Mundo\n';
-?>
-]]>
-   </programlisting>
-   &example.outputs;
-   <screen>
-<![CDATA[
-0.2
-Excepción capturada: División por cero.
-Hola Mundo
-]]>
-   </screen>
-  </example>
-  <example>
-   <title>Manejo de excepciones con un bloque <literal>finally</literal></title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-function inverse($x) {
-    if (!$x) {
-        throw new Exception('División por cero.');
-    }
-    return 1/$x;
-}
-
-try {
-    echo inverse(5) . "\n";
-} catch (Exception $e) {
-    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
-} finally {
-    echo "Primer finally.\n";
-}
-
-try {
-    echo inverse(0) . "\n";
-} catch (Exception $e) {
-    echo 'Excepción capturada: ',  $e->getMessage(), "\n";
-} finally {
-    echo "Segundo finally.\n";
-}
-
-// Continuar ejecución
-echo 'Hola Mundo\n';
-?>
-]]>
-   </programlisting>
-   &example.outputs;
-   <screen>
-<![CDATA[
-0.2
-Primer finally.
-Excepción capturada: División por cero.
-Segundo finally.
-Hola Mundo
-]]>
-   </screen>
-  </example>
-  <example>
-   <title>Excepciones anidadas</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-
-class MiExcepción extends Exception { }
-
-class Prueba {
-    public function probar() {
-        try {
-            try {
-                throw new MiExcepción('foo!');
-            } catch (MiExcepción $e) {
-                // relanzarla
-                throw $e;
-            }
-        } catch (Exception $e) {
-            var_dump($e->getMessage());
-        }
-    }
-}
-
-$foo = new Prueba;
-$foo->probar();
-
-?>
-]]>
-   </programlisting>
-   &example.outputs;
-   <screen>
-<![CDATA[
-string(4) "foo!"
-]]>
-   </screen>
-  </example>
- </simplesect>
- 
-</chapter>
-
 <!-- Keep this comment at the end of the file
     Local variables:
     mode: sgml
