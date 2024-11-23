@@ -1,28 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 70fb482c26ecfb7b95b1484ebb73a14f272c9871 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 7d7b378abd302430b8ce7cedb4b78c7033f5e88c Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <sect1 xml:id="language.oop5.visibility" xmlns="http://docbook.org/ns/docbook">
  <title>Visibilidad</title>
  <para>
   La visibilidad de una propiedad, un método o (a partir de PHP 7.1.0) una constante se puede definir anteponiendo
-  a su declaración una de las palabras reservadas <emphasis>public</emphasis>,
-  <emphasis>protected</emphasis> o
-  <emphasis>private</emphasis>. A los miembros de clase declarados como 'public' se puede
+  a su declaración una de las palabras reservadas <literal>public</literal>,
+  <literal>protected</literal> o
+  <literal>private</literal>. A los miembros de clase declarados como 'public' se puede
   acceder desde donde sea; a los miembros declarados como 'protected',
   solo desde la misma clase, mediante clases heredadas o desde la clase padre. A los miembros
   declarados como 'private' únicamente se puede acceder desde la clase que los
   definió.
  </para>
- 
+
  <sect2 xml:id="language.oop5.visibility-members">
   <title>Visibilidad de propiedades</title>
-  <para>
-   Las propiedades de clases deben ser definidas como 'public', 'private'
-   o 'protected'. Si se declaran usando <emphasis>var</emphasis>,
-   serán definidas como 'public'.
-  </para>
-  <para>
+   <para>
+    Las propiedades de clases deben ser definidas como 'public', 'private'
+    o 'protected'. Las propiedades declaradas sin especificar explícitamente
+    una visibilidad se consideran públicas.
+   </para>
    <example>
     <title>Declaración de propiedades</title>
     <programlisting role="php">
@@ -75,21 +74,132 @@ echo $obj2->protected; // Error Fatal
 echo $obj2->private;   // Undefined
 $obj2->printHello();   // Muestra Public2, Protected2, Undefined
 
-?> 
+?>
 ]]>
     </programlisting>
    </example>
-  </para>
-  <note>
-   <simpara>
-    La forma de declaración de una variable de PHP 4 con la
-    palabra clave <emphasis>var</emphasis> todavía es soportado
-    (como un sinónimo de public) por razones de compatibilidad. En PHP 5
-    antes de 5.1.3, su uso genera un Warning <constant>E_STRICT</constant>.
-   </simpara>
-  </note>
- </sect2>
- 
+   <sect3 xml:id="language.oop5.visibility-members-aviz">
+    <title>Visibilidad asimétrica de propiedades</title>
+    <simpara>
+     A partir de PHP 8.4, las propiedades también pueden tener su
+     visibilidad configurada de manera asimétrica, con un alcance diferente para
+     lectura (<literal>get</literal>) y escritura (<literal>set</literal>).
+     Específicamente, la visibilidad de <literal>set</literal> puede
+     especificarse por separado, siempre que no sea más permisiva que la
+     visibilidad predeterminada.
+    </simpara>
+    <example>
+     <title>Visibilidad asimétrica de propiedades</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+class Book
+{
+    public function __construct(
+        public private(set) string $title,
+        public protected(set) string $author,
+        protected private(set) int $pubYear,
+    ) {}
+}
+
+class SpecialBook extends Book
+{
+    public function update(string $author, int $year): void
+    {
+        $this->author = $author; // OK
+        $this->pubYear = $year; // Fatal Error
+    }
+}
+
+$b = new Book('How to PHP', 'Peter H. Peterson', 2024);
+
+echo $b->title; // Works
+echo $b->author; // Works
+echo $b->pubYear; // Fatal Error
+
+$b->title = 'How not to PHP'; // Fatal Error
+$b->author = 'Pedro H. Peterson'; // Fatal Error
+$b->pubYear = 2023; // Fatal Error
+?>
+]]>
+     </programlisting>
+    </example>
+    <para>There are a few caveats regarding asymmetric visibility:</para>
+    <itemizedlist>
+     <listitem>
+      <simpara>
+       Only typed properties may have a separate <literal>set</literal> visibility.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       The <literal>set</literal> visibility must be the same
+       as <literal>get</literal> or more restrictive. That is,
+       <code>public protected(set)</code> and <code>protected protected(set)</code>
+       are allowed, but <code>protected public(set)</code> will cause a syntax error.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       If a property is <literal>public</literal>, then the main visibility may be
+       omitted.  That is, <code>public private(set)</code> and <code>private(set)</code>
+       will have the same result.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       A property with <literal>private(set)</literal> visibility
+       is automatically <literal>final</literal>, and may not be redeclared in a child class.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       Obtaining a reference to a property follows <literal>set</literal> visibility, not <literal>get</literal>.
+       That is because a reference may be used to modify the property value.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       Similarly, trying to write to an array property involves both a <literal>get</literal> and
+       <literal>set</literal> operation internally, and therefore will follow the <literal>set</literal>
+       visibility, as that is always the more restrictive.
+      </simpara>
+     </listitem>
+    </itemizedlist>
+    <simpara>
+     When a class extends another, the child class may redefine
+     any property that is not <literal>final</literal>.  When doing so,
+     it may widen either the main visibility or the <literal>set</literal>
+     visibility, provided that the new visibility is the same or wider
+     than the parent class.  However, be aware that if a <literal>private</literal>
+     property is overridden, it does not actually change the parent's property
+     but creates a new property with a different internal name.
+    </simpara>
+    <example>
+     <title>Asymmetric Property inheritance</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+class Book
+{
+    protected string $title;
+    public protected(set) string $author;
+    protected private(set) int $pubYear;
+}
+
+class SpecialBook extends Book
+{
+    public protected(set) $title; // OK, as reading is wider and writing the same.
+    public string $author; // OK, as reading is the same and writing is wider.
+    public protected(set) int $pubYear; // Fatal Error. private(set) properties are final.
+}
+?>
+]]>
+     </programlisting>
+    </example>
+   </sect3>
+  </sect2>
+
  <sect2 xml:id="language.oop5.visiblity-methods">
   <title>Visibilidad de Métodos</title>
   <para>
@@ -164,7 +274,7 @@ class Bar
     public function testPublic() {
         echo "Bar::testPublic\n";
     }
-    
+
     private function testPrivate() {
         echo "Bar::testPrivate\n";
     }
@@ -175,14 +285,14 @@ class Foo extends Bar
     public function testPublic() {
         echo "Foo::testPublic\n";
     }
-    
+
     private function testPrivate() {
         echo "Foo::testPrivate\n";
     }
 }
 
 $myFoo = new Foo();
-$myFoo->test(); // Bar::testPrivate 
+$myFoo->test(); // Bar::testPrivate
                 // Foo::testPublic
 ?>
 ]]>
@@ -190,7 +300,7 @@ $myFoo->test(); // Bar::testPrivate
    </example>
   </para>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.visiblity-constants">
   <title>Visibilidad de las constantes</title>
   <para>
@@ -256,7 +366,7 @@ $myclass2->foo2(); // Funcionan Public y Protected, pero no Private
     </example>
    </para>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.visibility-other-objects">
   <title>Visibilidad desde otros objetos</title>
   <para>
