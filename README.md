@@ -9,7 +9,7 @@ La traducción al español seguirá la modificación realizada en la documentaci
 
 ## ¿Cómo contribuir?
 
-Lee la `guia.pdf` para ayuda de como traducir el manual de PHP.
+Lee la `guia.pdf` para ayuda de cómo traducir el manual de PHP.
 
 Además, se está preparando una nueva guía que te ayudará a [contribuir](CONTRIBUTING.md).
 
