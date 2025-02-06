@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d332b5ae70bd27873fa1b51b366a721957042e69 Maintainer: seros Status: ready -->
+<!-- EN-Revision: cb3794f501ce55cedc40125fb995018bdc4ac1d1 Maintainer: seros Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 
 <sect1 xml:id="language.types.array">
@@ -31,8 +31,8 @@
    <para>
     Un <type>array</type> puede ser creado con el constructor del lenguaje
     <function>array</function>. Éste toma cualquier número de parejas
-    <literal><replaceable>clave</replaceable> =&gt; <replaceable>valor</replaceable></literal>
-    como argumentos.
+    <literal><replaceable>clave</replaceable> =&gt; <replaceable>valor</replaceable></literal>,
+    separados por comas, como argumentos.
    </para>
 
    <synopsis>
@@ -52,7 +52,7 @@
    </para>
 
    <para>
-    A partir de PHP 5.4 también se puede usar la sintaxis de array corta, la cual reemplaza
+    Existe una sintaxis de array corta, la cual reemplaza
     <literal>array()</literal> con <literal>[]</literal>.
    </para>
 
@@ -66,7 +66,7 @@ $array = array(
     "bar" => "foo",
 );
 
-// a partir de PHP 5.4
+// Usando la sintaxis corta
 $array = [
     "foo" => "bar",
     "bar" => "foo",
@@ -77,16 +77,16 @@ $array = [
    </example>
 
    <para>
-    La <replaceable>clave</replaceable> puede ser un <type>integer</type>
-    o un <type>string</type>. El <replaceable>valor</replaceable> puede ser
-    de cualquier tipo.
+    La <replaceable>clave</replaceable> puede ser un <type>integer</type> (entero)
+    o un <type>string</type> (una cadena de texto). El <replaceable>valor</replaceable>
+    puede ser de cualquier tipo.
    </para>
 
    <para xml:id="language.types.array.key-casts">
     Además, se darán los siguientes amoldamientos de <replaceable>clave</replaceable>:
     <itemizedlist>
      <listitem>
-     <simpara>
+      <simpara>
        <type>String</type>s que contiene un decimal válido <type>integer</type>, a menos que el número esté precedido por un signo <literal>+</literal>, será amoldado al
        tipo <type>integer</type>. Por ejemplo, la llave <literal>"8"</literal> será en realidad
        almacenado como <literal>8</literal>. Por otro lado <literal>"08"</literal> no será
@@ -115,7 +115,8 @@ $array = [
      </listitem>
      <listitem>
       <simpara>
-       Los <type>array</type>s y los <type>object</type>s <emphasis>no pueden</emphasis> utilizarse como claves.
+       Los <type>array</type>s y los <type>object</type>s <emphasis>no se pueden</emphasis>
+       utilizar como claves.
        Si se hace, dará lugar a una advertencia: <literal>Illegal offset type</literal>.
       </simpara>
      </listitem>
@@ -158,7 +159,7 @@ array(1) {
    </example>
 
    <para>
-    Los arrays de PHP pueden contener claves  <type>integer</type> y <type>string</type> al mismo tiempo
+    Los arrays de PHP pueden contener claves <type>integer</type> y <type>string</type> al mismo tiempo
     ya que PHP no distingue entre arrays indexados y asociativos.
    </para>
 
@@ -266,6 +267,108 @@ array(4) {
      <literal>6</literal>.
     </para>
    </example>
+
+   <example>
+    <title>Ejemplo de Conversión y Sobrescritura de tipos complejos</title>
+    <para>
+     Este ejemplo incluye todas las variaciones de conversión de tipos de claves
+     y sobrescritura de elementos.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$array = array(
+    1    => 'a',
+    '1'  => 'b',  // El valor "a" será sobrescrito por "b"
+    1.5  => 'c',  // El valor "b" será sobrescrito por "c"
+    -1 => 'd',
+    '01'  => 'e', // Al no tratarse de un entero en un string, este NO sobrescribirá la clave 1
+    '1.5' => 'f', // Al no tratarse de un entero en un string, este NO sobrescribirá la clave 1
+    true => 'g',  // El valor "c" será sobrescrito por "g"
+    false => 'h',
+    '' => 'i',
+    null => 'j',  // El valor "i" será sobrescrito por "j"
+    'k',          // El valor "k" será asignado a la clave 2. Esto es porque la clave entero más grande hasta el momento es 1
+    2 => 'l',     // El valor "k" será sobrescrito por "l"
+);
+
+var_dump($array);
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+array(7) {
+  [1]=>
+  string(1) "g"
+  [-1]=>
+  string(1) "d"
+  ["01"]=>
+  string(1) "e"
+  ["1.5"]=>
+  string(1) "f"
+  [0]=>
+  string(1) "h"
+  [""]=>
+  string(1) "j"
+  [2]=>
+  string(1) "l"
+}
+]]>
+    </screen>
+   </example>
+
+   <example>
+    <title>Ejemplo de índice negativo</title>
+    <simpara>
+     Cuando asignas una clave entera negativa <literal>n</literal>, PHP se encargará de
+     asignar la siguiente clave a <literal>n+1</literal>.
+    </simpara>
+    <programlisting role="php">
+     <![CDATA[
+<?php
+$array = [];
+
+$array[-5] = 1;
+$array[] = 2;
+
+var_dump($array);
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+     <![CDATA[
+array(2) {
+  [-5]=>
+  int(1)
+  [-4]=>
+  int(2)
+}
+]]>
+    </screen>
+
+    <warning>
+     <simpara>
+      Antes de PHP 8.3.0, asignar una clave entera negativa <literal>n</literal>
+      asignaría la siguiente clave a <literal>0</literal>, el ejemplo anterior
+      por lo tanto mostraría:
+     </simpara>
+     <informalexample>
+      <screen>
+<![CDATA[
+array(2) {
+  [-5]=>
+  int(1)
+  [0]=>
+  int(2)
+}
+]]>
+      </screen>
+     </informalexample>
+    </warning>
+   </example>
   </sect3>
 
   <sect3 xml:id="language.types.array.syntax.accessing">
@@ -308,21 +411,12 @@ string(3) "foo"
 
    <note>
     <para>
-     Tanto los corchetes como las llaves pueden ser utilizados de forma intercambiable
+     Antes de PHP 8.0.0, tanto los corchetes como las llaves pueden ser utilizados de forma intercambiable
      para acceder a los elementos de un array (p.ej.: <literal>$array[42]</literal> y <literal>$array{42}</literal>
      tendrán el mismo resultado en el ejemplo anterior).
+     La sintaxis de llaves se ha marcado como obsoleta en PHP 7.4.0 y se ha eliminado en PHP 8.0.0.
     </para>
    </note>
-
-   <para>
-    A partir de PHP 5.4 es posible hacer referencia al array del resultado de una llamada a una función
-    o método directamente. Antes sólo era posible utilizando una variable
-    temporal.
-   </para>
-
-   <para>
-    Desde PHP 5.5 es posible hacer referencia directa un elemento de un array literal.
-   </para>
 
    <example>
     <title>Hacer referencia al resultado array de funciones</title>
@@ -333,15 +427,7 @@ function getArray() {
     return array(1, 2, 3);
 }
 
-// en PHP 5.4
 $secondElement = getArray()[1];
-
-// anteriormente
-$tmp = getArray();
-$secondElement = $tmp[1];
-
-// o
-list(, $secondElement) = getArray();
 ?>
 ]]>
     </programlisting>
@@ -351,14 +437,17 @@ list(, $secondElement) = getArray();
     <para>
      Intentar acceder a una clave de un array que no se ha definido es
      lo mismo que el acceder a cualquier otra variable no definida:
-     se emitirá un mensaje de error de nivel <constant>E_NOTICE</constant>,
+     se emitirá un mensaje de error de nivel <constant>E_WARNING</constant>
+     (<constant>E_NOTICE</constant> antes de PHP 8.0.0),
      y el resultado será &null;.
     </para>
    </note>
-    <note>
+   <note>
     <para>
      Array que dereferencia un valor escalar que no es un <type>string</type>
-     silenciosamente arroja &null;, es decir, sin emitir un mensaje de error.
+     arroja &null;. Antes de PHP 7.4.0, sin emitir un mensaje de error.
+     Desde PHP 7.4.0, emite un error de nivel <constant>E_NOTICE</constant>;
+     desde PHP 8.0.0, emite un error de nivel <constant>E_WARNING</constant>;
     </para>
    </note>
   </sect3>
@@ -373,8 +462,8 @@ list(, $secondElement) = getArray();
 
    <para>
     Esto se realiza asignando valores al <type>array</type>, especificando la
-    clave entre corchetes. Esta también se puede omitir, resultando en un par de
-    corchetes vacíos (<literal>[]</literal>).
+    clave entre corchetes. La clave también se puede omitir, resultando en un par
+    de corchetes vacíos (<literal>[]</literal>).
    </para>
 
    <synopsis>
@@ -395,15 +484,21 @@ list(, $secondElement) = getArray();
    </para>
     <note>
     <simpara>
-     A partir de PHP 7.1.0, la aplicación del operador de índice vacío en un string lanza un fatal
-     error. Antes, el string se convertía silenciosamente en un array.
+     Desde PHP 7.1.0, aplicar el operador de índice vacío en un string lanza un error
+     fatal. Antes, el string se convertía silenciosamente en un array.
+    </simpara>
+   </note>
+   <note>
+    <simpara>
+     Desde PHP 8.1.0, la creación de un array a partir de &false; está obsoleta.
+     Aún se permite crear un array a partir de &null; y valores no definidos.
     </simpara>
    </note>
 
    <para>
-    Para cambiar un valor determinado
-    se debe asignar un nuevo valor a ese elemento empleando su clave. Para quitar una
-    pareja clave/valor, se debe llamar a la función <function>unset</function> con éste.
+    Para cambiar un valor determinado se debe asignar un nuevo valor a ese elemento
+    empleando su clave.
+    Para quitar una pareja clave/valor, se debe llamar a la función <function>unset</function> con éste.
    </para>
 
    <informalexample>
@@ -496,6 +591,141 @@ Array
    </note>
 
   </sect3>
+
+  <sect3 xml:id="language.types.array.syntax.destructuring">
+   <title>Desestructuración de arrays</title>
+
+   <para>
+    Los arrays pueden ser desestructurados usando <literal>[]</literal>
+    (desde PHP 7.1.0) o mediante el constructor de lenguaje <function>list</function>.
+    Estos constructores se pueden utilizar para desestructurar un array en distintas variables.
+   </para>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$source_array = ['foo', 'bar', 'baz'];
+
+[$foo, $bar, $baz] = $source_array;
+
+echo $foo;    // Imprime "foo"
+echo $bar;    // Imprime "bar"
+echo $baz;    // Imprime "baz"
+?>
+]]>
+    </programlisting>
+   </informalexample>
+
+   <para>
+    La desestructuración de arrays también puede ser utilizada en &foreach; para
+    desestructurar un array multidimensional mientras se itera sobre él.
+   </para>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$source_array = [
+    [1, 'John'],
+    [2, 'Jane'],
+];
+
+foreach ($source_array as [$id, $name]) {
+    // Aquí la lógica con $id y $name
+}
+?>
+]]>
+    </programlisting>
+   </informalexample>
+
+   <para>
+    Se pueden ignorar elementos de un array al no proporcionar una variable.
+    La desestructuración de arrays siempre comienza en el índice <literal>0</literal>.
+   </para>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$source_array = ['foo', 'bar', 'baz'];
+
+// Asignamos el elemento de índice 2 a la variable $baz
+[, , $baz] = $source_array;
+
+echo $baz;    // Imprime "baz"
+?>
+]]>
+    </programlisting>
+   </informalexample>
+
+   <para>
+    Desde PHP 7.1.0, los arrays asociativos también pueden ser desestructurados.
+    Esto permite una selección más fácil del elemento correcto en arrays indexados
+    Esto también permite una selección más fácil del elemento correcto en arrays indexados
+    numéricamente, ya que el índice se puede especificar explícitamente.
+   </para>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$source_array = ['foo' => 1, 'bar' => 2, 'baz' => 3];
+
+// Asignamos el elemento de índice 'baz' a la variable $three
+['baz' => $three] = $source_array;
+
+echo $three;    // Imprime 3
+
+$source_array = ['foo', 'bar', 'baz'];
+
+// Assign the element at index 2 to the variable $baz
+[2 => $baz] = $source_array;
+
+echo $baz;    // Imprime "baz"
+?>
+]]>
+    </programlisting>
+   </informalexample>
+
+   <para>
+    La desestructuración de arrays se puede utilizar para intercambiar fácilmente dos variables.
+   </para>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$a = 1;
+$b = 2;
+
+[$b, $a] = [$a, $b];
+
+echo $a;    // Imprime 2
+echo $b;    // Imprime 1
+?>
+]]>
+    </programlisting>
+   </informalexample>
+
+   <note>
+    <para>
+      El operador <literal>spread</literal> de propagación (<literal>...</literal>)
+      no se admite en las asignaciones.
+    </para>
+   </note>
+
+   <note>
+    <para>
+     Intentar acceder a una clave de un array que no se ha definido es
+     lo mismo que el acceder a cualquier otra variable no definida:
+     se emitirá un mensaje de error de nivel <constant>E_WARNING</constant>
+     (<constant>E_NOTICE</constant> antes de PHP 8.0.0),
+     y el resultado será &null;.
+    </para>
+   </note>
+  </sect3>
+
  </sect2><!-- end syntax -->
 
  <sect2 xml:id="language.types.array.useful-funcs">
@@ -508,7 +738,7 @@ Array
 
   <note>
    <para>
-    La función <function>unset</function> permite remover claves de un
+    La función <function>unset</function> permite eliminar claves de un
     <type>array</type>. Tenga en cuenta que el array <emphasis>no</emphasis> es
     re-indexado. Si se desea un verdadero comportamiento "eliminar y desplazar", el
     <type>array</type> puede ser re-indexado usando la función <function>array_values</function>.
@@ -535,9 +765,8 @@ $b = array_values($a);
   </note>
 
   <para>
-   La estructura de control &foreach;
-   existe específicamente para <type>array</type>s. Ésta provee una manera fácil
-   de recorrer un <type>array</type>.
+   La estructura de control &foreach; existe específicamente para <type>array</type>s.
+   Ésta provee una manera fácil de recorrer un <type>array</type>.
   </para>
  </sect2>
 
@@ -578,9 +807,12 @@ echo $foo[bar];
    </para>
    <warning>
     <simpara>
-     La alternativa de tratar una constante indefinida como string vacío está obsoleto a partir
-     de PHP 7.2.0, y emite un error de nivel <constant>E_WARNING</constant>.
-     Anteriormente, un error de nivel <constant>E_NOTICE</constant> era emitido.
+     La alternativa de tratar una constante indefinida como string vacío genera un error
+     de nivel <constant>E_NOTICE</constant>.
+     Este comportamiento está obsoleto desde PHP 7.2.0, y emite un error
+     de nivel <constant>E_WARNING</constant>.
+     Desde PHP 8.0.0, ha sido eliminado y lanza una
+     excepción <classname>Error</classname>.
     </simpara>
    </warning>
 
@@ -721,7 +953,7 @@ echo $arr[somefunc($bar)];
     <programlisting role="php">
 <![CDATA[
 <?php
-$error_descriptions[E_ERROR]   = "Un error fatal ha ocurrido";
+$error_descriptions[E_ERROR]   = "Ha ocurrido un error fatal";
 $error_descriptions[E_WARNING] = "PHP produjo una advertencia";
 $error_descriptions[E_NOTICE]  = "Esta es una noticia informal";
 ?>
@@ -739,7 +971,7 @@ $error_descriptions[E_NOTICE]  = "Esta es una noticia informal";
     <programlisting role="php">
 <![CDATA[
 <?php
-$error_descriptions[1] = "Un error fatal ha ocurrido";
+$error_descriptions[1] = "Ha ocurrido un error fatal";
 $error_descriptions[2] = "PHP produjo una advertencia";
 $error_descriptions[8] = "Esta es una noticia informal";
 ?>
@@ -793,12 +1025,13 @@ $error_descriptions[8] = "Esta es una noticia informal";
    Si convierte un <type>object</type> a un <type>array</type>, el resultado
    es un <type>array</type> cuyos elementos son las propiedades del <type>object</type>. Las claves
    son los nombres de las variables miembro, con algunas excepciones
-   notables: las variables privadas tienen el nombre de la clase al comienzo
+   notables: Las propiedades integer son inaccesibles;
+   las variables privadas tienen el nombre de la clase al comienzo
    del nombre de la variable; las variables protegidas tienen un caracter
    '*' al comienzo del nombre de la variable. Estos valores adicionados al
-   inicio tienen bytes <literal>NUL</literal> a los lados.
-   Las <link linkend="language.oop5.properties.typed-properties">propiedades tipificadas</link> no inicializadas
-   se descartan silenciosamente.
+   inicio tienen bytes <literal>NUL</literal> en cualquier lado.
+   Las <link linkend="language.oop5.properties.typed-properties">propiedades tipificadas</link>
+   no inicializadas se descartan silenciosamente.
   </para>
 
   <informalexample>
@@ -807,18 +1040,67 @@ $error_descriptions[8] = "Esta es una noticia informal";
 <?php
 
 class A {
-    private $A; //  Este campo se convertirá en '\0A\0A'
+    private $B;
+    protected $C;
+    public $D;
+    function __construct()
+    {
+        $this->{1} = null;
+    }
+}
+
+var_export((array) new A());
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+    <![CDATA[
+array (
+  '' . "\0" . 'A' . "\0" . 'B' => NULL,
+  '' . "\0" . '*' . "\0" . 'C' => NULL,
+  'D' => NULL,
+  1 => NULL,
+)
+]]>
+   </screen>
+  </informalexample>
+
+  <para>
+   Estos <literal>NUL</literal> pueden generar algún comportamiento inesperado:
+  </para>
+
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+class A {
+    private $A; // Esto se convertirá en '\0A\0A'
 }
 
 class B extends A {
-    private $A; // Este campo se convertirá en '\0B\0A'
-    public $AA; // Este campo se convertirá en 'AA'
+    private $A; // Esto se convertirá en '\0B\0A'
+    public $AA; // Esto se convertirá en 'AA'
 }
 
 var_dump((array) new B());
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+   <screen>
+    <![CDATA[
+array(3) {
+  ["BA"]=>
+  NULL
+  ["AA"]=>
+  NULL
+  ["AA"]=>
+  NULL
+}
+]]>
+   </screen>
   </informalexample>
 
   <para>
@@ -842,24 +1124,24 @@ var_dump((array) new B());
  </sect2>
 
  <sect2 xml:id="language.types.array.unpacking">
-  <title>Array unpacking</title>
+  <title>Desempaquetando arrays</title>
 
   <para>
-   An array prefixed by <code>...</code> will be expanded in place during array definition.
-   Only arrays and objects which implement <interfacename>Traversable</interfacename> can be expanded.
-   Array unpacking with <code>...</code> is available as of PHP 7.4.0.
+   Un array precedido por <code>...</code> será expandido en su lugar durante la definición del array.
+   Solo los arrays y objetos que implementan <interfacename>Traversable</interfacename> pueden ser expandidos.
+   El desempaquetado de arrays con el operador <code>...</code> está disponible desde PHP 7.4.0.
   </para>
 
   <para>
-   It's possible to expand multiple times, and add normal elements before or after the <code>...</code> operator:
+   Es posible desempaquetar múltiples veces, y añadir elementos normales antes o después del operador <code>...</code>:
 
    <example>
-    <title>Simple array unpacking</title>
+    <title>Desempaquetado simple de array</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Using short array syntax.
-// Also, works with array() syntax.
+// Utilizando la sintaxis corta.
+// Tambien funciona con la sintaxis array().
 $arr1 = [1, 2, 3];
 $arr2 = [...$arr1]; //[1, 2, 3]
 $arr3 = [0, ...$arr1]; //[0, 1, 2, 3]
@@ -877,11 +1159,13 @@ $arr6 = [...getArr(), 'c' => 'd']; //['a', 'b', 'c' => 'd']
   </para>
 
   <para>
-   Unpacking an array with the <code>...</code> operator follows the semantics of the <function>array_merge</function> function.
-   That is, later string keys overwrite earlier ones and integer keys are renumbered:
+   Desempaquetando un array con el operador <code>...</code> sigue la semántica
+   de la función <function>array_merge</function>.
+   Es decir, las claves de los arrays desempaquetados se reindexan si son numéricas
+   y se sobrescriben si son cadenas:
 
    <example>
-    <title>Array unpacking with duplicate key</title>
+    <title>Desempaquetado arrays con claves duplicadas</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -896,8 +1180,8 @@ $arr4 = [1, 2, 3];
 $arr5 = [4, 5, 6];
 $arr6 = [...$arr4, ...$arr5];
 var_dump($arr6); // [1, 2, 3, 4, 5, 6]
-// Which is [0 => 1, 1 => 2, 2 => 3, 3 => 4, 4 => 5, 5 => 6]
-// where the original integer keys have not been retained.
+// Que es [0 => 1, 1 => 2, 2 => 3, 3 => 4, 4 => 5, 5 => 6]
+// Donde no se han conservado las claves enteras originales.
 ?>
 ]]>
     </programlisting>
@@ -906,13 +1190,13 @@ var_dump($arr6); // [1, 2, 3, 4, 5, 6]
 
   <note>
    <para>
-    Keys that are neither integers nor strings throw a <classname>TypeError</classname>.
-    Such keys can only be generated by a <interfacename>Traversable</interfacename> object.
+    Las claves que no son números enteros ni cadenas lanzan un <classname>TypeError</classname>.
+    Estas claves solo pueden generarse mediante un objeto <interfacename>Traversable</interfacename>.
    </para>
   </note>
   <note>
    <para>
-    Prior to PHP 8.1, unpacking an array which has a string key is not supported:
+    Antes de PHP 8.1, no se permitía desempaquetar un array que tuviera una clave de tipo string:
    </para>
    <informalexample>
     <programlisting role="php">
@@ -1059,8 +1343,8 @@ foreach ($colors as $color) {
 foreach ($colors as &$color) {
     $color = strtoupper($color);
 }
-unset($color); /* se asegura de que escrituras subsiguientes a $color
-no modifiquen el último elemento del arrays */
+unset($color); /* Se asegura de que escrituras subsiguientes a $color
+no modifiquen el último elemento del array */
 
 print_r($colors);
 ?>
@@ -1171,9 +1455,9 @@ $fruits = array ( "fruits"  => array ( "a" => "orange",
                 );
 
 // Algunos ejemplos que hacen referencia a los valores del array anterior
-echo $fruits["holes"][5];    // prints "second"
-echo $fruits["fruits"]["a"]; // prints "orange"
-unset($fruits["holes"][0]);  // remove "first"
+echo $fruits["holes"][5];    // Imprime "second"
+echo $fruits["fruits"]["a"]; // Imprime "orange"
+unset($fruits["holes"][0]);  // Elimina "first"
 
 // Crear una nueva array multi-dimensional
 $juices["apple"]["green"] = "good";
