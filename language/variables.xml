@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 4a7ddddc27271967b616ad3400cfbe2a9b48212b Maintainer: seros Status: ready -->
+<!-- EN-Revision: 7d804723a85d3a8039ba3d0d2c8c414e85f5ede1 Maintainer: pereorga Status: ready -->
 <!-- Reviewed: no Maintainer: andresdzphp -->
 <chapter xml:id="language.variables" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Variables</title>
@@ -15,16 +15,20 @@
 
   <para>
    Los nombres de variables siguen las mismas reglas que otras etiquetas en
-   PHP. Un nombre de variable válido tiene que empezar con una letra o un
-   carácter de subrayado (underscore), seguido de cualquier número de
+   PHP. Un nombre de variable válido tiene que empezar con una letra
+   (<literal>A-Z</literal>, <literal>a-z</literal>, o los bytes del 128 al 255)
+   o un carácter de subrayado (underscore), seguido de cualquier número de
    letras, números y caracteres de subrayado. Como expresión regular se
    podría expresar como: '<literal>[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*</literal>'
   </para>
 
   <note>
    <simpara>
-    Para los propósitos de este manual, una letra es a-z, A-Z, y los bytes
-    del 127 al 255 (<literal>0x7f-0xff</literal>).
+    PHP no soporta Unicode en el nombre de las variables, 
+    PHP no admite nombres de variables Unicode, sin embargo, algunas codificaciones
+    de caracteres (como UTF-8) codifican caracteres de tal manera que todos los bytes
+    de un carácter multibyte están dentro del rango permitido, convirtiéndolo así
+    en un nombre de variable válido.
    </simpara>
   </note>
 
@@ -32,6 +36,8 @@
    <simpara>
     <literal>$this</literal> es una variable especial que no puede ser
     asignada.
+    Antes de PHP 7.1.0, era posible la asignación indirecta (por ejemplo,
+    mediante el uso de <link linkend="language.variables.variable">variables variables</link>).
    </simpara>
   </note>
 
@@ -42,8 +48,8 @@
    <link linkend="ref.var">Referencia de Funciones de Variables</link>.
   </para>
 
-  <para>
-   <informalexample>
+  <example>
+    <title>Nombres de variables válidos y no válidos</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -57,8 +63,35 @@ $täyte = 'mansikka';    // válido; 'ä' es ASCII (Extendido) 228
 ?>
 ]]>
     </programlisting>
-   </informalexample>
-  </para>
+   </example>
+
+   <simpara>
+    PHP acepta una secuencia de bytes como nombre de variable. Los nombres de
+    variables que no siguen las reglas de nombres mencionadas anteriormente
+    solo pueden accederse de forma dinámica en tiempo de ejecución. Consulte
+    <link linkend="language.variables.variable">variables variables</link>
+    para obtener información sobre cómo acceder a ellas.
+   </simpara>
+
+   <example>
+    <title>Cómo acceder a nombres de variables con caracteres no válidos</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+${'invalid-name'} = 'bar';
+$name = 'invalid-name';
+echo ${'invalid-name'}, " ", $$name;
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+bar bar
+]]>
+    </screen>
+   </example>
+
 
   <para>
    De forma predeterminada, las variables siempre se asignan por valor. Esto
@@ -123,9 +156,11 @@ $bar = &test();    // Inválido.
 
   <para>
    No es necesario inicializar variables en PHP, sin embargo, es una muy buena práctica.
-   Las variables no inicializadas tienen un valor predeterminado de acuerdo a su tipo dependiendo del contexto en el que son usadas
-   - las booleanas se asumen como &false;, los enteros y flotantes como cero, las cadenas (p.ej. usadas en <function>echo</function>) se
-   establecen como una cadena vacía y los arrays se convierten en un array vacío.
+   El acceso a una variable no definida generará un <constant>E_WARNING</constant>
+   (en versiones anteriores a PHP 8.0.0, <constant>E_NOTICE</constant>).
+   Una variable no definida tiene un valor predeterminado de &null;.
+   Se puede utilizar la construcción del lenguaje <function>isset</function>
+   para detectar si una variable ya se ha inicializado.
   </para>
   <para>
    <example>
@@ -133,89 +168,79 @@ $bar = &test();    // Inválido.
     <programlisting role="php">
 <![CDATA[
 <?php
-// Una variable no definida Y no referenciada (sin contexto de uso); imprime NULL
+// Una variable no definida Y no referenciada (sin contexto de uso).
 var_dump($variable_indefinida);
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Warning: Undefined variable $unset_var in ...
+NULL
+]]>
+     </screen>
+    </example>
+   </para>
 
-// Uso booleano; imprime 'false' (Vea operadores ternarios para más información sobre esta sintaxis)
-echo($booleano_indefinido ? "true\n" : "false\n");
-
-// Uso de una cadena; imprime 'string(3) "abc"'
-$cadena_indefinida .= 'abc';
-var_dump($cadena_indefinida);
-
-// Uso de un entero; imprime 'int(25)'
-$int_indefinido += 25; // 0 + 25 => 25
-var_dump($int_indefinido);
-
-// Uso de flotante/doble; imprime 'float(1.25)'
-$flotante_indefinido += 1.25;
-var_dump($flotante_indefinido);
-
-// Uso de array; imprime array(1) {  [3]=>  string(3) "def" }
-$array_indefinida[3] = "def"; // array() + array(3 => "def") => array(3 => "def")
-var_dump($array_indefinida);
-
-// Uso de objetos; crea un nuevo objeto stdClass (vea http://www.php.net/manual/en/reserved.classes.php)
-// Imprime: object(stdClass)#1 (1) {  ["foo"]=>  string(3) "bar" }
-$objeto_indefinido->foo = 'bar';
-var_dump($objeto_indefinido);
+   <simpara>
+    PHP permite la autovivificación de array (creación automática de un nuevo array)
+    a partir de una variable no definida.
+    Añadidiendo un elemento a una variable no definida creará un nuevo array y
+    no producirá ninguna advertencia.
+   </simpara>
+   <example>
+    <title>Autovivification de un array a partir de una variable no definida</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$unset_array[] = 'valor'; // No producirá ninguna advertencia.
 ?>
 ]]>
     </programlisting>
    </example>
-  </para>
-  <para>
-   Depender del valor predeterminado de una variable sin inicializar es problemático
-   al incluir un archivo en otro que use el mismo nombre de variable.
-   Un error de nivel <link linkend="constant.e-notice">E_NOTICE</link> es
-   emitido cuendo se trabaja con variables sin inicializar, con la excepción del caso en
-   el que se anexan elementos a un array no inicializado. La construcción del lenguaje <function>isset</function>
-   puede ser usada para detectar si una variable ya ha sido inicializada.
-  </para>
- </sect1>
+
+   <warning>
+    <simpara>
+     Depender del valor predeterminado de una variable sin inicializar
+     es problemático al incluir un archivo en otro que use el mismo
+     nombre de variable.
+    </simpara>
+   </warning>
+
+   <simpara>
+    Una variable puede ser destruida, utilizando la construcción del lenguaje
+    <function>unset</function>.
+   </simpara>
+
+   <simpara>
+    Para información con funciones relativas a variables, mira la
+    <link linkend="ref.var">Referencia de funciones de variables</link>.
+   </simpara>
+  </sect1>
 
  <sect1 xml:id="language.variables.predefined">
   <title>Variables Predefinidas</title>
 
   <para>
-   PHP proporciona una gran cantidad de variables predefinidas a cualquier
-   script que se ejecute. Muchas de éstas, sin embargo, no pueden ser
-   completamente documentadas ya que dependen del servidor que esté
-   corriendo, la versión y configuración de dicho servidor, y otros
-   factores. Algunas de estas variables no estarán disponibles cuando se
-   ejecute PHP desde la <link linkend="features.commandline">línea de
-   comandos</link>. Para obtener una lista de estas variables, por favor vea
-   la sección sobre <link linkend="reserved.variables">Variables Predefinidas Reservadas</link>.
-  </para>
-
-  <para>
-   PHP ofrece un conjunto adicional de arrays predefinidas que
-   contienen variables del servidor web, el entorno y
-   entradas del usuario. Estos nuevos arrays son un poco especiales porque
-   son automáticamente globales. Por esta razón, son conocidas a menudo como
-   "superglobales". Las superglobales se mencionan más abajo; sin embargo
-   para una lista de sus contenidos y más información sobre variables
-   predefinidas en PHP, por favor consulte la sección <link
-   linkend="reserved.variables">Variables predefinidas reservadas</link>.
-   Asimismo, podrá notar cómo las antiguas variables predefinidas
-   (<varname>$HTTP_*_VARS</varname>) todavía existen.
-
+   PHP proporciona una gran cantidad de
+   <link linkend="reserved.variables">variables predefinidas</link>.
+   PHP ofrece un conjunto adicional de arrays predefinidas que contienen
+   variables del servidor web (cuando es aplicable), el entorno y entradas del
+   usuario. Estos arrays están automáticamente disponibles en cualquier
+   entorno. Por esa razón, a veces son conocidas como "superglobales".
+   (No existe mecanismo en PHP para crear superglobales definidas por el
+   usuario). Referencia de la 
+   <link linkend="language.variables.superglobals">lista de superglobales</link>
+   para más detalles.
   </para>
 
   <note>
    <title>Variables variables</title>
    <para>
     Las superglobales no pueden ser usadas como <link
-    linkend="language.variables.variable">variables variables</link> al
-    interior de funciones o métodos de clase.
-   </para>
-  </note>
-
-  <note>
-   <para>
-    Aún cuando las superglobales y <literal>HTTP_*_VARS</literal> pueden existir al mismo
-    tiempo; estas variables no son idénticas, así que modificar una no
-    cambia la otra.
+    linkend="language.variables.variable">variables variables</link>
+    en el interior de funciones o métodos de clase.
    </para>
   </note>
 
@@ -231,63 +256,78 @@ var_dump($objeto_indefinido);
   <title>Ámbito de las variables</title>
 
   <simpara>
-   El ámbito de una variable es el contexto dentro del que la variable está
-   definida. La mayor parte de las variables PHP sólo tienen un ámbito
-   simple. Este ámbito simple también abarca los ficheros incluídos y los
-   requeridos. Por ejemplo:
-  </simpara>
-  <informalexample>
-   <programlisting role="php">
+   El ámbito de una variable es el contexto en el cual la variable está
+   definida.
+   PHP tiene un ámbito de función y un ámbito global.
+   Cualquier variable difinida fuera de una función está limitada al ámbito global.
+   Cuando se incluye un archivo, el código contenido hereda el ámbito de la
+   variable de la línea en la cual se incluye el archivo.
+   </simpara>
+   <example>
+    <title>Ejemplo de una variable de ámbito global</title>
+    <programlisting role="php">
 <![CDATA[
 <?php
 $a = 1;
-include 'b.inc';
+include 'b.inc'; // La variable $a estará disponible en el interior de b.inc
 ?>
 ]]>
-   </programlisting>
-  </informalexample>
-  <simpara>
-   Aquí, la variable <varname>$a</varname> estará disponible al interior del
-   script incluido <filename>b.inc</filename>. Sin embargo, al interior de
-   las funciones definidas por el usuario se introduce un ámbito local a la
-   función. Cualquier variable usada dentro de una función está, por
-   omisión, limitada al ámbito local de la función. Por ejemplo:
-  </simpara>
+    </programlisting>
+   </example>
 
-  <informalexample>
-   <programlisting role="php">
+   <simpara>
+    Cualquier variable declarada dentro de una función o una
+    <link linkend="functions.anonymous">funcíón anónima</link>
+    está limitada al ámbito del cuerpo de dicha función.
+    Sin embargo, las
+    <link linkend="functions.arrow">funciones de flecha</link>
+    vinculan las variables desde el ámbito padre haciendo que
+    estén disponibles dentro de la función.
+    Si se incluye un archivo dentro de una función, las variables
+    contenidas en el archivo llamado estarán disponibles como si
+    se hubieran definido dentro de la función que realiza la llamada.
+   </simpara>
+    
+   <example>
+    <title>Ejemplo de una variable de ámbito local</title>
+    <programlisting role="php"> 
 <![CDATA[
 <?php
-$a = 1; /* ámbito global */
+$a = 1; // ámbito global
 
 function test()
 {
-    echo $a; /* referencia a una variable del ámbito local */
+    echo $a; // La variable $a no está definida ya que se refiere a una versión local de $a
 }
-
-test();
 ?>
 ]]>
-   </programlisting>
-  </informalexample>
+    </programlisting>
+   </example>
 
   <simpara>
-   Este script no producirá salida, ya que la sentencia echo utiliza una
-   versión local de la variable <varname>$a</varname>, a la que no se ha
-   asignado ningún valor en su ámbito. Puede que usted note que hay una
-   pequeña diferencia con el lenguaje C, en el que las variables globales
-   están disponibles automáticamente dentro de la función a menos que sean
-   expresamente sobreescritas por una definición local. Esto puede causar
-   algunos problemas, ya que la gente puede cambiar variables globales
-   inadvertidamente. En PHP, las variables globales deben ser declaradas
-   globales dentro de la función si van a ser utilizadas dentro de dicha
-   función.
+   El ejemplo anterior producirá un <constant>E_WARNING</constant> por una
+   variable no definida (o un <constant>E_NOTICE</constant> antes de PHP 8.0.0).
+   Esto se debe a la expresión echo hace referencia a una versión local de
+   la variable <varname>$a</varname>, a la cual no se le ha asignado un valor
+   dentro de su ámbito.
+   Puede que usted note que hay una pequeña diferencia con el lenguaje C,
+   en el que las variables globales están disponibles automáticamente dentro
+   de la función a menos que sean expresamente sobreescritas por una
+   definición local. Esto puede causar algunos problemas, ya que la gente
+   podría cambiar variables globales sin darse cuenta.
+   En PHP, las variables globales deben ser declaradas globales dentro de la
+   función si van a ser utilizadas dentro de dicha función.
   </simpara>
 
   <sect2 xml:id="language.variables.scope.global">
    <title>La palabra clave <literal>global</literal></title>
    <simpara>
-    En primer lugar, un ejemplo de uso de <literal>global</literal>:
+    La palabra clave <literal>global</literal> se usa para vincular una
+    variable desde el ámbito global a un ámbito local. La palabra clave
+    puede ser usada con una lista de variables o con una sola variable.
+    Una variable local será creada haciendo referendia a una variable global
+    con el mismo nombre. Si no existe la variable global, la variable será
+    creada en el ámbito global y asignado el valor &null;.
    </simpara>
    <para>
     <example>
@@ -310,21 +350,27 @@ echo $b;
 ?>
 ]]>
      </programlisting>
+      &example.outputs;
+      <screen>
+<![CDATA[
+3
+]]>
+      </screen>
     </example>
    </para>
 
    <simpara>
-    El script anterior producirá la salida <literal>3</literal>. Al declarar
+    Al declarar las variables
     <varname>$a</varname> y <varname>$b</varname> globales dentro de la
     función, todas las referencias a tales variables se referirán a la
-    versión global.  No hay límite al número de variables globales que se
+    versión global. No hay límite al número de variables globales que se
     pueden manipular dentro de una función.
    </simpara>
 
    <simpara>
     Un segundo método para acceder a las variables desde un ámbito global es
-    usando el array <varname>$GLOBALS</varname>. El ejemplo anterior se
-    puede reescribir así:
+    usando el array especial definido por PHP <varname>$GLOBALS</varname>.
+    El ejemplo anterior se puede reescribir así:
    </simpara>
    <para>
     <example>
@@ -363,17 +409,8 @@ echo $b;
      <programlisting role="php">
 <![CDATA[
 <?php
-function test_global()
+function test_superglobal()
 {
-    // La mayoría de variables predefinidas no son "super" y requieren
-    // 'global' para estar disponibles al ámbito local de las funciones.
-    global $HTTP_POST_VARS;
-
-    echo $HTTP_POST_VARS['name'];
-
-    // Las superglobales están disponibles en cualquier ámbito y no
-    // requieren 'global'. Las superglobales están disponibles desde
-    // PHP 4.1.0, y ahora HTTP_POST_VARS se considera obsoleta.
     echo $_POST['name'];
 }
 ?>
@@ -450,12 +487,9 @@ function test()
 
    <simpara>
     Las variables estáticas también proporcionan una forma de manejar
-    funciones recursivas. Una función recursiva es la que se llama a sí
-    misma. Se debe tener cuidado al escribir una función recursiva, ya que
-    puede ocurrir que se llame a sí misma indefinidamente. Hay que
-    asegurarse de implementar una forma adecuada de terminar la recursión.
-    La siguiente función cuenta recursivamente hasta 10, usando la variable
-    estática <varname>$count</varname> para saber cuándo parar:
+    funciones recursivas. La siguiente función cuenta recursivamente
+    hasta 10, usando la variable estática <varname>$count</varname>
+    para saber cuándo parar:
    </simpara>
    <para>
     <example>
@@ -480,43 +514,103 @@ function test()
     </example>
    </para>
 
-   <note>
-    <para>
-     Las variables estáticas pueden ser declaradas como se ha visto en los ejemplos anteriores.
-     Desde PHP 5.6 se pueden asignar valores a estas variables que sean el resultado de
-     expresiones, aunque no se pueden usar funciones aquí, lo cual causaría un eror de análisis.
-    </para>
-    <para>
-     <example>
-      <title>Declaración de variables estáticas</title>
-      <programlisting role="php">
+   <para>
+    Antes de PHP 8.3.0, las variables estáticas solo podían ser inicializadas
+    usando expresiones constantes. A partir de PHP 8.3.0, expresiones dinámicas
+    (por ejemplo, llamadas a funciones) también están permitidas:
+   </para>
+   <para>
+    <example>
+     <title>Declarando variables estáticas</title>
+     <programlisting role="php">
 <![CDATA[
 <?php
 function foo(){
     static $int = 0;          // correcto
-    static $int = 1+2;        // correcto (a partir de PHP 5.6)
-    static $int = sqrt(121);  // incorrecto (ya que es una función)
+    static $int = 1+2;        // correcto
+    static $int = sqrt(121);  // correcto a partir de PHP 8.3.0
 
     $int++;
     echo $int;
 }
 ?>
 ]]>
-      </programlisting>
-     </example>
-    </para>
-   </note>
-   <note>
-    <para>
-     Las declaraciones estáticas son resueltas en tiempo de compilación.
-    </para>
-   </note>
+     </programlisting>
+    </example>
+   </para>
+
+   <simpara>
+    Las variables estáticas dentro de funiones anónimas también persisten
+    solo dentro de esa instancia específica de la función. Si la función
+    anónima es recreada en cada llamada, la variable estática será
+    reinicializada.
+   </simpara>
+   <example>
+    <title>Variables estácias en funciones anónimas</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function funcionEjemplo($input) {
+    $result = (static function () use ($input) {
+        static $counter = 0;
+        $counter++;
+        return "Entrada: $input, Contador: $counter\n";
+    });
+
+    return $result();
+}
+
+// Las llamadas a funcionEjemplo recrearán la función anónima, por tanto
+// la variable estática no retendrá su valor.
+echo funcionEjemplo('A'); // Devolverá: Entrada: A, Contador: 1
+echo funcionEjemplo('B'); // Devolverá: Entrada: B, Contador: 1
+?>
+]]>
+    </programlisting>
+   </example>
+
+   <para>
+    A partir de PHP 8.1.0, cuando un método que usa variables estáticas es
+    heredado (pero no sobrescrito), el método heredado compartirá ahora las
+    variables estáticas con el método padre. Esto significa que las variables
+    estáticas en los métodos ahora se comportan de la misma manera que las
+    propiedades estáticas.
+   </para>
+
+   <simpara>
+    A partir de PHP 8.3.0, las variables estáticas pueden ser inicializadas con
+    expresiones arbitrarias. Esto significa que las llamadas a métodos, por
+    ejemplo, pueden ser usadas para inicializar variables estáticas.
+   </simpara>
+
+   <example>
+    <title>Uso de variables estáticas en métodos heredados</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class Foo {
+    public static function counter() {
+        static $counter = 0;
+        $counter++;
+        return $counter;
+    }
+}
+class Bar extends Foo {}
+var_dump(Foo::counter()); // int(1)
+var_dump(Foo::counter()); // int(2)
+var_dump(Bar::counter()); // int(3), antes de PHP 8.1.0 int(1)
+var_dump(Bar::counter()); // int(4), antes de PHP 8.1.0 int(2)
+?> 
+]]>
+    </programlisting>
+   </example>
   </sect2>
+
 
   <sect2 xml:id="language.variables.scope.references">
    <title>Referencias con variables <literal>global</literal> y <literal>static</literal></title>
    <simpara>
-    El motor Zend 1, utilizado por PHP 4, implementa los modificadores
+    PHP implementa los modificadores
     <link linkend="language.variables.scope.static">static</link> y <link
     linkend="language.variables.scope.global">global</link> para variables
     en términos de <link linkend="language.references">referencias</link>.
@@ -532,12 +626,14 @@ function foo(){
 <?php
 function prueba_referencia_global() {
     global $obj;
-    $obj = &new stdclass;
+    $new = new stdClass;
+    $obj = &$new;
 }
 
 function prueba_no_referencia_global() {
     global $obj;
-    $obj = new stdclass;
+    $new = new stdClass;
+    $obj = $new;
 }
 
 prueba_referencia_global();
@@ -552,9 +648,11 @@ var_dump($obj);
    &example.outputs;
 
    <screen>
-    NULL
-    object(stdClass)(0) {
-    }
+<![CDATA[
+NULL
+object(stdClass)#1 (0) {
+}
+]]>
    </screen>
 
    <simpara>
@@ -572,10 +670,15 @@ function &obtener_instancia_ref() {
     echo 'Objeto estático: ';
     var_dump($obj);
     if (!isset($obj)) {
+        $new = new stdClass;
         // Asignar una referencia a la variable estática
-        $obj = &new stdclass;
+        $obj = &$new;
     }
-    $obj->property++;
+    if (!isset($obj->property)) {
+        $obj->property = 1;
+    } else {
+        $obj->property++;
+    }
     return $obj;
 }
 
@@ -585,10 +688,15 @@ function &obtener_instancia_no_ref() {
     echo 'Objeto estático: ';
     var_dump($obj);
     if (!isset($obj)) {
+        $new = new stdClass;
         // Asignar el objeto a la variable estática
-        $obj = new stdclass;
+        $obj = $new;
     }
-    $obj->property++;
+    if (!isset($obj->property)) {
+        $obj->property = 1;
+    } else {
+        $obj->property++;
+    }
     return $obj;
 }
 
@@ -603,14 +711,16 @@ $aun_obj2 = obtener_instancia_no_ref();
    </informalexample>
    &example.outputs;
    <screen>
-    Objeto estático: NULL
-    Objeto estático: NULL
+<![CDATA[
+Objeto estático: NULL
+Objeto estático: NULL
 
-    Objeto estático: NULL
-    Objeto estático: object(stdClass)(1) {
-    ["property"]=>
-    int(1)
-    }
+Objeto estático: NULL
+Objeto estático: object(stdClass)#3 (1) {
+  ["property"]=>
+  int(1)
+}
+]]>
    </screen>
 
    <simpara>
@@ -713,16 +823,6 @@ echo "$a $hola";
    si <varname>$bar</varname> es un acceso a un array.
   </simpara>
 
-  <caution>
-   <simpara>
-    Además, derreferenciar una propiedad variable que es un array tiene diferente
-    semántica entre PHP 5 y PHP 7. La
-    <link linkend="migration70.incompatible.variable-handling.indirect">guías de migración de PHP 7.0</link>
-    incluye más detalles sobre los tipos de expresiones que han cambiado,
-    y cómo colocar llaves para evitar ambigüedades.
-   </simpara>
-  </caution>
-
   <simpara>
    También se pueden usar llaves para delimitar de forma clara el nombre de la
    propiedad. Son muy útila al acceder a valores dentro una propiedad que
@@ -755,18 +855,19 @@ $end   = 'ar';
 echo $foo->{$start . $end} . "\n";
 
 $arr = 'arr';
-echo $foo->$arr[1] . "\n";
 echo $foo->{$arr[1]} . "\n";
+echo $foo->{$arr}[1] . "\n";
 
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
-     Soy bar.
-     Soy bar.
-     Soy bar.
-     Soy r.
+Soy bar.
+Soy bar.
+Soy bar.
+Soy r.
+Soy B.
     </screen>
    </example>
   </para>
@@ -811,8 +912,8 @@ echo $foo->{$arr[1]} . "\n";
    </para>
 
    <para>
-    A partir de PHP 5.4.0, solamente existen dos maneras de acceder a datos desde
-    formularios HTML. Los métodos disponibles actualmente se enumeran a continuación:
+    Solamente existen dos maneras de acceder a datos desde formularios HTML.
+    Los métodos disponibles actualmente se enumeran a continuación:
    </para>
 
    <para>
@@ -823,32 +924,6 @@ echo $foo->{$arr[1]} . "\n";
 <?php
 echo $_POST['username'];
 echo $_REQUEST['username'];
-?>
-]]>
-     </programlisting>
-    </example>
-   </para>
-
-   <para>
-    Habían otras formas de acceder a la entrada del usuario en versiones antiguas de PHP. Están
-    enumeradas abajo. Véase el historial de cambios al final para más detalles.
-    <example>
-     <title>Old methods of accessing user input</title>
-     <programlisting role="php">
-<![CDATA[
-<?php
-// OJO: estos métodos ya NO ESTÁN soportados.
-// Los válidos están descritos arriba.
-
-// Usar import_request_variables() - esta función ha sido eliminada en PHP 5.4.0
-   import_request_variables('p', 'p_');
-   echo $p_username;
-
-// Estas variables predefinidas fueron eliminadas en PHP 5.4.0
-   echo $HTTP_POST_VARS['username'];
-
-// Usar register_globals. Esta característica fue eliminada en PHP 5.4.0
-   echo $username;
 ?>
 ]]>
      </programlisting>
@@ -909,6 +984,15 @@ if ($_POST) {
     </example>
    </para>
 
+    <note>
+     <simpara>
+      Si una variable externa comienza con una sintaxis de array válida,
+      Los caracteres finales se ignoran en silencio. Por ejemplo, 
+      <literal>&lt;input name="foo[bar]baz"&gt;</literal>
+      se convierte en <literal>$_REQUEST['foo']['bar']</literal>.
+     </simpara>
+    </note>
+
    <sect3 xml:id="language.variables.external.form.submit">
     <title>Nombres de variables tipo IMAGE SUBMIT</title>
 
@@ -955,6 +1039,14 @@ if ($_POST) {
     Véase la página de <function>setcookie</function> del manual para más
     detalles y ejemplos.
    </simpara>
+
+    <note>
+     <simpara>
+      A partir de PHP 7.2.34, 7.3.23 y 7.4.11, respectivamente, los
+      <emphasis>nombres</emphasis> de las cookies entrantes ya no son con url-decoded
+      por razones de seguridad.
+     </simpara>
+    </note>
 
    <simpara>
     Si se quieren asignar múltiples valores a una sola cookie, basta con
