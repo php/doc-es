@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: aab33d644359aba597e810e2fc0c0caa0d347c9c Maintainer: yannick Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="faq.using" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>Utiliser PHP</title>
+  <titleabbrev>Utiliser PHP</titleabbrev>
+
+  <para>
+   Cette section regroupe plusieurs erreurs que vous pouvez rencontrer
+   lors de l'écriture de vos scripts PHP.
+  </para>
+
+  <qandaset>
+
+   <qandaentry xml:id="faq.using.parameterorder">
+    <!-- TODO: Mention named arguments -->
+    <question>
+     <para>
+      Je ne me rappelle par de l'ordre des paramètres dans les fonctions PHP,
+      sont-ils aléatoires ?
+     </para>
+    </question>
+    <answer>
+     <para>
+      PHP rassemble des centaines de bibliothèques externes et ça peut paraître
+      parfois déroutant. Cependant, une règle simple à retenir :
+     </para>
+     <para>
+      Les paramètres concernant les
+      <link linkend="book.array">fonctions sur les tableaux</link> sont dans
+      l'ordre "<emphasis>needle, haystack</emphasis>" tandis que les paramètres
+      sur les
+      <link linkend="book.strings">fonctions gérants les chaînes</link>
+      sont exactement à l'opposé
+      "<emphasis>haystack, needle</emphasis>".
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.anyform">
+    <question>
+     <para>
+      J'aimerais écrire un script PHP générique qui pourrait traiter les
+      données provenant de tout formulaire. Comment savoir quelles variables
+      de la méthode POST sont disponibles ?
+     </para>
+    </question>
+    <answer>
+     <para>
+      PHP fournit plusieurs <link linkend="language.variables.predefined">
+      variables pré-définies</link>, comme la superglobale <varname>
+      $_POST</varname>. Vous pouvez boucler sur <varname>$_POST</varname>
+      puisque c'est un tableau associatif de toutes les valeurs envoyés par
+      la méthode POST.
+      Par exemple, bouclons dessus simplement avec &foreach;, vérifions
+      les valeurs vides et affichons-les.
+      <programlisting role="php">
+<![CDATA[
+<?php
+$empty = $post = array();
+foreach ($_POST as $nomvar => $valeurvar) {
+    if (empty($varvalue)) {
+        $empty[$nomvar] = $valeurvar;
+    } else {
+        $post[$nomvar] = $valeurvar;
+    }
+}
+
+echo '<pre>';
+if (empty($empty)) {
+    print "Aucune valeur POSTée n'est vide, postées :\n";
+    var_dump($post);
+} else {
+    print "Nous avons " . count($empty) . " valeurs vides\n";
+    print "Postées :\n"; var_dump($post);
+    print "Vides :\n";  var_dump($empty);
+    exit;
+}
+echo '</pre>';
+?>
+]]>
+      </programlisting>
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.addslashes">
+    <!-- TODO Probably should mention not doing this... -->
+    <question>
+     <para>
+      Il faut que je convertisse tous les guillemets simples (')
+      en un antislash suivi d'un guillemet simple (\'). Comment le faire
+      avec une expression régulière ? J'aimerais aussi convertir " en \" et
+      \ en \\.
+     </para>
+    </question>
+    <answer>
+     <para>
+      Si l'on suppose que c'est pour une base de données, utilisez
+      le méchanisme d'échappement fourni avec la base de données. Par
+      exemple, utilisez la fonction
+      <function>mysql_real_escape_string</function> avec MySQL et
+      <function>pg_escape_string</function> avec PostgreSQL.
+      Il y a également les fonctions génériques comme
+      <function>addslashes</function> et <function>stripslashes</function>,
+      qui sont plus communes avec l'ancien code PHP.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.wrong-order">
+    <question>
+     <para>
+      Quand je fais ce qui suit, l'affichage se fait dans le mauvais ordre :
+     <programlisting role="php">
+<![CDATA[
+<?php
+function mafonction($argument)
+{
+    echo $argument + 10;
+}
+$variable = 10;
+echo "mafonction($variable) = " . mafonction($variable);
+?>
+]]>
+    </programlisting>
+     que se passe-t-il ?
+     </para>
+    </question>
+    <answer>
+     <para>
+      Pour pouvoir utiliser le résultat de votre fonction dans une expression
+      (comme le concaténer avec une chaîne comme dans cet exemple), vous devez
+      retourner la valeur avec <function>return</function>,
+      et non pas l'afficher avec <function>echo</function>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.newlines">
+    <question>
+     <para>
+      Hey, où sont mes nouvelles lignes ?
+      <programlisting role="php">
+<![CDATA[
+<pre>
+<?php echo "Ceci est ma première ligne."; ?>
+<?php echo "Celle-ci devrait s'afficher en dessous de la première."; ?>
+</pre>
+]]>
+      </programlisting>
+     </para>
+    </question>
+    <answer>
+     <para>
+      En PHP, la fin d'un bloc de code est soit "?&gt;" ou
+      "?&gt;\n" (où \n signifie une nouvelle ligne). Donc dans l'exemple plus
+      haut, les phrases affichées le seront sur une seule ligne, car PHP
+      oublie les nouvelles lignes après la fin du bloc. Cela signifie que vous
+      devez insérer une nouvelle ligne de plus après chaque bloc de code PHP
+      pour la lui faire afficher.
+     </para>
+     <para>
+      Pourquoi PHP fait-il cela ? Car lors du formatage du HTML, cela
+      vous simplifie la vie car vous ne voulez pas de cette nouvelle ligne,
+      mais vous devez créer de très longues lignes ou rendre la source brute
+      de la page illisible pour arriver à cet effet.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.headers-sent">
+    <question>
+     <para>
+      J'obtiens le message 'Warning: Cannot send session cookie - headers already
+      sent...' ou 'Cannot add header information - headers already sent...'.
+     </para>
+    </question>
+    <answer>
+     <para>
+      Les fonctions <function>header</function>, <function>setcookie</function>,
+      et les <link linkend="ref.session">fonctions de session</link>
+      doivent ajouter des en-têtes au flux de sortie, mais ceux-ci ne
+      peuvent être envoyés qu'avant le reste du contenu. Il ne doit y avoir
+      aucun affichage avant d'utiliser ces fonctions, comme le HTML par
+      exemple. La fonction <function>headers_sent</function> vérifiera si
+      votre script a déjà envoyé des en-têtes. Voyez aussi
+      <link linkend="ref.outcontrol">les fonctions de bufferisation de sortie</link>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.header">
+    <question>
+     <para>
+      J'ai besoin d'accéder à des informations dans l'en-tête de requête
+      directement. Comment puis-je le faire ?
+     </para>
+    </question>
+    <answer>
+     <para>
+      La fonction <function>getallheaders</function> le fera si vous exécutez
+      PHP en tant que module Apache. Le code suivant vous montrera tous les
+      en-têtes de requête :
+      <programlisting role="php">
+<![CDATA[
+<?php
+$headers = getallheaders();
+foreach ($headers as $nom => $contenu) {
+    echo "headers[$nom] = $contenu<br />\n";
+}
+?>
+]]>
+      </programlisting>
+     </para>
+     <para>
+      Voir aussi
+      <function>apache_lookup_uri</function>,
+      <function>apache_response_headers</function> et
+      <function>fsockopen</function>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.authentication">
+    <question>
+     <para>
+      Quand j'essaye d'utiliser l'identification avec IIS j'obtiens
+      <literal>'No Input file specified'</literal>.
+     </para>
+    </question>
+    <answer>
+     <para>
+      Le modèle sécuritaire de IIS est en faute. C'est un problème commun à
+      tous les programmes CGI fonctionnant avec IIS. Une alternative est de
+      créer un fichier HTML (non exécuté par PHP) comme page d'entrée dans
+      le dossier où il faut s'identifier. Utilisez alors une balise META
+      pour rediriger vers la page PHP, ou encore proposez un lien vers
+      celle-ci. PHP reconnaîtra alors l'identification correctement.
+      Cela ne devrait pas non
+      plus affecter d'autres serveurs NT. Pour plus d'informations, voyez :
+      <link xlink:href="&url.iis;">&url.iis;</link> et la section du manuel
+      concernant l'<link linkend="features.http-auth">identification HTTP</link>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.iis.sharing">
+    <question>
+     <para>
+      Windows: Je ne peux pas accéder aux fichiers partagés sur un autre ordinateur
+      utilisant IIS
+     </para>
+    </question>
+    <answer>
+     <para>
+      Vous devez modifier le service <literal>Go to Internet Information
+      Services</literal>. Localisez votre fichier PHP et éditez ces propriétés.
+      Placez-vous sur l'onglet <literal>File Security</literal>, <literal>Edit -&lt;
+      Anonymous access and authentication control</literal>.
+     </para>
+     <para>
+      Vous pouvez résoudre ce souci soit en décochant la case <literal>Anonymous
+      Access</literal> et en laissant la case <literal>Integrated Window
+      Authentication</literal> cochée, soit en cochant la case <literal>Anonymous
+      Access</literal> et en éditant l'utilisateur qui ne doit pas avoir les droits d'accès.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.mixml">
+    <question>
+     <para>
+      Comment mélanger XML et PHP ? PHP se plaint de mes balises &lt;?xml !
+     </para>
+    </question>
+    <answer>
+     <para>
+      Pour inclure &lt;?xml dans votre code PHP, vous devrez désactiver les
+      short tags en configurant la directive PHP
+      <link linkend="ini.short-open-tag">short_open_tags</link> à
+      <literal>0</literal>. Vous ne pouvez pas modifier cette directive avec
+      <function>ini_set</function>.  Que <link linkend="ini.short-open-tag">
+      short_open_tags</link> soit à on ou off, vous pouvez toujours faire ceci :
+      <literal>&lt;?php echo '&lt;?xml'; ?&gt;</literal>.  La valeur par
+      défaut pour cette directive est <literal>On</literal>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.variables">
+    <question>
+     <para>
+      Où puis-je trouver une liste complète des variables prédéfinies que je
+      peux utiliser dans mes scripts PHP ?
+     </para>
+    </question>
+    <answer>
+     <para>
+      Lisez la page du manuel qui concerne les <link linkend="language.variables.predefined">
+      variables prédéfinies</link> vu qu'elle présente une liste
+      partielle des variables prédéfinies disponibles dans votre script. Une
+      liste complète des variables disponibles (et beaucoup d'informations)
+      peut être vue en appelant la fonction <function>phpinfo</function>.
+      Lisez la section du manuel traitant des
+      <link linkend="language.variables.external">variables non-issues de
+      PHP</link>, elle décrit des scénarios communs pour les variables
+      externes, comme celles issues d'un formulaire HTML, d'un cookie, et de
+      l'URL.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.freepdf">
+    <question>
+     <para>
+      Comment puis-je générer des fichiers PDF sans utiliser les bibliothèques
+      non libres
+      PDFLib ? J'aimerais une façon gratuite
+      et qui ne requiert pas de bibliothèques PDF externes.
+     </para>
+    </question>
+    <answer>
+     <para>
+      Il y a quelques alternatives écrites en PHP tel que
+      <link xlink:href="&url.pdf.fpdf;">FPDF</link> et
+      <link xlink:href="&url.pdf.tcpdf;">TCPDF</link>.
+     </para>
+    </answer>
+   </qandaentry>
+
+   <qandaentry xml:id="faq.using.shorthandbytes">
+    <question>
+     <para>
+      Certaines directives PHP peuvent prendre des noms littéraux,
+      et pas seulement des valeurs &integer;.
+      Quelles sont tous les raccourcis disponibles?
+     </para>
+    </question>
+    <answer>
+     <para>
+      Les options disponibles sont K (pour Kilo octets) et M (pour mégaoctet) et
+      G (pour gigaoctet), ils sont
+      insensibles à la casse. Tout autre syntaxe est supposée représenter des octets.
+      <literal>1M</literal> équivaut à un mégaoctet ou <literal>1048576</literal>
+      octets. <literal>1K</literal> équivaut à un kilooctet ou
+      <literal>1024</literal> octets. Ces notations abrégées peuvent être utilisées dans le fichier &php.ini; et dans la fonction <function>ini_set</function>.
+      Notez que la valeur numérique est transtypé en &integer; ;
+      par exemple, <literal>0.5M</literal> est interprété comme <literal>0</literal>.
+     </para>
+     <note>
+      <title>kilooctet contre kibibyte</title>
+      <para>
+       La notation PHP décrit un kilooctet comme étant égal à 1024 octets, alors que
+       le standard <acronym>IEC</acronym> considère ça comme un kibioctet (kibibyte).
+       En bref: k et K = 1024 octets.
+      </para>
+     </note>
+    </answer>
+   </qandaentry>
+  </qandaset>
+ </chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

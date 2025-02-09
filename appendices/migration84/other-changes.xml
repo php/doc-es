@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 0f1d7fba407bd1385616508a1e42e31fe009bff2 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<sect1 xml:id="migration84.other-changes">
+ <title>Otros cambios</title>
+
+ <sect2 xml:id="migration84.other-changes.core">
+  <title>Cambio en el núcleo</title>
+
+  <sect3 xml:id="migration84.other-changes.core.closures">
+   <title>Clausuras</title>
+
+   <simpara>
+    Los nombres de las clausuras se han ajustado para incluir el nombre de la función padre
+    y la línea de definición para hacerlos más fáciles de distinguir, por ejemplo,
+    en las trazas de pila.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.core.fibers">
+   <title>Fibras</title>
+
+   <simpara>
+    Ahora se permiten las conmutaciones de fibras durante la ejecución del destructor. Esto estaba
+    previamente bloqueado debido a conflictos con la recolección de basura.
+   </simpara>
+
+   <simpara>
+    Los destructores ahora pueden ejecutarse en una fibra separada:
+   </simpara>
+
+   <simpara>
+    Cuando el recolector de basura se activa en una fibra,
+    los destructores llamados por el recolector de basura se ejecutan en una fibra separada:
+    la gc_destructor_fiber.
+    Si esta fibra se suspende, se crea una nueva para ejecutar los destructores
+    restantes.
+    La gc_destructor_fiber anterior ya no es referenciada por el recolector de basura
+    y puede ser recolectada si ya no es referenciada en otro lugar.
+    Los objetos cuyo destructor está suspendido no serán recolectados hasta que el
+    destructor regrese o hasta que la <classname>Fiber</classname> sea recolectada.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.core.output">
+   <title>Manejadores de salida</title>
+
+   <simpara>
+    Los flags de estado de los manejadores de salida pasados al parámetro <parameter>flags</parameter>
+    de <function>ob_start</function> ahora se borran.
+   </simpara>
+
+   <simpara>
+    <function>output_add_rewrite_var</function> ahora usa
+    <link linkend="ini.url-rewriter.hosts"><literal>url_rewriter.hosts</literal></link>
+    en lugar de
+    <link linkend="ini.session.trans-sid-hosts"><literal>session.trans_sid_hosts</literal></link>
+    para la selección de los hosts que serán reescritos.
+   </simpara>
+  </sect3>
+ </sect2>
+
+ <sect2 xml:id="migration84.other-changes.sapi">
+  <title>Cambios en los módulos SAPI</title>
+
+  <sect3 xml:id="migration84.other-changes.sapi.apache">
+   <title>apache2handler</title>
+
+   <simpara>
+    Se ha eliminado el soporte para Apache 2.0 y 2.2 EOL.
+    La versión mínima de Apache requerida ahora es 2.4.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.sapi.cli">
+   <title>CLI</title>
+
+   <simpara>
+    El servidor integrado busca un archivo índice de manera recursiva recorriendo los directorios
+    padres si no se puede localizar el archivo especificado.
+    Este proceso anteriormente se ignoraba si la ruta parecía
+    referirse a un archivo, es decir, si el último componente de la ruta contenía un punto.
+    En ese caso, se devolvía un error 404.
+    El comportamiento se ha modificado para buscar un archivo índice en todos los casos.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.sapi.fpm">
+   <title>FPM</title>
+
+   <simpara>
+    Ahora se tendrá éxito al vaciar las cabeceras sin cuerpo.
+    <!-- Ver GH-12785. -->
+   </simpara>
+
+   <simpara>
+    La página de estado ahora tiene un nuevo campo para mostrar un pico de memoria.
+   </simpara>
+
+   <simpara>
+    <!-- TODO ¿Esto necesita un enlace? -->
+    Se ha eliminado la configuración <filename>/dev/poll</filename> de <literal>events.mechanism</literal>
+    para Solaris/Illumos.
+   </simpara>
+  </sect3>
+ </sect2>
+
+ <sect2 xml:id="migration84.other-changes.functions">
+  <title>Funciones cambiadas</title>
+
+  <sect3 xml:id="migration84.other-changes.functions.core">
+   <title>Core</title>
+
+   <simpara>
+    <function>trigger_error</function> y <function>user_error</function>
+    ahora tienen un tipo de retorno de <type>true</type> en lugar de <type>bool</type>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.dom">
+   <title>DOM</title>
+
+   <simpara>
+    <methodname>DOMDocument::registerNodeClass</methodname>
+    ahora tiene un tipo de retorno de <type>true</type> en lugar de
+    <type>bool</type>.
+    Solo podía devolver &true; en la práctica.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.hash">
+   <title>Hash</title>
+
+   <simpara>
+    <function>hash_update</function>
+    ahora tiene un tipo de retorno de <type>true</type> en lugar de
+    <type>bool</type>.
+    Solo podía devolver &true; en la práctica.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.intl">
+   <title>Intl</title>
+
+   <simpara>
+    <constant>NumberFormatter::ROUND_TOWARD_ZERO</constant> y
+    <constant>NumberFormatter::ROUND_AWAY_FROM_ZERO</constant>
+    se han añadido como alias para
+    <constant>NumberFormatter::ROUND_DOWN</constant> y
+    <constant>NumberFormatter::ROUND_UP</constant>
+    para ser coherentes con los nuevos modos
+    <constant>PHP_ROUND_<replaceable>*</replaceable></constant>.
+   </simpara>
+
+   <simpara>
+    <methodname>ResourceBundle::get</methodname>
+    <!-- TODO Usar un tipo de unión adecuado para el tipo de retorno -->
+    ahora tiene un tipo de retorno provisional de <literal>ResourceBundle|array|string|int|null</literal>.
+   </simpara>
+
+   <simpara>
+    Las funciones <function>idn_to_ascii</function> y <function>idn_to_utf8</function>
+    ahora siempre lanzan excepciones <exceptionname>ValueError</exceptionname>
+    si el nombre de <parameter>domain</parameter> está vacío o es demasiado largo.
+   </simpara>
+
+   <simpara>
+    Las funciones <function>idn_to_ascii</function> y <function>idn_to_utf8</function>
+    ahora siempre lanzan excepciones <exceptionname>ValueError</exceptionname>
+    si el parámetro <parameter>variant</parameter> no es
+    <constant>INTL_IDNA_VARIANT_UTS46</constant>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.libxml">
+   <title>LibXML</title>
+
+   <simpara>
+    <function>libxml_set_streams_context</function> ahora lanza inmediatamente una
+    <exceptionname>TypeError</exceptionname> cuando se pasa un recurso no contextual de flujo
+    a la función,
+    en lugar de lanzar más tarde cuando se usa el contexto de flujo.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.mbstring">
+   <title>MBString</title>
+
+   <simpara>
+    El comportamiento de <function>mb_strcut</function> ahora es más coherente
+    en cadenas UTF-8 y UTF-16 no válidas.
+    No hay cambio de comportamiento para cadenas UTF-8 y UTF-16 válidas.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.odbc">
+   <title>ODBC</title>
+
+   <simpara>
+    El <parameter>row</parameter> de
+    <function>odbc_fetch_object</function>,
+    <function>odbc_fetch_array</function>, de
+    <function>odbc_fetch_into</function> ahora tiene un valor predeterminado de &null;,
+    manteniéndose coherente con <function>odbc_fetch_row</function>.
+    Anteriormente, los valores predeterminados eran
+    <literal>-1</literal>,
+    <literal>-1</literal>,
+    y <literal>0</literal>,
+    respectivamente.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.openssl">
+   <title>OpenSSL</title>
+
+   <simpara>
+    El <parameter>extra_attributes</parameter> en
+    <function>openssl_csr_new</function> establece los atributos del
+    <acronym>CSR</acronym> en lugar del DN del sujeto, lo cual se hacía incorrectamente antes.
+   </simpara>
+
+   <simpara>
+    El <parameter>dn</parameter> en
+    <function>openssl_csr_new</function> permite establecer un <type>array</type>
+    de valores para una sola entrada.
+   </simpara>
+
+   <simpara>
+    Se ha añadido un nuevo <parameter>serial_hex</parameter> a
+    <function>openssl_csr_sign</function> para permitir establecer números de serie
+    en formato hexadecimal.
+   </simpara>
+
+   <simpara>
+    Analizar un ASN.1 UTCTime con <function>openssl_x509_parse</function>
+    falla si se omiten los segundos para versiones de OpenSSL anteriores a 3.2
+    (<literal>-1</literal> se devuelve para dichos campos).
+    Las versiones de OpenSSL superiores a 3.3 ya no cargaban dichos certificados.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.pdo">
+   <title>PDO</title>
+
+   <simpara>
+    Ahora es posible recuperar el valor del atributo
+    <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> con
+    <methodname>PDO::getAttribute</methodname>.
+   </simpara>
+
+   <simpara>
+    Se ha añadido una nueva constante <constant>PDO::PGSQL_ATTR_RESULT_MEMORY_SIZE</constant>
+    para recuperar el uso de memoria de los resultados de consulta con
+    <methodname>PDO::getAttribute</methodname> para los controladores que lo soportan.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.pdo-firebird">
+   <title>PDO_FIREBIRD</title>
+
+   <simpara>
+    Ahora es posible recuperar el valor de los atributos
+    <!-- TODO ¿Esto es una constante de clase del controlador? -->
+    <constant>FB_ATTR_DATE_FORMAT</constant>,
+    <constant>FB_ATTR_TIME_FORMAT</constant>,
+    <constant>FB_ATTR_TIMESTAMP_FORMAT</constant>,
+    con
+    <!-- TODO ¿Solo para la clase de controlador específica? -->
+    <methodname>PDO::getAttribute</methodname>.
+   </simpara>
+
+   <para>
+    Se han añadido nuevos atributos para especificar el nivel de aislamiento de transacción y el modo de acceso.
+    Se han añadido cinco constantes relacionadas con esta funcionalidad:
+
+    <simplelist>
+     <member><constant>Pdo\Firebird::TRANSACTION_ISOLATION_LEVEL</constant></member>
+     <member><constant>Pdo\Firebird::READ_COMMITTED</constant></member>
+     <member><constant>Pdo\Firebird::REPEATABLE_READ</constant></member>
+     <member><constant>Pdo\Firebird::SERIALIZABLE</constant></member>
+     <member><constant>Pdo\Firebird::WRITABLE_TRANSACTION</constant></member>
+    </simplelist>
+   </para>
+
+   <simpara>
+    Al usar conexiones persistentes, ahora hay una verificación de liveness en
+    el constructor.
+   </simpara>
+
+   <simpara>
+    El contenido que se construye cambia según el valor de
+    <constant>FB_API_VER</constant> en
+    <filename class="headerfile">ibase.h</filename>.
+    Un nuevo método estático <methodname>Pdo\Firebird::getApiVersion</methodname>
+    puede usarse para obtener esta información.
+    Esta información también se referencia ahora en <function>phpinfo</function>.
+   </simpara>
+
+   <para>
+    Ahora hay cinco nuevos tipos de datos disponibles:
+    <simplelist type="inline">
+     <member><literal>INT128</literal></member>
+     <member><literal>DEC16</literal></member>
+     <member><literal>DEC34</literal></member>
+     <member><literal>TIMESTAMP_TZ</literal></member>
+     <member><literal>TIME_TZ</literal></member>
+    </simplelist>
+    .
+    Estos están disponibles a partir de Firebird 4.0.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.pdo-mysql">
+   <title>PDO_MYSQL</title>
+
+   <simpara>
+    Ahora es posible recuperar el valor del atributo
+    <constant>PDO::ATTR_FETCH_TABLE_NAMES</constant> con
+    <!-- TODO ¿Solo para la clase de controlador específica? -->
+    <methodname>PDO::getAttribute</methodname>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.pdo-pgsql">
+   <title>PDO_PGSQL</title>
+
+   <simpara>
+    Soporte para recuperar el uso de memoria de consultas para
+    <constant>PDO::PGSQL_ATTR_RESULT_MEMORY_SIZE</constant>.
+   </simpara>
+
+   <simpara>
+    Si la columna es de tipo <literal>FLOAT4OID</literal> o
+    <literal>FLOAT8OID</literal> el valor ahora se devolverá como
+    <type>float</type> en lugar de una <type>string</type>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.pgsql">
+   <title>PGSQL</title>
+
+   <simpara>
+    El parámetro <parameter>conditions</parameter> de
+    <function>pg_select</function> ahora es opcional y acepta un array vacío.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.phar">
+   <title>Phar</title>
+
+   <para>
+    Los métodos
+    <simplelist type="inline">
+     <member><methodname>Phar::setAlias</methodname></member>
+     <member><methodname>Phar::setDefaultStub</methodname></member>
+    </simplelist>
+    ahora pueden tener un tipo de retorno provisional de <type>true</type>
+    en lugar de <type>bool</type>.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.posix">
+   <title>POSIX</title>
+
+   <simpara>
+    <function>posix_isatty</function> ahora establece el número de error cuando
+    el argumento del descriptor de archivo/flujo es inválido.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.reflection">
+   <title>Reflection</title>
+
+   <simpara>
+    <methodname>ReflectionGenerator::getFunction</methodname>
+    ahora puede ser llamado después de que el generador haya terminado de ejecutarse.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.sockets">
+   <title>Sockets</title>
+
+   <simpara>
+    El parámetro <parameter>backlog</parameter> de
+    <function>socket_create_listen</function> ahora tiene un valor predeterminado de
+    <constant>SOMAXCONN</constant>.
+    Anteriormente, era <literal>128</literal>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.sodium">
+   <title>Sodium</title>
+
+   <simpara>
+    Las funciones <function>sodium_crypto_aead_aes256gcm_<replaceable>*</replaceable></function>
+    ahora están disponibles en procesadores aarch64 con extensiones criptográficas ARM.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.spl">
+   <title>SPL</title>
+
+   <para>
+    Los métodos
+    <simplelist type="inline">
+     <member><methodname>SplPriorityQueue::insert</methodname></member>
+     <member><methodname>SplPriorityQueue::recoverFromCorruption</methodname></member>
+     <member><methodname>SplHeap::insert</methodname></member>
+     <member><methodname>SplHeap::recoverFromCorruption</methodname></member>
+    </simplelist>
+    ahora pueden tener un tipo de retorno provisional de <type>true</type>
+    en lugar de <type>bool</type>.
+   </para>
+
+   <simpara>
+    <classname>SplObjectStorage</classname> ahora implementa
+    <interfacename>SeekableIterator</interfacename>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.functions.standard">
+   <title>Standard</title>
+
+   <simpara>
+     El valor predeterminado del <literal>'cost'</literal> para el algoritmo de hashing <constant>PASSWORD_BCRYPT</constant>
+     usado por la función <function>password_hash</function> se ha incrementado de
+     <literal>10</literal> a <literal>12</literal>.
+     <!-- RFC: https://wiki.php.net/rfc/bcrypt_cost_2023 -->
+    </simpara>
+
+   <simpara>
+    <function>debug_zval_dump</function> ahora indica si un array está compactado.
+   </simpara>
+
+   <simpara>
+    <function>long2ip</function> ahora tiene un tipo de retorno de <type>string</type>
+    <!-- TODO Tipo de unión adecuado -->
+    en lugar de <literal>string|false</literal>.
+   </simpara>
+
+   <simpara>
+    <!-- TODO Tipo de unión adecuado -->
+    <function>highlight_string</function> ahora tiene un tipo de retorno de
+    <type>string|true</type> en lugar de <literal>string|bool</literal>.
+   </simpara>
+
+   <simpara>
+    <!-- TODO Tipo de unión adecuado -->
+    <function>print_r</function> ahora tiene un tipo de retorno de
+    <type>string|true</type> en lugar de <literal>string|bool</literal>.
+   </simpara>
+
+   <!-- TODO: Alguien más se encarga de esto - Girgias -->
+   <sect4>
+    <title>Redondeo con <function>round</function></title>
+
+    <simpara>
+     El parámetro <parameter>mode</parameter> de la función <function>round</function> se ha ampliado para aceptar
+     <!-- TODO tipo de unión adecuado -->
+     <literal>RoundingMode|int</literal>,
+     <!-- TODO ¿debería ser <enumname>? -->
+     aceptando instancias de un nuevo enumerador <classname>RoundingMode</classname>.
+     <!-- RFC: https://wiki.php.net/rfc/correctly_name_the_rounding_mode_and_make_it_an_enum -->
+    </simpara>
+
+    <para>
+    Se han añadido cuatro nuevos modos a la función <function>round</function>:
+    <simplelist type="inline">
+     <member><!-- <enumidentifier> -->RoundingMode::PositiveInfinity<!-- </enumidentifier> --></member>
+     <member><!-- <enumidentifier> -->RoundingMode::NegativeInfinity<!-- </enumidentifier> --></member>
+     <member><!-- <enumidentifier> -->RoundingMode::TowardsZero<!-- </enumidentifier> --></member>
+     <member><!-- <enumidentifier> -->RoundingMode::AwayFromZero<!-- </enumidentifier> --></member>
+    </simplelist>
+     <!-- RFC: https://wiki.php.net/rfc/new_rounding_modes_to_round_function -->
+    </para>
+
+    <simpara>
+     La implementación interna del redondeo a enteros se ha reescrito para ser más fácil de verificar
+     para la corrección y más fácil de mantener.
+     Se corrigieron algunos errores de redondeo como resultado de la reescritura.
+     Por ejemplo, anteriormente, redondear <literal>0.49999999999999994</literal> al entero más cercano
+     habría dado <literal>1.0</literal> en lugar del resultado correcto <literal>0.0</literal>.
+     Otras entradas también podrían verse afectadas y dar resultados diferentes
+     en comparación con versiones anteriores de PHP.
+    </simpara>
+
+    <simpara>
+     Se corrigió un error causado por el "preredondeo" de la función round().
+     Anteriormente, usando "preredondeo" para manejar un valor como <literal>0.285</literal>
+     (en realidad <literal>0.28499999999999998</literal>) como un número decimal y redondearlo a <literal>0.29</literal>.
+     Sin embargo, el "preredondeo" redondeaba incorrectamente algunos números,
+     por lo que esta corrección elimina el "preredondeo" y cambia la forma en que se comparan los números,
+     por lo que los valores se redondean correctamente como números decimales.
+    </simpara>
+
+    <simpara>
+     El número máximo de dígitos significativos que <function>round</function> puede manejar se ha ampliado
+     en un dígito.
+     Por ejemplo, <code>round(4503599627370495.5)</code> devolvía
+     <literal>4503599627370495.5</literal>,
+     pero ahora devuelve <literal>4503599627370496</literal>.
+    </simpara>
+
+   </sect4>
+  </sect3>
+
+ </sect2>
+
+ <sect2 xml:id="migration84.other-changes.extensions">
+  <title>Otros cambios en las extensiones</title>
+
+  <sect3 xml:id="migration84.other-changes.extensions.curl">
+   <title>cURL</title>
+
+   <simpara>
+    La versión mínima requerida de libcurl ahora es 7.61.0.
+   </simpara>
+
+   <simpara>
+    La opción <constant>CURLOPT_DNS_USE_GLOBAL_CACHE</constant> ya no
+    tiene ningún efecto y se ignora silenciosamente.
+    Esta funcionalidad subyacente se desaprobó en libcurl 7.11.1,
+    y se eliminó en libcurl 7.62.0.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.gmp">
+   <title>GMP</title>
+
+   <!-- RFC: https://wiki.php.net/rfc/fix_up_bcmath_number_class -->
+   <simpara>
+    Cambiar el tipo de un objeto <classname>GMP</classname> a <type>bool</type> ahora es
+    posible en lugar de generar un <constant>E_RECOVERABLE_ERROR</constant>.
+    El comportamiento de conversión está sobrecargado de manera que un objeto <classname>GMP</classname>
+    que represente el valor <literal>0</literal> se convierte en &false;.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.libxml">
+   <title>LibXML</title>
+
+   <simpara>
+    La versión mínima requerida de libxml2 ahora es 2.9.4.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.intl">
+   <title>Intl</title>
+
+   <simpara>
+    El comportamiento de la clase Intl se ha normalizado para siempre lanzar
+    excepciones <exceptionname>Error</exceptionname> al intentar usar
+    un objeto no inicializado, o cuando la clonación falla.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.mbstring">
+   <title>MBString</title>
+
+   <simpara>
+    Las tablas de datos Unicode se han actualizado a Unicode 16.0.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.mysqlnd">
+   <title>MySQLnd</title>
+
+   <simpara>
+    Se ha añadido soporte para el nuevo tipo de datos VECTOR de MySQL 9.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.openssl">
+   <title>OpenSSL</title>
+
+   <simpara>
+    La versión mínima requerida de OpenSSL ahora es 1.1.1.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.pdo-pgsql">
+   <title>PDO_PGSQL</title>
+
+   <simpara>
+    La versión mínima requerida de libpq ahora es 10.0.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.pgsql">
+   <title>PGSQL</title>
+
+   <simpara>
+    La versión mínima requerida de libpq ahora es 10.0.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.spl">
+   <title>SPL</title>
+
+   <simpara>
+    Los accesos fuera de límites en <classname>SplFixedArray</classname> ahora lanzan
+    excepciones de tipo <exceptionname>OutOfBoundsException</exceptionname>
+    en lugar de <exceptionname>RuntimeException</exceptionname>.
+    Como <exceptionname>OutOfBoundsException</exceptionname> es una clase hija de
+    <exceptionname>RuntimeException</exceptionname>, no se observa ningún cambio de comportamiento
+    al intentar capturar estas excepciones.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.xsl">
+   <title>XSL</title>
+
+   <simpara>
+    Las propiedades tipadas <property>XSLTProcessor::$cloneDocument</property>
+    y <property>XSLTProcessor::$doXInclude</property> ahora están declaradas.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.extensions.zlib">
+   <title>Zlib</title>
+
+   <simpara>
+    La versión mínima requerida de zlib ahora es 1.2.11.
+   </simpara>
+  </sect3>
+ </sect2>
+
+ <sect2 xml:id="migration84.other-changes.performance">
+  <title>Rendimiento</title>
+
+  <sect3 xml:id="migration84.other-changes.performance.core">
+   <title>Core</title>
+
+   <simpara>
+    Mejora del rendimiento del análisis y la generación de números de punto flotante
+    en construcciones ZTS bajo cargas muy concurrentes.
+    Esto afecta a las funciones <function>printf</function> así
+    como a las funciones de serialización como <function>json_encode</function>
+    o <function>serialize</function>.
+   </simpara>
+
+   <simpara>
+    <function>sprintf</function> usando solo <literal>%s</literal> y
+    la interpolación de cadena <literal>%d</literal> se compilará en la interpolación
+    de cadena equivalente, evitando los costos de una llamada a función y
+    el análisis repetido de la cadena de formato.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.bcmath">
+   <title>BCMath</title>
+
+   <simpara>
+    Mejora del rendimiento de las conversiones de números y las operaciones.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.dom">
+   <title>DOM</title>
+
+   <simpara>
+    El rendimiento de <methodname>DOMNode::C14N</methodname> se mejora enormemente
+    para el caso sin consulta xpath.
+    Esto puede dar una mejora de tiempo fácilmente de dos órdenes de
+    magnitud para documentos con decenas de miles de nodos.
+   </simpara>
+
+   <simpara>
+    Mejora del rendimiento y reducción del consumo de memoria de la serialización XML.
+   </simpara>
+
+   <simpara>
+    Reducción del consumo de memoria de las clases de nodos.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.ftp">
+   <title>FTP</title>
+
+   <simpara>
+    Mejora del rendimiento de las subidas FTP hasta un factor de 10x para las
+    subidas voluminosas.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.hash">
+   <title>Hash</title>
+
+   <simpara>
+    Se han añadido las implementaciones SSE2 y SHA-NI de SHA-256.
+    Esto mejora el rendimiento en procesadores compatibles de ~1.3x (SSE2),
+    y 3x - 5x (SHA-NI).
+    Crédito a Colin Percival / Tarsnap por esta optimización.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.mbstring">
+   <title>MBString</title>
+
+   <simpara>
+    <function>mb_strcut</function> ahora es mucho más rápido para cadenas UTF-8
+    y UTF-16.
+   </simpara>
+
+   <simpara>
+    La búsqueda de nombres de codificación mbstring ahora es mucho más rápida.
+   </simpara>
+
+   <simpara>
+    El rendimiento de la conversión de SJIS-win a Unicode se mejora enormemente.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.mysqlnd">
+   <title>MySQLnd</title>
+
+   <simpara>
+    Mejora del rendimiento de la cotización MySQLnd.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.pcre">
+   <title>PCRE</title>
+
+   <simpara>
+    Mejora del rendimiento de los grupos de captura nombrados.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.random">
+   <title>Random</title>
+
+   <simpara>
+    Mejora del rendimiento de <classname>Random\Randomizer</classname>,
+    con un enfoque específico en los métodos
+    <methodname>Random\Randomizer::getBytes</methodname>,
+    y <methodname>Random\Randomizer::getBytesFromString()</methodname>.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.simplexml">
+   <title>SimpleXML</title>
+
+   <simpara>
+    Mejora del rendimiento y reducción del consumo de memoria de la serialización XML.
+   </simpara>
+  </sect3>
+
+  <sect3 xml:id="migration84.other-changes.performance.standard">
+   <title>Standard</title>
+
+   <simpara>
+    El rendimiento de <function>strspn</function> y
+    <function>strcspn</function> se mejora enormemente.
+    Ahora se ejecutan en tiempo lineal en lugar de estar limitados por un tiempo cuadrático.
+   </simpara>
+
+   <simpara>
+    Mejora del rendimiento de <function>strpbrk</function>.
+   </simpara>
+
+   <simpara>
+    <function>get_browser</function> ahora es mucho más rápido,
+    hasta 1.5x - 2.5x para algunos casos de prueba.
+   </simpara>
+  </sect3>
+ </sect2>
+
+</sect1>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
