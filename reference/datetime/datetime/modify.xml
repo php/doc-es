@@ -1,54 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 086dc12715921d77fe42d7cf578b6254c743aa3e Maintainer: chuso Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-
+<!-- EN-Revision: c8ba91f7e546462dc66c2a11a7eab6f55c93915b Maintainer: Marqitos -->
+<!-- Reviewed: no Maintainer: seros -->
 <refentry xml:id="datetime.modify" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>DateTime::modify</refname>
   <refname>date_modify</refname>
   <refpurpose>Altera la marca temporal</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
+  <methodsynopsis role="DateTime">
    <modifier>public</modifier> <type>DateTime</type><methodname>DateTime::modify</methodname>
-   <methodparam><type>string</type><parameter>modify</parameter></methodparam>
+   <methodparam><type>string</type><parameter>modifier</parameter></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
-  <methodsynopsis role="procedural">
-   <type>DateTime</type><methodname>date_modify</methodname>
+  <methodsynopsis>
+   <type class="union"><type>DateTime</type><type>false</type></type><methodname>date_modify</methodname>
    <methodparam><type>DateTime</type><parameter>object</parameter></methodparam>
-   <methodparam><type>string</type><parameter>modify</parameter></methodparam>
+   <methodparam><type>string</type><parameter>modifier</parameter></methodparam>
   </methodsynopsis>
   <para>
    Altera la marca temporal de un objeto DateTime aumentando o disminuyendo en un
-   formato aceptado por <function>strtotime</function>.
+   formato aceptado por <function>DateTimeImmutable::__construct</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <variablelist>
    &date.datetime.description.modified;
    <varlistentry>
-    <term><parameter>modify</parameter></term>
+    <term><parameter>modifier</parameter></term>
     <listitem>
      <para>&date.formats.parameter;</para>
     </listitem>
    </varlistentry>
   </variablelist>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &date.datetime.return.modifiedobjectorfalseforfailure;
+   Devuelve <classname>DateTime</classname> en caso de éxito.
+   &return.falseforfailure.style.procedural;
   </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+    Solo en la API Orientada a Objetos: Si se pasa una cadena de Fecha/Hora inválida,
+    se lanza <exceptionname>DateMalformedStringException</exceptionname>.
+  </para>
+ </refsect1>
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <informaltable>
@@ -61,18 +69,20 @@
     </thead>
     <tbody>
      <row>
-      <entry>5.3.6</entry>
+      <entry>8.3.0</entry>
       <entry>
-       Las sentencias de fecha/hora absolutas ahora toman efecto.
-       Anteriormente, sólo se utilizaban las partes relativas.
+       <methodname>DateTime::modify</methodname> ahora lanza
+       <exceptionname>DateMalformedStringException</exceptionname> si se
+       pasa una cadena inválida. Anteriormente, devolvía <literal>false</literal>,
+       y se emitía una advertencia.
+       <function>date_modify</function> no ha cambiado.
       </entry>
      </row>
-     &date.datetime.retval.changelog;
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -81,9 +91,9 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$fecha = new DateTime('2006-12-12');
-$fecha->modify('+1 day');
-echo $fecha->format('Y-m-d');
+$date = new DateTime('2006-12-12');
+$date->modify('+1 day');
+echo $date->format('Y-m-d');
 ?>
 ]]>
    </programlisting>
@@ -91,9 +101,9 @@ echo $fecha->format('Y-m-d');
    <programlisting role="php">
 <![CDATA[
 <?php
-$fecha= date_create('2006-12-12');
-date_modify($fecha, '+1 day');
-echo date_format($fecha, 'Y-m-d');
+$date = date_create('2006-12-12');
+date_modify($date, '+1 day');
+echo date_format($date, 'Y-m-d');
 ?>
 ]]>
    </programlisting>
@@ -109,13 +119,13 @@ echo date_format($fecha, 'Y-m-d');
    <programlisting role="php">
 <![CDATA[
 <?php
-$fecha = new DateTime('2000-12-31');
+$date = new DateTime('2000-12-31');
 
-$fecha->modify('+1 month');
-echo $fecha->format('Y-m-d') . "\n";
+$date->modify('+1 month');
+echo $date->format('Y-m-d') . "\n";
 
-$fecha->modify('+1 month');
-echo $fecha->format('Y-m-d') . "\n";
+$date->modify('+1 month');
+echo $date->format('Y-m-d') . "\n";
 ?>
 ]]>
    </programlisting>
@@ -127,12 +137,40 @@ echo $fecha->format('Y-m-d') . "\n";
 ]]>
    </screen>
   </example>
+  <example>
+   <title>Todos los formatos de Fecha y Hora son admitidos</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$date = new DateTime('2020-12-31');
+
+$date->modify('July 1st, 2023');
+echo $date->format('Y-m-d H:i') . "\n";
+
+$date->modify('Monday next week');
+echo $date->format('Y-m-d H:i') . "\n";
+
+$date->modify('17:30');
+echo $date->format('Y-m-d H:i') . "\n";
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+2023-07-01 00:00
+2023-07-03 00:00
+2023-07-03 17:30
+]]>
+   </screen>
+  </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <simplelist>
    <member><function>strtotime</function></member>
+   <member><function>DateTimeImmutable::modify</function></member>
    <member><function>DateTime::add</function></member>
    <member><function>DateTime::sub</function></member>
    <member><function>DateTime::setDate</function></member>
@@ -141,9 +179,8 @@ echo $fecha->format('Y-m-d') . "\n";
    <member><function>DateTime::setTimestamp</function></member>
   </simplelist>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

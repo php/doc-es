@@ -1,55 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d8fc668de6a322e737ef58ab0e0460ae3b48fc71 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-
+<!-- EN-Revision: 34f483426930c25870b4c5455157e7a759e0053c Maintainer: Marqitos Status: ready -->
+<!-- Reviewed: no Maintainer: seros -->
 <refentry xml:id="dateinterval.createfromdatestring" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>DateInterval::createFromDateString</refname>
   <refpurpose>Establece un objeto DateInterval desde las partes relativas de una cadena</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis role="oop">
+  <para>&style.oop;</para>
+  <methodsynopsis role="DateInterval">
    <modifier>public</modifier> <modifier>static</modifier> <type>DateInterval</type><methodname>DateInterval::createFromDateString</methodname>
-   <methodparam><type>string</type><parameter>time</parameter></methodparam>
+   <methodparam><type>string</type><parameter>datetime</parameter></methodparam>
+  </methodsynopsis>
+  <para>&style.procedural;</para>
+  <methodsynopsis>
+   <type class="union"><type>DateInterval</type><type>false</type></type><methodname>date_interval_create_from_date_string</methodname>
+   <methodparam><type>string</type><parameter>datetime</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Emplea el analizador de fechas normal y establece un objeto DateInterval desde las partes
-   relativas de la cadena analizada.
+   Usas los analizadores de fecha/hora como los usados en el constructor de
+   <classname>DateTimeImmutable</classname> para crear un
+   <classname>DateInterval</classname> desde las partes relativas de la
+   cadena analizada.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>time</parameter></term>
+     <term><parameter>datetime</parameter></term>
      <listitem>
       <para>
        Una fecha con partes relativas. Específicamente, los
        <link linkend="datetime.formats.relative">formatos relativos</link>
-       admitidos por el analizador utilzados para <function>strtotime</function> y
-       <classname>DateTime</classname> serán los empleados para construir el objeto
-       DateInterval.
+       admitidos por el analizador utilizados por <classname>DateTimeImmutable</classname>,
+       <classname>DateTime</classname>, y <function>strtotime</function>
+       serán los empleados para construir el objeto DateInterval
+      </para>
+      <para>
+       Para usar un string con formato ISO-8601 como <literal>P7D</literal>, debes
+       usar <methodname>DateInterval::__construct</methodname>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve <classname>DateInterval</classname> en caso de éxito.
+   &return.falseforfailure.style.procedural;
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Solo en la API Orientada a Objetos: Si se pasa una cadena de fecha/hora inválida,
+   se lanza <exceptionname>DateMalformedStringException</exceptionname>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       <methodname>DateInterval::createFromDateString</methodname> ahora lanza
+       <exceptionname>DateMalformedStringException</exceptionname> si se pasa
+       una cadena inválida. Anteriormente, devolvía <literal>false</literal>,
+       y emitía una advertencia.
+       <function>date_interval_create_from_date_string</function> no ha
+       cambiado.
+      </entry>
+     </row>
+     <row>
+      <entry>8.2.0</entry>
+      <entry>
+       Las propiedades <literal>from_string</literal> y
+       <literal>date_string</literal> solo serán visibles cuando se crea un
+       <classname>DateInterval</classname> con este método.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Analizar intervalos de fechas válidos</title>
+    <title>Analizando intervalos de fechas válidos</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Cada conjunto de intervalos es igual.
+// Each set of intervals is equal.
 $i = new DateInterval('P1D');
 $i = DateInterval::createFromDateString('1 day');
 
@@ -75,17 +137,137 @@ $i = DateInterval::createFromDateString('3600 seconds');
     </programlisting>
    </example>
   </para>
- </refsect1>
- 
- <refsect1 role="returnvalues">
-  &reftitle.returnvalues;
   <para>
-   Devuelve una nueva instancia de <classname>DateInterval</classname>.
+   <example>
+    <title>Analizando combinaciones e intervalos negativos</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$i = DateInterval::createFromDateString('62 weeks + 1 day + 2 weeks + 2 hours + 70 minutes');
+echo $i->format('%d %h %i'), "\n";
+
+$i = DateInterval::createFromDateString('1 year - 10 days');
+echo $i->format('%y %d'), "\n";
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen role="shell">
+<![CDATA[
+449 2 70
+1 -10
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Analizando intervalos de fechas relativas especiales</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$i = DateInterval::createFromDateString('last day of next month');
+var_dump($i);
+
+$i = DateInterval::createFromDateString('last weekday');
+var_dump($i);
+]]>
+    </programlisting>
+    &example.outputs.82;
+    <screen role="php">
+<![CDATA[
+object(DateInterval)#1 (2) {
+  ["from_string"]=>
+  bool(true)
+  ["date_string"]=>
+  string(22) "last day of next month"
+}
+object(DateInterval)#2 (2) {
+  ["from_string"]=>
+  bool(true)
+  ["date_string"]=>
+  string(12) "last weekday"
+}
+]]>
+    </screen>
+    &example.outputs.8.similar;
+    <screen role="php">
+<![CDATA[
+object(DateInterval)#1 (16) {
+  ["y"]=>
+  int(0)
+  ["m"]=>
+  int(1)
+  ["d"]=>
+  int(0)
+  ["h"]=>
+  int(0)
+  ["i"]=>
+  int(0)
+  ["s"]=>
+  int(0)
+  ["f"]=>
+  float(0)
+  ["weekday"]=>
+  int(0)
+  ["weekday_behavior"]=>
+  int(0)
+  ["first_last_day_of"]=>
+  int(2)
+  ["invert"]=>
+  int(0)
+  ["days"]=>
+  bool(false)
+  ["special_type"]=>
+  int(0)
+  ["special_amount"]=>
+  int(0)
+  ["have_weekday_relative"]=>
+  int(0)
+  ["have_special_relative"]=>
+  int(0)
+}
+object(DateInterval)#2 (16) {
+  ["y"]=>
+  int(0)
+  ["m"]=>
+  int(0)
+  ["d"]=>
+  int(0)
+  ["h"]=>
+  int(0)
+  ["i"]=>
+  int(0)
+  ["s"]=>
+  int(0)
+  ["f"]=>
+  float(0)
+  ["weekday"]=>
+  int(0)
+  ["weekday_behavior"]=>
+  int(0)
+  ["first_last_day_of"]=>
+  int(0)
+  ["invert"]=>
+  int(0)
+  ["days"]=>
+  bool(false)
+  ["special_type"]=>
+  int(1)
+  ["special_amount"]=>
+  int(-1)
+  ["have_weekday_relative"]=>
+  int(0)
+  ["have_special_relative"]=>
+  int(1)
+}
+]]>
+    </screen>
+   </example>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
