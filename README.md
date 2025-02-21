@@ -17,4 +17,6 @@ Por favor, consulta para saber más detalles.
 
 ## Información de interés para todos los usuarios
 
-Por favor date de alta en la lista de correo oficial: doc-es-subscribe@lists.php.net desde (PHP Mailing Lists)[https://www.php.net/mailing-lists.php].
+Por favor date de alta en la lista de correo oficial: <doc-es-subscribe@lists.php.net> desde [PHP Docs ES Mailing List](https://news-web.php.net/php.doc.es), o enviando un correo en blanco a <doc-es+subscribe@lists.php.net>.
+
+O en otras Mailing Lists de PHP desde [PHP Mailing Lists](https://www.php.net/mailing-lists.php).
