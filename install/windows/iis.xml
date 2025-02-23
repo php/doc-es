@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: e8ac70bf549a723cb36465667a6109d9933b8619 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<sect1 xml:id="install.windows.iis" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>Instalación con IIS para Windows</title>
+
+ <simplesect>
+  <title>Instalar IIS</title>
+  <simpara>
+   Los Servicios de Información de Internet (Internet Information Services - IIS) están integrados en Windows.
+   En Windows Server, el rol IIS puede ser añadido a través del Administrador del Servidor.
+   El módulo CGI debe ser incluido.
+   En los escritorios Windows, IIS debe ser añadido a través del Panel de Control.
+   La documentación de Microsoft proporciona <link xlink:href="&url.iis.enable;">instrucciones detalladas para habilitar IIS</link>.
+   Para el desarrollo,
+   <link xlink:href="&url.iis.express;">IIS/Express</link> también puede ser utilizado.
+  </simpara>
+  <note>
+   <simpara>
+    La versión No-Thread Safe (NTS) de PHP debe ser instalada cuando se utiliza
+    el gestor FastCGI con IIS.
+   </simpara>
+  </note>
+ </simplesect>
+ <simplesect>
+  <title>Configurar PHP con IIS</title>
+
+  <simpara>
+   En el Administrador de IIS, instale el módulo FastCGI y añada una correspondencia de gestor para
+   <literal>.php</literal> al camino de <filename>php-cgi.exe</filename>
+   (no <filename>php.exe</filename>)
+  </simpara>
+
+  <simpara>
+   El comando <command>APPCMD</command> puede ser utilizado para
+   crear scripts de configuración de IIS.
+  </simpara>
+ </simplesect>
+ <simplesect>
+  <title>Ejemplo de script batch</title>
+  <example>
+   <title>Línea de comandos para configurar IIS y PHP</title>
+   <programlisting>
+<![CDATA[
+
+@echo off
+
+REM descargar el archivo .ZIP de la versión de PHP desde http://windows.php.net/downloads/
+
+REM ruta del directorio en el que el archivo .ZIP de PHP ha sido descomprimido (sin \ final)
+set phppath=c:\php
+
+REM Elimina los gestores PHP actuales
+%windir%\system32\inetsrv\appcmd clear config /section:system.webServer/fastCGI
+REM La siguiente comanda generará un mensaje de error si PHP no está instalado. Esto puede ser ignorado.
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /-[name='PHP_via_FastCGI']
+
+REM Configura el gestor PHP
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/fastCGI /+[fullPath='%phppath%\php-cgi.exe']
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='%phppath%\php-cgi.exe',resourceType='Unspecified']
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /accessPolicy:Read,Script
+
+REM Configura las variables FastCGI
+%windir%\system32\inetsrv\appcmd set config -section:system.webServer/fastCgi /[fullPath='%phppath%\php-cgi.exe'].instanceMaxRequests:10000
+%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phppath%\php-cgi.exe'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']"
+%windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+"[fullPath='%phppath%\php-cgi.exe'].environmentVariables.[name='PHPRC',value='%phppath%\php.ini']"
+]]>
+   </programlisting>
+  </example>
+ </simplesect>
+</sect1>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
