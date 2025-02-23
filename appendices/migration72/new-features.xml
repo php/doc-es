@@ -1,32 +1,444 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 310b9d4922fe5f83f7222b81ea25dce607ee645b Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 6d29533483657c036e49edb5ea88c7103d126681 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes Maintainer: girgias -->
 
 <sect1 xml:id="migration72.new-features" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Modificaciones de los módulos SAPI</title>
+ <title>Nuevas características</title>
 
- <sect2 xml:id="migration72.new-features.fpm">
-  <title><link linkend="book.fpm">FPM</link></title>
+ <sect2 xml:id="migration72.new-features.object-type">
+  <title>Nuevo tipo de objeto</title>
 
-  <sect3 xml:id="migration72.new-features.fpm.listen">
-   <title>
-    Los puertos de <link linkend="listen">escucha</link> no cualificados escuchan
-    ahora sobre IPv4 e IPv6
-   </title>
+  <para>
+   Se ha introducido un nuevo tipo, <type>object</type>, que puede ser usado para
+   el tipado de parámetros (contravariante) y el tipado de retorno (covariante) de cualquier
+   objeto.
+  </para>
 
-   <para>
-    En PHP 5, una directiva de <link linkend="listen">escucha</link> con solo un
-    número de puerto escuchaba en todas las interfaces, pero solo sobre IPv4. PHP 7
-    acepta ahora las solicitudes hechas a través de IPv4 e IPv6.
-   </para>
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
 
-   <para>
-    Esto no afecta a las directivas que incluyen direcciones IP específicas;
-    estas continuarán escuchando solo en esa dirección y puerto.
-   </para>
-  </sect3>
+function test(object $obj) : object
+{
+    return new SplQueue();
+}
+
+test(new stdClass());
+]]>
+   </programlisting>
+  </informalexample>
  </sect2>
+
+ <sect2 xml:id="migration72.new-features.ext-loading-by-name">
+  <title>Carga de extensiones por nombre</title>
+
+  <para>
+   Las extensiones compartidas ya no requieren que se especifique su extensión de archivo
+   (<literal>.so</literal> para Unix o <literal>.dll</literal> para Windows) para
+   ser cargadas. Esto está habilitado en el archivo php.ini, así como en la
+   función <function>dl</function>.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.abstract-method-overriding">
+  <title>Sobrescribir métodos abstractos</title>
+
+  <para>
+   Ahora los métodos abstractos pueden ser sobrescritos cuando una clase abstracta extiende
+   otra clase abstracta.
+  </para>
+
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+abstract class A
+{
+    abstract function test(string $s);
+}
+abstract class B extends A
+{
+    // sobrescrito - aún manteniendo la contravarianza para los parámetros y la covarianza para el retorno
+    abstract function test($s) : int;
+}
+]]>
+   </programlisting>
+  </informalexample>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.sodium">
+  <title><link linkend="book.sodium">Sodium</link> ahora es una extensión del núcleo</title>
+
+  <para>
+   La biblioteca moderna de criptografía Sodium se ha convertido en una extensión del núcleo en PHP.
+  </para>
+  <para>
+   Para una referencia completa de funciones, consulte el capítulo <link linkend="book.sodium">Sodium</link>.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.pws-hashing-with-argon2">
+  <title>Hash de contraseñas con Argon2</title>
+
+  <para>
+   Argon2 se ha añadido a la API de <link linkend="book.password">hash de contraseñas</link>,
+   donde se han expuesto las siguientes constantes:
+  </para>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     <constant>PASSWORD_ARGON2I</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>PASSWORD_ARGON2_DEFAULT_MEMORY_COST</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>PASSWORD_ARGON2_DEFAULT_TIME_COST</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>PASSWORD_ARGON2_DEFAULT_THREADS</constant>
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.pdo-extended-str-types">
+  <title>Tipos de cadena extendidos para <link linkend="book.pdo">PDO</link></title>
+
+  <para>
+   El tipo de cadena de PDO se ha extendido para soportar el tipo de carácter nacional
+   cuando se emulan preparaciones. Esto se ha hecho con las siguientes constantes:
+  </para>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     <constant>PDO::PARAM_STR_NATL</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>PDO::PARAM_STR_CHAR</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>PDO::ATTR_DEFAULT_STR_PARAM</constant>
+    </simpara>
+   </listitem>
+  </itemizedlist>
+
+  <para>
+   Estas constantes se utilizan mediante la combinación bit a bit <literal>OR</literal> con
+   <constant>PDO::PARAM_STR</constant>:
+  </para>
+
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$db->quote('über', PDO::PARAM_STR | PDO::PARAM_STR_NATL);
+]]>
+   </programlisting>
+  </informalexample>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.additional-emulated-prepares-debugging-info">
+  <title>Información adicional de depuración para preparaciones emuladas en <link linkend="book.pdo">PDO</link></title>
+
+  <para>
+   El método <function>PDOStatement::debugDumpParams</function> ha sido
+   actualizado para incluir el SQL que se envía a la base de datos, donde se mostrará la consulta completa y sin procesar
+   (incluyendo los marcadores de posición reemplazados con sus valores vinculados). Esto se ha añadido para ayudar en la depuración de preparaciones emuladas (y por lo tanto solo estará disponible cuando las preparaciones emuladas estén activadas).
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.extended-ops-in-ldap">
+  <title>Soporte para operaciones extendidas en <link linkend="book.ldap">LDAP</link></title>
+
+  <para>
+   Se ha añadido soporte para EXOP a la extensión LDAP. Esto se ha hecho exponiendo las siguientes funciones y constantes:
+  </para>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     <function>ldap_parse_exop</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>ldap_exop</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>ldap_exop_passwd</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>ldap_exop_whoami</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>LDAP_EXOP_START_TLS</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>LDAP_EXOP_MODIFY_PASSWD</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>LDAP_EXOP_REFRESH</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>LDAP_EXOP_WHO_AM_I</constant>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>LDAP_EXOP_TURN</constant>
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.addr-info-in-sockets">
+  <title>Adiciones de Información de Dirección a la extensión <link linkend="book.sockets">Sockets</link></title>
+
+  <para>
+   La extensión de sockets ahora tiene la capacidad de buscar información de direcciones, así como conectarse a ella, enlazarse a ella y explicarla. Se han añadido las siguientes cuatro
+   funciones para esto:
+  </para>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     <function>socket_addrinfo_lookup</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>socket_addrinfo_connect</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>socket_addrinfo_bind</function>
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <function>socket_addrinfo_explain</function>
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.param-type-widening">
+  <title>Ampliación del tipo de parámetro</title>
+
+  <para>
+   Los tipos de parámetros de métodos sobrescritos y de implementaciones de interfaces
+   ahora pueden ser omitidos. Esto sigue siendo conforme con LSP, ya que los tipos de parámetros son contravariantes.
+  </para>
+
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+interface A
+{
+    public function Test(array $input);
+}
+
+class B implements A
+{
+    public function Test($input){} // tipo omitido para $input
+}
+]]>
+   </programlisting>
+  </informalexample>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.trailing-comma-in-grouped-namespaces">
+  <title>Permitir una coma final para namespaces agrupados</title>
+
+  <para>
+   Ahora se puede añadir una coma final a la sintaxis de uso agrupado introducida en
+   PHP 7.0.
+  </para>
+
+  <informalexample>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+use Foo\Bar\{
+    Foo,
+    Bar,
+    Baz,
+};
+]]>
+   </programlisting>
+  </informalexample>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.proc_nice-windows-support">
+  <title>Soporte de <function>proc_nice</function> en Windows</title>
+
+  <para>
+   La función <function>proc_nice</function> ahora es soportada en Windows.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.pack-unpack-endian-support">
+  <title>Soporte de endian en <function>pack</function> y <function>unpack</function></title>
+
+  <para>
+   Las funciones <function>pack</function> y <function>unpack</function> ahora
+   soportan float y double tanto en little endian como en big endian.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.exif-features">
+  <title>Mejoras en la extensión <link linkend="book.exif">EXIF</link></title>
+
+  <para>
+   La extensión EXIF se ha actualizado para soportar una gama mucho más amplia de formatos. Esto
+   significa que sus etiquetas específicas de formato ahora se traducen correctamente al analizar imágenes
+   con la función <function>exif_read_data</function>. Los siguientes nuevos formatos ahora son soportados:
+  </para>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Samsung
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     DJI
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Panasonic
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Sony
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Pentax
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Minolta
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Sigma/Foveon
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     AGFA
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Kyocera
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Ricoh
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Epson
+    </simpara>
+   </listitem>
+  </itemizedlist>
+
+  <para>
+   Las funciones EXIF <function>exif_read_data</function> y <function>exif_thumbnail</function>
+   ahora soportan pasar flujos como su primer argumento.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.pcre">
+  <title>Nuevas características en <link linkend="book.pcre">PCRE</link></title>
+
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Se ha añadido el modificador <literal>J</literal> para establecer PCRE_DUPNAMES.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.sqlite3">
+  <title><link linkend="book.sqlite3">SQLite3</link> permite escribir BLOBs</title>
+
+  <para>
+   <methodname>SQLite3::openBlob</methodname> ahora permite abrir campos BLOB en
+   modo de escritura; anteriormente solo se soportaba el modo de lectura.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.oci8">
+  <title>Devoluciones de llamada de <link linkend="book.oci8">Oracle OCI8</link> para Falla Transparente de Aplicaciones</title>
+
+  <para>
+   Se ha añadido soporte para <link linkend="oci8.taf">devoluciones de llamada de Falla Transparente de Aplicaciones (TAF) de Oracle Database</link>.
+   TAF permite que las aplicaciones PHP OCI8 se
+   reconecten automáticamente a una base de datos preconfigurada cuando una conexión
+   se rompe. El nuevo soporte de devoluciones de llamada de TAF permite que las aplicaciones PHP
+   supervisen y controlen la reconexión durante la falla.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration72.new-features.zip">
+  <title>Mejoras en la extensión <link linkend="book.zip">ZIP</link></title>
+
+  <para>
+   Se ha añadido soporte de lectura y escritura para archivos cifrados (requiere libzip 1.2.0).
+  </para>
+  <para>
+   La clase <classname>ZipArchive</classname> ahora implementa la interfaz <interfacename>Countable</interfacename>.
+  </para>
+  <para>
+   El flujo <literal>zip://</literal> ahora acepta una opción de contexto <literal>'password'</literal>.
+  </para>
+ </sect2>
+
 </sect1>
 
 <!-- Keep this comment at the end of the file
