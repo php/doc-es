@@ -1,26 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?> 
+<?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 2545422d0c95ea5732ddf2126ae1aa2754885b1c Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 3295741565f760edd22e305bd10e37f243e9e194 Maintainer: Marqitos Status: ready -->
 <!-- Reviewed: no -->
-<refentry xml:id="function.bcpowmod" xmlns="http://docbook.org/ns/docbook">
+<refentry xml:id="function.bcpowmod" xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude">
  <refnamediv>
   <refname>bcpowmod</refname>
   <refpurpose>Eleva un número de precisión arbitraria a otro, reducido por un módulo especificado</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>bcpowmod</methodname>
-   <methodparam><type>string</type><parameter>left_operand</parameter><initializer>""</initializer></methodparam>
-   <methodparam><type>string</type><parameter>right_operand</parameter><initializer>""</initializer></methodparam>
-   <methodparam><type>string</type><parameter>modulus</parameter><initializer>""</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>scale</parameter><initializer>int</initializer></methodparam>
+   <methodparam><type>string</type><parameter>num</parameter></methodparam>
+   <methodparam><type>string</type><parameter>exponent</parameter></methodparam>
+   <methodparam><type>string</type><parameter>modulus</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>scale</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Usa el método de exponenciación rápida para aumentar el 
-   <parameter>left_operand</parameter> a la potencia
-   <parameter>right_operand</parameter> con respecto al módulo
+   Usa el método de exponenciación rápida para aumentar
+   <parameter>num</parameter> a la potencia
+   <parameter>exponent</parameter> con respecto al módulo
    <parameter>modulus</parameter>.
   </para>
  </refsect1>
@@ -30,18 +30,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>left_operand</parameter></term>
+     <term><parameter>num</parameter></term>
      <listitem>
       <para>
-       El left operand, como una cadena.
+       La base, como un string integral (es decir, la escala tiene que ser cero).
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>right_operand</parameter></term>
+     <term><parameter>exponent</parameter></term>
      <listitem>
       <para>
-       El right operand, como una cadena.
+       El exponente, como un string integral no negativo (es decir, la escala tiene que ser cero).
       </para>
      </listitem>
     </varlistentry>
@@ -49,11 +49,11 @@
      <term><parameter>modulus</parameter></term>
      <listitem>
       <para>
-       El modulus, como una cadena.
+       El módulo, como un string integral (es decir, la escala tiene que ser cero).
       </para>
      </listitem>
     </varlistentry>
-    &bc.scale.description;
+    <xi:include xpointer="function.bcadd..parameters.scale" />
    </variablelist>
   </para>
  </refsect1>
@@ -61,21 +61,61 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el resultado como una cadena, o &null; si <parameter>modulus</parameter>
-   es 0.
+   Devuelve el resultado como un string.
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Debido a que este método utiliza la operación módulo, podrían obtenerse resultados
-    inesperados en números enteros no positivos.
-   </para>
-  </note>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Esta función lanza un <exceptionname>ValueError</exceptionname> en los siguientes casos:
+   <simplelist>
+    <member><parameter>num</parameter>, <parameter>exponent</parameter> o <parameter>modulus</parameter> no es un string numérico con formato válido de BCMath</member>
+    <member><parameter>num</parameter>, <parameter>exponent</parameter> o <parameter>modulus</parameter> tiene una parte fraccionaria</member>
+    <member><parameter>exponent</parameter> es un valor negativo</member>
+    <member><parameter>scale</parameter> está fuera del rango válido</member>
+   </simplelist>
+  </para>
+  <simpara>
+   Esta función lanza una excepción <exceptionname>DivisionByZeroError</exceptionname> si <parameter>modulus</parameter>
+   es <literal>0</literal>.
+  </simpara>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>scale</parameter> ahora es nullable.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       Ahora lanza un <exceptionname>ValueError</exceptionname> en vez de devolver &false; si <parameter>exponent</parameter> es un valor negativo.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       Dividiendo por <literal>0</literal> ahora lanza una excepción <exceptionname>DivisionByZeroError</exceptionname> en vez de devolver &false;.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -90,7 +130,7 @@ $a = bcpowmod($x, $y, $mod);
 
 $b = bcmod(bcpow($x, $y), $mod);
 
-// $a and $b are equal to each other.
+// $a y $b son iguales el uno al otro.
 
 ?>
 ]]>
@@ -98,18 +138,28 @@ $b = bcmod(bcpow($x, $y), $mod);
    </informalexample>
   </para>
  </refsect1>
- 
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Debido a que este método utiliza la operación módulo, podrían obtenerse resultados
+    inesperados en números enteros no positivos.
+   </para>
+  </note>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>bcpow</function></member>
     <member><function>bcmod</function></member>
+   <member><methodname>BcMath\Number::powmod</methodname></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
