@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5783afacadc643d901276d4314d75a0186397dd6 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: julionc -->
+<!-- EN-Revision: 5783afacadc643d901276d4314d75a0186397dd6 Maintainer: Marqitos Status: partial -->
+<!-- Reviewed: no Maintainer: julionc -->
 
 <!ENTITY installation.enabled.disable 'Esta extensión está habilitada de forma predeterminada. Se puede deshabilitar empleando la siguiente opción durante la compilación: '>
 
 <!-- Not used in EN anymore -->
 <!ENTITY changelog.randomseed '<row xmlns="http://docbook.org/ns/docbook"><entry>4.2.0</entry><entry>El generador de
-números aleatorio es sembrado automáticamente.</entry></row>'>
+números aleatorio se genera automáticamente.</entry></row>'>
 
 <!ENTITY warn.deprecated.feature-5-3-0.removed-6-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta característica ha sido declarada
@@ -20,38 +20,66 @@ xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 totalmente desaconsejado.</simpara></warning>'>
 
 <!-- Cautions -->
-<!ENTITY caution.cryptographically-insecure '<caution xmlns="http://docbook.org/ns/docbook"><para>Esta función no
-genera valores criptográficos fiables por lo que no debería empelarse para propósitos criptográficos. Si fuera necesario
-un valor criptográfico seguro, considérese utilizar <function>random_int</function>, <function>random_bytes</function>, o
-<function>openssl_random_pseudo_bytes</function> en su lugar.</para></caution>'>
+<!ENTITY caution.cryptographically-insecure '<caution xmlns="http://docbook.org/ns/docbook">
+ <para>
+  Esta función no genera valores criptográficamente seguros y <emphasis>no debe</emphasis>
+  ser utilizada para fines criptográficos o fines que requieran que los valores devueltos sean impredecibles.
+ </para>
+ <para>
+  Si se requiere aleatoriedad criptográficamente segura, se puede utilizar el <classname>Random\Randomizer</classname>
+  con el motor <classname>Random\Engine\Secure</classname>. Para casos de uso simples, las funciones <function>random_int</function>
+  y <function>random_bytes</function> proporcionan una <acronym>API</acronym> conveniente y segura respaldada por
+  el <acronym>CSPRNG</acronym> del sistema operativo.
+ </para>
+</caution>'>
+
+<!ENTITY caution.mt19937-tiny-seed '<caution xmlns="http://docbook.org/ns/docbook">
+ <para>
+  Debido a que el motor Mt19937 ("Mersenne Twister") acepta solo un único entero de 32 bits como
+  semilla, el número de secuencias aleatorias posibles se limita a solo 2<superscript>32</superscript>
+  (es decir, 4,294,967,296), a pesar del enorme período de Mt19937 de 2<superscript>19937</superscript>-1.
+ </para>
+ <para>
+  Al depender ya sea de una siembra aleatoria implícita o explícita, las duplicaciones aparecerán
+  mucho antes. Se espera que las semillas duplicadas ocurran con una probabilidad del 50&#37; después de menos de
+  80,000 semillas generadas al azar según el problema del cumpleaños. Una probabilidad del 10&#37;
+  de una semilla duplicada ocurre después de generar aproximadamente 30,000 semillas al azar.
+ </para>
+ <para>
+  Esto hace que Mt19937 no sea adecuado para aplicaciones donde las secuencias duplicadas no deben ocurrir con
+  más que una probabilidad insignificante. Si se requiere siembra reproducible, tanto el
+  motor <classname>Random\Engine\Xoshiro256StarStar</classname> como el <classname>Random\Engine\PcgOneseq128XslRr64</classname>
+  admiten semillas mucho más grandes que es poco probable que colisionen aleatoriamente. Si no se requiere reproducibilidad,
+  el motor <classname>Random\Engine\Secure</classname> proporciona aleatoriedad
+  criptográficamente segura.
+ </para>
+</caution>'>
 
 <!-- Notes -->
 
 <!ENTITY note.bin-safe '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta función es
 segura binariamente.</simpara></note>'>
 
-<!ENTITY note.locale-single-byte '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta función tiene en cuenta
-la configuración regional y tratará la entrada de acuerdo con la configuración regional actual. Sin embargo,
-sólo funciona con conjuntos de caracteres de un solo byte.
-Si necesita utilizar caracteres de varios bytes (la mayoría idiomas no europeos), consulte las extensiones
-<link linkend="book.mbstring">multibyte</link> o <link linkend="book.intl">intl</link>.</simpara></note>'>
-
 <!ENTITY note.clearstatcache '<note xmlns="http://docbook.org/ns/docbook"><simpara>Los resultados de esta
 función son guardados en caché. Para
 más información ver <function>clearstatcache</function>.</simpara></note>'>
 
-<!ENTITY note.context-support '<note xmlns="http://docbook.org/ns/docbook"><simpara>Soporte para context fue
-añadido en PHP 5.0.0. Para una descripción de <literal>contexts</literal>, refiérase a
-<xref linkend="book.stream"/>.</simpara></note>'>
+<!ENTITY note.context-support '<para xmlns="http://docbook.org/ns/docbook">Un <type>resource</type>
+de <link linkend="stream.contexts">contextos de flujos</link>.</para>'>
 
 <!ENTITY note.exec-bg '<note xmlns="http://docbook.org/ns/docbook"><para>Si ejecutamos un programa con esta
 función y queremos dejarlo ejecutándose en segundo plano, hay que asegurarse que la salida del mismo
-es redireccionada a un fichero u otro flujo de salida o PHP
-se quedará esperando hasta que la ejecución del programa termine.</para></note>'>
+es redireccionada a un fichero u otro flujo de salida. No hacerlo
+hará que PHP se congele hasta que termine la ejecución del programa.</para></note>'>
 
 <!ENTITY note.exec-bypass-shell '<note xmlns="http://docbook.org/ns/docbook"><para>En Windows <function>exec</function>,
 iniciará primero cmd.exe para lanzar el comando. Si se quiere iniciar un programa externo sin iniciar cmd.exe
 use <function>proc_open</function> con la opción <parameter>bypass_shell</parameter> establecida.</para></note>'>
+
+<!ENTITY note.extractto-windows '<note xmlns="http://docbook.org/ns/docbook"><para>Los sistemas de archivos NTFS de Windows
+no admiten algunos caracteres en nombres de archivos, a saber: <literal>&lt;|&gt;*?":</literal>. Tampoco se admiten nombres de archivo
+con un punto final. A diferencia de algunas herramientas de extracción, este método no reemplaza estoscaracteres con
+un guion bajo, sino que falla al intentar extraer tales archivos.</para></note>'>
 
 <!ENTITY note.func-callback '<note xmlns="http://docbook.org/ns/docbook"><simpara>En lugar del nombre de una
 función, se puede asignar un array que contenga la referencia a un objeto o el nombre de un
@@ -70,6 +98,13 @@ actual para determinar los detalles del parámetro, no puede ser usada
 como parámetro de función en versiones anteriores a 5.3.0. Si se require pasar el valor, los resultados deben ser asignados
 a una variable y esta variable debería pasarse como parámetro.</para></note>'>
 
+<!ENTITY note.func-named-params '<note xmlns="http://docbook.org/ns/docbook"><para>A partir de PHP 8.0.0, la familia de funciones func_*()
+está destinada a ser en su mayoría transparente con respecto a los argumentos con nombre,
+tratando los argumentos como si todos fueran pasados posicionalmente,
+y los argumentos faltantes son reemplazados por sus valores predeterminados.
+Esta función ignora la colección de argumentos variádicos con nombre desconocidos.
+Los argumentos con nombre desconocidos que se recopilan solo pueden accederse a través del parámetro variádico.</para></note>'>
+
 <!ENTITY note.line-endings '<note xmlns="http://docbook.org/ns/docbook"><simpara>Si sufre problemas con PHP
 no reconociendo los finales de línea cuando lee o crea ficheros en Macintosh,
 puede probar de activar la opción de configuración en tiempo de ejecución
@@ -84,7 +119,7 @@ accesible vía el sistema de ficheros del servidor para poder ser examinado.</si
 no es (todavía) segura binariamente</simpara></warning>'>
 
 <!ENTITY note.no-key-association '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta función
-asigna nuevas clave a los elemenos del <parameter>array</parameter>.
+asigna nuevas clave a los elementos del <parameter>array</parameter>.
 Eliminará cualquier clave existente que haya sido asignada,
 en lugar de reordenar las claves.</simpara></note>'>
 
@@ -94,16 +129,13 @@ implementada en plataformas Windows.</simpara></note>'>
 <!ENTITY note.no-windows.extension '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta extensión no
 está disponible en plataformas Windows.</simpara></note>'>
 
+<!ENTITY note.no-zts '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta función no está
+disponible en intérpretes PHP construidos con ZTS (Zend Thread Safety) habilitado. Para comprobar si su copia de PHP fue construida con ZTS habilitado, use <command>php -i</command> o compruebe la constante interna <constant>PHP_ZTS</constant>.</simpara></note>'>
+
 <!ENTITY note.randomseed '<note xmlns="http://docbook.org/ns/docbook"><simpara>No es necesario
 usar una semilla para usar el generador de números aleatorios con <function>srand</function> o
 <function>mt_srand</function> ya que se hace automáticamente.
 </simpara></note>'>
-
-<!ENTITY note.registerglobals '<note xmlns="http://docbook.org/ns/docbook"><title>register_globals: Observación
-importante</title><para>Desde PHP 4.2.0, el valor por defecto de la directiva
-<literal>register_globals</literal> es <emphasis>
-off</emphasis>. La comunidad de PHP desaconseja el uso
-de esta directiva y sugiere el uso de otras formas como &link.superglobals;.</para></note>'>
 
 <!ENTITY note.is-superglobal "<note xmlns='http://docbook.org/ns/docbook'><para>Esta es una 'superglobal' o
 una variable automatic global. Significa simplemente que es una variable que está disponible en cualquier parte
@@ -115,32 +147,51 @@ del script. No hace falta hacer
 se usa, esta función utiliza el almacenamiento en búfer de salida interno, por lo que no puede usarse dentro de una
 función de llamada de retorno <function>ob_start</function>.</para></note>'>
 
+<!ENTITY note.uses-ob-php70 '<note xmlns="http://docbook.org/ns/docbook"><paraCuando el parámetro <parameter>return</parameter>
+se usa, esta función utiliza el almacenamiento en búfer de salida interno antes de PHP 7.1.0, por lo que no puede usarse dentro de una
+función de llamada de retorno <function>ob_start</function>.</para></note>'>
+
 <!ENTITY note.filesystem-time-res '<note xmlns="http://docbook.org/ns/docbook"><para>Observe que el tiempo de resolución
 quizá varia según el sistema de ficheros.</para></note>'>
 
 <!ENTITY note.uses-autoload '<note xmlns="http://docbook.org/ns/docbook">
 <para>Esta función cargará cualquier
- <link linkend="language.oop5.autoload">autocargador</link> registrado si la clase todavía no existe.</para></note>'>
+<link linkend="language.oop5.autoload">autocargador</link> registrado si la clase todavía no existe.</para></note>'>
 
 <!ENTITY note.network.header.sapi '<note xmlns="http://docbook.org/ns/docbook">
-<para>
- Las cabeceras sólo serán accesibles y mostradas si se utiliza un SAPI
- que lo soporte.
-</para>
-</note>
+   <para>
+    Las cabeceras sólo serán accesibles y mostradas si se utiliza un SAPI
+    que lo soporte.
+   </para>
+  </note>
 '>
 
 <!ENTITY note.sigchild '<note xmlns="http://docbook.org/ns/docbook">
-<para>
- Si PHP se compiló con --enable-sigchild, el valor devuelto por esta función es indefinido.
-</para>
+ <para>
+  Si PHP se compiló con --enable-sigchild, el valor devuelto por esta función es indefinido.
+ </para>
 </note>
 '>
 
 <!ENTITY note.sort-unstable '<note xmlns="http://docbook.org/ns/docbook">
-<para>
- Si dos miembros se comparan como iguales, su orden relativo en el array oredenado será indefinido.
-</para>
+ <para>
+  Si dos miembros se comparan como iguales, ellos mantendrán su orden original.
+  Antes de PHP 8.0.0, su orden relativo en un array ordenado era indefinido.
+ </para>
+</note>
+'>
+
+<!ENTITY note.reset-index "<note xmlns='http://docbook.org/ns/docbook'>
+ <para>
+    Reinicia el puntero interno del array al primer elemento.
+ </para>
+</note>
+">
+
+<!ENTITY note.resource-migration-8.0-dead-function '<note xmlns="http://docbook.org/ns/docbook">
+ <para>
+  Esta función no tiene efecto. Antes de PHP 8.0.0, esta función se utilizaba para cerrar el recurso.
+ </para>
 </note>
 '>
 
@@ -223,6 +274,12 @@ xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 <emphasis>OBSOLETA</emphasis> a partir de PHP 7.1.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
 
+<!ENTITY warn.deprecated.function-7-0-0.removed-8-0-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 7.1.0 y será
+<emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
 <!ENTITY warn.deprecated.function-7-1-0.removed-7-2-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 <emphasis>OBSOLETA</emphasis> a partir de PHP 7.1.0 y será
@@ -234,9 +291,19 @@ xmlns="http://docbook.org/ns/docbook"><simpara>Esta característica ha sido decl
 <emphasis>OBSOLETA</emphasis> a partir de PHP 7.2.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
 
+<!ENTITY warn.deprecated.feature-7-2-0.removed-8-0-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta característica ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 7.2.0, y será <emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
 <!ENTITY warn.deprecated.function-7-2-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 <emphasis>OBSOLETA</emphasis> a partir de PHP 7.2.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.function-7-2-0.removed-8-0-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 7.2.0, y será <emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.feature-7-3-0 '<warning
@@ -251,7 +318,7 @@ totalmente desaconsejado.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.function-7-3-0.removed-8-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
-<emphasis>OBSOLETA</emphasis> a partir de PHP 7.3.0, y es <emphasis>ELIMINADA</emphasis> desde PHP 8.0.0. Su uso está
+<emphasis>OBSOLETA</emphasis> a partir de PHP 7.3.0, y será <emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.feature-7-4-0 '<warning
@@ -266,12 +333,46 @@ totalmente desaconsejado</simpara></warning>'>
 
 <!ENTITY warn.deprecated.function-7-4-0.removed-8-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
-<emphasis>OBSOLETA</emphasis> a partir de PHP 7.4.0, y es <emphasis>ELIMINADA</emphasis> desde PHP 8.0.0. Su uso está
+<emphasis>OBSOLETA</emphasis> a partir de PHP 7.4.0, y será <emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.feature.removed-8-0-0 '<warning xmlns="http://docbook.org/ns/docbook">
+<simpara>Esta característica ha sido <emphasis>ELIMINADA</emphasis> a partir de PHP 8.0.0.</simpara>
+</warning>'>
 
 <!ENTITY warn.deprecated.function-8-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 <emphasis>OBSOLETA</emphasis> a partir de PHP 8.0.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.function-8-1-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.1.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.function-8-2-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.2.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.feature-8-3-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.3.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.function-8-3-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.3.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.feature-8-4-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.4.0. Su uso está
+totalmente desaconsejado.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.function-8-4-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.4.0. Su uso está
 totalmente desaconsejado.</simpara></warning>'>
 
 <!ENTITY removed.php.future 'Esta característica obsoleta <emphasis xmlns="http://docbook.org/ns/docbook">será</emphasis>
@@ -303,31 +404,47 @@ xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 
 <!ENTITY warn.deprecated.feature-5-5-0.removed-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta característica fue declarada
-<emphasis>OBSOLETA</emphasis> en PHP 5.5.0 y <emphasis>ELILMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>OBSOLETA</emphasis> en PHP 5.5.0 y <emphasis>ELIMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.function-5-5-0.removed-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función fue declarada
-<emphasis>OBSOLETA</emphasis> en PHP 5.5.0 y <emphasis>ELILMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>OBSOLETA</emphasis> en PHP 5.5.0 y <emphasis>ELIMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.function-4-1-0.removed-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función fue declarada
-<emphasis>OBSOLETA</emphasis> en PHP 4.1.0 y <emphasis>ELILMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>OBSOLETA</emphasis> en PHP 4.1.0 y <emphasis>ELIMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.function-5-3-0.removed-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función fue declarada
-<emphasis>OBSOLETA</emphasis> en PHP 5.3.0 y <emphasis>ELILMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>OBSOLETA</emphasis> en PHP 5.3.0 y <emphasis>ELIMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.alias-5-3-0.removed-7-0-0 '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Este alias fue declarado
-<emphasis>OBSOLETO</emphasis> en PHP 5.3.0 y <emphasis>ELILMINADO</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>OBSOLETO</emphasis> en PHP 5.3.0 y <emphasis>ELIMINADO</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.deprecated.feature-5-6-0.removed-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta característica fue declarada
 <emphasis>OBSOLETA</emphasis> en PHP 5.6.0 y
-<emphasis>ELILMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
+<emphasis>ELIMINADA</emphasis> a partir de PHP 7.0.0.</simpara></warning>'>
 
 <!ENTITY warn.removed.function-7-0-0 '<warning
 xmlns="http://docbook.org/ns/docbook"><simpara>Esta función fue
-<emphasis>ELILMINADA</emphasis> en PHP 7.0.0.</simpara></warning>'>
+<emphasis>ELIMINADA</emphasis> en PHP 7.0.0.</simpara></warning>'>
+
+<!ENTITY warn.removed.function-7-4-0 '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función fue
+<emphasis>ELIMINADA</emphasis> en PHP 7.4.0.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.alias-7-2-0.removed-8-0-0 '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Este alias ha sido declarado
+<emphasis>OBSOLETO</emphasis> en PHP 7.2.0, y <emphasis>ELIMINADO</emphasis> a partir de PHP 8.0.0.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.alias-7-4-0.removed-8-0-0 '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Este alias ha sido declarado
+<emphasis>OBSOLETO</emphasis> en PHP 7.4.0, y <emphasis>ELIMINADO</emphasis> a partir de PHP 8.0.0.</simpara></warning>'>
+
+<!ENTITY warn.deprecated.alias-8-0-0 '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Esta alias está
+<emphasis>OBSOLETO</emphasis> a partir de PHP 8.0.0.</simpara></warning>'>
+
+<!ENTITY warn.removed.alias-8-0-0 '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Esta alias está
+<emphasis>ELIMINADO</emphasis> a partir de PHP 8.0.0.</simpara></warning>'>
 
 <!ENTITY warn.experimental.func '<warning xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
 <emphasis>EXPERIMENTAL</emphasis>. Su funcionamiento, nombre y
@@ -345,12 +462,6 @@ Anotación: Yaz 2.0 y versiones superiores no tienen este problema..</simpara></
 servidor esta expuesto a diferentes ataques. Por favor, leer la sección
 <link linkend="security.cgi-bin">Seguridad con CGI</link> para aprender cómo
 defenderse de estos ataques.</para></warning>'>
-
-<!ENTITY note.magicquotes.gpc '<note xmlns="http://docbook.org/ns/docbook"><title>Sobre de la directiva:
-magic_quotes_gpc</title><para> La directiva de PHP <link
-linkend="ini.magic-quotes-gpc">magic_quotes_gpc</link> tiene por defecto el valor
-<literal>on</literal>. Básicamente ejecuta <function>addslashes</function> en los
-datos obtenidos por GET, POST, y COOKIE. Se puede usar <function>stripslashes</function> para quitarlos.</para></note>'>
 
 <!ENTITY warn.passwordhashing '
 <warning xmlns="http://docbook.org/ns/docbook">
@@ -378,7 +489,7 @@ explicitamente.</para></warning>'>
 <!ENTITY warn.undocumented.class '
 <warning xmlns="http://docbook.org/ns/docbook">
  <simpara>
-  Esta clase no está documentada actualmente; solamlente está disponible una lista con
+  Esta clase no está documentada actualmente; solamente está disponible una lista con
   sus métodos y propiedades.
  </simpara>
 </warning>
@@ -471,13 +582,18 @@ no está documentada actualmente, solamente se encuentra disponible la lista de 
 </para>
 '>
 
+<!ENTITY warn.deprecated.function-8-1-0.alternatives '<warning
+xmlns="http://docbook.org/ns/docbook"><simpara>Esta función ha sido declarada
+<emphasis>OBSOLETA</emphasis> a partir de PHP 8.1.0. Su uso está
+totalmente desaconsejado.</simpara></warning>
+<para xmlns="http://docbook.org/ns/docbook">
+ Las alternativas a esta función son:
+</para>
+'>
+
 <!-- Misc -->
 
 <!ENTITY version.exists.asof 'Existe a partir de PHP '>
-
-<!ENTITY version.trunk.after.53 '<emphasis xmlns="http://docbook.org/ns/docbook">Este cambio
-existe en la <link linkend="about.phpversions">versión de desarrollo</link> de PHP, y
-seguramente existirá después de la versión 5.3.</emphasis>'>
 
 <!ENTITY version.trunk.changelog 'Futuro'>
 
@@ -501,6 +617,30 @@ seguramente existirá después de la versión 5.3.</emphasis>'>
 
 <!ENTITY example.outputs.71 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 7.1:</para>'>
 
+<!ENTITY example.outputs.72 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 7.2:</para>'>
+
+<!ENTITY example.outputs.73 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 7.3:</para>'>
+
+<!ENTITY example.outputs.8 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8:</para>'>
+
+<!ENTITY example.outputs.8.similar '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8 es similar a:</para>'>
+
+<!ENTITY example.outputs.80 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.0:</para>'>
+
+<!ENTITY example.outputs.81 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.1:</para>'>
+
+<!ENTITY example.outputs.82 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.2:</para>'>
+
+<!ENTITY example.outputs.82.similar '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.2 es similar a:</para>'>
+
+<!ENTITY example.outputs.83 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.3:</para>'>
+
+<!ENTITY example.outputs.83.similar '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.3 es similar a:</para>'>
+
+<!ENTITY example.outputs.84 '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.4:</para>'>
+
+<!ENTITY example.outputs.84.similar '<para xmlns="http://docbook.org/ns/docbook">Salida del ejemplo anterior en PHP 8.4 es similar a:</para>'>
+
 <!ENTITY example.outputs.32bit '<para xmlns="http://docbook.org/ns/docbook">El resultado del ejemplo en equipos de 32 bit sería:</para>'>
 
 <!ENTITY example.outputs.64bit '<para xmlns="http://docbook.org/ns/docbook">El resultado del ejemplo en equipos de 64 bit sería:</para>'>
@@ -520,6 +660,22 @@ sería algo similar a:</para>'>
 <!ENTITY array.resetspointer '<note xmlns="http://docbook.org/ns/docbook"><simpara>Esta función
 ejecutará un <function>reset</function> en el puntero de <type>array</type> del array de entrada después de
 su uso.</simpara></note>'>
+
+<!ENTITY array.changelog.by-ref '<row xmlns="http://docbook.org/ns/docbook">
+ <entry>8.0.0</entry>
+ <entry>
+  Si <parameter>callback</parameter> espera que se pase un parámetro
+  por referencia, esta función ahora emitirá un <constant>E_WARNING</constant>.
+ </entry>
+</row>'>
+
+<!ENTITY array.changelog.require-only-one '<row xmlns="http://docbook.org/ns/docbook">
+  <entry>8.0.0</entry>
+  <entry>
+  Esta función ahora puede ser llamada con un solo parámetro.
+  Anteriormente, se requerían al menos dos parámetros.
+  </entry>
+</row>'>
 
 <!ENTITY seealso.array.sorting ' <link xmlns="http://docbook.org/ns/docbook" linkend="array.sorting">comparación de funciones de orden de arrays</link>'>
 
@@ -2463,6 +2619,204 @@ usarse en su lugar la extensión
 '>
 
 <!-- strings snippets -->
+<!ENTITY strings.stripped.characters '
+ <itemizedlist xmlns="http://docbook.org/ns/docbook">
+    <listitem>
+     <simpara>
+      <literal>" "</literal>: <acronym>ASCII</acronym> <acronym>SP</acronym> caracter
+      <literal>0x20</literal>, un espacio ordinario.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\t"</literal>: <acronym>ASCII</acronym> <acronym>HT</acronym> caracter
+      <literal>0x09</literal>, un tabulador.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\n"</literal>: <acronym>ASCII</acronym> <acronym>LF</acronym> caracter
+      <literal>0x0A</literal>, una nueva línea (line feed).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\r"</literal>: <acronym>ASCII</acronym> <acronym>CR</acronym> caracter
+      <literal>0x0D</literal>, un retorno de carro.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\0"</literal>: <acronym>ASCII</acronym> <acronym>NUL</acronym> caracter
+      <literal>0x00</literal>, el byte <literal>NULL</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\v"</literal>: <acronym>ASCII</acronym> <acronym>VT</acronym>
+      caracter <literal>0x0B</literal>, un tabulador vertical.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+'>
+
+<!ENTITY strings.stripped.unicode '
+ <itemizedlist xmlns="http://docbook.org/ns/docbook">
+    <listitem>
+     <simpara>
+      <literal>" "</literal> (<acronym>Unicode</acronym> U+0020), un espacio ordinario.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\t"</literal> (<acronym>Unicode</acronym> U+0009), un tabulador.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\n"</literal> (<acronym>Unicode</acronym> U+000A), una nueva línea (line feed).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\r"</literal> (<acronym>Unicode</acronym> U+000D), un retorno de carro.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\0"</literal> (<acronym>Unicode</acronym> U+0000), el byte <literal>NULL</literal>.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\v"</literal> (<acronym>Unicode</acronym> U+000B), un tabulador vertical.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\f"</literal> (<acronym>Unicode</acronym> U+000C), un salto de página.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u00A0"</literal> (<acronym>Unicode</acronym> U+00A0), un ESPACIO SIN SEPARACIÓN (NO-BREAK SPACE).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u1680"</literal> (<acronym>Unicode</acronym> U+1680), una MARCA DE ESPACIO OGHAMA.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2000"</literal> (<acronym>Unicode</acronym> U+2000), un CUADRATÍN.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2001"</literal> (<acronym>Unicode</acronym> U+2001), un CUADRATÓN.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2002"</literal> (<acronym>Unicode</acronym> U+2002), un espacio EN.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2003"</literal> (<acronym>Unicode</acronym> U+2003), a espacio EM.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2004"</literal> (<acronym>Unicode</acronym> U+2004), un espacio DE TRES POR EM.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2005"</literal> (<acronym>Unicode</acronym> U+2005), un espacio DE CUATRO POR EM.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <literal>"\u2006"</literal> (<acronym>Unicode</acronym> U+2006), un espacio DE SEIS POR EM.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u2007"</literal> (<acronym>Unicode</acronym> U+2007), un espacio DE CIFRA.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u2008"</literal> (<acronym>Unicode</acronym> U+2008), un espacio DE PUNTUACIÓN.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u2009"</literal> (<acronym>Unicode</acronym> U+2009), un espacio FINO.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u200A"</literal> (<acronym>Unicode</acronym> U+200A), un espacio CABELLO.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u2028"</literal> (<acronym>Unicode</acronym> U+2028), un SEPARADOR DE LÍNEA.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u2029"</literal> (<acronym>Unicode</acronym> U+2029), un SEPARADOR DE PÁRRAFO.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u202F"</literal> (<acronym>Unicode</acronym> U+202F), un espacio ESTRECHO SIN SEPARACIÓN.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u205F"</literal> (<acronym>Unicode</acronym> U+205F), un espacio MATEMÁTICO MEDIO.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u3000"</literal> (<acronym>Unicode</acronym> U+3000), un espacio IDEOGRÁFICO.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u0085"</literal> (<acronym>Unicode</acronym> U+0085), una nueva línea (NEL).
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+     <literal>"\u180E"</literal> (<acronym>Unicode</acronym> U+180E), un separador de VOCALES MONGOL.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+'>
+
+<!ENTITY strings.parameter.characters.optional '
+ <simpara xmlns="http://docbook.org/ns/docbook">
+  Opcionalmente, los caracteres eliminados también se pueden especificar utilizando
+  el parámetro <parameter>characters</parameter>.
+  Simplemente enumere todos los caracteres que necesitan ser eliminados.
+  Con <literal>..</literal> es posible especificar un rango creciente de caracteres.
+ </simpara>
+'>
+
+<!ENTITY strings.parameter.unicode.optional '
+ <simpara xmlns="http://docbook.org/ns/docbook">
+  Opcionalmente, los caracteres eliminados también se pueden especificar utilizando
+  el parámetro <parameter>characters</parameter>.
+  Simplemente enumere todos los caracteres que necesitan ser eliminados.
+ </simpara>
+'>
+
 <!ENTITY strings.parameter.encoding '
 <para xmlns="http://docbook.org/ns/docbook">
  Un argumento opcional que define la codificación empleada al convertir caracteres.
