@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 07e42841b078fc8dfb4a2d053b707b5233c4cfeb Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="function.wincache-ucache-add" xmlns="http://docbook.org/ns/docbook">
+ <refnamediv>
+  <refname>wincache_ucache_add</refname>
+  <refpurpose>
+   Añade una nueva variable al caché de usuario solo si la variable todavía no existe en el cache
+  </refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>wincache_ucache_add</methodname>
+   <methodparam><type>string</type><parameter>key</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>ttl</parameter><initializer>0</initializer></methodparam>
+  </methodsynopsis>
+  <methodsynopsis>
+   <type>bool</type><methodname>wincache_ucache_add</methodname>
+   <methodparam><type>array</type><parameter>values</parameter></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>unused</parameter><initializer>NULL</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>ttl</parameter><initializer>0</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   Añade una variable al caché de usuario, solo si no existe ya en el caché. La variable permanecerá en el caché mientras no se alcance el tiempo de expiración o hasta que no se elimine con la función
+   <function>wincache_ucache_delete</function> o la función <function>wincache_ucache_clear</function>.
+  </para>
+ </refsect1>
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>key</parameter></term>
+     <listitem>
+      <para>
+       Almacena la variable usando el nombre <parameter>key</parameter>. Si una variable
+       correspondiente a la misma clave ya está presente en el caché, la función
+       fallará y devolverá &false;. El parámetro <parameter>key</parameter> es sensible a mayúsculas y minúsculas. Para sobrescribir este valor, si <parameter>key</parameter> está presente,
+       use la función <function>wincache_ucache_set</function> en su lugar.
+       <parameter>key</parameter> también puede ser un array de pares nombre => valor donde
+       los nombres serán usados como claves. Este formato puede ser usado para añadir
+       múltiples valores en el caché en una sola operación.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>value</parameter></term>
+     <listitem>
+      <para>
+       El valor de la variable a almacenar. El parámetro <parameter>Value</parameter>
+       soporta todos los tipos de datos, excepto recursos, como punteros de archivos.
+       Este parámetro será ignorado si el primer argumento es un array. Generalmente, se debe
+       pasar el valor &null; al parámetro <parameter>value</parameter> cuando se usa un array para el parámetro <parameter>key</parameter>. Si el parámetro <parameter>value</parameter>
+       es un objeto, o un array que contiene objetos, entonces los objetos serán serializados. Consulte la función <link linkend="object.sleep">__sleep()</link>
+       para más detalles sobre la serialización de objetos.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>values</parameter></term>
+     <listitem>
+      <para>
+       Array asociativo de claves y valores.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>ttl</parameter></term>
+     <listitem>
+      <para>
+       Duración de vida de la variable en el caché, en segundos. Después del tiempo especificado
+       por el parámetro <parameter>ttl</parameter>, la variable almacenada será eliminada del caché. Este parámetro toma, como
+       valor por defecto, cero (<literal>0</literal>), lo que significa que la variable
+       permanecerá en el caché hasta que no sea explícitamente eliminada usando la función <function>wincache_ucache_delete</function>
+       o la función <function>wincache_ucache_clear</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <simpara>
+   Si el parámetro <parameter>key</parameter> es una &string;, la función devuelve
+   &true; en caso de éxito, &false; si ocurre un error.
+  </simpara>
+  <para>
+   Si el parámetro <parameter>key</parameter> es un array, la función devuelve:
+   <itemizedlist spacing="compact">
+    <listitem>
+     <simpara>
+      Si todas las parejas nombre => valor del array pueden ser definidas, la función devolverá
+      un array vacío;
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Si ninguna de las parejas nombre => valor del array puede ser definida, la función devolverá
+      &false; ;
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Si algunas pueden ser definidas, y otras no, la función devolverá un array de parejas
+      nombre => valor que no han podido ser definidas en el caché de usuario.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+ </refsect1>
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo con <function>wincache_ucache_add</function> y el parámetro <parameter>key</parameter> en forma de &string;</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$bar = 'BAR';
+var_dump(wincache_ucache_add('foo', $bar));
+var_dump(wincache_ucache_add('foo', $bar));
+var_dump(wincache_ucache_get('foo'));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+bool(true)
+bool(false)
+string(3) "BAR"
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Ejemplo con <function>wincache_ucache_add</function> y el parámetro <parameter>key</parameter> en forma de &array;</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$colors_array = array('green' => '5', 'Blue' => '6', 'yellow' => '7', 'cyan' => '8');
+var_dump(wincache_ucache_add($colors_array));
+var_dump(wincache_ucache_add($colors_array));
+var_dump(wincache_ucache_get('Blue'));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+array(0) { }
+array(4) {
+  ["green"]=> int(-1)
+  ["Blue"]=> int(-1)
+  ["yellow"]=> int(-1)
+  ["cyan"]=> int(-1)
+}
+string(1) "6"
+]]>
+    </screen>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>wincache_ucache_set</function></member>
+    <member><function>wincache_ucache_get</function></member>
+    <member><function>wincache_ucache_delete</function></member>
+    <member><function>wincache_ucache_clear</function></member>
+    <member><function>wincache_ucache_exists</function></member>
+    <member><function>wincache_ucache_meminfo</function></member>
+    <member><function>wincache_ucache_info</function></member>
+    <member><link linkend="object.sleep">__sleep()</link></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
