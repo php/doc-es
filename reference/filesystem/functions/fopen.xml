@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: seros Status: ready -->
+<!-- EN-Revision: 74b2af242f2131cd43a8830fee3864f1f68ccbed Maintainer: Marqitos Status: ready -->
 <!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fopen">
  <refnamediv>
@@ -11,11 +11,11 @@
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>fopen</methodname>
+   <type class="union"><type>resource</type><type>false</type></type><methodname>fopen</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
    <methodparam><type>string</type><parameter>mode</parameter></methodparam>
    <methodparam choice="opt"><type>bool</type><parameter>use_include_path</parameter><initializer>&false;</initializer></methodparam>
-   <methodparam choice="opt"><type>resource</type><parameter>context</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>resource</type><type>null</type></type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>fopen</function> asocia un recurso con nombre, especificado por
@@ -73,7 +73,7 @@
         <programlisting role="php">
 <![CDATA[
 <?php
-$gestor = fopen("c:\\folder\\resource.txt", "r");
+$handle = fopen("c:\\folder\\resource.txt", "r");
 ?>
 ]]>
         </programlisting>
@@ -125,9 +125,8 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
           <row>
            <entry><literal>'w+'</literal></entry>
            <entry>
-            Apertura para lectura y escritura; coloca el puntero al fichero al
-            principio del fichero y trunca el fichero a longitud cero.
-            Si el fichero no existe se intenta crear.
+            Abre para lectura y escritura; de otro modo, tiene
+            el mismo comportamiento que <literal>'w'</literal>.
            </entry>
           </row>
           <row>
@@ -135,16 +134,16 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
            <entry>
             Apertura para sólo escritura; coloca el puntero del fichero al
             final del mismo. Si el fichero no existe, se intenta crear.
-            En este modo, <function>fseek</function> solamente afecta a
-            la posición de lectura; las lecturas siempre son pospuestas.
+            En este modo, <function>fseek</function> no tiene efecto, escribe siempre agregando.
            </entry>
           </row>
           <row>
            <entry><literal>'a+'</literal></entry>
            <entry>
             Apertura para lectura y escritura; coloca el puntero del fichero al
-            final del mismo. Si el fichero no existe, se intenta crear.
-            En este modo, <function>fseek</function> no tiene efecto, las escrituras siempre son pospuestas.
+            final del mismo. Si el fichero no existe,
+            se intenta crear. En este modo, <function>fseek</function> solo afecta
+            a la posición de lectura, escribe siempre agregando.
            </entry>
           </row>
           <row>
@@ -155,7 +154,7 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
             llamada a <function>fopen</function> fallará devolviendo &false; y
             generando un error de nivel <constant>E_WARNING</constant>. Si
             el fichero no existe se intenta crear. Esto es equivalente
-            a especificar las banderas <literal>O_EXCL|O_CREAT</literal> para la
+            a especificar las flags <literal>O_EXCL|O_CREAT</literal> para la
             llamada al sistema de <literal>open(2)</literal> subyacente.
            </entry>
           </row>
@@ -169,7 +168,7 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
           <row>
            <entry><literal>'c'</literal></entry>
            <entry>
-            Abrir el fichero para sólo escritura. Si el fichero no existe, se
+            Abre el fichero para sólo escritura. Si el fichero no existe, se
             crea. Si existe no es truncado (a diferencia de
             <literal>'w'</literal>), ni la llamada a esta función falla (como en
             el caso con <literal>'x'</literal>). El puntero al fichero se
@@ -185,14 +184,14 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
           <row>
            <entry><literal>'c+'</literal></entry>
            <entry>
-            Abrir el fichero para lectura y escritura; de otro modo tiene el mismo
+            Abre el fichero para lectura y escritura; de otro modo tiene el mismo
             comportamiento que <literal>'c'</literal>.
            </entry>
           </row>
           <row>
            <entry><literal>'e'</literal></entry>
            <entry>
-            Establecer la bandera 'close-on-exec' en el descriptor de fichero abierto. Disponible
+            Establece el flag 'close-on-exec' en el descriptor de fichero abierto. Disponible
             solamente en PHP compilado en sistemas que se ajustan a POSIX.1-2008.
            </entry>
           </row>
@@ -216,42 +215,43 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
         raras".
        </para>
        <para>
-        Windows ofrece una bandera de traducción en modo texto (<literal>'t'</literal>)
-        que traducirá de manera transparente <literal>\n</literal> a
+        Windows ofrece un flag de trasnformación en modo texto (<literal>'t'</literal>)
+        que transformará de manera transparente <literal>\n</literal> a
         <literal>\r\n</literal> cuando se trabaja con el fichero. En contraste, puede
         usar <literal>'b'</literal> para forzar el modo binario, lo cual no
-        traducirá su información. Para usar estas banderas, especifique
+        transformará su información. Para usar estas flags, especifique
         <literal>'b'</literal> o <literal>'t'</literal> como el último carácter
         del parámetro <parameter>mode</parameter>.
        </para>
        <para>
-        El modo de traducción predeterminado depende de la SAPI y de la versión de PHP que
-        esté usando, por lo que se le anima a especificar siempre la bandera
-        apropiada por razones de portabilidad. Debería usar el modo <literal>'t'</literal>
+        El modo de transformación por omición es <literal>'b'</literal>.
+        Puede usar el modo <literal>'t'</literal>
         si está trabajando con ficheros de texto plano y usa
         <literal>\n</literal> para delimitar los finales de línea es su script, pero
-        confíe que sus ficheros serán legibles por aplicaciones tales como notepad. Debería
-        usar <literal>'b'</literal> en los demás casos.
+        espera que sus ficheros sean legibles con aplicaciones como versiones antiguas de notepad. Debería
+        usar el <literal>'b'</literal> en todos los demás casos.
        </para>
        <para>
-        Si no especifica la bandera 'b' cuando está trabajando con ficheros binarios,
-        puede experimentar problemas extraños con su información, incluidos ficheros imagen
-        rotos o problemas extraños con los caracteres <literal>\r\n</literal>.
-       </para>
-      </note>
-      <note>
-       <para>
-        Por portabilidad, se recomienda encarecidamente que siempre use
-        la bandera 'b' cuando se abran ficheros con <function>fopen</function>.
+        Si especifica el flag 't' cuando trabaja con archivos binarios,
+        puede experimentar problemas extraños con sus datos, incluyendo archivos de imagen rotos
+        y problemas extraños con los caracteres <literal>\r\n</literal>.
        </para>
       </note>
       <note>
        <para>
-        De nuevo, por portabilidad, también se recomienda encarecidamente que
-        reescriba el código que usa o depende del modo <literal>'t'</literal>
-        por lo que use los finales de línea correctos y el modo
+        Por portabilidad, También se recomienda encarecidamente que
+        reescriba el código que usa o se basa en el modo <literal>'t'</literal>
+        para que use las terminaciones de línea correctas y el modo
         <literal>'b'</literal> en su lugar.
        </para>
+      </note>
+      <note>
+       <simpara>
+        El <parameter>mode</parameter> modo es ignorado para <filename>php://output</filename>,
+        <filename>php://input</filename>, <filename>php://stdin</filename>,
+        <filename>php://stdout</filename>, <filename>php://stderr</filename> Y
+        envoluturas de flujo <filename>php://fd</filename>.
+       </simpara>
       </note>
      </listitem>
     </varlistentry>
@@ -260,8 +260,8 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
      <listitem>
       <para>
        El tercer parámetro opcional <parameter>use_include_path</parameter>
-       puede ser establecido a '1' o &true; si se desea buscar un fichero en
-       <link linkend="ini.include-path">include_path</link> también.
+       puede ser establecido a '1' o &true; si se desea buscar un fichero también en
+       <link linkend="ini.include-path">include_path</link>.
       </para>
      </listitem>
     </varlistentry>
@@ -278,18 +278,14 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un recurso de puntero a fichero si tiene éxito, o &false; si se produjo un error.
+   Devuelve un recurso de puntero a fichero si tiene éxito,
+   &return.falseforfailure;
   </para>
  </refsect1>
 
  <refsect1 role="errors">
   &reftitle.errors;
-  <para>
-   Si la apertura falla, se generea un error de nivel
-   <constant>E_WARNING</constant>. Se puede usar <link
-   linkend="language.operators.errorcontrol">@</link> para suprimir esta
-   advertencia.
-  </para>
+  &fs.emits.warning.on.failure;
  </refsect1>
 
  <refsect1 role="changelog">
@@ -310,13 +306,6 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
         Se añadió la opción <literal>'e'</literal>.
        </entry>
       </row>
-      <row>
-       <entry>5.2.6</entry>
-       <entry>
-        Se añadieron las opciones <literal>'c'</literal> y
-        <literal>'c+'</literal>
-       </entry>
-      </row>
      </tbody>
     </tgroup>
    </informaltable>
@@ -331,10 +320,10 @@ $gestor = fopen("c:\\folder\\resource.txt", "r");
     <programlisting role="php">
 <![CDATA[
 <?php
-$gestor = fopen("/home/rasmus/fichero.txt", "r");
-$gestor = fopen("/home/rasmus/fichero.gif", "wb");
-$gestor = fopen("http://www.example.com/", "r");
-$gestor = fopen("ftp://user:password@example.com/fichero.txt", "w");
+$handle = fopen("/home/rasmus/fichero.txt", "r");
+$handle = fopen("/home/rasmus/fichero.gif", "wb");
+$handle = fopen("http://www.ejemplo.com/", "r");
+$handle = fopen("ftp://user:password@example.com/fichero.txt", "w");
 ?>
 ]]>
     </programlisting>
