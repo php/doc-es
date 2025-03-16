@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5f7a949cfc6f43d481d3a9513f9ee19db9afe21d Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 7204e2dbb9b484c8b67bb5ad4a93fa1369c5b317 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: Marqitos -->
 <chapter xml:id="security.database" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Seguridad en bases de datos</title>
- 
+
  <simpara>
   Hoy en día, las bases de datos son componentes esenciales de cualquier aplicación web,
   permitiendo a los sitios web proveer variedad de contenido dinámico. Puesto que se puede
@@ -30,7 +30,7 @@
   que tenga almacenada. Un buen diseño del esquema de la base de datos y de la aplicación
   se ocupará de sus mayores temores.
  </simpara>
- 
+
  <sect1 xml:id="security.database.design">
   <title>Diseño de bases de datos</title>
   <simpara>
@@ -56,7 +56,7 @@
    solamente puede efectuar los cambios que la aplicación permita.
   </simpara>
  </sect1>
- 
+
  <sect1 xml:id="security.database.connection">
   <title>Conexión a una base de datos</title>
   <simpara>
@@ -72,7 +72,7 @@
    <acronym>PHP</acronym> y la base de datos por medio de SSL.
   </simpara-->
  </sect1>
- 
+
  <sect1 xml:id="security.database.storage">
   <title>Modelo de almacenamiento cifrado</title>
   <simpara>
@@ -97,7 +97,7 @@
    descifra al obtenerlos. Véanse las referencias para ejemplos adicionales del
    funcionamiento del cifrado.
   </simpara>
-  
+
   <sect2 xml:id="security.database.storage.hashing">
    <title>'Hashing'</title>
    <simpara>
@@ -122,20 +122,20 @@
 <?php
 
 // Almacenar el hash de la contraseña
-$consulta  = sprintf("INSERT INTO users(name,pwd) VALUES('%s','%s');",
-                pg_escape_string($nombre_usuario),
-                password_hash($contraseña, PASSWORD_DEFAULT));
-$resultado = pg_query($conexión, $consulta);
+$query  = sprintf("INSERT INTO users(name,pwd) VALUES('%s','%s');",
+            pg_escape_string($nombre_usuario),
+            password_hash($password, PASSWORD_DEFAULT));
+$result = pg_query($connection, $query);
 
 // Consultar si el usuario envió la contraseña correcta
-$consulta = sprintf("SELECT pwd FROM users WHERE name='%s';",
+$query = sprintf("SELECT pwd FROM users WHERE name='%s';",
                 pg_escape_string($nombre_usuario));
-$fila = pg_fetch_assoc(pg_query($conexión, $consulta));
+$row = pg_fetch_assoc(pg_query($connection, $query));
 
-if ($fila && password_verify($contraseña, $fila['pwd'])) {
-    echo 'Bienvenido, ' . htmlspecialchars($nombre_usuario) . '!';
+if ($row && password_verify($contraseña, $row['pwd'])) {
+    echo 'Bienvenido, ' . htmlspecialchars($username) . '!';
 } else {
-    echo 'La autenticación ha fallado para ' . htmlspecialchars($nombre_usuario) . '.';
+    echo 'La autenticación ha fallado para ' . htmlspecialchars($username) . '.';
 }
 
 ?>
@@ -144,7 +144,7 @@ if ($fila && password_verify($contraseña, $fila['pwd'])) {
    </example>
   </sect2>
  </sect1>
- 
+
  <sect1 xml:id="security.database.sql-injection">
   <title>Inyección de SQL</title>
   <simpara>
@@ -163,9 +163,9 @@ if ($fila && password_verify($contraseña, $fila['pwd'])) {
 <![CDATA[
 <?php
 
-$índice    = $_GET['offset']; // ¡Cuidado, no hay validación en la entrada de datos!
-$consulta  = "SELECT id, name FROM products ORDER BY name LIMIT 20 OFFSET $índice;";
-$resultado = pg_query($conexión, $consulta);
+$offset = $_GET['offset']; // ¡Cuidado, no hay validación en la entrada de datos!
+$query  = "SELECT id, name FROM products ORDER BY name LIMIT 20 OFFSET $offset;";
+$result = pg_query($conn, $query);
 
 ?>
 ]]>
@@ -192,7 +192,7 @@ insert into pg_shadow(usename,usesysid,usesuper,usecatupd,passwd)
   <note>
    <para>
     Es una técnica común forzar al analizador SQL a ignorar el resto de la
-    consulta escrita por el desarrollador con <literal>--</literal>, lo cual 
+    consulta escrita por el desarrollador con <literal>--</literal>, lo cual
     representa un comentario en SQL.
    </para>
   </note>
@@ -213,9 +213,9 @@ insert into pg_shadow(usename,usesysid,usesuper,usecatupd,passwd)
 <![CDATA[
 <?php
 
-$consulta  = "SELECT id, name, inserted, size FROM products
-              WHERE size = '$tamaño'";
-$resultado = odbc_exec($conexión, $consulta);
+$query  = "SELECT id, name, inserted, size FROM products
+           WHERE size = '$size'";
+$result = odbc_exec($conexión, $query);
 
 ?>
 ]]>
@@ -242,7 +242,7 @@ union select '1', concat(uname||'-'||passwd) as name, '1971-01-01', '0' from use
     <programlisting role="php">
 <![CDATA[
 <?php
-$consulta = "UPDATE usertable SET pwd='$pwd' WHERE uid='$uid';";
+$query = "UPDATE usertable SET pwd='$pwd' WHERE uid='$uid';";
 ?>
 ]]>
     </programlisting>
@@ -258,10 +258,10 @@ $consulta = "UPDATE usertable SET pwd='$pwd' WHERE uid='$uid';";
 <?php
 
 // $uid: ' or uid like '%admin%
-$consulta = "UPDATE usertable SET pwd='...' WHERE uid='' or uid like '%admin%';";
+$query = "UPDATE usertable SET pwd='...' WHERE uid='' or uid like '%admin%';";
 
 // $pwd: jejeje', trusted=100, admin='yes
-$consulta = "UPDATE usertable SET pwd='jejeje', trusted=100, admin='yes' WHERE
+$query = "UPDATE usertable SET pwd='jejeje', trusted=100, admin='yes' WHERE
 ...;";
 
 ?>
@@ -282,8 +282,8 @@ $consulta = "UPDATE usertable SET pwd='jejeje', trusted=100, admin='yes' WHERE
 <![CDATA[
 <?php
 
-$consulta  = "SELECT * FROM products WHERE id LIKE '%$prod%'";
-$resultado = mssql_query($consulta);
+$query  = "SELECT * FROM products WHERE id LIKE '%$prod%'";
+$result = mssql_query($query);
 
 ?>
 ]]>
@@ -291,16 +291,16 @@ $resultado = mssql_query($consulta);
    </example>
    Si un atacante envía el valor
    <literal>a%' exec master..xp_cmdshell 'net user test testpass /ADD' --</literal>
-   a <varname>$prod</varname>, la <varname>$consulta</varname> será:
+   a <varname>$prod</varname>, la <varname>$query</varname> será:
    <informalexample>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-$consulta  = "SELECT * FROM products
+$query  = "SELECT * FROM products
               WHERE id LIKE '%a%'
               exec master..xp_cmdshell 'net user test testpass /ADD' --%'";
-$resultado = mssql_query($consulta);
+$result = mssql_query($query);
 
 ?>
 ]]>
@@ -323,10 +323,14 @@ $resultado = mssql_query($consulta);
     <imageobject>
      <imagedata fileref="en/security/figures/xkcd-bobby-tables.png" format="PNG"/>
     </imageobject>
+    <caption>
+     <simpara>
+      Imagen cortesía de <link xlink:href="&url.xkcd;327">xkcd</link>
+     </simpara>
+    </caption>
    </mediaobject>
-   Imagen cortesía de <link xlink:href="&url.xkcd;327">xkcd</link>
   </para>
-  
+
   <sect2 xml:id="security.database.avoiding">
    <title>Técnicas de evitación</title>
    <para>

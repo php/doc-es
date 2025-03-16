@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c5d92fd7127e059d448d43ba339f19956f83b05a Maintainer: jvenegasperu Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 91570644fbbe4d23e79908e1a04c4c4d003fe587 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: Marqitos -->
 <!-- splitted from ./index.xml, last change in rev 1.66 -->
   <chapter xml:id="security.filesystem" xmlns="http://docbook.org/ns/docbook">
    <title>Seguridad del Sistema de Archivos</title>
    <simpara>
-    <acronym>PHP</acronym> está sujeto a la seguridad integrada en la mayoría de sistemas de servidores con 
+    <acronym>PHP</acronym> está sujeto a la seguridad integrada en la mayoría de sistemas de servidores con
     respecto a los permisos de archivos y directorios. Esto permite
     controlar qué archivos en el sistema de archivos se pueden leer. Se debe
     tener cuidado con los archivos que son legibles para garantizar
@@ -16,16 +16,16 @@
    <simpara>
     Desde que <acronym>PHP</acronym> fue diseñado para permitir el acceso a nivel de usuarios para el sistema de archivos,
     es perfectamente posible escribir un script <acronym>PHP</acronym> que le permita
-    leer archivos del sistema como /etc/passwd, modificar sus conexiones de red,
+    leer archivos del sistema como <filename>/etc/passwd</filename>, modificar sus conexiones de red,
     enviar trabajos de impresión masiva, etc. Esto tiene algunas
     implicaciones obvias, es necesario asegurarse que los archivos
     que se van a leer o escribir son los apropiados.
    </simpara>
    <simpara>
     Considere el siguiente script, donde un usuario indica que
-    quiere borrar un archivo en su directorio home. Esto supone una 
+    quiere borrar un archivo en su directorio home. Esto supone una
     situación en la que una interfaz web en <acronym>PHP</acronym> es usada regularmente para gestionar archivos,
-    por lo que es necesario que el usuario Apache pueda borrar archivos en los 
+    por lo que es necesario que el usuario Apache pueda borrar archivos en los
     directorios home de los usuarios.
    </simpara>
    <para>
@@ -34,6 +34,7 @@
      <programlisting role="php">
 <![CDATA[
 <?php
+
 // eliminar un archivo del directorio personal del usuario
 $username = $_POST['user_submitted_name'];
 $userfile = $_POST['user_submitted_filename'];
@@ -43,20 +44,22 @@ unlink("$homedir/$userfile");
 
 echo "El archivo ha sido eliminado!";
 ?>
+
 ]]>
      </programlisting>
     </example>
-   Dado que el nombre de usuario y el nombre del archivo son enviados desde un formulario, 
+   Dado que el nombre de usuario y el nombre del archivo son enviados desde un formulario,
    estos pueden representar un nombre de archivo y un nombre de usuario que pertenecen a otra persona,
    incluso se podría borrar el archivo a pesar que se supone que no estaría permitido hacerlo.
    En este caso, usted desearía usar algún otro tipo de autenticación.
    Considere lo que podría suceder si las variables enviadas son
-   "../etc/" y "passwd". El código entonces se ejecutaría efectivamente como:  
+   <literal>"../etc/"</literal> y <literal>"passwd"</literal>. El código entonces se ejecutaría efectivamente como:
     <example>
      <title>... Un ataque al sistema de archivos</title>
      <programlisting role="php">
 <![CDATA[
 <?php
+
 // elimina un archivo desde cualquier lugar en el disco duro al que
 // el usuario de PHP tiene acceso. Si PHP tiene acceso de root:
 $username = $_POST['user_submitted_name']; // "../etc"
@@ -67,6 +70,7 @@ unlink("$homedir/$userfile"); // "/home/../etc/passwd"
 
 echo "El archivo ha sido eliminado!";
 ?>
+
 ]]>
      </programlisting>
     </example>
@@ -90,6 +94,7 @@ echo "El archivo ha sido eliminado!";
      <programlisting role="php">
 <![CDATA[
 <?php
+
 // elimina un archivo del disco duro al que
 // el usuario de PHP tiene acceso.
 $username = $_SERVER['REMOTE_USER']; // usando un mecanismo de autenticación
@@ -103,6 +108,7 @@ if (file_exists($filepath) && unlink($filepath)) {
 } else {
     $logstring = "No se ha podido eliminar $filepath\n";
 }
+
 $fp = fopen("/home/logging/filedelete.log", "a");
 fwrite($fp, $logstring);
 fclose($fp);
@@ -113,15 +119,16 @@ echo htmlentities($logstring, ENT_QUOTES);
 ]]>
      </programlisting>
     </example>
-    Sin embargo, incluso esto no está exento de defectos. Si la autenticación 
+    Sin embargo, incluso esto no está exento de defectos. Si la autenticación
     del sistema permite a los usuarios crear sus propios inicios de sesión de usuario, y un usuario
-    eligió la entrada "../etc/", el sistema está expuesto una vez más. Por
+    eligió la entrada <literal>"../etc/"</literal>, el sistema está expuesto una vez más. Por
     esta razón, puede que prefiera escribir un chequeo más personalizado:
     <example>
      <title>Comprobación más segura del nombre de archivo</title>
      <programlisting role="php">
 <![CDATA[
 <?php
+
 $username     = $_SERVER['REMOTE_USER']; // usando un mecanismo de autenticación
 $userfile     = $_POST['user_submitted_filename'];
 $homedir      = "/home/$username";
@@ -132,7 +139,8 @@ if (!ctype_alnum($username) || !preg_match('/^(?:[a-z0-9_-]|\.(?!\.))+$/iD', $us
     die("nombre de usuario o nombre de archivo incorrecto");
 }
 
-//etc...
+// etc.
+
 ?>
 ]]>
      </programlisting>
@@ -140,18 +148,18 @@ if (!ctype_alnum($username) || !preg_match('/^(?:[a-z0-9_-]|\.(?!\.))+$/iD', $us
    </para>
    <para>
     Dependiendo de sus sistema operativo, hay una gran variedad de archivos
-    a los que debe estar atento, esto incluye las entradas de dispositivos (/dev/
-    o COM1), archivos de configuracion (archivos /etc/ y archivos .ini),
-    las muy conocidas carpetas de almacenamiento (/home/, Mis documentos), etc. Por esta
+    a los que debe estar atento, esto incluye las entradas de dispositivos (<filename>/dev/</filename>
+    o <filename>COM1</filename>), archivos de configuracion (archivos <filename>/etc/</filename> y archivos <literal>.ini</literal>),
+    las muy conocidas carpetas de almacenamiento (<filename>/home/</filename>, <filename>My Documents</filename>), etc. Por esta
     razón, por lo general es más fácil crear una política en donde se prohíba
-     todo excepto lo que expresamente se permite.
+    todo excepto lo que expresamente se permite.
    </para>
    <sect1 xml:id="security.filesystem.nullbytes">
     <title>Cuestiones relacionadas a bytes nulos</title>
     <simpara>
      Como <acronym>PHP</acronym> utiliza las funciones de C para operaciones relacionadas al sistema de archivos,
      se podría manejar bytes nulos de manera bastante inesperada.
-     Como un byte nulo denota el fin de una cadena en C, las cadenas que contengan estos 
+     Como un byte nulo denota el fin de una cadena en C, las cadenas que contengan estos
      no serán consideradas por completo, sino sólo hasta que ocurra un byte nulo.
 
      El siguiente ejemplo muestra un código vulnerable que presenta este problema:
@@ -161,12 +169,14 @@ if (!ctype_alnum($username) || !preg_match('/^(?:[a-z0-9_-]|\.(?!\.))+$/iD', $us
      <programlisting role="php">
 <![CDATA[
 <?php
+
 $file = $_GET['file']; // "../../etc/passwd\0"
-if (file_exists('/home/wwwrun/'.$file.'.php')) {
+if (file_exists('/home/wwwrun/' . $file . '.php')) {
     // file_exists devolverá true si el archivo /home/wwwrun/../../etc/passwd existe
-    include '/home/wwwrun/'.$file.'.php';
+    include '/home/wwwrun/' . $file . '.php';
     // el archivo /etc/passwd se incluirá
 }
+
 ?>
 ]]>
      </programlisting>
@@ -180,7 +190,8 @@ if (file_exists('/home/wwwrun/'.$file.'.php')) {
      <programlisting role="php">
 <![CDATA[
 <?php
-$file = $_GET['file']; 
+
+$file = $_GET['file'];
 
 // Lista blanca de valores posibles
 switch ($file) {
@@ -192,6 +203,7 @@ switch ($file) {
     default:
         include '/home/wwwrun/include/main.php';
 }
+
 ?>
 ]]>
      </programlisting>
