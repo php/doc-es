@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: e91b2dd2539f6be30b7db023d880de673fa50b62 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.pcntl-signal" xmlns="http://docbook.org/ns/docbook">
+ <refnamediv>
+  <refname>pcntl_signal</refname>
+  <refpurpose>Instala un gestor de señales</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>pcntl_signal</methodname>
+   <methodparam><type>int</type><parameter>signal</parameter></methodparam>
+   <methodparam><type class="union"><type>callable</type><type>int</type></type><parameter>handler</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>restart_syscalls</parameter><initializer>&true;</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   <function>pcntl_signal</function> instala un nuevo gestor
+   de señales o reemplaza el gestor de señales actual
+   para la señal indicada por el parámetro
+   <parameter>signal</parameter>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>signal</parameter></term>
+     <listitem>
+      <para>
+       El número de la señal.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>handler</parameter></term>
+     <listitem>
+      <para>
+       El gestor de señales. Puede ser un <type>callable</type>,
+       que será llamado para gestionar la señal, o bien una de las dos
+       constantes globales <constant>SIG_IGN</constant> o <constant>SIG_DFL</constant>,
+       que, respectivamente, ignorarán la señal o restaurarán el gestor
+       de señales por defecto.
+      </para>
+      <para>
+       Si se proporciona un <type>callable</type>, debe implementar la siguiente firma:
+      </para>
+      <para>
+       <methodsynopsis>
+        <type>void</type><methodname><replaceable>handler</replaceable></methodname>
+        <methodparam><type>int</type><parameter>signo</parameter></methodparam>
+        <methodparam><type>mixed</type><parameter>siginfo</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>signal</parameter></term>
+         <listitem>
+          <simpara>
+           La señal a gestionar.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>siginfo</parameter></term>
+         <listitem>
+          <simpara>
+           Si el sistema operativo soporta las estructuras siginfo_t, esto será un &array; de información de la señal que depende de la señal.
+          </simpara>
+         </listitem>
+        </varlistentry>
+       </variablelist>
+      </para>
+      <note>
+       <para>
+        Téngase en cuenta que cuando se configura el gestor con un método de objeto,
+        el contador de referencia del objeto se incrementa, lo que lo hace persistente
+        hasta que se cambie el gestor de señales por otro, o hasta que el script termine.
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>restart_syscalls</parameter></term>
+     <listitem>
+      <para>
+       El parámetro opcional <parameter>restart_syscalls</parameter>
+       especifica si la llamada al sistema de reinicio (restarting) debe ser utilizada
+       cuando llega esta señal.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        A partir de PHP 7.1.0 el gestor de la función de retrollamada tiene
+        un segundo argumento que contiene el siginfo de esa señal específica. Estos datos
+        solo se proporcionan si el sistema operativo tiene la estructura siginfo_t.
+        Si el sistema operativo no implementa siginfo_t, se proporciona NULL.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo con <function>pcntl_signal</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+pcntl_async_signals(true);
+
+// gestor de señales del sistema
+function sig_handler($signo)
+{
+
+     switch ($signo) {
+         case SIGTERM:
+             // gestión de la extinción
+             exit;
+             break;
+         case SIGHUP:
+             // gestión del reinicio
+             break;
+         case SIGUSR1:
+             echo "Recibida la señal SIGUSR1...\n";
+             break;
+         default:
+             // gestión de otras señales
+     }
+
+}
+
+echo "Instalación del gestor de señales...\n";
+
+// Instalación de los gestores de señales
+pcntl_signal(SIGTERM, "sig_handler");
+pcntl_signal(SIGHUP,  "sig_handler");
+pcntl_signal(SIGUSR1, "sig_handler");
+
+// o bien utilice un objeto
+// pcntl_signal(SIGUSR1, array($obj, "hacer_algo"));
+
+echo"Generación de una señal SIGUSR1 a mí mismo...\n";
+
+// envío de SIGUSR1 al identificador de proceso actual
+// las funciones posix_* requieren la extensión posix
+posix_kill(posix_getpid(), SIGUSR1);
+
+echo "Hecho\n";
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes"><!-- {{{ -->
+  &reftitle.notes;
+  <para>
+   La función <function>pcntl_signal</function> no apila
+   los gestores de señales, sino que los reemplaza.
+  </para>
+  <refsect2>
+   <title>Método de dispatch</title>
+   <para>
+    Existen varios métodos para dispatchar los gestores de señales:
+    <simplelist>
+     <member>Dispatch asíncrono con <function>pcntl_async_signals</function> activado. Este es el método recomendado</member>
+     <member>Establecer la frecuencia de los <link linkend="control-structures.declare.ticks">ticks</link></member>
+     <member>Dispatch manual con <function>pcntl_signal_dispatch</function></member>
+    </simplelist>
+   </para>
+   <para>
+    Cuando las señales son dispatchadas de manera asíncrona o utilizando una ejecución basada en ticks, las funciones bloqueantes como
+    <function>sleep</function> pueden ser interrumpidas.
+   </para>
+  </refsect2>
+ </refsect1><!-- }}} -->
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><link xlink:href="https://fr.wikipedia.org/wiki/Signal_(informatique)">Signal (IPC)</link> en Wikipedia</member>
+    <member><function>pcntl_async_signals</function></member>
+    <member><function>pcntl_fork</function></member>
+    <member><function>pcntl_signal_dispatch</function></member>
+    <member><function>pcntl_waitpid</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

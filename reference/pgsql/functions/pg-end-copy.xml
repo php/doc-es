@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: edwincartagenah Status: working -->
-<!-- Reviewed: yes -->
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.82 -->
+<!-- EN-Revision: c2eca73ef79ebe78cebb34053e41b565af504c4f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.pg-end-copy" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_end_copy</refname>
-  <refpurpose>Sincronizar con PostgreSQL</refpurpose>
+  <refpurpose>
+   Sincroniza con el servidor PostgreSQL
+  </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>pg_end_copy</methodname>
-   <methodparam choice="opt"><type>resource</type><parameter>connection</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>PgSql\Connection</type><type>null</type></type><parameter>connection</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_end_copy</function> sincroniza la parte visual de PostgreSQL
-   (usualmente un proceso web) con el servidor PostgreSQL después de hacer
-   una operación de copia realizado por la función
-   <function>pg_put_line</function>. <function>pg_end_copy</function>
-   debe ser invocado, de otra manera el servidor PostgreSQL podría perder
-   sincronización con la parte visual y esto hará que reporte un error.
+   <function>pg_end_copy</function> sincroniza el cliente PostgreSQL
+   (normalmente un proceso del servidor web)
+   con el servidor PostgreSQL, después de una operación de copia realizada por
+   <function>pg_put_line</function>. <function>pg_end_copy</function> debe
+   ser utilizado, de lo contrario el servidor PostgreSQL no estará sincronizado con
+   el cliente y emitirá un error.
   </para>
  </refsect1>
 
@@ -32,12 +32,7 @@
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conexión a la base de datos PostgreSQL.  Cuando el parámetro 
-       <parameter>connection</parameter> no está presente, se utiliza la conexión 
-       predeterminada. La conexión predeterminada es la última conexión hecha por
-       <function>pg_connect</function> o <function>pg_pconnect</function>.
-      </para>
+      &pgsql.parameter.connection-with-nullable-default;
      </listitem>
     </varlistentry>
    </variablelist>
@@ -51,19 +46,42 @@
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &pgsql.changelog.connection-object;
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>connection</parameter> es ahora nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title><function>pg_end_copy</function> example</title>
+    <title>Ejemplo con <function>pg_end_copy</function></title>
     <programlisting role="php">
 <![CDATA[
-<?php 
+<?php
   $conn = pg_pconnect("dbname=foo");
-  pg_query($conn, "crea la tabla bar (a int4, b char(16), d float8)");
-  pg_query($conn, "copiar bar desde stdin");
-  pg_put_line($conn, "3\thola mundo\t4.5\n");
-  pg_put_line($conn, "4\tadios mundo\t7.11\n");
+  pg_query($conn, "create table bar (a int4, b char(16), d float8)");
+  pg_query($conn, "copy bar from stdin");
+  pg_put_line($conn, "3\tHola mundo\t4.5\n");
+  pg_put_line($conn, "4\tAdiós mundo\t7.11\n");
   pg_put_line($conn, "\\.\n");
   pg_end_copy($conn);
 ?>
@@ -82,7 +100,6 @@
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
