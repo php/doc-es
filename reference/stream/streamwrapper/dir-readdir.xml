@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4754397753fd79f1c846868b66a2448babab1c54 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <refentry xml:id="streamwrapper.dir-readdir" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>streamWrapper::dir_readdir</refname>
-  <refpurpose>Leer una entrada desde el gestor de directorio</refpurpose>
+  <refpurpose>Lee un archivo en un directorio</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -15,7 +16,7 @@
    <void />
   </methodsynopsis>
   <para>
-   Este método es llamado en respuesta a <function>readdir</function>.
+   Este método se llama en respuesta a <function>readdir</function>.
   </para>
 
  </refsect1>
@@ -28,12 +29,12 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Debería devolver un valor de tipo <type>string</type> que representa el siguiente nombre de archivo,
-   o &false; si no hay un siguiente archivo.
+   Debe devolver una &string; que representa el próximo nombre de archivo,
+   o &false; si no hay más archivos.
   </para>
   <note>
    <para>
-    El valor devuelto será convertido a un valor de tipo <type>string</type>.
+    El valor devuelto será convertido en &string;.
    </para>
   </note>
  </refsect1>
@@ -42,63 +43,63 @@
   &reftitle.errors;
   &userstream.not.implemented.warning;
  </refsect1><!-- }}} -->
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Listar los ficheros de archivos tar</title>
+    <title>Lista de archivos de un archivo tar</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 class streamWrapper {
     protected $fp;
 
-    public function dir_opendir($ruta, $opciones) {
-        $url = parse_url($ruta);
+    public function dir_opendir($path, $options) {
+        $url = parse_url($path);
 
-        $ruta = $url["host"] . $url["path"];
+        $path = $url["host"] . $url["path"];
 
-        if (!is_readable($ruta)) {
-            trigger_error("$ruta no es legible por mí", E_USER_NOTICE);
+        if (!is_readable($path)) {
+            trigger_error("$path no es legible para mí", E_USER_NOTICE);
             return false;
         }
-        if (!is_file($ruta)) {
-            trigger_error("$ruta no es un fichero", E_USER_NOTICE);
+        if (!is_file($path)) {
+            trigger_error("$path no es un archivo", E_USER_NOTICE);
             return false;
         }
 
-        $this->fp = fopen($ruta, "rb");
+        $this->fp = fopen($path, "rb");
         return true;
     }
 
     public function dir_readdir() {
-        // Extraer la cabecera para esta entrada
-        $cabecera = fread($this->fp, 512);
-        $data = unpack("a100filename/a8mode/a8uid/a8gid/a12size/a12mtime/a8checksum/a1filetype/a100link/a100linkedfile", $cabecera);
+        // Extrae el encabezado para esta entrada
+        $header      = fread($this->fp, 512);
+        $data = unpack("a100filename/a8mode/a8uid/a8gid/a12size/a12mtime/a8checksum/a1filetype/a100link/a100linkedfile", $header);
 
-        // Recortar el nombre de archivo y tamaño de archivo
-        $nombre_archivo = trim($data["filename"]);
+        // Recorta el nombre del archivo y el tamaño del archivo
+        $filename    = trim($data["filename"]);
 
-        // Â¿No hay nombre de archivo? Estamos en el final del archivo tar
-        if (!$nombre_archivo) {
+        // No hay archivo, estamos al final del archivo
+        if (!$filename) {
             return false;
         }
 
         $octal_bytes = trim($data["size"]);
-        // El tamaño de archivo es definido en octetos
-        $bytes  = octdec($octal_bytes);
+        // El tamaño del archivo está definido en octetos
+        $bytes       = octdec($octal_bytes);
 
-        // tar redondea hacia arriba en múltiplos de 512 bytes (rellenando con ceros)
-        $resto = $bytes % 512;
-        if ($resto > 0) {
-            $bytes += 512 - $resto;
+        // tar redondea los tamaños de archivos al múltiplo de 512 siguiente
+        $rest        = $bytes % 512;
+        if ($rest > 0) {
+            $bytes      += 512 - $rest;
         }
 
-        // Buscar sobre el archivo
+        // Lectura del archivo
         fseek($this->fp, $bytes, SEEK_CUR);
 
-        return $nombre_archivo;
+        return $filename;
     }
 
     public function dir_closedir() {
@@ -111,16 +112,16 @@ class streamWrapper {
 }
 
 stream_wrapper_register("tar", "streamWrapper");
-$gestor = opendir("tar://ejemplo.tar");
-while (false !== ($file = readdir($gestor))) {
+$handle = opendir("tar://example.tar");
+while (false !== ($file = readdir($handle))) {
     var_dump($file);
 }
 
-echo "Rewinding..\n";
-rewind($gestor);
-var_dump(readdir($gestor));
+echo "Reinicio...\n";
+rewind($handle);
+var_dump(readdir($handle));
 
-closedir($gestor);
+closedir($handle);
 ?>
 ]]>
     </programlisting>
@@ -149,7 +150,7 @@ string(15) "stream-tell.xml"
 string(16) "stream-write.xml"
 string(10) "unlink.xml"
 string(12) "url-stat.xml"
-Rewinding..
+Reinicio...
 string(13) "construct.xml"
 
 ]]>
