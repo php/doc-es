@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 485e0b4b4426d607dedf46f5b30df4011102dd73 Maintainer: julionc Status: pending -->
-<!-- Reviewed: no Maintainer: julionc -->
-
+<!-- EN-Revision: 497c40ac164d5873fd87f622dfdeb5206392b446 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <sect1 xml:id="migration81.incompatible" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Cambios incompatibles con versiones anteriores</title>
 
@@ -10,29 +8,29 @@
   <title>PHP Core</title>
 
   <sect3 xml:id="migration81.incompatible.core.globals-access">
-   <title>$GLOBALS Access Restrictions</title>
+   <title>Restricciones de acceso a $GLOBALS</title>
 
    <para>
-    Access to the <varname>$GLOBALS</varname> array is now subject to
-    a number of restrictions.
-    Read and write access to individual array elements like
-    <code>$GLOBALS['var']</code> continues to work as-is.
-    Read-only access to the entire <varname>$GLOBALS</varname> array also
-    continues to be supported.
-    However, write access to the entire <varname>$GLOBALS</varname> array
-    is no longer supported. For example, <code>array_pop($GLOBALS)</code>
-    will result in an error.
+    El acceso al array <varname>$GLOBALS</varname> está ahora sujeto a
+    un cierto número de restricciones.
+    El acceso en lectura y en escritura a los elementos individuales del array como
+    <code>$GLOBALS['var']</code> continúa funcionando como tal.
+    El acceso en lectura al array completo <varname>$GLOBALS</varname> continúa
+    también siendo soportado.
+    Sin embargo, el acceso en escritura al array completo <varname>$GLOBALS</varname>
+    ya no es soportado. Por ejemplo, <code>array_pop($GLOBALS)</code>
+    generará un error.
    </para>
   </sect3>
 
   <sect3 xml:id="migration81.incompatible.core.static-variable-inheritance">
    <title>
-    Usage of <modifier>static</modifier> Variables in Inherited Methods
+    Uso de variables <modifier>static</modifier> en los métodos heredados.
    </title>
 
    <para>
-    When a method using static variables is inherited (but not overridden), the
-    inherited method will now share static variables with the parent method.
+    Cuando un método que utiliza variables <modifier>static</modifier> es heredado
+    (pero no sobrescrito), el método heredado compartirá ahora las variables.
     <informalexample>
      <programlisting role="php">
 <![CDATA[
@@ -47,117 +45,182 @@ class A {
 class B extends A {}
 var_dump(A::counter()); // int(1)
 var_dump(A::counter()); // int(2)
-var_dump(B::counter()); // int(3), previously int(1)
-var_dump(B::counter()); // int(4), previously int(2)
+var_dump(B::counter()); // int(3), anteriormente int(1)
+var_dump(B::counter()); // int(4), anteriormente int(2)
 ?>
 ]]>
      </programlisting>
     </informalexample>
+    Esto significa que las variables estáticas en los métodos se comportan ahora
+    de la misma manera que las propiedades estáticas.
+   </para>
+  </sect3>
 
-    This means that static variables in methods now behave the same way as
-    static properties.
+  <sect3 xml:id="migration81.incompatible.core.optional-before-required">
+   <title>Parámetros opcionales especificados antes de los parámetros requeridos</title>
+
+   <para>
+    Un <link linkend="functions.arguments.default">parámetro opcional</link>
+    especificado antes de los parámetros requeridos es ahora siempre tratado como requerido,
+    incluso cuando se llama utilizando
+    <link linkend="functions.named-arguments">los argumentos nombrados</link>.
+    A partir de PHP 8.0.0, pero antes de PHP 8.1.0, el código a continuación emite una nota de deprecación
+    en la definición, pero se ejecuta con éxito cuando se llama. A partir de PHP 8.1.0, se lanza un error
+    de la clase <classname>ArgumentCountError</classname>, como sería el caso cuando
+    se llama con argumentos posicionales.
+
+    <informalexample>
+     <programlisting role="php">
+<![CDATA[
+<?php
+function makeyogurt($container = "bowl", $flavour)
+{
+    return "Making a $container of $flavour yogurt.\n";
+}
+try
+{
+    echo makeyogurt(flavour: "raspberry");
+}
+catch (Error $e)
+{
+    echo get_class($e), ' - ', $e->getMessage(), "\n";
+}
+?>
+]]>
+     </programlisting>
+     &example.outputs.80;
+     <screen>
+<![CDATA[
+Deprecated: Required parameter $flavour follows optional parameter $container
+ in example.php on line 3
+Making a bowl of raspberry yogurt.
+]]>
+     </screen>
+     &example.outputs.81;
+     <screen>
+<![CDATA[
+Deprecated: Optional parameter $container declared before required parameter
+ $flavour is implicitly treated as a required parameter in example.php on line 3
+ArgumentCountError - makeyogurt(): Argument #1 ($container) not passed
+]]>
+     </screen>
+    </informalexample>
+   </para>
+   <para>
+    Tenga en cuenta que un valor por defecto de &null; puede ser utilizado antes de los parámetros requeridos para
+    especificar un <link linkend="language.types.declarations.nullable">tipo nullable</link>,
+    pero el parámetro será siempre requerido.
    </para>
   </sect3>
 
   <sect3 xml:id="migration81.incompatible.core.type-compatibility-internal">
-   <title>Return Type Compatibility with Internal Classes</title>
+   <title>Compatibilidad de tipos de retorno con clases internas</title>
 
    <para>
-    Most non-final internal methods now require overriding methods to declare
-    a compatible return type, otherwise a deprecated notice is emitted during
-    inheritance validation.
-    In case the return type cannot be declared for an overriding method due to
-    PHP cross-version compatibility concerns,
-    a <code>#[ReturnTypeWillChange]</code> attribute can be added to silence
-    the deprecation notice.
+    La mayoría de los métodos internos no finales requieren ahora que los métodos de sobrecarga declaren
+    un tipo de retorno compatible, de lo contrario se emite una nota de deprecación al validar la herencia.
+    En el caso en que el tipo de retorno no pueda ser declarado para un método de sobrecarga debido a
+    preocupaciones de compatibilidad inter-versión de PHP,
+    un atributo <classname>ReturnTypeWillChange</classname> puede ser añadido para suprimir la nota de deprecación.
    </para>
   </sect3>
 
+  <sect3 xml:id="migration81.incompatible.core.new-keywords">
+   <title>Nuevas palabras clave</title>
+   <para>
+    <literal>readonly</literal> es ahora una palabra clave. Sin embargo, aún puede ser utilizada
+    como nombre de función.
+   </para>
+   <para>
+    <literal>never</literal> es ahora una palabra reservada, por lo que no puede ser utilizada para nombrar una clase,
+    una interfaz o un trait, y también está prohibido su uso en los namespaces.
+   </para>
+  </sect3>
  </sect2>
 
  <sect2 xml:id="migration81.incompatible.resource2object">
-  <title>Resource to Object Migration</title>
+  <title>Migración de recurso a objeto</title>
 
   <para>
-   Several &resource;s have been migrated to &object;s.
-   Return value checks using <function>is_resource</function> should be replaced with checks for &false;.
+   Varios &resource;s han sido migrados a &object;s.
+   Las verificaciones de valor de retorno utilizando <function>is_resource</function> deben ser reemplazadas por verificaciones de &false;.
   </para>
   <itemizedlist>
    <listitem>
     <para>
-     The <link linkend="book.fileinfo">FileInfo</link> functions now accept and return,
-     respectively, <classname>finfo</classname> objects instead of
-     <literal>fileinfo</literal> &resource;s.
+     Las funciones <link linkend="book.fileinfo">FileInfo</link> aceptan y devuelven ahora
+     objetos <classname>finfo</classname> en lugar
+     de &resource;s <literal>fileinfo</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.ftp">FTP</link> functions now accept and return,
-     respectively, <classname>FTP\Connection</classname> objects instead of
-     <literal>ftp</literal> &resource;s.
+     Las funciones <link linkend="book.ftp">FTP</link> aceptan y devuelven ahora
+     objetos <classname>FTP\Connection</classname> en lugar
+     de &resource;s <literal>ftp</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.imap">IMAP</link> functions now accept and return,
-     respectively, <classname>IMAP\Connection</classname> objects instead of
-     <literal>imap</literal> &resource;s.
+     Las funciones <link linkend="book.imap">IMAP</link> aceptan y devuelven ahora
+     objetos <classname>IMAP\Connection</classname> en lugar
+     de &resource;s <literal>imap</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.ldap">LDAP</link> functions now accept and return,
-     respectively, <classname>LDAP\Connection</classname> objects instead of
-     <literal>ldap link</literal> &resource;s.
+     Las funciones <link linkend="book.ldap">LDAP</link> aceptan y devuelven ahora
+     objetos <classname>LDAP\Connection</classname> en lugar
+     de &resource;s <literal>ldap</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.ldap">LDAP</link> functions now accept and return,
-     respectively, <classname>LDAP\Result</classname> objects instead of
-     <literal>ldap result</literal> &resource;s.
+     Las funciones <link linkend="book.ldap">LDAP</link> aceptan y devuelven ahora
+     objetos <classname>LDAP\Result</classname> en lugar
+     de &resource;s <literal>ldap result</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.ldap">LDAP</link> functions now accept and return,
-     respectively, <classname>LDAP\ResultEntry</classname> objects instead of
-     <literal>ldap result entry</literal> &resource;s.
+     Las funciones <link linkend="book.ldap">LDAP</link> aceptan y devuelven ahora
+     objetos <classname>LDAP\ResultEntry</classname> en lugar
+     de &resource;s <literal>ldap result entry</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.pgsql">PgSQL</link> functions now accept and return,
-     respectively, <classname>PgSql\Connection</classname> objects instead of
-     <literal>pgsql link</literal> &resource;s.
+     Las funciones <link linkend="book.pgsql">PgSQL</link> aceptan y devuelven ahora
+     objetos <classname>PgSql\Connection</classname> en lugar
+     de &resource;s <literal>pgsql link</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.pgsql">PgSQL</link> functions now accept and return,
-     respectively, <classname>PgSql\Result</classname> objects instead of
-     <literal>pgsql result</literal> &resource;s.
+     Las funciones <link linkend="book.pgsql">PgSQL</link> aceptan y devuelven ahora
+     objetos <classname>PgSql\Result</classname> en lugar
+     de &resource;s <literal>pgsql result</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.pgsql">PgSQL</link> functions now accept and return,
-     respectively, <classname>PgSql\Lob</classname> objects instead of
-     <literal>pgsql large object</literal> &resource;s.
+     Las funciones <link linkend="book.pgsql">PgSQL</link> aceptan y devuelven ahora
+     objetos <classname>PgSql\Lob</classname> en lugar
+     de &resource;s <literal>pgsql large object</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.pspell">PSpell</link> functions now accept and return,
-     respectively, <classname>PSpell\Dictionary</classname> objects instead of
-     <literal>pspell</literal> &resource;s.
+     Las funciones <link linkend="book.pspell">PSpell</link> aceptan y devuelven ahora
+     objetos <classname>PSpell\Dictionary</classname> en lugar
+     de &resource;s <literal>pspell</literal>.
     </para>
    </listitem>
    <listitem>
     <para>
-     The <link linkend="book.pspell">PSpell</link> functions now accept and return,
-     respectively, <classname>PSpell\Config</classname> objects instead of
-     <literal>pspell config</literal> &resource;s.
+     Las funciones <link linkend="book.pspell">PSpell</link> aceptan y devuelven ahora
+     objetos <classname>PSpell\Config</classname> en lugar
+     de &resource;s <literal>pspell config</literal>.
     </para>
    </listitem>
   </itemizedlist>
@@ -167,42 +230,42 @@ var_dump(B::counter()); // int(4), previously int(2)
   <title>MySQLi</title>
 
   <para>
-   <function>mysqli_fetch_fields</function>, and
-   <function>mysqli_fetch_field_direct</function> will now always return
-   <literal>0</literal> for the <property>max_length</property>.
-   This information can be computed by iterating over the result set,
-   and taking the maximum length. This is what PHP was doing
-   internally previously.
+   <function>mysqli_fetch_fields</function>, y
+   <function>mysqli_fetch_field_direct</function> devolverán ahora
+   <literal>0</literal> para la <property>max_length</property>.
+   Esta información puede ser calculada iterando sobre el conjunto de resultados,
+   y tomando la longitud máxima. Esto es lo que PHP hacía
+   anteriormente de manera interna.
   </para>
 
   <para>
-   The <constant>MYSQLI_STMT_ATTR_UPDATE_MAX_LENGTH</constant>
-   option no longer has any effect.
+   La opción <constant>MYSQLI_STMT_ATTR_UPDATE_MAX_LENGTH</constant>
+   ya no tiene ningún efecto.
   </para>
 
   <para>
-   The <constant>MYSQLI_STORE_RESULT_COPY_DATA</constant>
-   option no longer has any effect. Passing any value to the
-   <parameter>mode</parameter> parameter of
-   <methodname>mysqli::store_result</methodname> no longer has any effect.
+   La opción <constant>MYSQLI_STORE_RESULT_COPY_DATA</constant>
+   ya no tiene ningún efecto. Pasar un valor al
+   parámetro <parameter>mode</parameter> de
+   <methodname>mysqli::store_result</methodname> ya no tiene ningún efecto.
   </para>
 
   <para>
-   <methodname>mysqli::connect</methodname> now returns &true; instead of &null; on success.
+   <methodname>mysqli::connect</methodname> devuelve ahora &true; en lugar de &null; en caso de éxito.
   </para>
 
   <para>
-   The default error handling mode has been changed from "silent" to "exceptions"
-   See the <link linkend="mysqli-driver.report-mode">MySQLi reporting mode</link>
-   page for more details on what this entails,
-   and how to explicitly set this attribute.
-   To restore the previous behaviour use:
+   El modo de manejo de errores por defecto ha sido cambiado de "silencioso" a "excepciones".
+   Ver la página <link linkend="mysqli-driver.report-mode">Modo de reporte MySQLi</link>
+   para más detalles sobre lo que esto implica,
+   y cómo definir explícitamente este atributo.
+   Para restaurar el comportamiento anterior, utilice :
    <code>mysqli_report(MYSQLI_REPORT_OFF);</code>
   </para>
 
   <para>
-   Classes extending <methodname>mysqli_stmt::execute</methodname>
-   are now required to specify the additional mandatory parameter.
+   Las clases que extienden <methodname>mysqli_stmt::execute</methodname>
+   deben ahora especificar el parámetro opcional adicional.
   </para>
  </sect2>
 
@@ -210,9 +273,9 @@ var_dump(B::counter()); // int(4), previously int(2)
   <title>MySQLnd</title>
 
   <para>
-   The <link linkend="ini.mysqlnd.fetch_data_copy">mysqlnd.fetch_data_copy</link>
-   INI directive has been removed.
-   This should not result in user-visible behavior changes.
+   La directiva INIT <link linkend="ini.mysqlnd.fetch_data_copy">mysqlnd.fetch_data_copy</link>
+   ha sido eliminada.
+   Esto no debería resultar en cambios de comportamiento visibles para el usuario.
   </para>
  </sect2>
 
@@ -220,53 +283,53 @@ var_dump(B::counter()); // int(4), previously int(2)
   <title>OpenSSL</title>
 
   <para>
-   EC private keys will now be exported in PKCS#8 format rather than
-   traditional format, just like all other keys.
+   Las claves privadas EC serán ahora exportadas en formato <acronym>PKCS</acronym>#8 en lugar
+   del formato tradicional, al igual que todas las demás claves.
   </para>
   <para>
-   <function>openssl_pkcs7_encrypt</function> and
-   <function>openssl_cms_encrypt</function> will now to default using
-   AES-128-CBC rather than RC2-40. The RC2-40 cipher is considered
-   insecure and not enabled by default by OpenSSL 3.
+   <function>openssl_pkcs7_encrypt</function> y
+   <function>openssl_cms_encrypt</function> utilizarán ahora por defecto
+   AES-128-CBC en lugar de RC2-40. El cifrado RC2-40 es considerado
+   como no seguro y no está habilitado por defecto por OpenSSL 3.
   </para>
  </sect2>
 
  <sect2 xml:id="migration81.incompatible.pdo">
-  <title>PHP Data Objects</title>
+  <title>Objetos de datos PHP</title>
 
   <para>
-   <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> now stringifies values
-   of type &boolean; to <literal>"0"</literal> or
-   <literal>"1"</literal>. Previously &boolean;s were not stringified.
+   <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> transforma ahora los valores
+   de tipo &boolean; en <literal>"0"</literal> o
+   <literal>"1"</literal>. Anteriormente, los &boolean; no eran transformados en cadenas.
   </para>
   <para>
-   Calling <methodname>PDOStatement::bindColumn</methodname> with
-   <constant>PDO::PARAM_LOB</constant> will now constantly bind a stream
-   result when <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> is not enabled.
-   Previously, the result would either be a stream or a string depending on
-   the used database driver and the time the binding is performed.
+   Llamar a <methodname>PDOStatement::bindColumn</methodname> con
+   <constant>PDO::PARAM_LOB</constant> enlazará ahora constantemente un stream
+   de resultado cuando <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> no esté activado.
+   Anteriormente, el resultado era o bien un stream o bien una cadena dependiendo del
+   controlador de base de datos utilizado y del momento en que se realizaba el enlace.
   </para>
 
   <sect3 xml:id="migration81.incompatible.pdo.mysql">
-   <title>MySQL Driver</title>
+   <title>Controlador MySQL</title>
 
    <para>
-    Integers and floats in result sets will now be returned using native
-    PHP types instead of &string;s when using emulated prepared statements.
-    This matches the behavior of native prepared statements.
-    The previous behaviour can be restored by enabling the
-    <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> option.
+    Los enteros y los flotantes en los conjuntos de resultados serán ahora devueltos utilizando
+    los tipos nativos PHP en lugar de &string;s al utilizar las declaraciones preparadas emuladas.
+    Esto corresponde al comportamiento de las declaraciones preparadas nativas.
+    El comportamiento anterior puede ser restaurado activando la opción
+    <constant>PDO::ATTR_STRINGIFY_FETCHES</constant>.
    </para>
   </sect3>
 
   <sect3 xml:id="migration81.incompatible.pdo.sqlite">
-   <title>SQLite Driver</title>
+   <title>Controlador SQLite</title>
 
    <para>
-    Integers and floats in results sets will now be returned using native
-    PHP types.
-    The previous behaviour can be restored by enabling the
-    <constant>PDO::ATTR_STRINGIFY_FETCHES</constant> option.
+    Los enteros y los flotantes en los conjuntos de resultados serán ahora devueltos utilizando
+    los tipos PHP.
+    El comportamiento anterior puede ser restaurado activando la opción
+    <constant>PDO::ATTR_STRINGIFY_FETCHES</constant>.
    </para>
   </sect3>
  </sect2>
@@ -275,17 +338,17 @@ var_dump(B::counter()); // int(4), previously int(2)
   <title>Phar</title>
 
   <para>
-   To comply with the <interfacename>ArrayAccess</interfacename> interface,
-   <methodname>Phar::offsetUnset</methodname> and
-   <methodname>PharData::offsetUnset</methodname> no longer return a &boolean;.
+   Para cumplir con la interfaz <interfacename>ArrayAccess</interfacename>,
+   <methodname>Phar::offsetUnset</methodname> y
+   <methodname>PharData::offsetUnset</methodname> ya no devuelven un &boolean;.
   </para>
  </sect2>
 
  <sect2 xml:id="migration81.incompatible.standard">
-  <title>Standard</title>
+  <title>Estándar</title>
 
   <para>
-   <function>version_compare</function> no longer accepts undocumented operator abbreviations.
+   <function>version_compare</function> ya no acepta las abreviaciones de operadores no documentadas.
   </para>
 
   <para>
@@ -293,33 +356,33 @@ var_dump(B::counter()); // int(4), previously int(2)
    <function>htmlentities</function>,
    <function>htmlspecialchars_decode</function>,
    <function>html_entity_decode</function>,
-   and <function>get_html_translation_table</function>
-   now use <literal>ENT_QUOTES | ENT_SUBSTITUTE</literal> rather than
-   <constant>ENT_COMPAT</constant> by default.
-   This means that <literal>'</literal> is escaped to
-   <literal>&amp;#039;</literal> while previously nothing was done.
-   Additionally, malformed UTF-8 will be replaced by a Unicode substitution
-   character, instead of resulting in an empty string.
+   y <function>get_html_translation_table</function>
+   utilizan ahora <literal>ENT_QUOTES | ENT_SUBSTITUTE</literal> en lugar de
+   <constant>ENT_COMPAT</constant> por defecto.
+   Esto significa que <literal>'</literal> es escapado en
+   <literal>&amp;#039;</literal> mientras que anteriormente no se hacía nada.
+   Además, el UTF-8 mal formado será reemplazado por un carácter de sustitución Unicode,
+   en lugar de resultar en una cadena vacía.
   </para>
 
   <para>
-   <function>debug_zval_dump</function> now prints the refcount of a reference
-   wrappers with their refcount, instead of only prepending
-   <literal>&amp;</literal> to the value.
-   This more accurately models reference representation since PHP 7.0.
+   <function>debug_zval_dump</function> muestra ahora el refcount de las referencias
+   con su refcount, en lugar de simplemente anteponer
+   <literal>&amp;</literal> al valor.
+   Esto modela más precisamente la representación de referencia desde PHP 7.0.
   </para>
 
   <para>
-   <function>debug_zval_dump</function> now prints <literal>interned</literal>
-   instead of a dummy refcount for interned strings and immutable arrays.
+   <function>debug_zval_dump</function> muestra ahora <literal>interned</literal>
+   en lugar de un refcount ficticio para las cadenas internadas y los arrays inmutables.
   </para>
  </sect2>
 
  <sect2 xml:id="migration81.incompatible.spl">
-  <title>Standard PHP Library (SPL)</title>
+  <title>Biblioteca Estándar de PHP (Standard PHP Library o SPL)</title>
 
   <para>
-   <classname>SplFixedArray</classname>, will now be JSON encoded like an &array;
+   <classname>SplFixedArray</classname>, será ahora codificado en JSON como un &array;.
   </para>
  </sect2>
 

@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: edwincartagenah Status: working -->
-<!-- Reviewed: yes -->
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.61 -->
-<refentry xml:id='function.pg-escape-bytea' xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: c2eca73ef79ebe78cebb34053e41b565af504c4f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.pg-escape-bytea" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_escape_bytea</refname>
   <refpurpose>
-   Escapar un string para insertarlo en un campo bytea
+   Protege una cadena para insertarla en un campo bytea
   </refpurpose>
  </refnamediv>
 
@@ -15,52 +13,50 @@
   &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>pg_escape_bytea</methodname>
-   <methodparam choice="opt"><type>resource</type><parameter>connection</parameter></methodparam>
+   <methodparam choice="opt"><type>PgSql\Connection</type><parameter>connection</parameter></methodparam>
    <methodparam><type>string</type><parameter>data</parameter></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_escape_bytea</function> escapa un string para
-   un tipo de dato bytea.  Devuelve un string pasado por un proceso de escape.
+   <function>pg_escape_bytea</function> protege los caracteres de la
+   cadena <parameter>data</parameter> con el modo bytea. La cadena
+   protegida es devuelta.
   </para>
   <note>
    <para>
-    Cuando haces una consulta <literal>SELECT</literal> a un tipo bytea, PostgreSQL devuelve valores de byte octal
-    con el prefijo '\' (ej. \032). Los usuarios están supuestos a convertirlo de regreso al
+    Cuando se utiliza una orden <literal>SELECT</literal> con datos de tipo bytea,
+    PostgreSQL devuelve valores octales, prefijados con antislashs
+    '\' (por ejemplo \032). Los usuarios deben realizar la conversión al
     formato binario manualmente.
    </para>
    <para>
-    Esta función requiere PostgreSQL versión 7.2 o posterior. Con la versión 7.2.0 y 7.2.1
-    de PostgreSQL, los valores bytea deben ser pasados por un casteo cuando se habilita
-    soporte multi-byte. Ej. <literal>INSERT INTO test_table (image)
-    VALUES ('$image_escaped'::bytea);</literal> PostgreSQL 7.2.2 o
-    una versión posterior no necesita un casteo. La excepción es cuando la codificación de caracteres
-    del cliente y del servidor no coinciden, y podría haber un flujo de error
-    multi-byte. Entonces el usuario debe castear a bytea para evitar este error.
+    <function>pg_escape_bytea</function> requiere PostgreSQL 7.2 o más reciente. Con
+    PostgreSQL 7.2.0 y 7.2.1, los datos bytea deben ser transtipados
+    cuando se activa el soporte de cadenas de caracteres multioctetos.
+    Es decir, <literal>INSERT INTO test_table (image) VALUES ('$image_escaped'::bytea);</literal>.
+    PostgreSQL 7.2.2 o más reciente no requiere esta manipulación.
+    Sin embargo, si el cliente y el servidor no utilizan el mismo juego de caracteres,
+    pueden ocurrir errores. Entonces, se debe forzar el transtipado
+    manualmente.
    </para>
   </note>
  </refsect1>
 
-<refsect1 role="parameters">
+ <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conexión a la base de datos PostgreSQL.  Cuando el parámetro
-       <parameter>connection</parameter> no está presente, se utiliza la conexión
-       predeterminada. La conexión predeterminada es la última conexión hecha por 
-       <function>pg_connect</function> o <function>pg_pconnect</function>.
-      </para>
+      &pgsql.parameter.connection-with-unspecified-default;
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>data</parameter></term>
      <listitem>
       <para>
-       Un tipo de dato <type>string</type> que contiene datos de texto o binarios para ser insertados
-       dentro de una columna bytea.
+       Una &string; que contiene texto o datos binarios que serán
+       insertados en la columna bytea.
       </para>
      </listitem>
     </varlistentry>
@@ -71,58 +67,53 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un tipo de dato <type>string</type> que contiene los datos que han sido escapados.
+   Una &string; que contiene los datos escapados.
   </para>
  </refsect1>
 
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.2.0</entry>
-       <entry>Se agregó el parámetro <parameter>connection</parameter></entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &pgsql.changelog.connection-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>pg_escape_bytea</function></title>
+    <title>Ejemplo con <function>pg_escape_bytea</function></title>
     <programlisting role="php">
 <![CDATA[
-<?php 
-  // Connectar a la base de datos
-  $dbconn = pg_connect('dbname=foo');
-  
-  // Leer en un fichero binario
-  $data = file_get_contents('image1.jpg');
-  
-  // Escapar el dato binario
-  $escaped = pg_escape_bytea($data);
-  
-  // Insertarlo en la base de datos
-  pg_query("INSERT INTO gallery (name, data) VALUES ('Pine trees', '{$escaped}')");
+<?php
+// Conexión a la base de datos
+$dbconn = pg_connect('dbname=foo');
+
+// Lectura de un fichero binario
+$data = file_get_contents('image1.jpg');
+
+// Escapado de los datos binarios
+$escaped = pg_escape_bytea($data);
+
+// Inserción en la base de datos
+pg_query("INSERT INTO gallery (name, data) VALUES ('Pine trees', '{$escaped}')");
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
