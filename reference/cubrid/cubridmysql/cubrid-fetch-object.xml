@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 887404039bc6d38496d2ae31b4f4f439b3bfd12e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4754397753fd79f1c846868b66a2448babab1c54 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="function.cubrid-fetch-object" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_fetch_object</refname>
-  <refpurpose>Devuelve un objeto con los nombres de las columnas</refpurpose>
+  <refpurpose>Recupera la siguiente línea y la devuelve como un objeto</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -18,75 +19,74 @@
    <methodparam choice="opt"><type>int</type><parameter>type</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función devuelve un objeto con los nombres de las columnas del conjunto de resultados como
-   propiedades. Los valores de estas propiedades son extraídos de la fila
-   actual del resultado. 
+   Esta función devuelve un objeto con los nombres de la columna
+   del conjunto de resultados como propiedades. Los valores de estas propiedades
+   se extraen de la línea actual del conjunto de resultados.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
-  &reftitle.parameters;
-  <para>
-   <variablelist>
-    <varlistentry>
-     <term><parameter>result</parameter></term>
-     <listitem><para><parameter>result</parameter> proviene de una llamada a la función <function>cubrid_execute</function></para></listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>class_name</parameter></term>
-     <listitem>
-      <para>
-       El nombre de la clase a instanciar, Si no se especifica, se
-       devuelve un objeto <classname>stdClass</classname> (stdClass es una clase
-       génerica vacía de PHP que se usa al convertir otros tipos a objetos).
-      </para>
+ &reftitle.parameters;
+ <para>
+  <variablelist>
+  <varlistentry>
+   <term><parameter>result</parameter></term>
+   <listitem><para>El parámetro <parameter>result</parameter> proviene de una
+    llamada a la función <function>cubrid_execute</function></para></listitem>
+  </varlistentry>
+  <varlistentry>
+    <term><parameter>class_name</parameter></term>
+      <listitem>
+       <para>
+        El nombre de la clase a instanciar, definir las propiedades y devolver.
+        Si no se especifica, se devuelve un objeto <classname>stdClass</classname>.
+       </para>
      </listitem>
-    </varlistentry>
+   </varlistentry>
     <varlistentry>
      <term><parameter>params</parameter></term>
-     <listitem>
-      <para>
-       Un <type>array</type> opcional de parámetros a pasar al constructor
-       de los objetos <parameter>class_name</parameter>.
-      </para>
+      <listitem>
+       <para>
+        Un array de parámetros opcionales a pasar al constructor
+        de la clase <parameter>class_name</parameter>.
+       </para>
      </listitem>
-    </varlistentry>
+   </varlistentry>
     <varlistentry>
      <term><parameter>type</parameter></term>
-     <listitem>
-      <para>
-       El tipo solamente puede ser CUBRID_LOB. Este parámetro se usará
-       solamente cuando sea necesario operar con objetos lob.
-      </para>
+      <listitem>
+       <para>
+        El tipo solo puede ser CUBRID_LOB; este parámetro
+        solo se utilizará cuando se necesite usar
+        un objeto lob.
+       </para>
      </listitem>
-    </varlistentry>
-   </variablelist>
+   </varlistentry>
+  </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un objeto, cuando el proceso tuvo éxito.
+   Un objeto en caso de éxito.
   </para>
-  <para>
-   &false;, cuando no existen más filas; NULL, cuando el proceso no tiene éxito.
+   <para>
+    &false; cuando no hay más líneas, NULL si ocurre un error.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>cubrid_fetch_object</function></title>
+   <title>Ejemplo con <function>cubrid_fetch_object</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$conexión = cubrid_connect("localhost", 33000, "demodb");
-$resultado = cubrid_execute($conexión, "SELECT * FROM code");
+$conn = cubrid_connect("localhost", 33000, "demodb");
+$res = cubrid_execute($conn, "SELECT * FROM code");
 
-var_dump(cubrid_fetch_object($resultado));
-
-// si se operan con objetos lob, se puede usar cubrid_fetch_object($resultado, CUBRID_LOB)
+var_dump(cubrid_fetch_object($res));
 
 class demodb_code {
     public $s_name = null;
@@ -97,31 +97,32 @@ class demodb_code {
     }
 }
 
-var_dump(cubrid_fetch_object($resultado, "demodb_code"));
+var_dump(cubrid_fetch_object($res, "demodb_code"));
 
-// si se operan con objetos lob, se puede usar cubrid_fetch_object($resultado, "demodb_code", CUBRID_LOB)
+// Si se desea utilizar un objeto LOB, se puede usar
+// cubrid_fetch_object($res, 'demodb_code_construct', array('s_name', 'f_name'), CUBRID_LOB)
 
 class demodb_code_construct extends demodb_code {
     public function __construct($s, $f) {
         $this->s_name = $s;
         $this->f_name = $f;
-    }   
+    }
 }
 
-var_dump(cubrid_fetch_object($resultado, 'demodb_code_construct', array('s_name', 'f_name')));
+var_dump(cubrid_fetch_object($res, 'demodb_code_construct', array('s_name', 'f_name')));
 
-// si se operan con objetos lob, se puede usar cubrid_fetch_object($resultado, 'demodb_code_construct', array('s_name', 'f_name'), CUBRID_LOB)
+// Si se desea utilizar un objeto LOB, se puede usar
+// cubrid_fetch_object($res, 'demodb_code_construct', array('s_name', 'f_name'), CUBRID_LOB)
 
+var_dump(cubrid_fetch_object($res));
 
-var_dump(cubrid_fetch_object($resultado));
-
-cubrid_close_request($resultado);
-cubrid_disconnect($conexión);
+cubrid_close_request($res);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
-   &example.outputs;
-   <screen>
+    &example.outputs;
+    <screen>
 <![CDATA[
 object(stdClass)#1 (2) {
   ["s_name"]=>
@@ -148,23 +149,23 @@ object(stdClass)#1 (2) {
   string(6) "Bronze"
 }
 ]]>
-   </screen>
+    </screen>
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>cubrid_execute</function></member>
-    <member><function>cubrid_fetch</function></member>
-    <member><function>cubrid_fetch_array</function></member>
-    <member><function>cubrid_fetch_assoc</function></member>
-    <member><function>cubrid_fetch_row</function></member>
+   <member><function>cubrid_execute</function></member>
+   <member><function>cubrid_fetch</function></member>
+   <member><function>cubrid_fetch_array</function></member>
+   <member><function>cubrid_fetch_assoc</function></member>
+   <member><function>cubrid_fetch_row</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

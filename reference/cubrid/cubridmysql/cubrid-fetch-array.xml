@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d345f907bb0e43530c8280e556746263e5c97f4b Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4754397753fd79f1c846868b66a2448babab1c54 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="function.cubrid-fetch-array" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_fetch_array</refname>
-  <refpurpose>Extrae una fila como array asociativo, numérico o ambos</refpurpose>
+  <refpurpose>Recupera una línea de resultado en forma de array asociativo, array numérico, o ambos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -16,96 +17,109 @@
    <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer>CUBRID_BOTH</initializer></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>cubrid_fetch_array</function> se utiliza para consultar una
-   única fila del resultado de la consulta, y lo devuelve como array. El cursor
-   avanza automáticamente a la siguiente fila del resultado.
+   La función <function>cubrid_fetch_array</function> se utiliza para recuperar
+   una sola línea desde el resultado de la consulta y devuelve
+   un array. El cursor se mueve automáticamente a la siguiente línea
+   una vez que el resultado ha sido recuperado.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
      <term><parameter>result</parameter></term>
-     <listitem><para><parameter>result</parameter> proviene de una llamada a la función <function>cubrid_execute</function></para></listitem>
+     <listitem><para>El parámetro <parameter>Result</parameter> proviene de una
+      llamada a la función <function>cubrid_execute</function></para></listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>type</parameter></term>
-     <listitem><para>Tipo de array del resultado obtenido: CUBRID_NUM, CUBRID_ASSOC,
-      CUBRID_BOTH, CUBRID_OBJECT. Si se operan con objetos lob, se puede usar CUBRID_LOB.</para></listitem>
+     <listitem><para>Tipo del array recuperado: CUBRID_NUM, CUBRID_ASSOC, CUBRID_BOTH.
+      Si se necesita utilizar un objeto LOB, se puede utilizar CUBRID_LOB.
+      </para></listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>Devuelve un array de cadenas que se corresponden a la fila consultada, cuando ésta tenga éxito.</para>
-  <para>&false;, cuando no existen más filas; NULL, cuando el proceso no tiene éxito.</para>
-  <para>El tipo del array devuelto se definirá dependiendo de cómo se haya solicitado. Usando CUBRID_BOTH (por omisión), se obtendrá un array con índices numéricos y asociativos, y se podrá decidir qué tipo de datos usar mediante el parámetro <parameter>type</parameter>. En la variable <parameter>type</parameter> puede asignarse uno de los siguientes valores:</para>
+  <para>
+   Devuelve un array de strings correspondiente a la línea
+   recuperada, cuando la operación tiene éxito.
+  </para>
+  <para>&false; cuando no hay más líneas,
+   NULL cuando ocurre un error.</para>
+  <para>
+   El tipo del array devuelto depende del tipo que se haya definido.
+   Utilizando CUBRID_BOTH (valor por defecto), se recuperará un array
+   que contiene tanto índices asociativos como numéricos; se puede elegir explícitamente este tipo a través del argumento <parameter>type</parameter>.
+   La variable <parameter>type</parameter> puede ser definida a uno de
+   los siguientes valores:</para>
   <simplelist>
-   <member>CUBRID_NUM : Array numérico (basado en 0)</member>
-   <member>CUBRID_ASSOC : Array asociativo</member>
-   <member>CUBRID_BOTH : Array numérico y asociativo (predeterminado)</member>
-  </simplelist>  
+   <member>CUBRID_NUM: Array numérico (comenzando en el índice 0)</member>
+   <member>CUBRID_ASSOC: Array asociativo</member>
+   <member>CUBRID_BOTH: Array asociativo y numérico (valor por defecto)</member>
+  </simplelist>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>cubrid_fetch_array</function></title>
+   <title>Ejemplo con <function>cubrid_fetch_array</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$conexión = cubrid_connect("localhost", 33000, "demodb");
-$solicitud = cubrid_execute($conexión, "SELECT name,area,seats,address FROM stadium WHERE nation_code='GRE' AND seats > 10000");
+$conn = cubrid_connect("localhost", 33000, "demodb");
+$req = cubrid_execute($conn, "SELECT name,area,seats,address FROM stadium WHERE nation_code='GRE' AND seats > 10000");
 
 printf("%-40s %-10s %-6s %-20s\n", "name", "area", "seats", "address");
-while ($fila = cubrid_fetch_array($solicitud, CUBRID_NUM)) {
-    printf("%-40s %-10s %-6s %-20s\n", $fila[0], $fila[1], $fila[2], $fila[3]);
+while ($row = cubrid_fetch_array($req, CUBRID_NUM)) {
+    printf("%-40s %-10s %-6s %-20s\n", $row[0], $row[1], $row[2], $row[3]);
 }
 
-// si se operan con objetos lob, se puede usar cubrid_fetch_array($solicitud, CUBRID_NUM | CUBRID_LOB)
+// Si se desea utilizar un objeto LOB, se puede utilizar
+// cubrid_fetch_array($req, CUBRID_NUM | CUBRID_LOB)
 
-cubrid_close_request($solicitud);
+cubrid_close_request($req);
 
-cubrid_disconnect($conexión);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-name                                     area       seats  address             
-Panathinaiko Stadium                     86300.00   50000  Athens, Greece      
-Olympic Stadium                          54700.00   13000  Athens, Greece      
-Olympic Indoor Hall                      34100.00   18800  Athens, Greece      
-Olympic Hall                             52400.00   21000  Athens, Greece      
-Olympic Aquatic Centre                   42500.00   11500  Athens, Greece      
+name                                     area       seats  address
+Panathinaiko Stadium                     86300.00   50000  Athens, Greece
+Olympic Stadium                          54700.00   13000  Athens, Greece
+Olympic Indoor Hall                      34100.00   18800  Athens, Greece
+Olympic Hall                             52400.00   21000  Athens, Greece
+Olympic Aquatic Centre                   42500.00   11500  Athens, Greece
 Markopoulo Olympic Equestrian Centre     64000.00   15000  Markopoulo, Athens, Greece
 Faliro Coastal Zone Olympic Complex      34650.00   12171  Faliro, Athens, Greece
 Athens Olympic Stadium                   120400.00  71030  Maroussi, Athens, Greece
 Ano Liossia                              34000.00   12000  Ano Liosia, Athens, Greece
 ]]>
    </screen>
-   
+
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>cubrid_execute</function></member>
-    <member><function>cubrid_fetch</function></member>
-    <member><function>cubrid_fetch_row</function></member>
-    <member><function>cubrid_fetch_assoc</function></member>
-    <member><function>cubrid_fetch_object</function></member>
+   <member><function>cubrid_execute</function></member>
+   <member><function>cubrid_fetch</function></member>
+   <member><function>cubrid_fetch_row</function></member>
+   <member><function>cubrid_fetch_assoc</function></member>
+   <member><function>cubrid_fetch_object</function></member>
    </simplelist>
   </para>
- </refsect1>
- 
+  </refsect1>
+
 </refentry>
 
 <!-- Keep this comment at the end of the file
