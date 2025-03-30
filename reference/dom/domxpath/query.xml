@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 4f5e2b22575131fa5e9c3004b1c874e1acb06573 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="domxpath.query" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>DOMXPath::query</refname>
@@ -17,7 +17,7 @@
    <methodparam choice="opt"><type>bool</type><parameter>registerNodeNS</parameter><initializer>&true;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Ejecuta la expresión XPath dada por <parameter>expression</parameter>.
+   Evalúa la expresión <parameter>expression</parameter> XPath dada.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -36,63 +36,87 @@
      <term><parameter>contextNode</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>contextNode</parameter> se puede especificar para
-       hacer consultas XPath relativas. Por omisión, las consultas son relativas al
-       elemento raíz.
+       El argumento opcional <parameter>contextNode</parameter> puede ser especificado
+       para realizar consultas XPath relativas. Por omisión, las consultas son relativas
+       al elemento raíz.
       </para>
      </listitem>
     </varlistentry>
-    <varlistentry>
-     <term><parameter>registerNodeNS</parameter></term>
-     <listitem>
-      <para>
-       El parámetro opcional <parameter>registerNodeNS</parameter> puede ser especificado para
-       deshabilitar el registro automático del nodo de contexto.
-      </para>
-     </listitem>
-    </varlistentry>
+    &dom.parameters.register_node_ns;
    </variablelist>
   </para>
  </refsect1>
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un objeto <classname>DOMNodeList</classname> que contiene todos los nodos coincidentes
-   con la expresión XPath dada por <parameter>expression</parameter>. Cualquier expresión que no
-   devuelva nodos devolverá un objeto <classname>DOMNodeList</classname> vacío.
+   Devuelve un <classname>DOMNodeList</classname> que contiene todos los nodos
+   que coinciden con la expresión <parameter>expression</parameter> XPath dada.
+   Todas las expresiones que no devuelvan ningún nodo devolverán
+   un <classname>DOMNodeList</classname> vacío.
   </para>
   <para>
-   Si el parámetro <parameter>expression</parameter> está malformado
-   o el parámetro <parameter>contextNode</parameter> es inválido,
-   <methodname>DOMXPath::query</methodname> devuelve &false;.
+   Si el argumento <parameter>expression</parameter> está malformado o
+   el argumento <parameter>contextNode</parameter> es inválido,
+   <methodname>DOMXPath::query</methodname> devolverá &false;.
   </para>
  </refsect1>
+
+ <refsect1 role="errors" xml:id="domxpath.query..errors">
+  &reftitle.errors;
+  <simpara>
+   Los siguientes errores pueden ocurrir al utilizar una expresión que invoca
+   retrollamadas PHP.
+  </simpara>
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Lanza una <exceptionname>Error</exceptionname> si
+     una retrollamada PHP es invocada pero ninguna retrollamada está registrada,
+     o si la retrollamada nombrada no está registrada.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Lanza una <exceptionname>TypeError</exceptionname> si
+     la sintaxis <literal>php:function</literal> es utilizada y el nombre del gestor
+     no es un string.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Lanza una <exceptionname>Error</exceptionname> si
+     un objeto no-DOM es devuelto por una retrollamada.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Obtener todos los libros en inglés</title>
+    <title>Recuperación de todos los libros en inglés</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 $doc = new DOMDocument;
 
-// No queremos molestar con espacios en blanco
+// No queremos preocuparnos por los espacios en blanco
 $doc->preserveWhiteSpace = false;
 
-$doc->load('book.xml');
+$doc->load('examples/book-docbook.xml');
 
 $xpath = new DOMXPath($doc);
 
-// Empezamos desde el elemento root
-$consulta = '//book/chapter/para/informaltable/tgroup/tbody/row/entry[. = "en"]';
+// Comenzamos en el elemento raíz
+$query = '//book/chapter/para/informaltable/tgroup/tbody/row/entry[. = "en"]';
 
-$entradas = $xpath->query($consulta);
+$entries = $xpath->query($query);
 
-foreach ($entradas as $entrada) {
-    echo "Se encotró {$entrada->previousSibling->previousSibling->nodeValue}," .
-         " por {$entrada->previousSibling->nodeValue}\n";
+foreach ($entries as $entry) {
+    echo "Libro encontrado {$entry->previousSibling->previousSibling->nodeValue}," .
+         " por {$entry->previousSibling->nodeValue}\n";
 }
 ?>
 ]]>
@@ -100,13 +124,13 @@ foreach ($entradas as $entrada) {
     &example.outputs;
     <screen>
 <![CDATA[
-Se encontró The Grapes of Wrath, por John Steinbeck
-Se encontró The Pearl, por John Steinbeck
+Libro encontrado : The Grapes of Wrath, por John Steinbeck
+Libro encontrado : The Pearl, por John Steinbeck
 ]]>
     </screen>
     <para>
-     También podemos usar el parámetro <parameter>contextNode</parameter> para acortar
-     nuestra expresión:
+     También podemos utilizar el argumento <parameter>contextNode</parameter>
+     para acortar nuestra expresión :
     </para>
     <programlisting role="php">
 <![CDATA[
@@ -115,20 +139,20 @@ Se encontró The Pearl, por John Steinbeck
 $doc = new DOMDocument;
 $doc->preserveWhiteSpace = false;
 
-$doc->load('book.xml');
+$doc->load('examples/book-docbook.xml');
 
 $xpath = new DOMXPath($doc);
 
 $tbody = $doc->getElementsByTagName('tbody')->item(0);
 
 // nuestra consulta es relativa al nodo tbody
-$consulta = 'row/entry[. = "en"]';
+$query = 'row/entry[. = "en"]';
 
-$entradas = $xpath->query($consulta, $tbody);
+$entries = $xpath->query($query, $tbody);
 
-foreach ($entradas as $entrada) {
-    echo "Se encontró {$entrada->previousSibling->previousSibling->nodeValue}," .
-         " por {$entrada->previousSibling->nodeValue}\n";
+foreach ($entries as $entry) {
+    echo "Libro encontrado : {$entry->previousSibling->previousSibling->nodeValue}," .
+         " por {$entry->previousSibling->nodeValue}\n";
 }
 ?>
 ]]>
@@ -140,7 +164,7 @@ foreach ($entradas as $entrada) {
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><methodname>DOMXPath::evaluate</methodname></member>
+    <member><methodname>DOMXPath::query</methodname></member>
    </simplelist>
   </para>
  </refsect1>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 4f5e2b22575131fa5e9c3004b1c874e1acb06573 Maintainer: seros Status: ready -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="domxpath.registerphpfunctions" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>DOMXPath::registerPhpFunctions</refname>
-  <refpurpose>Registra funciones de PHP como funciones XPath</refpurpose>
+  <refpurpose>Registra una función PHP como función XPath</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -14,7 +14,7 @@
    <methodparam choice="opt"><type class="union"><type>string</type><type>array</type><type>null</type></type><parameter>restrict</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Este método habilita la capacidad de usar funciones de PHP dentro de expresiones XPath.
+   Este método activa la posibilidad de utilizar funciones PHP en expresiones XPath.
   </para>
 
  </refsect1>
@@ -27,11 +27,15 @@
      <term><parameter>restrict</parameter></term>
      <listitem>
       <para>
-       Use este parámetro para permitir solamente que ciertas funciones sean llamadas desde XPath.
+       Utilice este parámetro únicamente para autorizar ciertas funciones
+       a ser llamadas desde XPath.
       </para>
       <para>
-       Este parámetro puede ser un <type>string</type> (un nombre de función) o
-       un <type>array</type> de nombres de funciones.
+       Este parámetro puede ser uno de los siguientes elementos:
+       un <type>string</type> (nombre de función),
+       un <type>array</type> indexado conteniendo nombres de funciones,
+       o un <type>array</type> asociativo con claves correspondientes a nombres de funciones
+       y valores asociados correspondientes a <type>callable</type>.
       </para>
      </listitem>
     </varlistentry>
@@ -46,10 +50,62 @@
   </para>
  </refsect1>
 
+ <refsect1 role="errors" xml:id="domxpath.registerphpfunctions..errors">
+  &reftitle.errors;
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Lanza una <exceptionname>ValueError</exceptionname> si
+     el nombre de un callback no es válido.
+    </simpara>
+   </listitem>
+   &dom.errors.compliant.common;
+   <listitem>
+    <simpara>
+     Lanza una <exceptionname>TypeError</exceptionname> si
+     un callback dado no es llamable.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row xml:id="domxpath.registerphpfunctions..changelog.errors">
+       <entry>8.4.0</entry>
+       <entry>
+        Los nombres de callback inválidos ahora lanzan una
+        <exceptionname>ValueError</exceptionname>.
+        Pasar una entrada no llamable ahora lanza una
+        <exceptionname>TypeError</exceptionname>.
+       </entry>
+     </row>
+     <row>
+      <entry>8.4.0</entry>
+      <entry>
+       Ahora es posible utilizar <type>callable</type>s para callbacks
+       al utilizar <parameter>restrict</parameter> con entradas de tipo <type>array</type>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   Los siguientes ejemplos usan <filename>book.xml</filename> que contiene lo siguiente:
+   Los siguientes ejemplos utilizan el fichero <filename>book.xml</filename>
+   que contiene los siguientes datos:
   </para>
   <para>
    <example>
@@ -78,28 +134,29 @@
   </para>
   <para>
    <example>
-    <title><methodname>DOMXPath::registerPHPFunctions</methodname> con <literal>php:functionString</literal></title>
+    <title>Ejemplo con <methodname>DOMXPath::registerPhpFunctions</methodname>
+     y <literal>php:functionString</literal></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $doc = new DOMDocument;
-$doc->load('book.xml');
+$doc->load('examples/book-simple.xml');
 
 $xpath = new DOMXPath($doc);
 
-// Registrar el espacio de nombres php: namespace (requerido)
+// Registra el espacio de nombres php (necesario)
 $xpath->registerNamespace("php", "http://php.net/xpath");
 
-// Registrar funciones de PHP (sin restricciones)
-$xpath->registerPHPFunctions();
+// Registra las funciones PHP (Sin restricciones)
+$xpath->registerPhpFunctions();
 
-// Llamar a la función substr en el título del libro
-$nodos = $xpath->query('//book[php:functionString("substr", title, 0, 3) = "PHP"]');
+// Llama a la función substr en el título del libro
+$nodes = $xpath->query('//book[php:functionString("substr", title, 0, 3) = "PHP"]');
 
-echo "Se encontró {$nodos->length} libros que empiezan con 'PHP':\n";
-foreach ($nodos as $nodo) {
-    $title  = $nodo->getElementsByTagName("title")->item(0)->nodeValue;
-    $author = $nodo->getElementsByTagName("author")->item(0)->nodeValue;
+echo "{$nodes->length} libros encontrados cuyo título comienza con 'PHP':\n";
+foreach ($nodes as $node) {
+    $title  = $node->getElementsByTagName("title")->item(0)->nodeValue;
+    $author = $node->getElementsByTagName("author")->item(0)->nodeValue;
     echo "$title por $author\n";
 }
 
@@ -109,7 +166,7 @@ foreach ($nodos as $nodo) {
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Se encontró 2 libros que empiezan con 'PHP':
+2 libros encontrados cuyo título comienza con 'PHP':
 PHP Basics por Jim Smith
 PHP Secrets por Jenny Smythe
 ]]>
@@ -118,31 +175,32 @@ PHP Secrets por Jenny Smythe
   </para>
   <para>
    <example>
-    <title><methodname>DOMXPath::registerPHPFunctions</methodname> con <literal>php:function</literal></title>
+    <title>Ejemplo con <methodname>DOMXPath::registerPhpFunctions</methodname>
+     y <literal>php:function</literal></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $doc = new DOMDocument;
-$doc->load('book.xml');
+$doc->load('examples/book-simple.xml');
 
 $xpath = new DOMXPath($doc);
 
-// Registrar el espacio de nombres php: namespace (requerido)
+// Registra el espacio de nombres php (necesario)
 $xpath->registerNamespace("php", "http://php.net/xpath");
 
-// Registrar funciones de PHP (sólo has_multiple)
-$xpath->registerPHPFunctions("has_multiple");
+// Registra funciones PHP (solo has_multiple)
+$xpath->registerPhpFunctions("has_multiple");
 
-function has_multiple($nodos) {
-    // Return true if more than one author
-    return count($nodos) > 1;
+function has_multiple($nodes) {
+    // Retorna true si hay más de un autor
+    return count($nodes) > 1;
 }
-// Filtrar libros con múltiples autores
-$libros = $xpath->query('//book[php:function("has_multiple", author)]');
+// Filtra los libros cuyos autores son múltiples
+$books = $xpath->query('//book[php:function("has_multiple", author)]');
 
-echo "Libros con múltiples autores:\n";
-foreach ($libros as $libro) {
-    echo $libro->getElementsByTagName("title")->item(0)->nodeValue . "\n";
+echo "Libros con múltiples autores :\n";
+foreach ($books as $book) {
+    echo $book->getElementsByTagName("title")->item(0)->nodeValue . "\n";
 }
 
 ?>
@@ -151,7 +209,44 @@ foreach ($libros as $libro) {
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Libros con múltiples autores:
+Libros con múltiples autores :
+PHP Basics
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title><methodname>DOMXPath::registerPhpFunctions</methodname> con un <type>callable</type></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$doc = new DOMDocument;
+$doc->load('examples/book-simple.xml');
+
+$xpath = new DOMXPath($doc);
+
+// Registrar el namespace php: (necesario)
+$xpath->registerNamespace("php", "http://php.net/xpath");
+
+// Registrar las funciones PHP (solo has_multiple)
+$xpath->registerPhpFunctions(["has_multiple" => fn ($nodes) => count($nodes) > 1]);
+
+// Filtrar los libros con múltiples autores
+$books = $xpath->query('//book[php:function("has_multiple", author)]');
+
+echo "Libros con múltiples autores :\n";
+foreach ($books as $book) {
+    echo $book->getElementsByTagName("title")->item(0)->nodeValue . "\n";
+}
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Libros con múltiples autores :
 PHP Basics
 ]]>
     </screen>
@@ -166,6 +261,7 @@ PHP Basics
     <member><methodname>DOMXPath::registerNamespace</methodname></member>
     <member><methodname>DOMXPath::query</methodname></member>
     <member><methodname>DOMXPath::evaluate</methodname></member>
+    <member><methodname>XSLTProcessor::registerPHPFunctions</methodname></member>
    </simplelist>
   </para>
  </refsect1>
