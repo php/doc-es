@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: d76a7fe17dd2488e47d664a8ab38e161b13ac843 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.sodium-crypto-pwhash" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>sodium_crypto_pwhash</refname>
+  <refpurpose>Deriva una clave a partir de una contraseña, utilizando Argon2</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>string</type><methodname>sodium_crypto_pwhash</methodname>
+   <methodparam><type>int</type><parameter>length</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam><type>string</type><parameter>salt</parameter></methodparam>
+   <methodparam><type>int</type><parameter>opslimit</parameter></methodparam>
+   <methodparam><type>int</type><parameter>memlimit</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>algo</parameter><initializer><constant>SODIUM_CRYPTO_PWHASH_ALG_DEFAULT</constant></initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   Esta función proporciona acceso de bajo nivel a la función de derivación de clave crypto_pwhash de libsodium. A menos que haya una razón específica para utilizar esta función, se deben utilizar las funciones <function>sodium_crypto_pwhash_str</function> o <function>password_hash</function> en su lugar.
+  </para>
+  <para>
+   Una razón común para utilizar esta función es derivar las semillas para las claves criptográficas a partir de una contraseña y un salt, y luego utilizar estas semillas para generar las claves reales necesarias para un uso específico (por ejemplo, <function>sodium_crypto_sign_detached</function>).
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>length</parameter></term>
+    <listitem>
+     <para>
+      <type>int</type>; La longitud del hash de la contraseña a generar, en bytes.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>password</parameter></term>
+    <listitem>
+     <para>
+      <type>string</type>; La contraseña para la cual generar un hash.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>salt</parameter></term>
+    <listitem>
+     <para>
+      Un salt para añadir a la contraseña antes del hash. El salt debe ser impredecible, idealmente generado a partir de una buena fuente de números aleatorios como <function>random_bytes</function>, y tener una longitud de al menos <constant>SODIUM_CRYPTO_PWHASH_SALTBYTES</constant> bytes.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>opslimit</parameter></term>
+    <listitem>
+     <para>
+      Representa una cantidad máxima de cálculos a realizar. Aumentar este número hará que la función requiera más ciclos de CPU para calcular una clave. Existen constantes disponibles para definir el límite de operaciones a valores adecuados según el uso previsto, en orden de fuerza: <constant>SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE</constant>, <constant>SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE</constant> y <constant>SODIUM_CRYPTO_PWHASH_OPSLIMIT_SENSITIVE</constant>.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>memlimit</parameter></term>
+    <listitem>
+     <para>
+      La cantidad máxima de RAM que la función utilizará, en bytes. Existen constantes para ayudar a elegir un valor adecuado, en orden de tamaño: <constant>SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE</constant>, <constant>SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE</constant> y <constant>SODIUM_CRYPTO_PWHASH_MEMLIMIT_SENSITIVE</constant>. Típicamente, estos valores deberían asociarse con los valores opslimit correspondientes.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>algo</parameter></term>
+    <listitem>
+     <para>
+      <type>int</type> Un número que indica el algoritmo de hash a utilizar. Por defecto <constant>SODIUM_CRYPTO_PWHASH_ALG_DEFAULT</constant> (el algoritmo actualmente recomendado, que puede cambiar de una versión de libsodium a otra), o explícitamente utilizando <constant>SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13</constant>, representando el algoritmo Argon2id versión 1.3.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve la clave derivada. El valor de retorno es una cadena binaria del hash, no una representación codificada en ASCII, y no contiene información adicional sobre los parámetros utilizados para crear el hash, por lo que se deberá conservar esta información si alguna vez se necesita verificar la contraseña en el futuro. Utilice <function>sodium_crypto_pwhash_str</function> para evitar tener que hacer todo esto.
+  </para>
+ </refsect1>
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo de <function>sodium_crypto_pwhash</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+//Requerido para conservar el salt si alguna vez necesitamos verificar esta contraseña
+$salt = random_bytes(SODIUM_CRYPTO_PWHASH_SALTBYTES);
+//Utilizar bin2hex para mantener la salida legible
+echo bin2hex(
+    sodium_crypto_pwhash(
+        16, // == 128 bits
+        'password',
+        $salt,
+        SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE,
+        SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE,
+        SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13
+    )
+);
+?>]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+a18f346ba57992eb7e4ae6abf3fd30ee
+]]>
+    </screen>
+   </example>
+  </para>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
