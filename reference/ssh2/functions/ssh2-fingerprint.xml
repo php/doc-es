@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-sftp">
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-fingerprint">
  <refnamediv>
-  <refname>ssh2_sftp</refname>
-  <refpurpose>Inicializar el subsistema SFTP</refpurpose>
+  <refname>ssh2_fingerprint</refname>
+  <refpurpose>Recupera la huella de un servidor remoto</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>ssh2_sftp</methodname>
+   <type>string</type><methodname>ssh2_fingerprint</methodname>
    <methodparam><type>resource</type><parameter>session</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>SSH2_FINGERPRINT_MD5 | SSH2_FINGERPRINT_HEX</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Solicita el subsistema SFTP desde un servidor SSH2 ya conectado.
+   Recupera la huella de un servidor remoto.
   </para>
  </refsect1>
 
@@ -27,8 +28,20 @@
      <term><parameter>session</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de conexión SSH obtenido a partir de una llamada a
+       Un identificador de conexión SSH, obtenido desde la función
        <function>ssh2_connect</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>flags</parameter></term>
+     <listitem>
+      <para>
+       <parameter>flags</parameter> puede ser
+       <constant>SSH2_FINGERPRINT_MD5</constant> o
+       <constant>SSH2_FINGERPRINT_SHA1</constant> asociado lógicamente con
+       <constant>SSH2_FINGERPRINT_HEX</constant> o
+       <constant>SSH2_FINGERPRINT_RAW</constant>.
       </para>
      </listitem>
     </varlistentry>
@@ -39,9 +52,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Este método devuelve un recurso <literal>SFTP de SSH2</literal> para emplearlo con
-   todos los demás métodos ssh2_sftp_*() y la
-   envoltura <link linkend="wrappers.ssh2">ssh2.sftp://</link> de fopen.
+   Devuelve la huella, en forma de &string;.
   </para>
  </refsect1>
 
@@ -49,30 +60,25 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Abrir un fichero a través de SFTP</title>
+    <title>Comparación de una huella con un valor conocido</title>
     <programlisting role="php">
 <![CDATA[
 <?php
+$known_host = '6F89C2F0A719B30CC38ABDF90755F2E4';
+
 $connection = ssh2_connect('shell.example.com', 22);
-ssh2_auth_password($connection, 'username', 'password');
 
-$sftp = ssh2_sftp($connection);
+$fingerprint = ssh2_fingerprint($connection,
+               SSH2_FINGERPRINT_MD5 | SSH2_FINGERPRINT_HEX);
 
-$stream = fopen("ssh2.sftp://$sftp/path/to/file", 'r');
+if ($fingerprint != $known_host) {
+  die("HOSTKEY MISMATCH!\n" .
+      "Posible ataque Man-In-The-Middle ?");
+}
 ?>
 ]]>
     </programlisting>
    </example>
-  </para>
- </refsect1>
-
- <refsect1 role="seealso">
-  &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>ssh2_scp_recv</function></member>
-    <member><function>ssh2_scp_send</function></member>
-   </simplelist>
   </para>
  </refsect1>
 
