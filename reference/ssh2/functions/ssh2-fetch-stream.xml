@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-sftp">
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-fetch-stream">
  <refnamediv>
-  <refname>ssh2_sftp</refname>
-  <refpurpose>Inicializar el subsistema SFTP</refpurpose>
+  <refname>ssh2_fetch_stream</refname>
+  <refpurpose>Recorre un flujo extendido de datos</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>ssh2_sftp</methodname>
-   <methodparam><type>resource</type><parameter>session</parameter></methodparam>
+   <type>resource</type><methodname>ssh2_fetch_stream</methodname>
+   <methodparam><type>resource</type><parameter>channel</parameter></methodparam>
+   <methodparam><type>int</type><parameter>streamid</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Solicita el subsistema SFTP desde un servidor SSH2 ya conectado.
+   Recorre un subflujo alternativo asociado a un flujo de canal SSH2.
+   El protocolo SSH2 define actualmente un solo subflujo, STDERR, que tiene
+   un identificador de subflujo de <constant>SSH2_STREAM_STDERR</constant> (definido a 1).
   </para>
  </refsect1>
 
@@ -24,11 +27,17 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>session</parameter></term>
+     <term><parameter>channel</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de conexión SSH obtenido a partir de una llamada a
-       <function>ssh2_connect</function>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>streamid</parameter></term>
+     <listitem>
+      <para>
+       Un canal de flujo SSH2.
       </para>
      </listitem>
     </varlistentry>
@@ -39,9 +48,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Este método devuelve un recurso <literal>SFTP de SSH2</literal> para emplearlo con
-   todos los demás métodos ssh2_sftp_*() y la
-   envoltura <link linkend="wrappers.ssh2">ssh2.sftp://</link> de fopen.
+   Devuelve el recurso, representando el flujo solicitado.
   </para>
  </refsect1>
 
@@ -49,16 +56,15 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Abrir un fichero a través de SFTP</title>
+    <title>Apertura de un shell y recuperación del flujo stderr que le está asociado</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $connection = ssh2_connect('shell.example.com', 22);
 ssh2_auth_password($connection, 'username', 'password');
 
-$sftp = ssh2_sftp($connection);
-
-$stream = fopen("ssh2.sftp://$sftp/path/to/file", 'r');
+$stdio_stream = ssh2_shell($connection);
+$stderr_stream = ssh2_fetch_stream($stdio_stream, SSH2_STREAM_STDERR);
 ?>
 ]]>
     </programlisting>
@@ -70,8 +76,9 @@ $stream = fopen("ssh2.sftp://$sftp/path/to/file", 'r');
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>ssh2_scp_recv</function></member>
-    <member><function>ssh2_scp_send</function></member>
+    <member><function>ssh2_shell</function></member>
+    <member><function>ssh2_exec</function></member>
+    <member><function>ssh2_connect</function></member>
    </simplelist>
   </para>
  </refsect1>

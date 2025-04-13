@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-sftp">
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ssh2-methods-negotiated">
  <refnamediv>
-  <refname>ssh2_sftp</refname>
-  <refpurpose>Inicializar el subsistema SFTP</refpurpose>
+  <refname>ssh2_methods_negotiated</refname>
+  <refpurpose>Devuelve una lista de métodos negociados</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>ssh2_sftp</methodname>
+   <type>array</type><methodname>ssh2_methods_negotiated</methodname>
    <methodparam><type>resource</type><parameter>session</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Solicita el subsistema SFTP desde un servidor SSH2 ya conectado.
+   Devuelve una lista de métodos negociados.
   </para>
  </refsect1>
 
@@ -27,7 +27,7 @@
      <term><parameter>session</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de conexión SSH obtenido a partir de una llamada a
+       Un identificador de conexión SSH, obtenido desde la función
        <function>ssh2_connect</function>.
       </para>
      </listitem>
@@ -39,9 +39,6 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Este método devuelve un recurso <literal>SFTP de SSH2</literal> para emplearlo con
-   todos los demás métodos ssh2_sftp_*() y la
-   envoltura <link linkend="wrappers.ssh2">ssh2.sftp://</link> de fopen.
   </para>
  </refsect1>
 
@@ -49,16 +46,27 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Abrir un fichero a través de SFTP</title>
+    <title>Determina qué métodos han sido negociados</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $connection = ssh2_connect('shell.example.com', 22);
-ssh2_auth_password($connection, 'username', 'password');
+$methods = ssh2_methods_negotiated($connection);
 
-$sftp = ssh2_sftp($connection);
+echo "Clave de cifrado negociada utilizando: {$methods['kex']}\n";
+echo "Identificación del servidor utilizando {$methods['hostkey']}";
+echo "Huella: " . ssh2_fingerprint($connection) . "\n";
 
-$stream = fopen("ssh2.sftp://$sftp/path/to/file", 'r');
+echo "Métodos de transmisión de paquetes cliente a servidor:\n";
+echo "\tCrypt: {$methods['client_to_server']['crypt']}\n";
+echo "\tComp: {$methods['client_to_server']['comp']}\n";
+echo "\tMAC: {$methods['client_to_server']['mac']}\n";
+
+echo "Métodos de transmisión de paquetes servidor a cliente:\n";
+echo "\tCrypt: {$methods['server_to_client']['crypt']}\n";
+echo "\tComp: {$methods['server_to_client']['comp']}\n";
+echo "\tMAC: {$methods['server_to_client']['mac']}\n";
+
 ?>
 ]]>
     </programlisting>
@@ -70,8 +78,7 @@ $stream = fopen("ssh2.sftp://$sftp/path/to/file", 'r');
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>ssh2_scp_recv</function></member>
-    <member><function>ssh2_scp_send</function></member>
+    <member><function>ssh2_connect</function></member>
    </simplelist>
   </para>
  </refsect1>
