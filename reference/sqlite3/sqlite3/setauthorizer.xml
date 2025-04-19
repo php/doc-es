@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 22583751fbfdaa3eaa41aeb6470d1343f5cb2c78 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="sqlite3.setauthorizer" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>SQLite3::setAuthorizer</refname>
+  <refpurpose>Configura una función de retrollamada para utilizar como autorizador para limitar lo que una sentencia puede hacer</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis role="SQLite3">
+   <modifier>public</modifier> <type>bool</type><methodname>SQLite3::setAuthorizer</methodname>
+   <methodparam><type class="union"><type>callable</type><type>null</type></type><parameter>callback</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+   Define una función de retrollamada que será llamada por SQLite cada vez que se realiza una acción
+   (lectura, eliminación, actualización, etc.). Esto se utiliza durante la preparación de una sentencia SQL a partir
+   de una fuente no confiable para asegurarse de que las sentencias SQL no intenten acceder a datos
+   a los que no están autorizadas a acceder, o que no intenten ejecutar sentencias
+   maliciosas que dañen la base de datos. Por ejemplo, una aplicación puede autorizar a un usuario
+   a introducir consultas SQL arbitrarias para evaluación por una base de datos. Pero la aplicación no quiere
+   que el usuario pueda realizar modificaciones arbitrarias en la base de datos. Un autorizador podría
+   entonces establecerse mientras el SQL introducido por el usuario es preparado para prohibir todo excepto las
+   declaraciones SELECT.
+  </para>
+  <para>
+   La función de retrollamada del autorizador puede ser llamada varias veces para cada sentencia preparada por
+   SQLite. Una consulta <literal>SELECT</literal> o <literal>UPDATE</literal> llamará al autorizador para cada
+   columna que sería leída o actualizada.
+  </para>
+  <para>
+   La función de retrollamada del autorizador es llamada con hasta cinco parámetros. El primer parámetro siempre es
+   proporcionado, y es un <type>int</type> (código de acción) correspondiente a una constante de
+   <literal>SQLite3</literal>. Los otros parámetros solo se pasan para ciertas acciones. La
+   tabla siguiente describe los parámetros segundo y tercero según la acción:
+   <table>
+    <title>Lista de códigos de acción y parámetros</title>
+    <tgroup cols="3">
+     <thead>
+      <row>
+       <entry>Acción</entry>
+       <entry>Segundo parámetro</entry>
+       <entry>Tercer parámetro</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row><entry><constant>SQLite3::CREATE_INDEX</constant></entry><entry>Nombre del índice</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TABLE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TEMP_INDEX</constant></entry><entry>Nombre del índice</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TEMP_TABLE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TEMP_TRIGGER</constant></entry><entry>Nombre del disparador</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TEMP_VIEW</constant></entry><entry>Nombre de la vista</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::CREATE_TRIGGER</constant></entry><entry>Nombre del disparador</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::CREATE_VIEW</constant></entry><entry>Nombre de la vista</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DELETE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DROP_INDEX</constant></entry><entry>Nombre del índice</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::DROP_TABLE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DROP_TEMP_INDEX</constant></entry><entry>Nombre del índice</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::DROP_TEMP_TABLE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DROP_TEMP_TRIGGER</constant></entry><entry>Nombre del disparador</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::DROP_TEMP_VIEW</constant></entry><entry>Nombre de la vista</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DROP_TRIGGER</constant></entry><entry>Nombre del disparador</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::DROP_VIEW</constant></entry><entry>Nombre de la vista</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::INSERT</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::PRAGMA</constant></entry><entry>Nombre Pragma</entry><entry>El primer argumento pasado al pragma, o &null;</entry></row>
+      <row><entry><constant>SQLite3::READ</constant></entry><entry>Nombre de la tabla</entry><entry>Nombre de la columna</entry></row>
+      <row><entry><constant>SQLite3::SELECT</constant></entry><entry>&null;</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::TRANSACTION</constant></entry><entry>Operación</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::UPDATE</constant></entry><entry>Nombre de la tabla</entry><entry>Nombre de la columna</entry></row>
+      <row><entry><constant>SQLite3::ATTACH</constant></entry><entry>Filename</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::DETACH</constant></entry><entry>Nombre de la base de datos</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::ALTER_TABLE</constant></entry><entry>Nombre Database</entry><entry>Nombre de la tabla</entry></row>
+      <row><entry><constant>SQLite3::REINDEX</constant></entry><entry>Nombre del índice</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::ANALYZE</constant></entry><entry>Nombre de la tabla</entry><entry>&null;</entry></row>
+      <row><entry><constant>SQLite3::CREATE_VTABLE</constant></entry><entry>Nombre de la tabla</entry><entry>Nombre del módulo</entry></row>
+      <row><entry><constant>SQLite3::DROP_VTABLE</constant></entry><entry>Nombre de la tabla</entry><entry>Nombre del módulo</entry></row>
+      <row><entry><constant>SQLite3::FUNCTION</constant></entry><entry>&null;</entry><entry>Nombre de la función</entry></row>
+      <row><entry><constant>SQLite3::SAVEPOINT</constant></entry><entry>Operación</entry><entry>Nombre del punto de guardado</entry></row>
+      <row><entry><constant>SQLite3::RECURSIVE</constant></entry><entry>&null;</entry><entry>&null;</entry></row>
+     </tbody>
+    </tgroup>
+   </table>
+  </para>
+  <para>
+   El cuarto parámetro será el nombre de la base de datos (<literal>"main"</literal>,
+   <literal>"temp"</literal>, etc.) si es aplicable.
+  </para>
+  <para>
+   El quinto parámetro de la función de retrollamada del autorizador es el nombre del disparador o de la vista más
+   interno que es responsable del intento de acceso o &null; si este intento de acceso proviene directamente del
+   código SQL de nivel superior.
+  </para>
+  <para>
+   Cuando la función de retrollamada devuelve <constant>SQLite3::OK</constant>, significa que la operación
+   solicitada es aceptada. Cuando la función de retrollamada devuelve <constant>SQLite3::DENY</constant>, la llamada que
+   provocó el autorizador fallará con un mensaje de error explicando que
+   el acceso es denegado.
+  </para>
+  <para>
+   Si el código de acción es <constant>SQLite3::READ</constant> y la función de retrollamada devuelve
+   <constant>SQLite3::IGNORE</constant>, entonces la sentencia preparada se construye para sustituir un valor
+   &null; en lugar de la columna de la tabla que se habría leído si <constant>SQLite3::OK</constant> se hubiera devuelto.
+   Devolver <constant>SQLite3::IGNORE</constant> puede ser utilizado para denegar a un usuario no confiable el acceso
+   a columnas individuales de una tabla.
+  </para>
+  <para>
+   Cuando una tabla es referenciada por un <literal>SELECT</literal> pero no se extrae ningún valor de columna de
+   esa tabla (por ejemplo en una consulta como <literal>"SELECT count(*) FROM table"</literal>), entonces la función
+   de retrollamada del autorizador se invoca una vez para esa tabla con un nombre de columna que es una cadena vacía.
+  </para>
+  <para>
+   Si el código de acción es <constant>SQLite3::DELETE</constant> y la función de retrollamada devuelve
+   <constant>SQLite3::IGNORE</constant>, entonces la operación DELETE continúa pero la optimización de truncamiento es
+   desactivada y todas las filas se eliminan individualmente.
+  </para>
+  <para>
+   Solo un autorizador puede estar activo en una conexión de base de datos a la vez. Cada llamada a
+   <methodname>SQLite3::setAuthorizer</methodname> reemplaza la llamada anterior. Desactive el autorizador instalando
+   una retrollamada &null;. El autorizador está desactivado por omisión.
+  </para>
+  <para>
+   La función de retrollamada del autorizador no debe hacer nada que modifique la conexión de base de
+   datos que ha invocado la función de retrollamada del autorizador.
+  </para>
+  <para>
+   Es importante señalar que el autorizador solo se llama cuando una sentencia es preparada, no cuando es
+   ejecutada.
+  </para>
+  <para>
+   Más detalles pueden encontrarse en la
+   <link xlink:href="&url.sqlite;c3ref/set_authorizer.html">documentación de SQLite3</link>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>callback</parameter></term>
+    <listitem>
+     <para>
+      El <type>callable</type> a llamar.
+     </para>
+     <para>
+      Si se pasa &null;, esto desactivará la retrollamada del autorizador actual.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   &return.success;
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Este método no lanza ningún error, pero si un autorizador está activado y devuelve un
+   valor inválido, la preparación de la sentencia lanzará un error (o una excepción, según
+   el uso del método <methodname>SQLite3::enableExceptions</methodname>).
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>SQLite3::setAuthorizer</methodname></title>
+   <para>
+     Esto solo autoriza el acceso de lectura, y solo ciertas columnas de la tabla
+     <literal>users</literal> serán devueltas. Las otras columnas serán reemplazadas por
+     &null;.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$db = new SQLite3('data.sqlite');
+$db->exec('CREATE TABLE users (id, name, password);');
+$db->exec('INSERT INTO users VALUES (1, \'Pauline\', \'Snails4eva\');');
+
+$allowed_columns = ['id', 'name'];
+
+$db->setAuthorizer(function (int $action, ...$args) use ($allowed_columns) {
+    if ($action === SQLite3::READ) {
+        list($table, $column) = $args;
+
+        if ($table === 'users' && in_array($column, $allowed_columns)) {
+            return SQLite3::OK;
+        }
+
+        return SQLite3::IGNORE;
+    }
+
+    return SQLite3::DENY;
+});
+
+print_r($db->querySingle('SELECT * FROM users WHERE id = 1;'));
+]]>
+   </programlisting>
+
+   &example.outputs;
+   <screen>
+<![CDATA[
+Array
+(
+    [id] => 1
+    [name] => Pauline
+    [password] =>
+)
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
