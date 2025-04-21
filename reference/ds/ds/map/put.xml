@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: dd07341fae2c414adc1f700be0890ff32e8daab4 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="ds-map.put" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>Ds\Map::put</refname>
+  <refpurpose>Asocia una clave a un valor</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>public</modifier> <type>void</type><methodname>Ds\Map::put</methodname>
+   <methodparam><type>mixed</type><parameter>key</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+  </methodsynopsis>
+  <para>
+    Asocia una <parameter>clave</parameter> a un <parameter>valor</parameter>,
+    sobrescribiendo una asociación previa si existe.
+  </para>
+
+  <note>
+    <para>
+        Las claves de tipo <type>object</type> son soportadas.
+
+        Si un objeto implementa <classname>Ds\Hashable</classname>,
+        la igualdad será determinada por la función <code>equals</code> del objeto.
+
+        Si un objeto no implementa <classname>Ds\Hashable</classname>,
+        los objetos deben ser referencias a la misma instancia para ser considerados iguales.
+    </para>
+  </note>
+
+  <note>
+    <para>
+        Asimismo, se puede utilizar la sintaxis de array para asociar valores por clave, por ejemplo <code>$map["clave"] = $valor</code>.
+    </para>
+  </note>
+
+  <caution>
+    <para>
+        Atención al uso de la sintaxis de array. Las claves escalares serán coercionadas a
+        enteros por el motor. Por ejemplo, <code>$map["1"]</code> intentará acceder a
+        <code>int(1)</code>, mientras que <code>$map-&gt;get("1")</code>
+        buscará correctamente la clave de string.
+    </para>
+    <para>
+        Ver <link linkend="language.types.array">arrays</link>.
+    </para>
+  </caution>
+
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>key</parameter></term>
+    <listitem>
+     <para>
+        La clave a asociar al valor.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>value</parameter></term>
+    <listitem>
+     <para>
+        El valor a asociar a la clave.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+    &return.void;
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <function>Ds\Map::put</function></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$map = new \Ds\Map();
+
+$map->put("a", 1);
+$map->put("b", 2);
+$map->put("c", 3);
+
+print_r($map);
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+Ds\Map Object
+(
+    [0] => Ds\Pair Object
+        (
+            [key] => a
+            [value] => 1
+        )
+
+    [1] => Ds\Pair Object
+        (
+            [key] => b
+            [value] => 2
+        )
+
+    [2] => Ds\Pair Object
+        (
+            [key] => c
+            [value] => 3
+        )
+
+)
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Ejemplo de <function>Ds\Map::put</function> utilizando objetos como clave</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class HashableObject implements \Ds\Hashable
+{
+    /**
+     * Un valor arbitrario a utilizar como valor de hash. No define la igualdad.
+     */
+    private $value;
+
+    public function __construct($value)
+    {
+        $this->value = $value;
+    }
+
+    public function hash()
+    {
+        return $this->value;
+    }
+
+    public function equals($obj): bool
+    {
+        return $this->value === $obj->value;
+    }
+}
+
+$map = new \Ds\Map();
+
+$obj = new \ArrayIterator([]);
+
+// Utilizar la misma instancia varias veces sobrescribirá el valor anterior.
+$map->put($obj, 1);
+$map->put($obj, 2);
+
+// Utilizar varias instancias del mismo objeto creará nuevas asociaciones.
+$map->put(new \stdClass(), 3);
+$map->put(new \stdClass(), 4);
+
+// Utilizar varias instancias de objetos iguales sobrescribirá los valores anteriores.
+$map->put(new \HashableObject(1), 5);
+$map->put(new \HashableObject(1), 6);
+$map->put(new \HashableObject(2), 7);
+$map->put(new \HashableObject(2), 8);
+
+var_dump($map);
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+object(Ds\Map)#1 (5) {
+  [0]=>
+  object(Ds\Pair)#7 (2) {
+    ["key"]=>
+    object(ArrayIterator)#2 (1) {
+      ["storage":"ArrayIterator":private]=>
+      array(0) {
+      }
+    }
+    ["value"]=>
+    int(2)
+  }
+  [1]=>
+  object(Ds\Pair)#8 (2) {
+    ["key"]=>
+    object(stdClass)#3 (0) {
+    }
+    ["value"]=>
+    int(3)
+  }
+  [2]=>
+  object(Ds\Pair)#9 (2) {
+    ["key"]=>
+    object(stdClass)#4 (0) {
+    }
+    ["value"]=>
+    int(4)
+  }
+  [3]=>
+  object(Ds\Pair)#10 (2) {
+    ["key"]=>
+    object(HashableObject)#5 (1) {
+      ["value":"HashableObject":private]=>
+      int(1)
+    }
+    ["value"]=>
+    int(6)
+  }
+  [4]=>
+  object(Ds\Pair)#11 (2) {
+    ["key"]=>
+    object(HashableObject)#6 (1) {
+      ["value":"HashableObject":private]=>
+      int(2)
+    }
+    ["value"]=>
+    int(8)
+  }
+}
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
