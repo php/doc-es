@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 4639881688d3faaf0073ad71fe0a4b730aea15a0 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="mongodb-driver-query.construct" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>MongoDB\Driver\Query::__construct</refname>
+  <refpurpose>Crear una nueva consulta</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>final</modifier> <modifier>public</modifier> <methodname>MongoDB\Driver\Query::__construct</methodname>
+   <methodparam><type class="union"><type>array</type><type>object</type></type><parameter>filter</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>queryOptions</parameter><initializer>&null;</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   Construye un nuevo objeto <classname>MongoDB\Driver\Query</classname>, que es un objeto
+   de valor inmutable que representa una consulta de base de datos. La consulta puede
+   luego ser ejecutada con
+   <methodname>MongoDB\Driver\Manager::executeQuery</methodname>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   &mongodb.parameter.filter;
+   <varlistentry>
+    <term><parameter>queryOptions</parameter></term>
+    <listitem>
+     <para>
+      <table xml:id="mongodb-driver-query.construct-queryOptions">
+       <title>queryOptions</title>
+       <tgroup cols="3">
+        <thead>
+         <row>
+          <entry>Option</entry>
+          <entry>Type</entry>
+          <entry>Description</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>allowDiskUse</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            Autoriza a MongoDB a utilizar ficheros temporales en el disco
+            para almacenar datos que excedan el límite de memoria del sistema
+            de 100 megabytes al procesar una operación de clasificación bloqueante.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>allowPartialResults</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            Para las consultas en una colección fragmentada, devuelve resultados parciales del mongos si algunos fragmentos no están
+            disponibles en lugar de generar un error.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"partial"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>awaitData</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           Utilizar en conjunción con la opción <literal>"tailable"</literal> para
+           bloquear temporalmente una operación getMore en el cursor si al final
+           de los datos en lugar de no devolver datos. Después de un período
+           de espera, la consulta termina normalmente.
+          </entry>
+         </row>
+         <row>
+          <entry>batchSize</entry>
+          <entry><type>int</type></entry>
+          <entry>
+           <para>
+            El número de documentos a devolver en el primer lote. Por omisión a
+            101. Un tamaño de lote de 0 significa que el cursor será establecido, pero
+            ningún documento será devuelto en el primer lote.
+           </para>
+           <para>
+            En las versiones de MongoDB anteriores a 3.2, donde las consultas
+            utilizan el protocolo de filaire heredado OP_QUERY, un tamaño de lote
+            de 1 cerrará el cursor independientemente del número de documentos.
+           </para>
+          </entry>
+         </row>
+         &mongodb.option.collation;
+         <row>
+          <entry>comment</entry>
+          <entry><type>mixed</type></entry>
+          <entry>
+           <para>
+            Un comentario arbitrario para ayudar a rastrear la operación a través
+            del perfil de la base de datos, la salida currentOp y los registros.
+           </para>
+           <para>
+            El comentario puede ser cualquier tipo BSON válido para MongoDB
+            4.4+. Las versiones de servidor anteriores solo admiten
+            valores de cadena.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$comment"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>exhaust</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            El flujo de datos aguas abajo a plena potencia en varios paquetes
+            "more", asumiendo que el cliente leerá completamente todos los datos
+            consultados. Más rápido cuando se extraen muchos datos y
+            se sabe que se quiere extraer todo. Nota: el cliente no está autorizado
+            a no leer todos los datos a menos que cierre la conexión.
+           </para>
+           <para>
+            Esta opción no es admitida por el comando find en MongoDB
+            3.2+ y forzará al controlador a utilizar la versión del protocolo de filaire
+            heredado (es decir, OP_QUERY).
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>explain</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            Si &true; el cursor <classname>MongoDB\Driver\Cursor</classname> devuelto
+            contendrá un solo documento que describe el proceso y los índices utilizados
+            para devolver la consulta.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$explain"</literal> si no
+            se especifica.
+           </para>
+           <para>
+            Esta opción no es admitida por el comando find en MongoDB
+            3.2+ y solo será respetada al utilizar la versión del protocolo de filaire
+            heredado (es decir, OP_QUERY). El comando
+            <link xlink:href="&url.mongodb.docs;reference/command/explain/">explain</link>
+            debe ser utilizado en MongoDB 3.0+.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>hint</entry>
+          <entry><type class="union"><type>string</type><type>array</type><type>object</type></type></entry>
+          <entry>
+           <para>
+            Especificación del índice. Especifique el nombre del índice como
+            cadena, o el patrón de clave de índice. Si se especifica, el sistema de consulta
+            solo considerará los planes que utilicen el índice sugerido.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"hint"</literal> si no se especifica.
+           </para>
+          </entry>
+         </row>
+         &mongodb.option.let;
+         <row>
+          <entry>limit</entry>
+          <entry><type>int</type></entry>
+          <entry>
+           <para>
+            El número máximo de documentos a devolver. Si no se especifica, entonces
+            por omisión a ningún límite. Un límite de 0 es equivalente a no establecer
+            un límite.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>max</entry>
+          <entry><type class="union"><type>array</type><type>object</type></type></entry>
+          <entry>
+           <para>
+            El límite superior <emphasis>exclusivo</emphasis> para un índice específico.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$max"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>maxAwaitTimeMS</entry>
+          <entry><type>int</type></entry>
+          <entry>
+           <para>
+            Entero positivo que indica el límite de tiempo en milisegundos para que el
+            servidor bloquee una operación getMore si no hay datos disponibles. Esta opción solo debe
+            ser utilizada en conjunción con las opciones <literal>"tailable"</literal> y
+            <literal>"awaitData"</literal>.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>maxTimeMS</entry>
+          <entry><type>int</type></entry>
+          <entry>
+           <para>
+            El límite de tiempo acumulativo en milisegundos para el procesamiento de
+            las operaciones en el cursor. MongoDB detiene la operación en el primer punto
+            de interrupción más cercano.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$maxTimeMS"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>min</entry>
+          <entry><type class="union"><type>array</type><type>object</type></type></entry>
+          <entry>
+           <para>
+            El límite inferior <emphasis>inclusivo</emphasis> para un índice específico.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$min"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>noCursorTimeout</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           Evita que el servidor finalice los cursores inactivos después de un período
+           de inactividad (10 minutos).
+          </entry>
+         </row>
+         <row>
+          <entry>projection</entry>
+          <entry><type class="union"><type>array</type><type>object</type></type></entry>
+          <entry>
+           <para>
+            Las <link xlink:href="&url.mongodb.docs;tutorial/project-fields-from-query-results/">especificaciones de proyección</link>
+            para determinar qué campos incluir en los documentos devueltos.
+           </para>
+           <para>
+            Si se utiliza la
+            <link linkend="mongodb.persistence.deserialization">funcionalidad ODM</link>
+            para deserializar los documentos como su clase PHP original,
+            asegúrese de incluir el campo <property>__pclass</property> en la
+            proyección. Esto es necesario para que la deserialización funcione
+            y sin ello, la extensión devolverá (por omisión) un objeto
+            <classname>stdClass</classname> en su lugar.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>readConcern</entry>
+          <entry><classname>MongoDB\Driver\ReadConcern</classname></entry>
+          <entry>
+           <para>
+            Un read concern a aplicar a la operación. Por omisión, el read concern
+            de la <link linkend="mongodb-driver-manager.construct-uri">URI
+            de conexión MongoDB</link>
+            será utilizado.
+           </para>
+           <para>
+            Esta opción está disponible en MongoDB 3.2+ y provocará una
+            excepción en el momento de la ejecución si se especifica para una
+            versión de servidor más antigua.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>returnKey</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            Si &true;, solo devuelve las claves de índice en los documentos
+            resultantes. El valor por omisión es &false;. Si &true; y la
+            comando find no utiliza un índice, los documentos devueltos estarán vacíos.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$returnKey"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>showRecordId</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           <para>
+            Determina si el identificador de registro debe ser devuelto para
+            cada documento. Si &true;, añade un campo <literal>"$recordId"</literal>
+            de primer nivel a los documentos devueltos.
+           </para>
+           <para>
+            Retoma la opción deprecada <literal>"$showDiskLoc"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>singleBatch</entry>
+          <entry><type>bool</type></entry>
+          <entry>
+           Determina si el cursor debe ser cerrado después del primer lote.
+           Por omisión a &false;.
+          </entry>
+         </row>
+         <row>
+          <entry>skip</entry>
+          <entry><type>int</type></entry>
+          <entry>Número de documentos a saltar. Por omisión a 0.</entry>
+         </row>
+         <row>
+          <entry>sort</entry>
+          <entry><type class="union"><type>array</type><type>object</type></type></entry>
+          <entry>
+           <para>La especificación de clasificación para el ordenamiento de los resultados.</para>
+           <para>
+            Retoma la opción deprecada <literal>"$orderby"</literal> si no
+            se especifica.
+           </para>
+          </entry>
+         </row>
+         <row>
+          <entry>tailable</entry>
+          <entry><type>bool</type></entry>
+          <entry>Devuelve un cursor tailable para una colección acotada.</entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </table>
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <simplelist>
+   &mongodb.throws.argumentparsing;
+  </simplelist>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>PECL mongodb 2.0.0</entry>
+       <entry>
+        <para>
+         La opción <literal>"partial"</literal> ha sido eliminada. Utilice
+         <literal>"allowPartialResults"</literal> en su lugar.
+        </para>
+        <para>
+         La opción <literal>"maxScan"</literal> ha sido eliminada. El soporte
+         para esta opción ha sido eliminado en MongoDB 4.2.
+        </para>
+        <para>
+         La opción <literal>"modifiers"</literal> ha sido eliminada. Esta opción era
+         utilizada para los modificadores de consulta antigua, que están todos deprecados.
+        </para>
+        <para>
+         La opción <literal>"oplogReplay"</literal> ha sido eliminada. Esto es ignorado
+         en MongoDB 4.4 y versiones más recientes.
+        </para>
+        <para>
+         La opción <literal>"snapshot"</literal> ha sido eliminada. Su soporte ha sido
+         eliminado en MongoDB 4.0.
+        </para>
+        <para>
+         Un valor negativo para la opción <literal>"limit"</literal> ya no implica &true; para la opción
+         <literal>"singleBatch"</literal>. Para recibir solo un lote de resultados, combine un valor positivo
+         <literal>"limit"</literal> con la opción
+         <literal>"singleBatch"</literal>.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.14.0</entry>
+       <entry>
+        <para>
+         Añadida la opción <literal>"let"</literal>. La opción
+         <literal>"comment"</literal> ahora acepta cualquier tipo.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.8.0</entry>
+       <entry>
+        <para>
+         Añadida la opción <literal>"allowDiskUse"</literal>.
+        </para>
+        <para>
+         La opción <literal>"oplogReplay"</literal> está deprecada.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.5.0</entry>
+       <entry>
+        <para>
+         Las opciones <literal>"maxScan"</literal> y <literal>"snapshot"</literal>
+         están deprecadas.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.3.0</entry>
+       <entry>
+        <para>
+         Añadida la opción <literal>"maxAwaitTimeMS"</literal>
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.2.0</entry>
+       <entry>
+        <para>
+         Añadidas las opciones <literal>"allowPartialResults"</literal>,
+         <literal>"collation"</literal>, <literal>"comment"</literal>,
+         <literal>"hint"</literal>, <literal>"max"</literal>,
+         <literal>"maxScan"</literal>, <literal>"maxTimeMS"</literal>,
+         <literal>"min"</literal>, <literal>"returnKey"</literal>,
+         <literal>"showRecordId"</literal>, y <literal>"snapshot"</literal>.
+        </para>
+        <para>
+         Renombrada la opción <literal>"partial"</literal> a
+         <literal>"allowPartialResults"</literal>. Por compatibilidad ascendente,
+         <literal>"partial"</literal> será siempre leído si
+         <literal>"allowPartialResults"</literal> no está especificado.
+        </para>
+        <para>
+         Eliminada la opción <literal>"secondaryOk"</literal> obsoleta. Para las
+         consultas que utilizan el protocolo de filaire heredado OP_QUERY, el controlador
+         establecerá el bit <literal>secondaryOk</literal> según sea necesario
+         conforme a la
+         <link xlink:href="&url.mongodb.serverselection;">Especificación de selección del servidor</link>.
+        </para>
+       </entry>
+      </row>
+      <row>
+       <entry>PECL mongodb 1.1.0</entry>
+       <entry>Añadida la opción <literal>"readConcern"</literal>.</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <function>MongoDB\Driver\Query::__construct</function></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+/* Selecciona solo los documentos escritos por "bjori" con al menos 100 vistas */
+$filter = [
+    'author' => 'bjori',
+    'views' => [
+        '$gte' => 100,
+    ],
+];
+
+$options = [
+    /* Devuelve solo los siguientes campos en los documentos correspondientes */
+    'projection' => [
+        'title' => 1,
+        'article' => 1,
+    ],
+    /* Devuelve los documentos en orden descendente de vistas */
+    'sort' => [
+        'views' => -1
+    ],
+];
+
+$query = new MongoDB\Driver\Query($filter, $options);
+
+$manager = new MongoDB\Driver\Manager('mongodb://localhost:27017');
+$readPreference = new MongoDB\Driver\ReadPreference(MongoDB\Driver\ReadPreference::PRIMARY);
+$cursor = $manager->executeQuery('databaseName.collectionName', $query, ['readPreference' => $readPreference]);
+
+foreach($cursor as $document) {
+    var_dump($document);
+}
+
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>MongoDB\Driver\Manager::executeQuery</methodname></member>
+   <member><classname>MongoDB\Driver\Cursor</classname></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->

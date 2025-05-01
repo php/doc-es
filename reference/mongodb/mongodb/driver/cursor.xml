@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 4639881688d3faaf0073ad71fe0a4b730aea15a0 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
+<reference xml:id="class.mongodb-driver-cursor" role="class" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
+
+ <title>La clase MongoDB\Driver\Cursor</title>
+ <titleabbrev>MongoDB\Driver\Cursor</titleabbrev>
+
+ <partintro>
+
+<!-- {{{ MongoDB\Driver\Cursor intro -->
+  <section xml:id="mongodb-driver-cursor.intro">
+   &reftitle.intro;
+   <para>
+    La clase <classname>MongoDB\Driver\Cursor</classname>
+    encapsula el resultado de un comando o de una consulta MongoDB,
+    que puede ser devuelto por, respectivamente,
+    <methodname>MongoDB\Driver\Manager::executeCommand</methodname> o
+    <methodname>MongoDB\Driver\Manager::executeQuery</methodname>.
+   </para>
+  </section>
+<!-- }}} -->
+
+  <section xml:id="mongodb-driver-cursor.synopsis">
+   &reftitle.classsynopsis;
+
+<!-- {{{ Synopsis -->
+   <classsynopsis>
+    <ooclass><classname>MongoDB\Driver\Cursor</classname></ooclass>
+
+<!-- {{{ Class synopsis -->
+    <classsynopsisinfo>
+     <modifier>final</modifier>
+     <ooclass>
+      <classname>MongoDB\Driver\Cursor</classname>
+     </ooclass>
+
+     <oointerface>
+      <interfacename>MongoDB\Driver\CursorInterface</interfacename>
+     </oointerface>
+    </classsynopsisinfo>
+<!-- }}} -->
+
+    <classsynopsisinfo role="comment">&Methods;</classsynopsisinfo>
+    <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.mongodb-driver-cursor')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[not(@role='procedural')])" />
+   </classsynopsis>
+<!-- }}} -->
+
+  </section>
+
+  <section role="changelog">
+   &reftitle.changelog;
+   <para>
+    <informaltable>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>&Version;</entry>
+        <entry>&Description;</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry>PECL mongodb 1.9.0</entry>
+        <entry>
+         Implementa <interfacename>Iterator</interfacename>.
+        </entry>
+       </row>
+       <row>
+        <entry>PECL mongodb 1.6.0</entry>
+        <entry>
+         Implementación de <interfacename>MongoDB\Driver\CursorInterface</interfacename>,
+         que extiende <interfacename>Traversable</interfacename>.
+        </entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </informaltable>
+   </para>
+  </section>
+
+  <section xml:id="mongodb-driver-cursor.examples">
+   &reftitle.examples;
+
+   <example xml:id="mongodb-driver-cursor.examples.foreach">
+    <title>Lectura de un conjunto de resultados</title>
+    <para>
+     <methodname>MongoDB\Driver\Manager::executeCommand</methodname> y
+     <methodname>MongoDB\Driver\Manager::executeQuery</methodname> ambos
+     devuelven su(s) resultado(s) como un objeto <classname>MongoDB\Driver\Cursor</classname>.
+     Este objeto puede ser utilizado para iterar dentro del conjunto de resultados de la
+     comando o de la consulta.
+    </para>
+    <para>
+     Debido a que <classname>MongoDB\Driver\Cursor</classname> implementa la interfaz
+     <interfacename>Traversable</interfacename>, se puede simplemente iterar
+     sobre el conjunto de resultados con
+     <link linkend="control-structures.foreach"><literal>foreach</literal></link>.
+    </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$manager = new MongoDB\Driver\Manager();
+
+/* Inserte documentos para que nuestra consulta devuelva información */
+$bulkWrite = new MongoDB\Driver\BulkWrite;
+$bulkWrite->insert(['name' => 'Ceres', 'size' => 946, 'distance' => 2.766]);
+$bulkWrite->insert(['name' => 'Vesta', 'size' => 525, 'distance' => 2.362]);
+$manager->executeBulkWrite("test.asteroids", $bulkWrite);
+
+/* Consulta para todos los elementos de la colección */
+$query = new MongoDB\Driver\Query( [] );
+
+/* Interroga la colección "asteroids" de la base de datos "test" */
+$cursor = $manager->executeQuery("test.asteroids", $query);
+
+/* $cursor contiene ahora un objeto que envuelve el conjunto de resultados.
+ * Utilice foreach() para iterar sobre todos los resultados */
+foreach($cursor as $document) {
+    print_r($document);
+}
+
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+stdClass Object
+(
+    [_id] => MongoDB\BSON\ObjectId Object
+        (
+            [oid] => 5a4cff2f122d3321565d8cc2
+        )
+
+    [name] => Ceres
+    [size] => 946
+    [distance] => 2.766
+)
+stdClass Object
+(
+    [_id] => MongoDB\BSON\ObjectId Object
+        (
+            [oid] => 5a4cff2f122d3321565d8cc3
+        )
+
+    [name] => Vesta
+    [size] => 525
+    [distance] => 2.362
+}
+]]>
+    </screen>
+   </example>
+
+   <example xml:id="mongodb-driver-cursor.examples.tailable">
+    <title>Lectura de un conjunto de resultados para un cursor en cola</title>
+    <para>
+     Los <link xlink:href="&url.mongodb.docs;core/tailable-cursors">cursores en cola</link>
+     son un tipo especial de cursor MongoDB que permite al cliente leer
+     algunos resultados y esperar hasta que más documentos
+     se vuelvan disponibles. Estos cursores se utilizan principalmente con
+     <link xlink:href="&url.mongodb.docs;core/capped-collections">Capped Collections</link>
+     y <link xlink:href="&url.mongodb.docs;changeStreams">Change Streams</link>.
+    </para>
+    <para>
+     Aunque los cursores normales pueden ser recorridos una vez con
+     <literal>foreach</literal>, este enfoque no funcionará con los
+     cursores en cola. Cuando <literal>foreach</literal> se utiliza con un
+     cursor en cola, el bucle se detendrá al final del conjunto de resultados inicial.
+     Intentar continuar la iteración sobre el cursor con un segundo
+     <literal>foreach</literal> lanzaría una excepción, ya que PHP intenta
+     rebobinar el cursor. Al igual que los objetos result en otros controladores
+     de base de datos, los cursores en MongoDB solo admiten la iteración hacia adelante, lo que significa que no pueden ser rebobinados.
+    </para>
+    <para>
+     Para leer continuamente desde un cursor en cola, el objeto Cursor debe ser
+     envuelto con un <classname>IteratorIterator</classname>. Esto permite
+     a la aplicación controlar directamente la iteración del cursor, evitar
+     rebobinar accidentalmente el cursor y decidir cuándo esperar nuevos resultados o detener completamente la iteración.
+    </para>
+    <para>
+     Para demostrar un cursor en acción, se utilizarán dos scripts: un
+     "Productor" y un "Consumidor". El script Productor creará una nueva colección plafonada utilizando el
+     comando
+     <link xlink:href="&url.mongodb.docs.command;create">Create</link> y
+     procederá a insertar un nuevo documento en esta colección
+     cada segundo.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$manager = new MongoDB\Driver\Manager;
+
+$manager->executeCommand('test', new MongoDB\Driver\Command([
+    'create' => 'asteroids',
+    'capped' => true,
+    'size' => 1048576,
+]));
+
+while (true) {
+    $bulkWrite = new MongoDB\Driver\BulkWrite;
+    $bulkWrite->insert(['createdAt' => new MongoDB\BSON\UTCDateTime]);
+    $manager->executeBulkWrite('test.asteroids', $bulkWrite);
+
+    sleep(1);
+}
+
+?>
+]]>
+    </programlisting>
+    <para>
+     Con el script Productor aún en ejecución, un segundo script consumidor puede ser ejecutado para leer los documentos insertados utilizando un cursor en cola, indicado por las opciones <literal>tailable</literal> y <literal>awaitData</literal> a
+     <function>MongoDB\Driver\Query::__construct</function>.
+    </para>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$manager = new MongoDB\Driver\Manager;
+
+$query = new MongoDB\Driver\Query([], [
+    'tailable' => true,
+    'awaitData' => true,
+]);
+
+$cursor = $manager->executeQuery('test.asteroids', $query);
+
+$iterator = new IteratorIterator($cursor);
+
+$iterator->rewind();
+
+while (true) {
+    if ($iterator->valid()) {
+        $document = $iterator->current();
+        printf("Consumed document created at: %s\n", $document->createdAt);
+    }
+
+    $iterator->next();
+}
+
+?>
+]]>
+    </programlisting>
+    <para>
+     El script consumidor comenzará imprimiendo rápidamente todos los
+     documentos disponibles en la colección plafonada (como si
+     <literal>foreach</literal> hubiera sido utilizado); sin embargo, no se
+     detendrá al final del conjunto de resultados inicial. Dado que
+     el cursor está en cola, la llamada a
+     <function>IteratorIterator::next</function> se bloquea y espera resultados adicionales. <function>IteratorIterator::valid</function> también se utiliza para verificar si realmente hay datos disponibles para leer en cada paso.
+    </para>
+    <note>
+     <simpara>
+      Este ejemplo utiliza la opción de consulta <literal>awaitData</literal> para
+      indicar al servidor que bloquee durante un corto período (por ejemplo, un segundo) al final del conjunto de resultados antes de devolver una respuesta al controlador. Esto se utiliza para evitar que el controlador interrogue agresivamente
+      al servidor cuando no haya resultados disponibles. La opción
+      <literal>maxAwaitTimeMS</literal> puede ser utilizada conjuntamente con
+      <literal>tailable</literal> y <literal>awaitData</literal> para especificar
+      la duración durante la cual el servidor debe bloquearse cuando alcance el final del conjunto de resultados.
+     </simpara>
+    </note>
+   </example>
+  </section>
+
+  <section role="errors">
+   &reftitle.errors;
+   <simpara>
+    Durante la iteración sobre el objeto Cursor, los datos BSON se convierten en variables PHP. Esta iteración puede provocar las siguientes excepciones:
+   </simpara>
+   <simplelist>
+    <member>
+     Lanza una excepción
+     <classname>MongoDB\Driver\Exception\InvalidArgumentException</classname> si
+     una clase en el mapeo de tipo no puede ser instanciada o
+     no implementa <interfacename>MongoDB\BSON\Unserializable</interfacename>.
+    </member>
+    &mongodb.throws.bson.unexpected;
+   </simplelist>
+  </section>
+ </partintro>
+
+ &reference.mongodb.mongodb.driver.entities.cursor;
+
+</reference>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
