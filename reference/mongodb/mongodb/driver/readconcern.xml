@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 4d17b7b4947e7819ff5036715dd706be87ae4def Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<reference xml:id="class.mongodb-driver-readconcern" role="class" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
+ <title>La clase MongoDB\Driver\ReadConcern</title>
+ <titleabbrev>MongoDB\Driver\ReadConcern</titleabbrev>
+
+ <partintro>
+
+<!-- {{{ MongoDB\Driver\ReadConcern intro -->
+  <section xml:id="mongodb-driver-readconcern.intro">
+   &reftitle.intro;
+   <para>
+    <classname>MongoDB\Driver\ReadConcern</classname> controla el nivel
+    de aislamiento para las operaciones de lectura para los conjuntos de réplicas y las réplicas de réplicas. Esta
+    opción requiere MongoDB 3.2 o posterior.
+   </para>
+  </section>
+<!-- }}} -->
+
+  <section xml:id="mongodb-driver-readconcern.synopsis">
+   &reftitle.classsynopsis;
+
+<!-- {{{ Synopsis -->
+   <classsynopsis>
+    <ooclass><classname>MongoDB\Driver\ReadConcern</classname></ooclass>
+
+<!-- {{{ Class synopsis -->
+    <classsynopsisinfo>
+     <modifier>final</modifier>
+     <ooclass>
+      <classname>MongoDB\Driver\ReadConcern</classname>
+     </ooclass>
+
+     <oointerface>
+      <interfacename>MongoDB\BSON\Serializable</interfacename>
+     </oointerface>
+
+     <oointerface>
+      <interfacename>Serializable</interfacename>
+     </oointerface>
+    </classsynopsisinfo>
+<!-- }}} -->
+    <classsynopsisinfo role="comment">&Constants;</classsynopsisinfo>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>string</type>
+     <varname linkend="mongodb-driver-readconcern.constants.linearizable">MongoDB\Driver\ReadConcern::AVAILABLE</varname>
+     <initializer>"available"</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>string</type>
+     <varname linkend="mongodb-driver-readconcern.constants.linearizable">MongoDB\Driver\ReadConcern::LINEARIZABLE</varname>
+     <initializer>"linearizable"</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>string</type>
+     <varname linkend="mongodb-driver-readconcern.constants.local">MongoDB\Driver\ReadConcern::LOCAL</varname>
+     <initializer>"local"</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>string</type>
+     <varname linkend="mongodb-driver-readconcern.constants.majority">MongoDB\Driver\ReadConcern::MAJORITY</varname>
+     <initializer>"majority"</initializer>
+    </fieldsynopsis>
+    <fieldsynopsis>
+     <modifier>const</modifier>
+     <type>string</type>
+     <varname linkend="mongodb-driver-readconcern.constants.snapshot">MongoDB\Driver\ReadConcern::SNAPSHOT</varname>
+     <initializer>"snapshot"</initializer>
+    </fieldsynopsis>
+
+    <classsynopsisinfo role="comment">&Methods;</classsynopsisinfo>
+    <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.mongodb-driver-readconcern')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[not(@role='procedural')])" />
+   </classsynopsis>
+<!-- }}} -->
+
+  </section>
+
+<!-- {{{ MongoDB\Driver\ReadConcern constants -->
+  <section xml:id="mongodb-driver-readconcern.constants">
+   &reftitle.constants;
+   <variablelist>
+
+    <varlistentry xml:id="mongodb-driver-readconcern.constants.available">
+     <term><constant>MongoDB\Driver\ReadConcern::AVAILABLE</constant></term>
+     <listitem>
+      <para>
+       Por omisión para las lecturas en los secundarios cuando
+       <literal>afterClusterTime</literal> y <literal>level</literal> no están
+       especificados.
+      </para>
+      <para>
+       La consulta devuelve los datos más recientes de la instancia. No garantiza
+       que los datos hayan sido escritos en la mayoría de los miembros del conjunto de réplicas
+       (es decir, que puedan ser anulados).
+      </para>
+      <para>
+       Para las colecciones no fragmentadas (incluyendo las colecciones en un
+       despliegue autónomo o un despliegue de réplicas), las lecturas
+       <literal>"local"</literal> y <literal>"available"</literal> se comportan de manera idéntica.
+      </para>
+      <para>
+       Para un clúster compartido, la lectura <literal>"available"</literal> proporciona
+       una mayor tolerancia a las particiones ya que no espera para
+       garantizar garantías de coherencia. Sin embargo, una consulta con
+       una lectura <literal>"available"</literal> puede devolver documentos huérfanos
+       si el fragmento está en proceso de migración de piezas ya que la lectura
+       <literal>"available"</literal>, a diferencia de la lectura
+       <literal>"local"</literal>, no contacta al
+       primario del fragmento ni a los servidores de configuración para obtener metadatos actualizados.
+      </para>
+     </listitem>
+    </varlistentry>
+
+    <varlistentry xml:id="mongodb-driver-readconcern.constants.linearizable">
+     <term><constant>MongoDB\Driver\ReadConcern::LINEARIZABLE</constant></term>
+     <listitem>
+      <para>
+       La consulta devuelve los datos que reflejan todas las escrituras exitosas emitidas con un
+       nivel de escritura de <literal>"majority"</literal> <emphasis>y</emphasis>
+       reconocido antes del inicio de la operación de lectura. Para los conjuntos de réplicas
+       que funcionan con <literal>writeConcernMajorityJournalDefault</literal> definido
+       en &true;, la lectura linealizable devuelve datos que nunca serán
+       anulados.
+      </para>
+      <para>
+       Con <literal>writeConcernMajorityJournalDefault</literal> definido en
+       &false;, MongoDB no esperará que las escrituras <literal>w: "majority"</literal>
+       sean durables antes de acusar recibo de las escrituras. En consecuencia,
+       las operaciones de escritura <literal>"majority"</literal> podrían eventualmente ser anuladas
+       en caso de pérdida de un miembro del conjunto de réplicas.
+      </para>
+      <para>
+       Se puede especificar un nivel de lectura linealizable para las operaciones de lectura en el
+       primario únicamente.
+      </para>
+      <para>
+       La lectura linealizable garantiza que las operaciones
+       de lectura especifiquen un filtro de consulta que identifique de manera única un solo
+       documento.
+      </para>
+      <tip>
+       <simpara>
+        Siempre utilizar <literal>maxTimeMS</literal> con una lectura linealizable
+        en caso de no disponibilidad de la mayoría de los miembros portadores de datos.
+        <literal>maxTimeMS</literal> garantiza que la operación no bloquee
+        indefinidamente y garantiza que la operación devuelva un error si
+        el nivel de lectura no puede ser satisfecho.
+       </simpara>
+      </tip>
+      <para>
+       La lectura linealizable requiere MongoDB 3.4.
+      </para>
+     </listitem>
+    </varlistentry>
+
+    <varlistentry xml:id="mongodb-driver-readconcern.constants.local">
+     <term><constant>MongoDB\Driver\ReadConcern::LOCAL</constant></term>
+     <listitem>
+      <para>
+       Por omisión para las lecturas en el primario si <literal>level</literal> no está
+       especificado y para las lecturas en los secundarios si <literal>level</literal>
+       no está especificado pero <literal>afterClusterTime</literal> está especificado.
+      </para>
+      <para>
+       La consulta devuelve los datos más recientes de la instancia. No garantiza
+       que los datos hayan sido escritos en la mayoría de los miembros del conjunto de réplicas
+       (es decir, que puedan ser anulados).
+      </para>
+     </listitem>
+    </varlistentry>
+
+    <varlistentry xml:id="mongodb-driver-readconcern.constants.majority">
+     <term><constant>MongoDB\Driver\ReadConcern::MAJORITY</constant></term>
+     <listitem>
+      <para>
+       La consulta devuelve los datos más recientes reconocidos como haber sido
+       escritos en la mayoría de los miembros del conjunto de réplicas.
+      </para>
+      <para>
+       Para utilizar el nivel de lectura <literal>"majority"</literal>, los conjuntos de réplicas
+       deben utilizar el motor de almacenamiento WiredTiger y el protocolo de elección versión 1.
+      </para>
+     </listitem>
+    </varlistentry>
+
+    <varlistentry xml:id="mongodb-driver-readconcern.constants.snapshot">
+     <term><constant>MongoDB\Driver\ReadConcern::SNAPSHOT</constant></term>
+     <listitem>
+      <para>
+       La lectura <literal>"snapshot"</literal> está disponible para las transacciones
+       multi-documentos, y a partir de MongoDB 5.0, para ciertas operaciones de lectura
+       fuera de las transacciones multi-documentos.
+      </para>
+      <para>
+       Si la transacción no forma parte de una sesión coherente, al validar la transacción con un nivel de escritura <literal>"majority"</literal>, las
+       operaciones de transacción están garantizadas de haber leído desde una instantánea de datos
+       mayoritariamente comprometidos.
+      </para>
+      <para>
+       Si la transacción forma parte de una sesión coherente, al validar la transacción con un nivel de escritura <literal>"majority"</literal>, las
+       operaciones de transacción están garantizadas de haber leído desde una instantánea de datos
+       mayoritariamente comprometidos que aseguran la coherencia causal con la operación inmediatamente
+       anterior al inicio de la transacción.
+      </para>
+      <para>
+       Fuera de las transacciones multi-documentos, el nivel de lectura
+       <literal>"snapshot"</literal> está disponible en los primarios y los secundarios
+       para las siguientes operaciones de lectura: <literal>find</literal>,
+       <literal>aggregate</literal> y <literal>distinct</literal> (en
+       colecciones no fragmentadas). Todas las demás órdenes de lectura prohíben
+       <literal>"snapshot"</literal>.
+      </para>
+     </listitem>
+    </varlistentry>
+
+   </variablelist>
+  </section>
+<!-- }}} -->
+
+  <section role="changelog">
+   &reftitle.changelog;
+   <para>
+    <informaltable>
+     <tgroup cols="2">
+      <thead>
+       <row>
+        <entry>&Version;</entry>
+        <entry>&Description;</entry>
+       </row>
+      </thead>
+      <tbody>
+       <row>
+        <entry>PECL mongodb 1.11.0</entry>
+        <entry>
+         <para>
+          Adición de la constante
+          <constant>MongoDB\Driver\ReadConcern::SNAPSHOT</constant>.
+         </para>
+        </entry>
+       </row>
+       <row>
+        <entry>PECL mongodb 1.7.0</entry>
+        <entry>
+         Implementa <interfacename>Serializable</interfacename>.
+        </entry>
+       </row>
+       <row>
+        <entry>PECL mongodb 1.4.0</entry>
+        <entry>
+         <para>
+          Adición de la constante
+          <constant>MongoDB\Driver\ReadConcern::MAJORITY</constant>.
+         </para>
+        </entry>
+       </row>
+       <row>
+        <entry>PECL mongodb 1.2.0</entry>
+        <entry>
+         <para>
+          Adición de la constante
+          <constant>MongoDB\Driver\ReadConcern::LINEARIZABLE</constant>
+         </para>
+         <para>
+          Implementa <interfacename>MongoDB\BSON\Serializable</interfacename>.
+         </para>
+        </entry>
+       </row>
+      </tbody>
+     </tgroup>
+    </informaltable>
+   </para>
+  </section>
+
+  <section xml:id="mongodb-driver-readconcern.seealso">
+   &reftitle.seealso;
+  <simplelist>
+   <member><link xlink:href="&url.mongodb.docs.readconcern;">Referencia de lectura</link></member>
+  </simplelist>
+  </section>
+
+ </partintro>
+
+ &reference.mongodb.mongodb.driver.entities.readconcern;
+
+</reference>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
