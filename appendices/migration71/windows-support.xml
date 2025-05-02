@@ -1,22 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d92890ef469c2527326bcb4a6730892eee3c96cb Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3cd337b4dc91c827399961b9b45524ae4f2b50c9 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 
 <sect1 xml:id="migration71.windows-support" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Soporte para Windows</title>
- 
- <sect2 xml:id="migration71.windows-support.readline">
-  <title>readline</title>
-  
+ <title>Soporte Windows</title>
+
+ <sect2 xml:id="migration71.windows-support.long-and-utf8-path">
+  <title>Soporte para rutas largas y UTF-8</title>
   <para>
-   A la <link linkend="book.readline">extensión readline</link> se le da soporte
-   a través de la <link xlink:href="&url.readline.windows;">biblioteca
-   WinEditLine</link>. De esta manera, también se le da soporte al «shell»
-   interactivo <acronym>CLI</acronym> (<literal>php.exe -a</literal>).
+   Si una aplicación web es conforme a UTF-8, no se requiere ninguna acción adicional.
+   Para aplicaciones que dependen de rutas en una codificación diferente a UTF-8 para la I/O,
+   una directiva INI debe ser definida explícitamente. La verificación de los parámetros de codificación INI
+   se basa en el orden en la memoria (core):
+  </para>
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     internal_encoding
+    </simpara>
+   </listitem>
+    <listitem>
+    <simpara>
+     default_charset
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     zend.multibyte
+    </simpara>
+   </listitem>
+  </itemizedlist>
+  <para>
+   Se han introducido varias funciones para la gestión de las páginas de códigos:
+  </para>
+      <itemizedlist>
+       <listitem>
+        <simpara>
+         sapi_windows_cp_set() para establecer la página de códigos predeterminada
+        </simpara>
+       </listitem>
+       <listitem>
+        <simpara>
+         sapi_windows_cp_get() para recuperar la página de códigos actual
+        </simpara>
+       </listitem>
+       <listitem>
+        <simpara>
+         sapi_windows_cp_is_utf8()
+        </simpara>
+       </listitem>
+       <listitem>
+        <simpara>
+         sapi_windows_cp_conv() para convertir entre páginas de códigos, utilizando una firma compatible con iconv()
+        </simpara>
+       </listitem>
+      </itemizedlist>
+  <para>
+   Estas funciones son seguras para subprocesos múltiples.
+  </para>
+  <para>
+   La salida de la página de códigos de la consola se ajusta en función de la codificación utilizada
+   en PHP. Dependiendo de la página de códigos OEM del sistema concreto, la salida visible
+   podría o no ser correcta. Por ejemplo, con cmd.exe por defecto y en un sistema con la página de códigos OEM 437, las salidas en las páginas de códigos 1251,
+   1252, 1253 y otras pueden mostrarse correctamente utilizando UTF-8.
+   En los mismos sistemas, los caracteres en páginas de códigos como 20932 probablemente no se mostrarán correctamente.
+   Esto se refiere a las reglas del sistema para páginas de códigos, la compatibilidad de la fuente y la elección del programa de consola utilizado.
+   PHP define automáticamente la página de códigos de la consola de acuerdo con las reglas de codificación desde php.ini. Utilizar consolas alternativas en lugar de
+   cmd.exe directamente podría ofrecer una mejor experiencia en algunos casos.
+  </para>
+  <para>
+   Sin embargo, tenga en cuenta que cambiar la página de códigos después de que la solicitud haya comenzado
+   puede causar efectos secundarios inesperados en CLI. La manera preferible es a través de php.ini.
+   Cuando PHP CLI se utiliza en un emulador de consola que no soporta Unicode, es posiblemente necesario
+   evitar cambiar la página de códigos de la consola. La mejor manera de lograr esto es definir la codificación interna o predeterminada para
+   que coincida con la página de códigos ANSI. Otro método es definir la directiva INI
+   output_encoding e input_encoding a la página de códigos requerida, sin embargo, en este caso la
+   diferencia entre las páginas de códigos internas y de I/O puede causar mojibake.
+   En raros casos, si PHP falla graciosamente, la página de códigos original de la
+   consola puede no ser restaurada. En este caso, el comando chcp puede ser utilizado
+   para restaurarla manualmente.
+  </para>
+  <para>
+   Atención particular para los sistemas DBCS - el cambio de página de códigos durante
+   la ejecución utilizando <function>ini_set</function> puede causar problemas de visualización.
+   A diferencia de los sistemas no DBCS, los caracteres extendidos requieren dos consolas
+   para ser mostrados. En algunos casos, solo la coincidencia de caracteres en el conjunto de glifos de la fuente puede ocurrir, sin cambio de fuente.
+   Esta es la naturaleza de los sistemas DBCS, la manera más simple de prevenir problemas
+   de visualización es evitar el uso de <function>ini_set</function> para el cambio de página de códigos.
+  </para>
+  <para>
+   Como consecuencia del soporte de UTF-8 en los flujos, los scripts PHP ya no están
+   limitados a nombres de ficheros ASCII o ANSI. Esto está listo para su uso en CLI.
+   Para otros SAPI, la documentación para el servidor correspondiente es útil.
+  </para>
+  <para>
+   El soporte para rutas largas es transparente. Las rutas más largas que 260 bytes son
+   automáticamente prefijadas por <literal>\\?\</literal>. La longitud máxima de la ruta es
+   limitada a 2018 bytes. Tenga en cuenta que el límite de los segmentos de ruta (longitud del
+   basename) persiste.
+  </para>
+  <para>
+   Para una mejor portabilidad, se recomienda encarecidamente gestionar los nombres de ficheros,
+   I/O y otros temas relacionados en UTF-8. Además, para las aplicaciones de consola, el uso
+   de una fuente TrueType es preferible y el uso de ini_set() para el
+   cambio de página de códigos es desaconsejado.
+  </para>
+  <para>
+  </para>
+  <para>
   </para>
  </sect2>
- 
+
+ <sect2 xml:id="migration71.windows-support.readline">
+  <title>readline</title>
+
+  <para>
+   La <link linkend="book.readline">extensión readline</link> es soportada
+   a través de la <link xlink:href="&url.readline.windows;">biblioteca
+   WinEditLine</link>. Así, la interfaz de sistema interactiva <acronym>CLI</acronym> también es
+   soportada (<literal>php.exe -a</literal>).
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration71.windows-support.php-fcgi-children">
+  <title>PHP_FCGI_CHILDREN</title>
+  <para>
+  <varname>PHP_FCGI_CHILDREN</varname> es ahora respetado. Si esta variable de entorno
+   está definida, el primer proceso <filename>php-cgi.exe</filename> ejecutará el número
+   especificado de hijos. Estos compartirán el mismo socket TCP.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration71.windows-support.ftok">
+  <title>ftok()</title>
+  <para>
+   Se ha añadido soporte para <function>ftok</function>
+  </para>
+ </sect2>
+
 </sect1>
 
 <!-- Keep this comment at the end of the file
