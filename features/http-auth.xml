@@ -1,110 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: dec1f8445ab2af7fbafef012fb7907ab2cd349b5 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: bdf9a4e40204c805f2c2a5c94c2f2f8f5556195a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <chapter xml:id="features.http-auth" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Autenticación HTTP con PHP</title>
+ <title>Identificación HTTP con PHP</title>
 
  <simpara>
-  Con la
-  función <function>header</function> se puede enviar un mensaje de <literal>"Autenticación requerida"</literal>
-  al navegador del cliente para mostrar una ventana emergente donde introducir un
-  usuario y una contraseña. Una vez introducidos estos datos,
-  el URL que contiene el script de PHP será invocado de nuevo con las
-  <link linkend="reserved.variables">variables predefinidas</link>
-  <varname>PHP_AUTH_USER</varname>, <varname>PHP_AUTH_PW</varname>
-  y <varname>AUTH_TYPE</varname> establecidas al nombre de usuario, contraseña y
-  tipo de autenticación, respectivamente. Estas variables se encuentran en
-  el array <varname>$_SERVER</varname>. Se admiten ambos métodos de autenticación,
-  'Basic' y 'Digest' (desde PHP 5.1.0). Véase la
-  función <function>header</function> para más información.
+  Es posible utilizar la función <function>header</function> para solicitar
+  una identificación (<literal>"Authentication Required"</literal>) al cliente,
+  generando así la aparición de una ventana
+  de solicitud de usuario y contraseña. Una vez que los
+  campos han sido completados, la URL será llamada de nuevo, con las <link linkend="reserved.variables">variables predefinidas</link>
+  <varname>PHP_AUTH_USER</varname>, <varname>PHP_AUTH_PW</varname> y
+  <varname>AUTH_TYPE</varname> conteniendo respectivamente el nombre de usuario, la contraseña y
+  el tipo de identificación. Estas variables predefinidas se encuentran en los arrays
+  <varname>$_SERVER</varname>.
+  <emphasis>Solo</emphasis> los métodos de identificación simple ("Basic")
+  son soportados. Consulte la función
+  <function>header</function> para más información.
  </simpara>
 
  <para>
-  Un fragmento de un script de ejemplo que forzaría la autenticación
-  en una página es el siguiente:
+  Aquí hay un ejemplo de script que fuerza la identificación del cliente
+  para acceder a una página:
  </para>
  <para>
   <example>
-   <title>Ejemplo de autenticación HTTP 'Basic'</title>
+   <title>Ejemplo de identificación HTTP simple</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
-    header('WWW-Authenticate: Basic realm="Mi dominio"');
+    header('WWW-Authenticate: Basic realm="My Realm"');
     header('HTTP/1.0 401 Unauthorized');
-    echo 'Texto a enviar si el usuario pulsa el botón Cancelar';
+    echo 'Texto utilizado si el visitante usa el botón de cancelación';
     exit;
 } else {
-    echo "<p>Hola {$_SERVER['PHP_AUTH_USER']}.</p>";
-    echo "<p>Introdujo {$_SERVER['PHP_AUTH_PW']} como su contraseña.</p>";
-}
-?>
-]]>
-   </programlisting>
-  </example>
- </para>
-
- <para>
-  <example>
-   <title>Ejemplo de autenticación HTTP 'Digest'</title>
-   <para>
-    Este ejemplo muestra cómo implementar un sencillo script de
-    autenticación HTTP 'Digest'. Para más información lea el <link
-    xlink:href="&url.rfc;2617">RFC 2617</link>.
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-$dominio = 'Area restringida';
-
-// usuario => contraseña
-$usuarios = array('admin' => 'micontraseña', 'invitado' => 'invitado');
-
-
-if (empty($_SERVER['PHP_AUTH_DIGEST'])) {
-    header('HTTP/1.1 401 Unauthorized');
-    header('WWW-Authenticate: Digest realm="'.$dominio.
-           '",qop="auth",nonce="'.uniqid().'",opaque="'.md5($dominio).'"');
-
-    die('Texto a enviar si el usuario pulsa el botón Cancelar');
-}
-
-
-// Analizar la variable PHP_AUTH_DIGEST
-if (!($datos = analizar_http_digest($_SERVER['PHP_AUTH_DIGEST'])) ||
-    !isset($usuarios[$datos['username']]))
-    die('Credenciales incorrectas');
-
-
-// Generar una respuesta válida
-$A1 = md5($datos['username'] . ':' . $dominio . ':' . $usuarios[$datos['username']]);
-$A2 = md5($_SERVER['REQUEST_METHOD'].':'.$datos['uri']);
-$respuesta_válida = md5($A1.':'.$datos['nonce'].':'.$datos['nc'].':'.$datos['cnonce'].':'.$datos['qop'].':'.$A2);
-
-if ($datos['response'] != $respuesta_válida)
-    die('Credenciales incorrectas');
-
-// Todo bien, usuario y contraseña válidos
-echo 'Se ha identificado como: ' . $datos['username'];
-
-
-// Función para analizar la cabecera de autenticación HTTP
-function analizar_http_digest($txt)
-{
-    // Protección contra datos ausentes
-    $partes_necesarias = array('nonce'=>1, 'nc'=>1, 'cnonce'=>1, 'qop'=>1, 'username'=>1, 'uri'=>1, 'response'=>1);
-    $datos = array();
-    $claves = implode('|', array_keys($partes_necesarias));
-
-    preg_match_all('@(' . $claves . ')=(?:([\'"])([^\2]+?)\2|([^\s,]+))@', $txt, $coincidencias, PREG_SET_ORDER);
-
-    foreach ($coincidencias as $c) {
-        $datos[$c[1]] = $c[3] ? $c[3] : $c[4];
-        unset($partes_necesarias[$c[1]]);
-    }
-
-    return $partes_necesarias ? false : $datos;
+    echo "<p>Hola, {$_SERVER['PHP_AUTH_USER']}.</p>";
+    echo "<p>Su contraseña es {$_SERVER['PHP_AUTH_PW']}.</p>";
 }
 ?>
 ]]>
@@ -113,87 +47,82 @@ function analizar_http_digest($txt)
  </para>
 
  <note>
-  <title>Sobre la compatibilidad</title>
+  <title>Nota de compatibilidad</title>
   <para>
-   Hay que tener cuidado al codificar las líneas de cabeceras HTTP. Para garantizar la mayor
-   compatibilidad con todos los clientes, la palabra 'Basic' debe escribirse con
-   'B' mayúscula, la cadena del dominio debe estar entre comillas dobles (no simples),
-   y debería haber exactamente un espacio precediendo al código <emphasis>401</emphasis> de la
-   línea de la cabecera <emphasis>HTTP/1.0 401</emphasis>. Los parámetros de autenticación deben
-   estar separados por comas, como se vió en el ejemplo de 'Digest' anterior.
+   Sea muy cuidadoso al usar encabezados HTTP con PHP. Para
+   garantizar la máxima compatibilidad entre los navegadores, la palabra clave
+   "Basic" debe escribirse con una B mayúscula, y el texto de presentación
+   debe colocarse entre comillas dobles (no simples), y exactamente un espacio debe
+   preceder al código <emphasis>401</emphasis> en el encabezado
+   <emphasis>HTTP/1.0 401</emphasis>. Los parámetros de autenticación deben
+   estar separados por comas.
   </para>
  </note>
 
  <para>
-  En lugar de imprimir simplemente <varname>PHP_AUTH_USER</varname>
-  y <varname>PHP_AUTH_PW</varname> como se hizo en el ejemplo anterior,
-  podría ser conveniente validar el usuario y la contraseña,
-  tal vez enviando una consulta a una base de datos o buscando el
-  usuario en un fichero dbm.
+  En lugar de mostrar simplemente las variables globales <varname>PHP_AUTH_USER</varname>
+  y <varname>PHP_AUTH_PW</varname>, se preferirá
+  verificar la validez del nombre de usuario y la contraseña.
+  Por ejemplo, enviando esta información a una base de datos,
+  o buscando en un fichero dbm.
  </para>
 
  <para>
-  Cuidado con los navegadores Internet Explorer defectuosos. Parecen
-  ser muy quisquillosos con el orden de las cabeceras. Por ahora,
-  parece ser que el truco está en enviar la cabecera
-  <emphasis>WWW-Authenticate</emphasis> antes que la cabecera
-  <literal>HTTP/1.0 401</literal>.
+  Desconfíe de los navegadores con errores, como Internet Explorer.
+  Parecen ser muy susceptibles en cuanto al orden de los encabezados.
+  Enviar el encabezado de identificación (<emphasis>WWW-Authenticate</emphasis>)
+  antes del código de <literal>HTTP/1.0 401</literal> parece convenirle
+  hasta ahora.
  </para>
-
- <simpara>
-  Para prevenir que alguien escriba un script que
-  revele la contraseña de una página que se autenticó con un
-  mecanismo externo tradicional, las variables PHP_AUTH no se
-  establecerán si la autenticación externa está habilitada para esa
-  página en particular. Independientemente,
-  se puede emplear <varname>REMOTE_USER</varname>
-  para identificar al usuario autenticado externamente. De este modo, se podrá usar
-  <varname>$_SERVER['REMOTE_USER']</varname>.
- </simpara>
 
  <note>
-  <title>Sobre la configuración</title>
+  <title>Nota de configuración</title>
   <para>
-   PHP utiliza la presencia de una directiva <literal>AuthType</literal> para
-   determinar si una autenticación externa está en uso.
+   PHP utiliza la presencia de la directiva <literal>AuthType</literal>
+   para determinar si una identificación externa está activada.
+   Evite esta directiva de contexto si desea utilizar
+   la identificación de PHP (de lo contrario, ambas identificaciones se contradirán,
+   y fallarán).
   </para>
  </note>
 
  <simpara>
-  Observe, sin embargo, que lo anterior no impide que alguien que
-  controle un URL no autenticado pueda robar contraseñas
-  de URL autenticados en el mismo servidor.
+  Tenga en cuenta, sin embargo, que las manipulaciones anteriores no impiden
+  que cualquier persona con una página no identificada
+  robe las contraseñas de las páginas protegidas,
+  en el mismo servidor.
  </simpara>
  <simpara>
-  Tanto Netscape Navigator como Internet Explorer borran la caché de autenticación
-  de la ventana del navegador local para el dominio al recibr una respuesta
-  401 del servidor. Esto, en efecto, puede hacer que se cierre la sesión de un usuario,
-  obligándolo a reintroducir su nombre de usuario y contraseña. Algunos utilizan esto para
-  inicios de sesión «expiradas» o proveer un botón de «Cerrar sesión».
+  Netscape e Internet Explorer borrarán la caché de identificación del cliente
+  si reciben una respuesta 401. Esto permite desconectar
+  a un usuario, para forzarlo a ingresar nuevamente su nombre de cuenta
+  y su contraseña. Algunos programadores lo utilizan para proporcionar un
+  tiempo de expiración o, de lo contrario, proporcionan un botón de desconexión.
  </simpara>
  <para>
   <example>
-   <title>Ejemplo de autenticación HTTP forzando un nuevo usuario/contraseña</title>
+   <title>Identificación HTTP con nombre de usuario/contraseña forzada</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-function autenticar() {
-    header('WWW-Authenticate: Basic realm="Sistema de autenticación de prueba"');
+function authenticate() {
+    header('WWW-Authenticate: Basic realm="Test Authentication System"');
     header('HTTP/1.0 401 Unauthorized');
-    echo "Debe introducir un ID y contraseña de identificación válidos para acceder a este recurso\n";
+    echo "Debe ingresar un identificador y una contraseña válidos para acceder
+    a este recurso.\n";
     exit;
 }
 
-if (!isset($_SERVER['PHP_AUTH_USER']) ||
-    ($_POST['VistoAntes'] == 1 && $_POST['UsuarioAntiguo'] == $_SERVER['PHP_AUTH_USER'])) {
-    autenticar();
+if ( !isset($_SERVER['PHP_AUTH_USER']) ||
+     ($_POST['SeenBefore'] == 1 && $_POST['OldAuth'] == $_SERVER['PHP_AUTH_USER'])) {
+    authenticate();
 } else {
     echo "<p>Bienvenido: " . htmlspecialchars($_SERVER['PHP_AUTH_USER']) . "<br />";
-    echo "Antiguo: " . htmlspecialchars($_REQUEST['UsuarioAntiguo']);
+    echo "Anterior: " . htmlspecialchars($_REQUEST['OldAuth']);
     echo "<form action='' method='post'>\n";
-    echo "<input type='hidden' name='VistoAntes' value='1' />\n";
-    echo "<input type='hidden' name='UsuarioAntiguo' value=\"" . htmlspecialchars($_SERVER['PHP_AUTH_USER']) . "\" />\n";
-    echo "<input type='submit' value='Reautenticar' />\n";
+    echo "<input type='hidden' name='SeenBefore' value='1' />\n";
+    echo "<input type='hidden' name='OldAuth' value=\"" . htmlspecialchars($_SERVER['PHP_AUTH_USER']) . "\" />\n";
+    echo "<input type='submit' value='Re Authenticate' />\n";
     echo "</form></p>\n";
 }
 ?>
@@ -202,27 +131,30 @@ if (!isset($_SERVER['PHP_AUTH_USER']) ||
   </example>
  </para>
  <simpara>
-  El estándar de autenticación <literal>HTTP Basic</literal> no requiere
-  este funcionamiento, por lo que no se debería depender de ello. Las pruebas con
-  <literal>Lynx</literal> han mostrado que <literal>Lynx</literal> no limpia
-  las credenciales de autenticación con una respuesta 401 del servidor, por lo que al presionar «atrás»
-  y luego «adelante» abrirá el recurso nuevamente mientras los requisitos de credenciales
-  no hayan cambiado. Sin embargo, el usuario puede pulsar la
-  tecla <literal>'_'</literal> para limpiar su información de autenticación.
+  Este comportamiento no es necesario por el estándar
+  de identificación <literal>HTTP Basic</literal>. Las pruebas con
+  <literal>Lynx</literal> han mostrado que no afectaba
+  la información de sesión al recibir un
+  mensaje de tipo 401. Esto hace que presionar la tecla "retroceso"
+  a un cliente <literal>Lynx</literal>
+  previamente identificado dé acceso directo a
+  la fuente. Sin embargo, el usuario puede usar la tecla
+  <literal>'_'</literal> para destruir las identificaciones anteriores.
  </simpara>
  <simpara>
-  Para que la Autenticación HTTP funcione en un servidor IIS con la versión CGI
-  de PHP, se debe editar la configuracion de "<literal>Seguridad de directorios</literal>" de IIS:
-  hacer clic en "<literal>Editar</literal>" y solo marcar
-  "<literal>Acceso anónimo</literal>"; todos los demas campos
-  deberían estar sin marcar.
+  Para hacer funcional la autenticación HTTP con un servidor IIS con
+  la versión CGI de PHP, debe editar
+  su configuración "<literal>Directory Security</literal>". Haga clic
+  en "<literal>Edit</literal>" y active solo
+  "<literal>Anonymous Access</literal>", todos los demás campos deben
+  dejarse inactivos.
  </simpara>
  <note>
-  <title>Sobre IIS:</title>
+  <title>Nota para los usuarios de IIS:</title>
   <simpara>
-   Para que funcione la Autenticación HTTP con IIS, la directiva de PHP
-   <link linkend="ini.cgi.rfc2616-headers">cgi.rfc2616_headers</link> debe
-   establecerse a <literal>0</literal> (el valor predeterminado).
+   Para que la identificación HTTP funcione con IIS, la directiva PHP
+   <link linkend="ini.cgi.rfc2616-headers">cgi.rfc2616_headers</link>
+   debe establecerse en &zero; (el valor por defecto).
   </simpara>
  </note>
 

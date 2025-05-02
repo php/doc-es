@@ -1,75 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c7590bf936b04f04380e23096f20d1a32600b7ae Maintainer: hcrow Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: dc0f955be2a10b707ae06f7da69f52fab24df3d1 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <chapter xml:id="features.connection-handling" xmlns="http://docbook.org/ns/docbook">
- <title>Manejo de conexiones</title>
- 
+ <title>Gestión de las conexiones</title>
  <para>
-  Internamente, en PHP se mantiene un estado de conexión. Hay 4
-  posibles estados:
+  El estado de las conexiones se conserva internamente por PHP. Hay
+  cuatro estados posibles:
   <itemizedlist>
-   <listitem><simpara>0 - NORMAL</simpara></listitem>
-   <listitem><simpara>1 - ABORTED</simpara></listitem>
-   <listitem><simpara>2 - TIMEOUT</simpara></listitem>
-   <listitem><simpara>3 - ABORTED y TIMEOUT</simpara></listitem>
+   <listitem><simpara>0 - NORMAL (normal)</simpara></listitem>
+   <listitem><simpara>1 - ABORTED (anulado)</simpara></listitem>
+   <listitem><simpara>2 - TIMEOUT (caducado)</simpara></listitem>
+   <listitem><simpara>3 - ABORTED and TIMEOUT (anulado y caducado)</simpara></listitem>
   </itemizedlist>
  </para>
- 
  <simpara>
-  Cuando un script de PHP está ejecutándose normalmente está activo el estado NORMAL (normal).
-  Si el cliente remoto se desconecta, se activa el indicador de estado
-  ABORTED (abortada). Un cliente remoto se desconecta normalmente porque
-  presiona su botón STOP. Si se alcanza el tiempo límite impuesto por PHP
-  (véase <function>set_time_limit</function>), se activa el indicador de estado
-  TIMEOUT (expirada).</simpara>
- 
- <simpara>
-  Se puede decidir si se desea que un cliente que se desconecte ocasione
-  que se aborte el script. Algunas veces es útil que los scripts se ejecuten
-  hasta su finalización, incluso si ya no hay un navegador remoto recibiendo
-  la salida. Sin embargo, el comportamiento predeterminado es que el script
-  sea abortado cuando el cliente remoto se desconecte. Este comportamiento puede ser
-  establecido a través de la directiva ignore_user_abort de &php.ini;, así como a través
-  de la directiva correspondiente de Apache
-  <literal>php_value ignore_user_abort</literal> de &httpd.conf;, o
-  con la función <function>ignore_user_abort</function>. Si se decide no
-  indicarle a PHP que ignore que el usuario aborte y el usuario aborta, el script
-  finalizará. La única excepción es si se tiene registrada una función de apagado
-  con <function>register_shutdown_function</function>. Con una
-  función de apagado, cuando el usuario remoto activa el botón STOP, la
-  próxima vez que el script intente mostrar algo, PHP detectará que
-  la conexión fue abortada, llamando así a la función de apagado.
-  Esta función de apagado también se invoca al final del script cuando
-  finaliza normalmente, así que para hacer algo diferente en caso de que un
-  cliente se desconecte, se puede emplear la función <function>connection_aborted</function>.
-  Esta función devolverá &true; si la conexión fue
-  abortada.</simpara>
- 
- <simpara>
-  El script puede ser finalizado también por el temporizador de script
-  incorporado. El tiempo predeterminado es de 30 segundos. Se puede cambiar
-  con la directiva <option>max_execution_time</option> de &php.ini; o la
-  correspondiente de Apache <literal>php_value max_execution_time</literal>
-  de &httpd.conf;, así como con la
-  función <function>set_time_limit</function>. Cuando el temporizador
-  expira, el script se abortará y, como el caso del cliente anterior que
-  se desconectó, si la función de apagado ha sido registrada, será llamada.
-  Dentro de esta función de apagado se puede comprobar si el tiempo de
-  espera causó la llamada a la función de apagado invocando a
-  la función <function>connection_status</function>. Esta función devolverá
-  2 si el tiempo de espera causó la llamada a la función de apagado.
+  Cuando un script PHP está en ejecución, el estado es NORMAL.
+  Si el cliente remoto se desconecta, el estado se convierte en ABORTED.
+  Una desconexión del cliente remoto generalmente es causada por los usuarios
+  presionando su botón STOP. Si se supera el tiempo máximo de ejecución de PHP, (ver <function>set_time_limit</function>), el script adopta el estado TIMEOUT.
  </simpara>
- 
  <simpara>
-  Una cosa a observar es que los estados ABORTED y TIMEOUT pueden estar
-  activados al mismo tiempo. Esto es posible si se le indica a PHP
-  que ignore los abortos que ocasione el usuario. PHP notará de hecho que un
-  usuario podría haber roto la conexión, pero el script se mantendrá
-  ejecutándose. Si entonces se alcanza el límite de tiempo, será abortado y
-  la función de apagado, si la hubiera, será llamada. En este punto se
-  encontrará que <function>connection_status</function>
-  devuelve 3.
+  Asimismo, se puede decidir si se desea que la
+  desconexión de un cliente provoque la interrupción del
+  script. A veces es práctico que los scripts continúen
+  ejecutándose hasta el final, incluso si el cliente ya no está
+  presente para recibir la información. Sin embargo, por omisión, el script
+  se detendrá tan pronto como el cliente se desconecte.
+  Este comportamiento puede ser modificado con la directiva
+  <option>ignore_user_abort</option> en el fichero &php.ini; o
+  bien con la directiva Apache <literal>php_value ignore_user_abort</literal>
+  del fichero Apache &httpd.conf; o con la función
+  <function>ignore_user_abort</function>. Si no se solicita a PHP que ignore la desconexión, y el
+  usuario se desconecta, el script será terminado. La
+  única excepción es si se ha registrado una función de cierre, con <function>register_shutdown_function</function>.
+  Con tal función, cuando el usuario interrumpe su
+  solicitud, en la próxima ejecución del script,
+  PHP se dará cuenta de que el último script no ha sido
+  terminado, y desencadenará la función de cierre.
+  Esta función también será llamada al final del script,
+  si este termina normalmente. Para poder tener un comportamiento
+  diferente según el estado del script al finalizar,
+  se pueden ejecutar comandos específicos a
+  la desconexión gracias a la función
+  <function>connection_aborted</function>. Esta función devolverá
+  &true; si la conexión ha sido anulada.
+ </simpara>
+ <simpara>
+  El script también puede ser interrumpido automáticamente
+  después de un cierto tiempo.
+  Por omisión, el tiempo límite es de 30 segundos. Este valor
+  puede ser cambiado utilizando la directiva PHP
+  <option>max_execution_time</option> en el fichero
+  &php.ini; o con la directiva
+  <literal>php_value max_execution_time</literal>, en el fichero
+  Apache &httpd.conf; o también con la función
+  <function>set_time_limit</function>.
+  Cuando el tiempo límite expira, el script es terminado,
+  y como en la desconexión del cliente, una función de
+  terminación será llamada. En esta función, se puede saber si es el tiempo límite el que ha
+  causado el fin del script, llamando a la función
+  <function>connection_status</function>. Esta función
+  devolverá <literal>2</literal> si el tiempo límite ha
+  sido superado.
+ </simpara>
+ <simpara>
+  Una cosa a tener en cuenta es que los dos casos ABORTED y TIMEOUT
+  pueden ser llamados al mismo tiempo. Esto es
+  posible si se solicita a PHP que ignore las
+  desconexiones de los usuarios. PHP aún así notará el hecho de que el usuario se ha desconectado,
+  pero el script continuará. Luego, cuando alcance el límite de
+  tiempo, el script caducará. En ese momento, la
+  función <function>connection_status</function>
+  devolverá <literal>3</literal>.
  </simpara>
 </chapter>
 
@@ -89,7 +93,4 @@ sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
 End:
-vim600: syn=xml fen fdm=syntax fdl=2 si
-vim: et tw=78 syn=sgml
-vi: ts=1 sw=1
 -->

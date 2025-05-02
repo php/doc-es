@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9d688d2ad4d3b2b8aa37dbaabe5f58e513d1fe3e Maintainer: yago Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: bad50150f7e06228f48c4461fab52afe08a4d5e4 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <refentry xml:id="context.socket" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" annotations="verify_info:false" role="stream_context_option">
  <refnamediv>
-  <refname>Opciones de contexto de sockets</refname>
-  <refpurpose>Listado de opciones de contexto de sockets</refpurpose>
+  <refname>Opciones de contexto de los sockets</refname>
+  <refpurpose>Lista de opciones de contexto de los sockets</refpurpose>
  </refnamediv>
 
  <refsect1 role="description"><!-- {{{ -->
   &reftitle.description;
   <para>
-   Las opciones de contexto de sockets están disponibles para todas las
-   envolturas que trabajan sobre sockets, como <literal>tcp</literal>,
-   <literal>http</literal> y <literal>ftp</literal>.
+   Las opciones de contexto de los sockets están disponibles para todos los gestores que funcionan a través de los sockets, como
+   <literal>tcp</literal>, <literal>http</literal> y
+   <literal>ftp</literal>.
   </para>
  </refsect1><!-- }}} -->
 
@@ -26,18 +26,17 @@
      <term><parameter>bindto</parameter></term>
      <listitem>
       <para>
-       Usada para especificar la dirección IP (ya sea IPv4 o IPv6) y/o el
-       número de puerto que PHP usará para acceder a la red. La sintaxis es
-       <literal>ip:puerto</literal> para direcciones IPv4, y
-       <literal>[ip]:puerto</literal> para direcciones IPv6.
-       Establecer el número IP o de puerto como
-       <literal>0</literal> producirá que  el sistema lo elija por usted.
+       Utilizado para especificar la dirección IP (ya sea IPv4 o IPv6), y/o
+       el número del puerto que PHP utilizará para acceder a la red.
+       La sintaxis es <literal>ip:puerto</literal> para las direcciones IPv4,
+       y <literal>[ip]:puerto</literal> para las direcciones IPv6.
+       El hecho de definir la IP o el puerto a <literal>0</literal> permitirá
+       al sistema elegir el puerto y/o la IP por sí mismo.
       </para>
       <note>
        <para>
-        Dado que FTP crea dos conexiones de socket durante la operación
-        normal, no es posible especificar el número de puerto con esta
-        opción.
+        Dado que FTP crea 2 sockets de conexión durante una operación normal,
+        el número del puerto no puede ser especificado utilizando esta opción.
        </para>
       </note>
      </listitem>
@@ -46,14 +45,67 @@
      <term><parameter>backlog</parameter></term>
      <listitem>
       <para>
-       Usado para limitar el número de conexiones pendientes en la cola
-       de escucha del socket.
+       Utilizado para limitar el número de conexiones activas
+       en la lista de espera del socket.
       </para>
       <note>
        <para>
-        Solamente se aplica a <function>stream_socket_server</function>.
+        Esto solo es aplicable a la función
+        <function>stream_socket_server</function>.
        </para>
       </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="context.socket.ipv6_v6only">
+     <term><parameter>ipv6_v6only</parameter></term>
+     <listitem>
+      <para>
+       Sustituye el sistema operativo por defecto en cuanto al mapeo de IPv4 en IPv6.
+      </para>
+      <note>
+       <para>
+        Esto es importante en particular cuando se intenta escuchar en
+        las direcciones IPv4 por separado mientras existe una ligadura en <literal>[::]</literal>.
+       </para>
+       <para>
+        Esto solo es aplicable a la función  <function>stream_socket_server</function>.
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="context.socket.so_reuseport">
+     <term><parameter>so_reuseport</parameter></term>
+     <listitem>
+      <para>
+       Permite múltiples ligaduras de una misma pareja ip:puerto, incluso desde procesos distintos.
+      </para>
+      <note>
+       <para>
+        Esto solo es aplicable a la función <function>stream_socket_server</function>.
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="context.socket.so_broadcast">
+     <term><parameter>so_broadcast</parameter></term>
+     <listitem>
+      <para>
+       Permite enviar y recibir datos hacia/desde direcciones de difusión.
+      </para>
+      <note>
+       <para>
+        Esto solo es aplicable a la función  <function>stream_socket_server</function>.
+       </para>
+      </note>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="context.socket.tcp_nodelay">
+     <term><parameter>tcp_nodelay</parameter></term>
+     <listitem>
+      <para>
+       Poner el valor a &true; definirá <literal>SOL_TCP,NO_DELAY=1</literal>
+       correctamente, lo que desactivará el algoritmo TCP Nagle.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -73,15 +125,15 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.3.3</entry>
+       <entry>7.1.0</entry>
        <entry>
-        Se agregó <literal>bindto</literal>.
+        Adición del parámetro <parameter>tcp_nodelay</parameter>.
        </entry>
       </row>
       <row>
-       <entry>5.1.0</entry>
+       <entry>7.0.1</entry>
        <entry>
-        Se agregó <literal>backlog</literal>.
+        Adición del parámetro <parameter>ipv6_v6only</parameter>.
        </entry>
       </row>
      </tbody>
@@ -94,48 +146,44 @@
   &reftitle.examples;
   <para>
    <example xml:id="context.socket.example-bindto"><!-- {{{ -->
-    <title>Ejemplo de uso básico de <parameter>bindto</parameter></title>
+    <title>Ejemplo de uso del parámetro <parameter>bindto</parameter></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// conectarse a internet usando la IP '192.168.0.100'
-$opciones = array(
+// Conexión a Internet utilizando la IP '192.168.0.100'
+$opts = array(
     'socket' => array(
         'bindto' => '192.168.0.100:0',
     ),
 );
 
-
-// conectarse a internet usando la IP '192.168.0.100' y el puerto '7000'
-$opciones = array(
+// Conexión a Internet utilizando la IP '192.168.0.100' y el puerto '7000'
+$opts = array(
     'socket' => array(
         'bindto' => '192.168.0.100:7000',
     ),
 );
 
-
-// conectarse a internet usando la dirección IPv6  '2001:db8::1'
+// Conexión a Internet utilizando la dirección IPv6 '2001:db8::1'
 // y el puerto '7000'
-$opciones = array(
+$opts = array(
     'socket' => array(
         'bindto' => '[2001:db8::1]:7000',
     ),
 );
 
-
-// conectarse a internet usando el puerto '7000'
-$opciones = array(
+// Conexión a Internet utilizando el puerto '7000'
+$opts = array(
     'socket' => array(
         'bindto' => '0:7000',
     ),
 );
 
+// Creación del contexto...
+$context = stream_context_create($opts);
 
-// crear el contexto...
-$contexto = stream_context_create($opciones);
-
-// ...y usarlo para recuperar los datos
-echo file_get_contents('http://www.example.com', false, $contexto);
+// ...y se utiliza para recuperar los datos
+echo file_get_contents('http://www.example.com', false, $context);
 
 ?>
 ]]>
@@ -166,4 +214,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-
