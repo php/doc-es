@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 86e6094e86b84a51d00ab217ac50ce8dde33d82a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="luasandbox.pauseusagetimer" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>LuaSandbox::pauseUsageTimer</refname>
+  <refpurpose>Pausa el temporizador de uso de la CPU</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <modifier>public</modifier> <type>bool</type><methodname>LuaSandbox::pauseUsageTimer</methodname>
+   <void />
+  </methodsynopsis>
+  <para>
+   Pausa el temporizador de uso de la CPU.
+  </para>
+  <para>
+   Esto solo tiene efecto cuando se llama desde una retrollamada de Lua. Cuando
+   la ejecución vuelve a Lua, el temporizador se reiniciará automáticamente.
+   Si se realiza una nueva llamada a Lua, el temporizador se reiniciará
+   durante la duración de esa llamada.
+  </para>
+  <para>
+   Si una retrollamada PHP llama nuevamente a Lua con el temporizador sin pausar, y
+   esa función Lua llama nuevamente a PHP, la segunda llamada PHP no podrá
+   pausar el temporizador. La lógica es que incluso si la segunda llamada PHP
+   evita contar el uso de la CPU contra el límite, la primera
+   llamada sigue contándolo.
+  </para>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  &no.function.parameters;
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un <type>bool</type> indicando si el temporizador está ahora en pausa.
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Manipulando el temporizador de uso</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+// Crear un nuevo LuaSandbox y definir un límite de CPU
+$sandbox = new LuaSandbox();
+$sandbox->setCPULimit( 1 );
+
+function doWait( $t ) {
+    $end = microtime( true ) + $t;
+    while ( microtime( true ) < $end ) {
+        // waste CPU cycles
+    }
+}
+
+// Registrar una función de retrollamada PHP
+$sandbox->registerLibrary( 'php', [
+    'test' => function () use ( $sandbox ) {
+        $sandbox->pauseUsageTimer();
+        doWait( 5 );
+
+        $sandbox->unpauseUsageTimer();
+        doWait( 0.1 );
+    },
+    'test2' => function () use ( $sandbox ) {
+        $sandbox->pauseUsageTimer();
+        $sandbox->unpauseUsageTimer();
+        doWait( 1.1 );
+    }
+] );
+
+echo "Esto no debería agotar el tiempo...\n";
+$sandbox->loadString( 'php.test()' )->call();
+
+echo "Esto debería agotar el tiempo.\n";
+try {
+    $sandbox->loadString( 'php.test2()' )->call();
+    echo "¿No lo hizo?\n";
+} catch ( LuaSandboxTimeoutError $ex ) {
+    echo "¡Lo hizo! " . $ex->getMessage() . "\n";
+}
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+Esto no debería agotar el tiempo...
+Esto debería agotar el tiempo.
+¡Lo hizo! El tiempo máximo de ejecución para este script fue excedido
+]]>
+    </screen>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><methodname>LuaSandbox::setCPULimit</methodname></member>
+    <member><methodname>LuaSandbox::unpauseUsageTimer</methodname></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
