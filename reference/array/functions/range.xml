@@ -1,22 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 1cd19d56e1982c9947be9239b73cc8bd03ff178e Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 647d5c50e3b6c103a3efdb578fd227f8b923399d Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.range" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>range</refname>
-  <refpurpose>Crear un array que contiene un rango de elementos</refpurpose>
+  <refpurpose>Crea un array que contiene un intervalo de elementos</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>array</type><methodname>range</methodname>
-   <methodparam><type>mixed</type><parameter>start</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>end</parameter></methodparam>
-   <methodparam choice="opt"><type>number</type><parameter>step</parameter><initializer>1</initializer></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type></type><parameter>start</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type></type><parameter>end</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>float</type></type><parameter>step</parameter><initializer>1</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Crea un array que contiene un rango de elementos.
+   Crea un array que contiene un intervalo de elementos.
+  </para>
+  <para>
+   Si tanto <parameter>start</parameter> como <parameter>end</parameter> son
+   <type>string</type>, y <parameter>step</parameter> es de tipo
+   <type>int</type>, el array producido será una secuencia de bytes.
+   De lo contrario, el array producido será una secuencia de números.
+  </para>
+  <para>
+   La secuencia es creciente si <parameter>start</parameter> es menor o igual a
+   <parameter>end</parameter>.
+   De lo contrario, la secuencia es decreciente.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -35,8 +45,7 @@
      <term><parameter>end</parameter></term>
      <listitem>
       <para>
-       La secuencia finaliza al alcanzar el
-       valor <parameter>end</parameter>.
+       Último valor posible de la secuencia.
       </para>
      </listitem>
     </varlistentry>
@@ -44,66 +53,223 @@
      <term><parameter>step</parameter></term>
      <listitem>
       <para>
-       Si se proporciona un valor a <parameter>step</parameter>, este será usado como el
-       incremento entre los elementos de la secuencia. <parameter>step</parameter>
-       debería darse como número positivo. Si no se especifica,
-       el valor predeterminado de <parameter>step</parameter> será 1.
+       <parameter>step</parameter> indica de cuánto progresa la secuencia producida
+       entre los valores de la secuencia.
       </para>
-     </listitem>
-    </varlistentry>
-   </variablelist>
+      <para>
+       <parameter>step</parameter> puede ser negativo para las secuencias decrecientes.
+      </para>
+      <para>
+       Si <parameter>step</parameter> es un <type>float</type> sin parte
+       fraccionaria, se interpreta como un <type>int</type>.
+      </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
   </para>
  </refsect1>
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array de elementos desde <parameter>start</parameter> a
-   <parameter>end</parameter>, inclusive.
+   Devuelve una secuencia de elementos en forma de un array <type>array</type> con el primer
+   elemento siendo <parameter>start</parameter> hasta
+   <parameter>end</parameter>, cada valor de la secuencia estando
+   separado por <parameter>step</parameter> valores.
+  </para>
+  <para>
+   El último elemento del array devuelto es <parameter>end</parameter>
+   o el elemento anterior de la secuencia,
+   dependiendo del valor de <parameter>step</parameter>.
+  </para>
+  <para>
+   Si tanto <parameter>start</parameter> como <parameter>end</parameter> son
+   <type>string</type>, y <parameter>step</parameter> es de tipo <type>int</type>
+   el array producido será una secuencia de bytes,
+   generalmente caracteres <abbrev>ASCII</abbrev> latinos.
+  </para>
+  <para>
+   Si al menos uno de <parameter>start</parameter>, <parameter>end</parameter>
+   o <parameter>step</parameter> es de tipo <type>float</type>,
+   el array producido será una secuencia de <type>float</type>.
+  </para>
+  <para>
+   De lo contrario, el array producido será una secuencia de <type>int</type>.
   </para>
  </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Si <parameter>step</parameter> es igual a <literal>0</literal>,
+     se genera una <classname>ValueError</classname>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>start</parameter>, <parameter>end</parameter>,
+     o <parameter>step</parameter> no son <function>is_finite</function>,
+     se genera una <classname>ValueError</classname>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>step</parameter> es negativo,
+     pero la plage producida es creciente
+     (es decir, <code>$start &lt;= $end</code>),
+     se genera una <classname>ValueError</classname>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>start</parameter> o <parameter>end</parameter>
+     es la cadena vacía <literal>''</literal>,
+     se emite un <constant>E_WARNING</constant> y
+     la cadena vacía se interpretará como <literal>0</literal>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>start</parameter> o <parameter>end</parameter>
+     es una cadena no-<link linkend="language.types.numeric-strings">numérica</link>
+     con más de un byte, se emite un <constant>E_WARNING</constant>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>start</parameter> o <parameter>end</parameter> es una cadena
+     que se convierte implícitamente en <type>int</type> porque el otro valor
+     límite es un número, se emite un <constant>E_WARNING</constant>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Si <parameter>step</parameter> es de tipo <type>float</type>,
+     y <parameter>start</parameter> y <parameter>end</parameter> son
+     cadenas no-<link linkend="language.types.numeric-strings">numéricas</link>,
+     se emite un <constant>E_WARNING</constant>.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Si tanto <parameter>start</parameter> como <parameter>end</parameter>
+       son cadenas, entonces <function>range</function> producirá ahora
+       sistemáticamente un array de <type>string</type>.
+       Anteriormente, si uno de los valores límite era una cadena numérica,
+       el otro valor límite se convertía implícitamente en <type>int</type>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se emite un <constant>E_WARNING</constant> si
+       <parameter>start</parameter> o <parameter>end</parameter>
+       es una cadena que se convierte implícitamente en <type>int</type>
+       porque el otro valor límite es un número.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se emite un <constant>E_WARNING</constant> si
+       <parameter>start</parameter> o <parameter>end</parameter>
+       es una cadena no-<link linkend="language.types.numeric-strings">numérica</link>
+       con más de un byte.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se emite un <constant>E_WARNING</constant> si
+       <parameter>start</parameter> o <parameter>end</parameter>
+       es la cadena vacía.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Si <parameter>step</parameter> es de tipo <type>float</type> sin
+       parte fraccionaria, se interpretará como un <type>int</type>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se genera una <classname>ValueError</classname> si
+       <parameter>step</parameter> es negativo al producir una plage creciente.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se genera una <classname>ValueError</classname> si
+       <parameter>step</parameter> no es finito.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora se genera una <classname>TypeError</classname> si
+       <parameter>start</parameter> o <parameter>end</parameter>
+       es un array, un objeto, o un recurso.
+       Anteriormente, se convertían implícitamente en <type>int</type>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplos de <function>range</function></title>
+    <title>Ejemplo con <function>range</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-foreach (range(0, 12) as $número) {
-    echo $número;
-}
+echo implode(', ', range(0, 12)), PHP_EOL;
 
-// El parámetro step
-// array(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
-foreach (range(0, 100, 10) as $número) {
-    echo $número;
-}
+echo implode(', ', range(0, 100, 10)), PHP_EOL;
 
-// Empleo de las secuencias de caracteres
-// array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i');
-foreach (range('a', 'i') as $letra) {
-    echo $letra;
-}
-// array('c', 'b', 'a');
-foreach (range('c', 'a') as $letra) {
-    echo $letra;
-}
+echo implode(', ', range('a', 'i')), PHP_EOL;
+
+echo implode(', ', range('c', 'a')), PHP_EOL;
+
+echo implode(', ', range('A', 'z')), PHP_EOL;
 ?>
 ]]>
     </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+a, b, c, d, e, f, g, h, i
+c, b, a
+A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, [, \, ], ^, _, `, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+]]>
+    </screen>
    </example>
   </para>
  </refsect1>
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Los valores de las secuencias de caracteres están limitados a una longitud de uno. Si se entra una
-    longitud mayor que uno, solamente se utilizará el primer carácter.
-   </para>
-  </note>
- </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -115,7 +281,6 @@ foreach (range('c', 'a') as $letra) {
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

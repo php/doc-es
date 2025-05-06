@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9eea2fa6a6ea3bc71c5e1b19c8f23494654503ef Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 8bf3587d8f70239a65d9aa44d42ced8a696a3e86 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<!-- CREDITS: DavidA. -->
 <refentry xml:id="function.array-column" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>array_column</refname>
-  <refpurpose>Devuelve los valores de una sola columna del array de entrada</refpurpose>
+  <refpurpose>Devuelve los valores de una columna de un array de entrada</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>array</type><methodname>array_column</methodname>
-   <methodparam><type>array</type><parameter>input</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>column_key</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>index_key</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam><type>array</type><parameter>array</parameter></methodparam>
+   <methodparam><type class="union"><type>int</type><type>string</type><type>null</type></type><parameter>column_key</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>string</type><type>null</type></type><parameter>index_key</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>array_column</function> devuelve los valores de una sola columna de
-   <parameter>input</parameter>, identificado por la clave de columna
-   <parameter>column_key</parameter>. Opcionalmente, se
-   podría proporcionar una clave de índice, <parameter>index_key</parameter>,
-   para indexar los valores del array devuelto por los valores de la columna
+   <function>array_column</function> devuelve los valores de una columna de <parameter>array</parameter>, identificada por la clave
+   <parameter>column_key</parameter>. Opcionalmente, se puede proporcionar
+   un argumento <parameter>index_key</parameter> para indexar los valores
+   en el array devuelto por los valores de la columna
    <parameter>index_key</parameter> del array de entrada.
   </para>
  </refsect1>
@@ -29,15 +29,15 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>input</parameter></term>
+     <term><parameter>array</parameter></term>
      <listitem>
       <para>
-       Un array multidimensional o un array de objetos desde el que extraer una
-       columna de valores. Si se proporciona un array de objetos, entonces se podrá
-       extraer directamente las propiedades públicas. Para poder extraer las proiedades
-       protegidas o privadas, la clase debe implementar los métodos mágicos
-       <function>__get</function> y
-       <function>__isset</function>.
+       Un array multidimensional o un array de objetos a partir del cual
+       se extrae una columna de valor. Si se proporciona un array de objetos,
+       entonces las propiedades públicas pueden ser directamente extraídas.
+       Para que las propiedades protegidas o privadas sean extraídas,
+       la clase debe implementar las dos métodos mágicos
+       <function>__get</function> y <function>__isset</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -45,10 +45,11 @@
      <term><parameter>column_key</parameter></term>
      <listitem>
       <para>
-       La columna de valores a devolver. Este valor podría ser una clave de tipo integer de la
-       columna de la cual obtener los datos, o podría ser una clave de tipo string para un
-       array asociativo o nombre de propiedad. También prodría ser &null; para devolver
-       array completos u objetos (útil junto con
+       La columna de valores a devolver. Este valor puede ser la clave
+       entera de la columna que se desea recuperar, o bien el
+       nombre de la clave para un array asociativo o el nombre de la propiedad.
+       También puede valer &null; para devolver el array completo o
+       los objetos (esto puede ser útil en conjunción con el argumento
        <parameter>index_key</parameter> para reindexar el array).
       </para>
      </listitem>
@@ -57,11 +58,11 @@
      <term><parameter>index_key</parameter></term>
      <listitem>
       <para>
-       La columna a usar como los índices/claves para el array devuelto. Este valor
-       podría ser la clave de tipo integer de la columna, o podría ser el nombre de la clave de tipo string.
+       La columna a utilizar como índice/clave para el array devuelto.
+       Este valor puede ser la clave entera de la columna, o el nombre de la clave.
        El valor es <link linkend="language.types.array.key-casts">cast</link>
-       como es habitual para las claves de array (Sin embargo, también se permiten los objetos que 
-       soportan la conversión a string).
+       como de costumbre para las claves del array (sin embargo, anterior a PHP 8.0.0,
+       los objetos que soportan una conversión en string también eran permitidos).
       </para>
      </listitem>
     </varlistentry>
@@ -71,7 +72,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array de valores que representa una sola columna del array de entrada.
+   Devuelve un array de valores que representan una sola columna desde el
+   array de entrada.
   </para>
  </refsect1>
  <refsect1 role="changelog">
@@ -87,10 +89,11 @@
      </thead>
      <tbody>
       <row>
-       <entry>7.0.0</entry>
+       <entry>8.0.0</entry>
        <entry>
-        Se añadió la capacidad de que el parámetro <parameter>input</parameter> sea
-        un array de objetos.
+        Los objetos en las columnas indicadas por el argumento <parameter>index_key</parameter>
+        ya no se convertirán en string y lanzarán ahora
+        una <classname>TypeError</classname> en su lugar.
        </entry>
       </row>
      </tbody>
@@ -102,36 +105,38 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Obtener la columna de nombres del conjunto de resultados</title>
+    <title>Recupera la columna de los nombres</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Array representando un conjunto de registros posibles devueltos desde una base de datos
-$registros = array(
-    array(
+
+// Array que representa un conjunto de registros de una base de datos
+$records = [
+    [
         'id' => 2135,
-        'nombre' => 'John',
-        'apellido' => 'Doe',
-    ),
-    array(
+        'first_name' => 'John',
+        'last_name' => 'Doe',
+    ],
+    [
         'id' => 3245,
-        'nombre' => 'Sally',
-        'apellido' => 'Smith',
-    ),
-    array(
+        'first_name' => 'Sally',
+        'last_name' => 'Smith',
+    ],
+    [
         'id' => 5342,
-        'nombre' => 'Jane',
-        'apellido' => 'Jones',
-    ),
-    array(
+        'first_name' => 'Jane',
+        'last_name' => 'Jones',
+    ],
+    [
         'id' => 5623,
-        'nombre' => 'Peter',
-        'apellido' => 'Doe',
-    )
-);
- 
-$nombres = array_column($registros, 'nombre');
-print_r($nombres);
+        'first_name' => 'Peter',
+        'last_name' => 'Doe',
+    ]
+];
+
+$first_names = array_column($records, 'first_name');
+print_r($first_names);
+
 ?>
 ]]>
     </programlisting>
@@ -152,14 +157,39 @@ Array
   <para>
    <example>
     <title>
-     Obtener la columna de apellidos del conjunto de resultados, indexada por la columna "id"
+     Recupera la columna de los apellidos, indexada por la columna "id"
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Se emplea el array $registros del Ejemplo #1
-$apellidos = array_column($registros, 'apellido', 'id');
-print_r($apellidos);
+
+// Utilizando el array del ejemplo #1
+$records = [
+    [
+        'id' => 2135,
+        'first_name' => 'John',
+        'last_name' => 'Doe',
+    ],
+    [
+        'id' => 3245,
+        'first_name' => 'Sally',
+        'last_name' => 'Smith',
+    ],
+    [
+        'id' => 5342,
+        'first_name' => 'Jane',
+        'last_name' => 'Jones',
+    ],
+    [
+        'id' => 5623,
+        'first_name' => 'Peter',
+        'last_name' => 'Doe',
+    ]
+];
+
+$last_names = array_column($records, 'last_name', 'id');
+print_r($last_names);
+
 ?>
 ]]>
     </programlisting>
@@ -177,33 +207,34 @@ Array
     </screen>
    </example>
   </para>
-  <para>
+    <para>
    <example>
     <title>
-     Obtener la columna de nombres de usuarios de la propiedad pública "nombre_usuario" de un
-     objeto
+     Recupera la columna de los nombres de usuario desde la propiedad pública
+     "username" de un objeto
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-class Usuario
+class User
 {
-    public $nombre_usuario;
+    public $username;
 
-    public function __construct(string $nombre_usuario)
+    public function __construct(string $username)
     {
-        $this->nombre_usuario = $nombre_usuario;
+        $this->username = $username;
     }
 }
 
-$usuarios = [
-    new Usuario('usuario 1'),
-    new Usuario('usuario 2'),
-    new Usuario('usuario 3'),
+$users = [
+    new User('user 1'),
+    new User('user 2'),
+    new User('user 3'),
 ];
 
-print_r(array_column($usuarios, 'nombre_usuario'));
+print_r(array_column($users, 'username'));
+
 ?>
 ]]>
     </programlisting>
@@ -212,31 +243,32 @@ print_r(array_column($usuarios, 'nombre_usuario'));
 <![CDATA[
 Array
 (
-    [0] => usuario 1
-    [1] => usuario 2
-    [2] => usuario 3
+    [0] => user 1
+    [1] => user 2
+    [2] => user 3
 )
 ]]>
     </screen>
-    </example>
+   </example>
   </para>
   <para>
    <example>
     <title>
-     Obtener la columna de nombres de la propiedad privada "nombre" de un objeto
-     empleando el método mágico <function>__get</function>.
+     Recupera la columna de nombres desde la propiedad privada "name" de un
+     objeto utilizando los métodos mágicos <function>__isset</function> y
+     <function>__get</function>
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-class Persona
+class Person
 {
     private $name;
 
-    public function __construct(string $nombre)
+    public function __construct(string $name)
     {
-        $this->nombre = $nombre;
+        $this->name = $name;
     }
 
     public function __get($prop)
@@ -250,13 +282,13 @@ class Persona
     }
 }
 
-$gente = [
-    new Persona('Fred'),
-    new Persona('Jane'),
-    new Persona('John'),
+$people = [
+    new Person('Fred'),
+    new Person('Jane'),
+    new Person('John'),
 ];
 
-print_r(array_column($gente, 'nombre'));
+print_r(array_column($people, 'name'));
 ?>
 ]]>
     </programlisting>
@@ -272,25 +304,12 @@ Array
 ]]>
     </screen>
    </example>
-   Si no se proporciona <function>__isset</function>, será devuelto un array
+   Si <function>__isset</function> no está definido, entonces se devolverá un array
    vacío.
   </para>
  </refsect1>
- 
- <refsect1 role="seealso">
-  &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member>
-     <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="&url.arraycolumn.compat;">Implementación
-      del espacio de usuario recomendada para PHP menor que 5.5</link>
-    </member>
-   </simplelist>
-  </para>
- </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

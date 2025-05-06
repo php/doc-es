@@ -1,56 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 8c80c20688aa99cbd919f45595d4c689ff2337b9 Maintainer: julionc Status: ready -->
-<!-- Reviewed: yes Maintainer: julionc -->
+<!-- EN-Revision: 18d46a26fdbfd076f4b8e0b0149fe68702e80d9c Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <sect1 xml:id="language.oop5.property-hooks" xmlns="http://docbook.org/ns/docbook">
- <title>Property Hooks</title>
+ <title>Hooks de propiedad</title>
 
  <simpara>
-  Property hooks, also known as "property accessors" in some other languages,
-  are a way to intercept and override the read and write behavior of a property.
-  This functionality serves two purposes:
+  Los hooks de propiedad, también conocidos como "métodos de acceso de propiedad" en otros lenguajes,
+  son una forma de interceptar y reemplazar el comportamiento de lectura y escritura de una propiedad.
+  Esta funcionalidad sirve a dos fines:
  </simpara>
  <orderedlist>
   <listitem>
    <simpara>
-    It allows for properties to be used directly, without get- and set- methods,
-    while leaving the option open to add additional behavior in the future.
-    That renders most boilerplate get/set methods unnecessary,
-    even without using hooks.
+    Permite utilizar propiedades directamente, sin necesidad de métodos get y set,
+    dejando la posibilidad de añadir un comportamiento adicional en el futuro.
+    Esto hace que la mayoría de los métodos get/set sean innecesarios,
+    incluso sin usar hooks.
    </simpara>
   </listitem>
   <listitem>
    <simpara>
-    It allows for properties that describe an object without needing to store
-    a value directly.
+    Permite definir propiedades que describen un objeto sin almacenar
+    directamente un valor.
    </simpara>
   </listitem>
  </orderedlist>
  <simpara>
-  There are two hooks available on all properties: <literal>get</literal> and <literal>set</literal>.
-  They allow overriding the read and write behavior of a property, respectively.
+  Existen dos hooks disponibles en las propiedades no estáticas: <literal>get</literal> y <literal>set</literal>.
+  Permiten reemplazar el comportamiento de lectura y escritura de una propiedad, respectivamente.
+  Los hooks están disponibles para propiedades tipadas y no tipadas.
  </simpara>
  <simpara>
-  A property may be "backed" or "virtual".
-  A backed property is one that actually stores a value.
-  Any property that has no hooks is backed.
-  A virtual property is one that has hooks and those hooks do not interact with the property itself.
-  In this case, the hooks are effectively the same as methods,
-  and the object does not use any space to store a value for that property.
+  Un objeto puede ser "backed" o "virtual".
+  Una propiedad "backed" es una propiedad que almacena efectivamente un valor.
+  Cualquier propiedad que no tenga hooks es "backed".
+  Una propiedad virtual es una propiedad que tiene hooks y estos hooks no interactúan con la propiedad misma.
+  En este caso, los hooks son efectivamente los mismos que los métodos,
+  y el objeto no utiliza espacio para almacenar un valor para esta propiedad.
  </simpara>
  <simpara>
-  Property hooks are incompatible with <literal>readonly</literal> properties.
-  If there is a need to restrict access to a <literal>get</literal> or <literal>set</literal>
-  operation in addition to altering its behavior, use
-  <link linkend="language.oop5.visibility-members-aviz">asymmetric property visibility</link>.
+  Los hooks de propiedad son incompatibles con las propiedades <literal>readonly</literal>.
+  Si es necesario restringir el acceso a una operación <literal>get</literal> o <literal>set</literal>
+  además de modificar su comportamiento, utilice
+  <link linkend="language.oop5.visibility-members-aviz">la visibilidad asimétrica de propiedad</link>.
  </simpara>
- <sect2>
-  <title>Basic Hook Syntax</title>
+
+ <note>
+  <title>Información de versión</title>
   <simpara>
-   The general syntax for declaring a hook is as follows.
+   Los hooks de propiedad fueron introducidos en PHP 8.4.
+  </simpara>
+ </note>
+
+ <sect2>
+  <title>Sintaxis básica de los hooks</title>
+  <simpara>
+   La sintaxis general para declarar un hook es la siguiente.
   </simpara>
   <example>
-   <title>Property hooks (full version)</title>
+   <title>Hooks de propiedad (versión completa)</title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -58,10 +66,10 @@ class Example
 {
     private bool $modified = false;
 
-    public string $foo = 'default value' {
+    public string $foo = 'valor por omisión' {
         get {
             if ($this->modified) {
-                return $this->foo . ' (modified)';
+                return $this->foo . ' (modificado)';
             }
             return $this->foo;
         }
@@ -73,47 +81,47 @@ class Example
 }
 
 $example = new Example();
-$example->foo = 'changed';
+$example->foo = 'cambiado';
 print $example->foo;
 ?>
 ]]>
    </programlisting>
   </example>
   <simpara>
-   The <varname>$foo</varname> property ends in <literal>{}</literal>, rather than a semicolon.
-   That indicates the presence of hooks.
-   Both a <literal>get</literal> and <literal>set</literal> hook are defined,
-   although it is allowed to define only one or the other.
-   Both hooks have a body, denoted by <literal>{}</literal>, that may contain arbitrary code.
+   La propiedad <varname>$foo</varname> termina con <literal>{}</literal>, en lugar de un punto y coma.
+   Esto indica la presencia de hooks.
+   Se definen un hook <literal>get</literal> y un hook <literal>set</literal>,
+   aunque es posible definir solo uno.
+   Ambos hooks tienen un cuerpo, indicado por <literal>{}</literal>, que puede contener código arbitrario.
   </simpara>
   <simpara>
-   The <literal>set</literal> hook additionally allows specifying the type and name of an incoming value,
-   using the same syntax as a method.
-   The type must be either the same as the type of the property,
-   or <link linkend="language.oop5.variance.contravariance">contravariant</link> (wider) to it.
-   For instance, a property of type <type>string</type> could have a
-   <literal>set</literal> hook that accepts <type class="union"><type>string</type><type>Stringable</type></type>,
-   but not one that only accepts <type>array</type>.
+   El hook <literal>set</literal> también permite especificar el tipo y el nombre de un valor entrante,
+   utilizando la misma sintaxis que una método.
+   El tipo debe ser el mismo que el tipo de la propiedad,
+   o <link linkend="language.oop5.variance.contravariance">contravariante</link> (más amplio) que este.
+   Por ejemplo, una propiedad de tipo <type>string</type> podría tener
+   un hook <literal>set</literal> que acepte un <type class="union"><type>string</type><type>Stringable</type></type>,
+   pero no uno que acepte solo <type>array</type>.
   </simpara>
   <simpara>
-   At least one of the hooks references <code>$this->foo</code>, the property itself.
-   That means the property wll be "backed."
-   When calling <code>$example->foo = 'changed'</code>,
-   the provided string will be first cast to lowercase, then saved to the backing value.
-   When reading from the property, the previously saved value may conditionally be appended
-   with additional text.
+   Al menos uno de los hooks hace referencia a <code>$this->foo</code>, la propiedad misma.
+   Esto significa que la propiedad será "backed".
+   Cuando se llama a <code>$example->foo = 'cambiado'</code>,
+   la cadena proporcionada se convertirá primero en minúsculas y luego se guardará en el valor de respaldo.
+   Al leer la propiedad, el valor previamente guardado puede ser condicionalmente complementado
+   con texto adicional.
   </simpara>
   <simpara>
-   There are a number of shorthand syntax variants as well to handle common cases.
+   Hay varias variantes de sintaxis abreviada para manejar los casos comunes.
   </simpara>
   <simpara>
-   If the <literal>get</literal> hook is a single expression,
-   then the <literal>{}</literal> may be omitted and replaced with an arrow expression.
+   Si el hook <literal>get</literal> es una simple expresión,
+   entonces los <literal>{}</literal> pueden ser omitidos y reemplazados por una expresión flecha.
   </simpara>
   <example>
-   <title>Property get expression</title>
+   <title>Expresión de propiedad get</title>
    <simpara>
-    This example is equivalent to the previous.
+    Este ejemplo es equivalente al ejemplo anterior.
    </simpara>
    <programlisting role="php">
 <![CDATA[
@@ -122,8 +130,8 @@ class Example
 {
     private bool $modified = false;
 
-    public string $foo = 'default value' {
-        get => $this->foo . ($this->modified ? ' (modified)' : '');
+    public string $foo = 'valor por omisión' {
+        get => $this->foo . ($this->modified ? ' (modificado)' : '');
 
         set(string $value) {
             $this->foo = strtolower($value);
@@ -136,13 +144,13 @@ class Example
    </programlisting>
   </example>
   <simpara>
-   If the <literal>set</literal> hook's parameter type is the same as the property type (which is typical),
-   it may be omitted.  In that case, the value to set is automatically given the name <varname>$value</varname>.
+   Si el tipo del parámetro del hook <literal>set</literal> es el mismo que el tipo de la propiedad (lo cual es típico),
+   puede ser omitido. En este caso, el valor a definir se nombra automáticamente <varname>$value</varname>.
   </simpara>
   <example>
-   <title>Property set defaults</title>
+   <title>Parámetros por omisión de propiedad</title>
    <simpara>
-    This example is equivalent to the previous.
+    Este ejemplo es equivalente al ejemplo anterior.
    </simpara>
    <programlisting role="php">
 <![CDATA[
@@ -151,8 +159,8 @@ class Example
 {
     private bool $modified = false;
 
-    public string $foo = 'default value' {
-        get => $this->foo . ($this->modified ? ' (modified)' : '');
+    public string $foo = 'valor por omisión' {
+        get => $this->foo . ($this->modified ? ' (modificado)' : '');
 
         set {
             $this->foo = strtolower($value);
@@ -165,19 +173,19 @@ class Example
    </programlisting>
   </example>
   <simpara>
-   If the <literal>set</literal> hook is only setting a modified version of the passed in value,
-   then it may also be simplified to an arrow expression.
-   The value the expression evaluates to will be set on the backing value.
+   Si el hook <literal>set</literal> solo define una versión modificada del valor pasado,
+   también puede simplificarse en una expresión flecha.
+   El valor al que se evalúa la expresión se definirá en el valor de respaldo.
   </simpara>
   <example>
-   <title>Property set expression</title>
+   <title>Expresión de propiedad set</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 class Example
 {
-    public string $foo = 'default value' {
-        get => $this->foo . ($this->modified ? ' (modified)' : '');
+    public string $foo = 'valor por omisión' {
+        get => $this->foo . ($this->modified ? ' (modificado)' : '');
         set => strtolower($value);
     }
 }
@@ -186,32 +194,100 @@ class Example
    </programlisting>
   </example>
   <simpara>
-   This example is not quite equivalent to the previous,
-   as it does not also modify <code>$this->modified</code>.
-   If multiple statements are needed in the set hook body, use the braces version.
+   Este ejemplo no es completamente equivalente al anterior,
+   ya que tampoco modifica <code>$this->modified</code>.
+   Si se necesitan múltiples instrucciones en el cuerpo del hook, utilice la versión con llaves.
   </simpara>
   <simpara>
-   A property may implement zero, one, or both hooks as the situation requires.
-   All shorthand versions are mutually-independent.
-   That is, using a short-get with a long-set,
-   or a short-set with an explicit type, or so on is all valid.
+   Una propiedad puede implementar cero, uno o ambos hooks según la situación.
+   Todas las versiones abreviadas son mutuamente independientes.
+   Es decir, utilizar un atajo para obtener una definición larga,
+   o un atajo para definir un tipo explícito, etc., es válido.
   </simpara>
   <simpara>
-   On a backed property, omitting a <literal>get</literal> or<literal>set</literal>
-   hook means the default read or write behavior will be used.
+   En una propiedad "backed", omitir un hook <literal>get</literal> o <literal>set</literal>
+   significa que se utilizará el comportamiento de lectura o escritura por omisión.
   </simpara>
+  <note>
+   <simpara>
+    Los hooks pueden ser definidos al utilizar la
+    <link linkend="language.oop5.decon.constructor.promotion">promoción de propiedades en el constructor</link>.
+    Sin embargo, en este caso, los valores proporcionados
+    al constructor deben coincidir con el tipo asociado a la propiedad,
+    independientemente de lo que el hook <literal>set</literal> podría permitir.
+   </simpara>
+   <simpara>
+    Considere el siguiente ejemplo:
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Example
+{
+    public function __construct(
+        public private(set) DateTimeInterface $created {
+            set (string|DateTimeInterface $value) {
+                if (is_string($value)) {
+                    $value = new DateTimeImmutable($value);
+                }
+                $this->created = $value;
+            }
+        },
+    ) {
+    }
+}
+]]>
+   </programlisting>
+   <simpara>
+    Internamente, el motor descompone esto de la siguiente manera:
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Example
+{
+    public private(set) DateTimeInterface $created {
+        set (string|DateTimeInterface $value) {
+            if (is_string($value)) {
+                $value = new DateTimeImmutable($value);
+            }
+            $this->created = $value;
+        }
+    }
+
+    public function __construct(
+        DateTimeInterface $created,
+    ) {
+        $this->created = $created;
+    }
+}
+]]>
+   </programlisting>
+   <simpara>
+    Cualquier intento de definir la propiedad fuera del constructor
+    permitirá un <type>string</type> o un valor de tipo <interfacename>DateTimeInterface</interfacename>,
+    pero el constructor solo permitirá <interfacename>DateTimeInterface</interfacename>.
+    Esto se debe a que el tipo definido para la propiedad (<interfacename>DateTimeInterface</interfacename>)
+    se utiliza como tipo de parámetro en la firma del constructor, independientemente de lo que
+    el hook <literal>set</literal> permita.
+   </simpara>
+   <simpara>
+    Si este tipo de comportamiento es necesario desde el constructor, la promoción
+    de propiedades en el constructor no puede ser utilizada.
+   </simpara>
+</note>
  </sect2>
  <sect2 xml:id="language.oop5.property-hooks.virtual">
-  <title>Virtual properties</title>
+  <title>Propiedades virtuales</title>
   <simpara>
-   Virtual properties are properties that have no backing value.
-   A property is virtual if neither its <literal>get</literal>
-   nor <literal>set</literal> hook references the property itself using exact syntax.
-   That is, a property named <code>$foo</code> whose hook contains <code>$this->foo</code> will be backed.
-   But the following is not a backed property, and will error:
+   Las propiedades virtuales son propiedades que no tienen un valor de respaldo.
+   Una propiedad es virtual si ni su hook <literal>get</literal> ni su hook <literal>set</literal>
+   hace referencia a la propiedad misma utilizando una sintaxis exacta.
+   Es decir, una propiedad nombrada <code>$foo</code> cuyo hook contiene <code>$this->foo</code> será respaldada.
+   Pero la siguiente propiedad no es una propiedad respaldada, y generará un error:
   </simpara>
   <example>
-   <title>Invalid virtual property</title>
+   <title>Propiedad virtual inválida</title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -220,7 +296,7 @@ class Example
     public string $foo {
         get {
             $temp = __PROPERTY__;
-            return $this->$temp; // Doesn't refer to $this->foo, so it doesn't count.
+            return $this->$temp; // No se refiere a $this->foo, por lo que no cuenta.
         }
     }
 }
@@ -229,20 +305,20 @@ class Example
    </programlisting>
   </example>
   <simpara>
-   For virtual properties, if a hook is omitted then that operation does
-   not exist and trying to use it wil produce an error.
-   Virtual properties take up no memory space in an object.
-   Virtual properties are suited for "derived" properties,
-   such as those that are the combination of two other properties.
+   Para las propiedades virtuales, si se omite un hook, entonces esa operación
+   no existe y tratar de utilizarla producirá un error.
+   Las propiedades virtuales no ocupan espacio de memoria en un objeto.
+   Las propiedades virtuales son adecuadas para las propiedades "derivadas",
+   tales como las que son la combinación de dos otras propiedades.
   </simpara>
   <example>
-   <title>Virtual property</title>
+   <title>Propiedad virtual</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-readonly class Rectangle
+class Rectangle
 {
-    // A virtual property.
+    // Una propiedad virtual.
     public int $area {
         get => $this->h * $this->w;
     }
@@ -251,31 +327,31 @@ readonly class Rectangle
 }
 
 $s = new Rectangle(4, 5);
-print $s->area; // prints 20
-$s->area = 30; // Error, as there is no set operation defined.
+print $s->area; // muestra 20
+$s->area = 30; // Error, ya que no hay operación de definición.
 ?>
 ]]>
    </programlisting>
   </example>
   <simpara>
-   Defining both a <literal>get</literal> and <literal>set</literal> hook on a virtual property is also allowed.
+   Definir tanto un hook <literal>get</literal> como un hook <literal>set</literal> en una propiedad virtual también está permitido.
   </simpara>
  </sect2>
  <sect2>
-  <title>Scoping</title>
+  <title>Alcance</title>
   <simpara>
-   All hooks operate in the scope of the object being modified.
-   That means they have access to all public, private, or protected methods of the object,
-   as well as any public, private, or protected properties,
-   including properties that may have their own property hooks.
-   Accessing another property from within a hook does not bypass the hooks defined on that property.
+   Todos los hooks funcionan en el alcance del objeto modificado.
+   Esto significa que tienen acceso a todos los métodos públicos, privados o protegidos del objeto,
+   así como a todas las propiedades públicas, privadas o protegidas,
+   incluyendo las propiedades que pueden tener sus propios hooks de propiedad.
+   Acceder a otra propiedad desde un hook no elude los hooks definidos en esa propiedad.
   </simpara>
   <simpara>
-   The most notable implication of this is that non-trivial hooks may sub-call
-   to an arbitrarily complex method if they wish.
+   La consecuencia más notable de esto es que los hooks no triviales pueden
+   llamar a un método arbitrariamente complejo si lo desean.
   </simpara>
   <example>
-   <title>Calling a method from a hook</title>
+   <title>Llamada a un método desde un hook</title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -300,66 +376,66 @@ class Person {
   </example>
  </sect2>
  <sect2>
-  <title>References</title>
+  <title>Referencias</title>
   <simpara>
-   Because the presence of hooks intercept the read and write process for properties,
-   they cause issues when acquiring a reference to a property or with indirect
-   modification, such as <code>$this->arrayProp['key'] = 'value';</code>.
-   That is because any attempted modification of the value by reference would bypass a set hook,
-   if one is defined.
+   Debido a que la presencia de hooks intercepta el proceso de lectura y escritura de las propiedades,
+   plantean problemas al adquirir una referencia a una propiedad o con una modificación indirecta,
+   tal como <code>$this->arrayProp['key'] = 'value';</code>.
+   Esto se debe a que cualquier intento de modificar el valor por referencia eludiría un hook de definición
+   si existiera uno.
   </simpara>
   <simpara>
-   In the rare case that getting a reference to a property that has hooks defined is necessary,
-   the <literal>get</literal> hook may be prefixed with <literal>&amp;</literal>
-   to cause it to return by reference.
-   Defining both <literal>get</literal> and <literal>&amp;get</literal> on the
-   same property is a syntax error.
+   En el caso raro en que sea necesario obtener una referencia a una propiedad para la cual se definen hooks,
+   el hook <literal>get</literal> puede ser prefijado por <literal>&amp;</literal>
+   para que devuelva por referencia.
+   Definir tanto <literal>get</literal> como <literal>&amp;get</literal> en la
+   misma propiedad es un error de sintaxis.
   </simpara>
   <simpara>
-   Defining both <literal>&amp;get</literal> and <literal>set</literal> hooks on a backed property is not allowed.
-   As noted above, writing to the value returned by reference would bypass the <literal>set</literal> hook.
-   On virtual properties, there is no necessary common value shared between the two hooks, so defining both is allowed.
+   Definir tanto los hooks <literal>&amp;get</literal> como <literal>set</literal> en una propiedad "backed" no está permitido.
+   Como se indicó anteriormente, escribir en el valor devuelto por referencia eludiría el hook <literal>set</literal>.
+   En las propiedades virtuales, no hay un valor común necesario compartido entre los dos hooks, por lo que definir ambos está permitido.
   </simpara>
   <simpara>
-   Writing to an index of an array property also involves an implicit reference.
-   For that reason, writing to a backed array property with hooks defined is
-   allowed if and only if it defines only a <literal>&amp;get</literal> hook.
-   On a virtual property, writing to the array returned from either
-   <literal>get</literal> or <literal>&amp;get</literal> is legal,
-   but whether that has any impact on the object depends on the hook implementation.
+   Escribir en un índice de una propiedad de array implica también una referencia implícita.
+   Por esta razón, escribir en una propiedad de array "backed" con hooks definidos está permitido si y solo si
+   define solo un hook <literal>&amp;get</literal>.
+   En una propiedad virtual, escribir en el array devuelto por
+   <literal>get</literal> o <literal>&amp;get</literal> es legal,
+   pero si esto tiene un impacto en el objeto depende de la implementación del hook.
   </simpara>
   <simpara>
-   Overwriting the entire array property is fine, and behaves the same as any other property.
-   Only working with elements of the array require special care.
+   Sobrecargar la propiedad de array completa está permitido, y se comporta de la misma manera que cualquier otra propiedad.
+   Trabajar solo con elementos del array requiere atención especial.
   </simpara>
  </sect2>
  <sect2>
-  <title>Inheritance</title>
+  <title>Herencia</title>
   <sect3>
-   <title>Final hooks</title>
+   <title>Hooks finales</title>
    <simpara>
-    Hooks may also be declared <link linkend="language.oop5.final">final</link>,
-    in which case they may not be overridden.
+    Los hooks también pueden ser declarados <link linkend="language.oop5.final">final</link>,
+    en cuyo caso no pueden ser reemplazados.
    </simpara>
    <example>
-    <title>Final hooks</title>
+   <title>Hooks finales</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-class User
+class Utiliser
 {
-    public string $username {
+    public string $Utilisername {
         final set => strtolower($value);
     }
 }
 
-class Manager extends User
+class Manager extends Utiliser
 {
-    public string $username {
-        // This is allowed
-        get => strtoupper($this->username);
+    public string $Utilisername {
+        // Esto está permitido
+        get => strtoupper($this->Utilisername);
 
-        // But this is NOT allowed, because set is final in the parent.
+        // Esto NO está permitido, ya que set es final en el padre.
         set => strtoupper($value);
     }
 }
@@ -368,23 +444,23 @@ class Manager extends User
     </programlisting>
    </example>
    <simpara>
-    A property may also be declared <link linkend="language.oop5.final">final</link>.
-    A final property may not be redeclared by a child class in any way,
-    which precludes altering hooks or widening its access.
+    Una propiedad también puede ser declarada <link linkend="language.oop5.final">final</link>.
+    Una propiedad final no puede ser redeclarada por una clase hija de ninguna manera,
+    lo que excluye la modificación de los hooks o la ampliación de su acceso.
    </simpara>
    <simpara>
-    Declaring hooks final on a property that is declared final is redundant,
-    and will be silently ignored.
-    This is the same behavior as final methods.
+    Declarar hooks finales en una propiedad que es declarada final es redundante,
+    y será silenciosamente ignorado.
+    Es el mismo comportamiento que para los métodos finales.
    </simpara>
    <simpara>
-    A child class may define or redefine individual hooks on a property
-    by redefining the property and just the hooks it wishes to override.
-    A child class may also add hooks to a property that had none.
-    This is essentially the same as if the hooks were methods.
+    Una clase hija puede declarar o cambiar hooks individuales en una propiedad
+    redefiniendo la propiedad y solo los hooks que desea reemplazar.
+    Una clase hija también puede añadir hooks a una propiedad que no los tenía.
+    Esto es esencialmente lo mismo que si los hooks fueran métodos.
    </simpara>
    <example>
-    <title>Hook inheritance</title>
+    <title>Herencia de hook</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -410,33 +486,36 @@ class PositivePoint extends Point
     </programlisting>
    </example>
    <simpara>
-    Each hook overrides parent implementations independently of each other.
-    If a child class adds hooks, any default value set on the property is removed, and must be redeclared.
-    That is the same consistent with how inheritance works on hook-less properties.
+    Cada hook reemplaza las implementaciones parentales de manera independiente.
+    Si una clase hija añade hooks, cualquier valor por omisión definido en la propiedad es eliminado, y debe ser redeclarado.
+    Es la misma coherencia con el funcionamiento de la herencia en las propiedades sin hooks.
    </simpara>
   </sect3>
   <sect3>
-   <title>Accessing parent hooks</title>
+   <title>Acceso a los hooks parentales</title>
    <simpara>
-    A hook in a child class may access the parent class's property using the
-    <code>parent::$prop</code> keyword, followed by the desired hook.
-    For example, <code>parent::$propName::get()</code>.
-    It may be read as "access the <varname>prop</varname> defined on the parent class,
-    and then run its get operation" (or set operation, as appropriate).
+    Un hook en una clase hija puede acceder a la propiedad de la clase padre utilizando la palabra clave
+    <code>parent::$prop</code>, seguida del hook deseado.
+    Por ejemplo, <code>parent::$propName::get()</code>.
+    Esto puede ser leído como "acceder a la <varname>prop</varname> definida en la clase padre,
+    luego ejecutar su operación get" (o set, según el caso).
    </simpara>
    <simpara>
-    If not accessed this way, the parent class's hook is ignored.
-    This behavior is consistent with how all methods work.
-    This also offers a way to access the parent class's storage, if any.
-    If there is no hook on the parent property,
-    its default get/set behavior will be used.
-    Hooks may not access any other hook except their own parent on their own property.
+    Si no se accede de esta manera, el hook de la clase padre es ignorado.
+    Este comportamiento es coherente con el funcionamiento de todos los métodos.
+    Esto también proporciona una manera de acceder al almacenamiento de la clase padre, si es necesario.
+    Si no hay un hook en la propiedad padre,
+    su comportamiento por omisión get/set será utilizado.
+    Los hooks no pueden acceder a otro hook que no sea su propio padre en su propia propiedad.
    </simpara>
    <simpara>
-    The example above could be rewritten more efficiently as follows.
+    El ejemplo anterior podría ser reescrito de la siguiente manera, lo que permitiría a la
+    clase <literal>Point</literal> añadir su propio hook <literal>set</literal>
+    en el futuro sin problemas (en el ejemplo anterior, un hook añadido a la
+    clase padre sería ignorado en la clase hija).
    </simpara>
    <example>
-    <title>Parent hook access (set)</title>
+    <title>Acceso a los hooks parentales (set)</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -453,7 +532,7 @@ class PositivePoint extends Point
             if ($value < 0) {
                 throw new \InvalidArgumentException('Too small');
             }
-            $this->x = $value;
+            parent::$x::set($value);
         }
     }
 }
@@ -462,10 +541,10 @@ class PositivePoint extends Point
     </programlisting>
    </example>
    <simpara>
-    An example of overriding only a get hook could be:
+    Un ejemplo de reemplazo de solo un hook get podría ser:
    </simpara>
    <example>
-    <title>Parent hook access (get)</title>
+    <title>Acceso a los hooks parentales (get)</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -491,27 +570,27 @@ class CaseFoldingStrings extends Strings
   </sect3>
  </sect2>
  <sect2>
-  <title>Serialization</title>
+  <title>Serialización</title>
   <simpara>
-   PHP has a number of different ways in which an object may be serialized,
-   either for public consumption or for debugging purposes.
-   The behavior of hooks varies depending on the use case.
-   In some cases, the raw backing value of a property will be used,
-   bypassing any hooks.
-   In others, the property will be read or written "through" the hook,
-   just like any other normal read/write action.
+   PHP tiene varias formas diferentes de serializar un objeto,
+   ya sea para consumo público o para fines de depuración.
+   El comportamiento de los hooks varía según el uso.
+   En algunos casos, el valor bruto de respaldo de una propiedad será utilizado,
+   eludiendo cualquier hook.
+   En otros, la propiedad será leída o escrita "a través" del hook,
+   como cualquier otra acción de lectura/escritura normal.
   </simpara>
   <simplelist>
-   <member><function>var_dump</function>: Use raw value</member>
-   <member><function>serialize</function>: Use raw value</member>
-   <member><function>unserialize</function>: Use raw value</member>
-   <member><link linkend="object.serialize">__serialize()</link>/<link linkend="object.unserialize">__unserialize()</link>: Custom logic, uses get/set hook</member>
-   <member>Array casting: Use raw value</member>
-   <member><function>var_export</function>: Use get hook</member>
-   <member><function>json_encode</function>: Use get hook</member>
-   <member><interfacename>JsonSerializable</interfacename>: Custom logic, uses get hook</member>
-   <member><function>get_object_vars</function>: Use get hook</member>
-   <member><function>get_mangled_object_vars</function>: Use raw value</member>
+   <member><function>var_dump</function>: Utiliza el valor bruto</member>
+   <member><function>serialize</function>: Utiliza el valor bruto</member>
+   <member><function>unserialize</function>: Utiliza el valor bruto</member>
+   <member><link linkend="object.serialize">__serialize()</link>/<link linkend="object.unserialize">__unserialize()</link>: Lógica propia, utiliza los hooks de recuperación/definición</member>
+   <member>Array casting: Utiliza el valor bruto</member>
+   <member><function>var_export</function>: Utiliza el hook de recuperación</member>
+   <member><function>json_encode</function>: Utiliza el hook de recuperación</member>
+   <member><interfacename>JsonSerializable</interfacename>: Lógica propia, utiliza el hook de recuperación</member>
+   <member><function>get_object_vars</function>: Utiliza el hook de recuperación</member>
+   <member><function>get_mangled_object_vars</function>: Utiliza el valor bruto</member>
   </simplelist>
  </sect2>
 </sect1>

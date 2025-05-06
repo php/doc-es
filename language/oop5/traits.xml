@@ -1,208 +1,222 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 796ebb7fa127283377acf69fa9a9c3637ae2cd97 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no Maintainer: itanea -->
 <sect1 xml:id="language.oop5.traits" xmlns="http://docbook.org/ns/docbook">
- <title>Rasgos (Traits)</title>
+ <title>Traits</title>
  <para>
-  Desde su versión 5.4.0, PHP implementa una metodología de reutilización de código llamada Traits.
+  PHP implementa una manera de reutilizar código llamada Traits.
  </para>
  <para>
-  Los rasgos («traits» en inglés) son un mecanismo de reutilización de código en lenguajes de herencia simple, como
-  PHP. El objetivo de un rasgo es el de reducir las limitaciones propias de la herencia simple
-  permitiendo que los desarrolladores reutilicen a voluntad conjuntos de métodos sobre varias clases
-  independientes y pertenecientes a clases jerárquicas distintas. La semántica a la hora combinar
-  Traits y clases se define de tal manera que reduzca su complejidad y se eviten los problemas típicos
-  asociados a la herencia múltiple y a los Mixins.
+  Los traits son un mecanismo de reutilización de código en un lenguaje de herencia simple
+  como PHP. Un trait intenta reducir ciertas limitaciones de la herencia simple, permitiendo
+  al desarrollador reutilizar un cierto número de métodos en clases independientes. La sémantica entre las clases y los traits reduce la complejidad y evita los problemas
+  típicos de la herencia múltiple y los Mixins.
  </para>
  <para>
-  Un Trait es similar a una clase, pero con el único objetivo de agrupar funcionalidades muy
-  específicas y de una manera coherente. No se puede instanciar directamente un Trait.
-  Es por tanto un añadido a la herencia tradicional, y habilita la composición horizontal
-  de comportamientos; es decir, permite combinar miembros de clases sin tener que usar
-  herencia.
+  Un trait es similar a una clase, pero solo sirve para agrupar funcionalidades de una
+  manera interesante. No es posible instanciar un Trait en sí mismo. Es un
+  añadido a la herencia tradicional, que permite la composición horizontal de comportamientos,
+  es decir, el uso de métodos de clase sin necesidad de herencia.
  </para>
+
  <example xml:id="language.oop5.traits.basicexample">
-  <title>Ejemplo de rasgo</title>
+  <title>Ejemplo de uso de Trait</title>
   <programlisting role="php">
 <![CDATA[
 <?php
-trait ezcReflectionReturnInfo {
-    function getReturnType() { /*1*/ }
-    function getReturnDescription() { /*2*/ }
+
+trait TraitA {
+    public function sayHello() {
+        echo 'Hello';
+    }
 }
 
-class ezcReflectionMethod extends ReflectionMethod {
-    use ezcReflectionReturnInfo;
-    /* ... */
+trait TraitB {
+    public function sayWorld() {
+        echo 'World';
+    }
 }
 
-class ezcReflectionFunction extends ReflectionFunction {
-    use ezcReflectionReturnInfo;
-    /* ... */
+class MyHelloWorld
+{
+    use TraitA, TraitB; // Una clase puede usar múltiples traits
+
+    public function sayHelloWorld() {
+        $this->sayHello();
+        echo ' ';
+        $this->sayWorld();
+        echo "!\n";
+    }
 }
+
+$myHelloWorld = new MyHelloWorld();
+$myHelloWorld->sayHelloWorld();
+
 ?>
 ]]>
   </programlisting>
+  &example.outputs;
+  <screen>
+<![CDATA[
+Hello World!
+]]>
+  </screen>
  </example>
- 
+
  <sect2 xml:id="language.oop5.traits.precedence">
   <title>Precedencia</title>
   <para>
-   Los miembros heredados de una clase base se sobrescriben cuando se inserta otro miembro homónimo
-   desde un Trait. De acuerdo con el orden de precedencia, los miembros de la clase actual sobrescriben
-   los métodos del Trait, que a su vez sobrescribe los métodos heredados.
+   Un método heredado desde una clase madre es sobrescrito por un método proveniente de un Trait.
+   El orden de precedencia hace que los métodos de la clase actual
+   sobrescriban los métodos provenientes de un Trait, ellos mismos sobrecargando los métodos heredados.
   </para>
-  <example xml:id="language.oop5.traits.examples.ex2">
-   <title>Ejemplo de Orden de Precedencia</title>
+  <example xml:id="language.oop5.traits.precedence.examples.ex1">
+   <title>Ejemplo con el orden de precedencia</title>
    <para>
-    Se sobrescribe un miembro de la clase base con el método
-    insertado en MiHolaMundo a partir del Trait DecirMundo. El comportamiento es
-    el mismo para los métodos definidos en la clase MiHolaMundo. Según el orden de precedencia
-    los métodos de la clase actual sobrescriben los métodos del Trait,
-    a la vez que el Trait sobrescribe los métodos de la clase base.
+    Un método heredado desde la clase base es sobrescrito por el que proviene
+    del Trait. No es el caso de los métodos reales, escritos en la clase base.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 class Base {
-    public function decirHola() {
-        echo '¡Hola ';
+    public function sayHello() {
+        echo 'Hello ';
     }
 }
 
-trait DecirMundo {
-    public function decirHola() {
-        parent::decirHola();
-        echo 'Mundo!';
+trait SayWorld {
+    public function sayHello() {
+        parent::sayHello();
+        echo 'World!';
     }
 }
 
-class MiHolaMundo extends Base {
-    use DecirMundo;
+class MyHelloWorld extends Base {
+    use SayWorld;
 }
 
-$o = new MiHolaMundo();
-$o->decirHola();
+$o = new MyHelloWorld();
+$o->sayHello();
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-¡Hola Mundo!
+Hello World!
 ]]>
    </screen>
   </example>
-  <example xml:id="language.oop5.traits.examples.ex3">
-   <title>Ejemplo de Orden de Precedencia #2</title>
+  <example xml:id="language.oop5.traits.precedence.examples.ex2">
+   <title>Otro ejemplo de orden de precedencia</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait HolaMundo {
-    public function decirHola() {
-        echo '¡Hola Mundo!';
+trait HelloWorld {
+    public function sayHello() {
+        echo 'Hello World!';
     }
 }
 
-class ElMundoNoEsSuficiente {
-    use HolaMundo;
-    public function decirHola() {
-        echo '¡Hola Universo!';
+class TheWorldIsNotEnough {
+    use HelloWorld;
+    public function sayHello() {
+        echo 'Hello Universe!';
     }
 }
 
-$o = new ElMundoNoEsSuficiente();
-$o->decirHola();
+$o = new TheWorldIsNotEnough();
+$o->sayHello();
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-¡Hola Universo!
+Hello Universe!
 ]]>
    </screen>
   </example>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.multiple">
-  <title>Multiples Traits</title>
+  <title>Múltiples Traits</title>
   <para>
-   Se pueden insertar múltiples Traits en una clase, mediante una lista separada por comas
-   en la sentencia use.
+   Una clase puede usar múltiples Traits declarándolos con la
+   palabra clave <literal>use</literal>, separados por comas.
   </para>
-  <example xml:id="language.oop5.traits.examples.ex4">
-   <title>Uso de varios rasgos</title>
+  <example xml:id="language.oop5.traits.multiple.ex1">
+   <title>Uso de varios Traits</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait Hola {
-    public function decirHola() {
-        echo 'Hola ';
+trait Hello {
+    public function sayHello() {
+        echo 'Hello ';
     }
 }
 
-trait Mundo {
-    public function decirMundo() {
-        echo 'Mundo';
+trait World {
+    public function sayWorld() {
+        echo 'World';
     }
 }
 
-class MiHolaMundo {
-    use Hola, Mundo;
-    public function decirAdmiración() {
+class MyHelloWorld {
+    use Hello, World;
+    public function sayExclamationMark() {
         echo '!';
     }
 }
 
-$o = new MiHolaMundo();
-$o->decirHola();
-$o->decirMundo();
-$o->decirAdmiración();
+$o = new MyHelloWorld();
+$o->sayHello();
+$o->sayWorld();
+$o->sayExclamationMark();
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-Hola Mundo!
+Hello World!
 ]]>
    </screen>
   </example>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.conflict">
-  <title>Resolución de Conflictos</title>
+  <title>Resolución de conflictos</title>
   <para>
-   Si dos Traits insertan un método con el mismo nombre, se produce un error fatal,
-   siempre y cuando no se haya resuelto explicitamente el conflicto.
+   Si dos Traits insertan un método con el mismo nombre, se produce un error fatal si el conflicto no es
+   explícitamente resuelto.
   </para>
   <para>
-   Para resolver los conflictos de nombres entre Traits en una misma clase,
-   se debe usar el operador <literal>insteadof</literal> para elegir unívocamente
-   uno de los métodos conflictivos.
+   Para resolver un conflicto de nombres entre Traits usados en la misma clase, se debe usar el operador
+   <literal>insteadof</literal> para elegir uno de los métodos en conflicto.
   </para>
   <para>
-   Como esto solamente permite excluir métodos, se puede utilizar
-   el operador <literal>as</literal> para añadir un alias a uno de los métodos. Observe que el
-   operador <literal>as</literal> no renombra el método ni
-   afecta a cualquier otro método.
+   Dado que este principio solo permite excluir métodos,
+   el operador <literal>as</literal> puede ser usado para permitir
+   la inclusión de uno de los métodos conflictivos bajo otro nombre. Se debe tener en cuenta que
+   el operador <literal>as</literal> no renombra el método y no afecta
+   a otros métodos tampoco.
   </para>
-  <example xml:id="language.oop5.traits.examples.ex5">
-   <title>Resolución de Conflictos</title>
+  <example xml:id="language.oop5.traits.conflict.ex1">
+   <title>Resolución de conflictos</title>
    <para>
-    En este ejemplo, Talker utiliza los traits A y B.
-    Como A y B tienen métodos conflictos, se define el uso
-    de la variante de smallTalk del trait B, y la variante de bigTalk del
+    En este ejemplo, la clase Talker usa los traits A y B.
+    Como A y B tienen métodos conflictivos, se indica que se desea usar
+    la variante de smallTalk desde el trait B, y la variante de bigTalk desde el
     trait A.
    </para>
    <para>
-    Aliased_Talker hace uso del operador <literal>as</literal> para poder usar la
-    implementación de bigTalk de B, bajo el alias adicional
-    <literal>talk</literal>.
+    La clase Aliased_Talker usa el operador <literal>as</literal>
+    para poder usar la implementación bigTalk de B bajo un alias
+    adicional <literal>talk</literal>.
    </para>
-   <programlisting role="php">
+   <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
 trait A {
@@ -241,127 +255,122 @@ class Aliased_Talker {
 ]]>
    </programlisting>
   </example>
-  <note>
-   <para>
-    Antes de PHP 7.0, definir una propiedad en una clase con el mismo nombre que en un rasgo
-    lanzaba un <constant>E_STRICT</constant> si la definición de la clase era compatible 
-    (misma visivilidad y mismo valor inicial).
-   </para>
-  </note>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.visibility">
-  <title>Modificando la Visibilidad de los Métodos</title>
+  <title>Cambiar la visibilidad de los métodos</title>
   <para>
-   Al usar el operador <literal>as</literal>, se puede también ajustar la visibilidad
-   del método en la clase exhibida.
+   Usando la sintaxis <literal>as</literal>, también se puede ajustar
+   la visibilidad del método en la clase que lo usa.
   </para>
   <example xml:id="language.oop5.traits.visibility.ex1">
-   <title>Modificar la Visibilidad de un Método</title>
-   <programlisting role="php">
+   <title>Cambiar la visibilidad de los métodos</title>
+   <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
-trait HolaMundo {
-    public function decirHola() {
-        echo 'Hola Mundo!';
+trait HelloWorld {
+    public function sayHello() {
+        echo 'Hello World!';
     }
 }
 
-// Cambiamos visibilidad de decirHola
-class MiClase1 {
-    use HolaMundo { decirHola as protected; }
+// Modificación de la visibilidad del método sayHello
+class MyClass1 {
+    use HelloWorld { sayHello as protected; }
 }
 
-// Método alias con visibilidad cambiada
-// La visibilidad de decirHola no cambia
-class MiClase2 {
-  use HolaMundo { decirHola as private miPrivadoHola; }
+// Uso de un alias al modificar la visibilidad
+// La visibilidad del método sayHello no es modificada
+class MyClass2 {
+    use HelloWorld { sayHello as private myPrivateHello; }
 }
 ?>
 ]]>
    </programlisting>
   </example>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.composition">
-  <title>Traits Compuestos de Traits</title>
+  <title>Traits Compuestos desde otros Traits</title>
   <para>
-   Al igual que las clases, los Traits también pueden hacer uso de otros Traits. Al usar
-   uno o más traits en la definición de un trait, éste puede componerse parcial
-   o completamente de miembros definidos en esos otros traits.
+   Al igual que las clases pueden usar traits, otros traits también pueden hacerlo. Un trait puede, por lo tanto, usar otros traits y heredar
+   todo o parte de ellos.
   </para>
-  <example xml:id="language.oop5.traits.examples.ex6">
-   <title>Traits compuestos de traits</title>
+  <example xml:id="language.oop5.traits.composition.ex1">
+   <title>Traits Compuestos desde otros Traits</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait Hola {
-    public function decirHola() {
-        echo 'Hola ';
+trait Hello {
+    public function sayHello() {
+        echo 'Hello ';
     }
 }
 
-trait Mundo {
-    public function decirMundo() {
-        echo 'Mundo!';
+trait World {
+    public function sayWorld() {
+        echo 'World!';
     }
 }
 
-trait HolaMundo {
-    use Hola, Mundo;
+trait HelloWorld {
+    use Hello, World;
 }
 
-class MiHolaMundo {
-    use HolaMundo;
+class MyHelloWorld {
+    use HelloWorld;
 }
 
-$o = new MiHolaMundo();
-$o->decirHola();
-$o->decirMundo();
+$o = new MyHelloWorld();
+$o->sayHello();
+$o->sayWorld();
 ?>
 ]]>
    </programlisting>
    &example.outputs;
    <screen>
 <![CDATA[
-Hola Mundo!
+Hello World!
 ]]>
    </screen>
   </example>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.abstract">
-  <title>Miembros Abstractos de Traits</title>
+  <title>Métodos abstractos en los Traits</title>
   <para>
-   Los traits soportan el uso de métodos abstractos para imponer requisitos
-   a la clase a la que se exhiban.
+   Los traits soportan el uso de métodos abstractos para imponer
+   restricciones a las clases subyacentes. Se soportan los métodos públicos, protegidos,
+   y privados.
+   Anterior a PHP 8.0.0, solo se soportaban los métodos públicos y protegidos abstractos.
   </para>
-    <caution>
+  <caution>
     <simpara>
-     Una clase concreta cumple este requisito definiendo un método concreto
-     con el mismo nombre; su firma puede ser diferente.
+     A partir de PHP 8.0.0, la firma de un método concreto debe seguir las
+     <link linkend="language.oop.lsp">reglas de compatibilidad de firmas</link>.
+     Anteriormente, su firma podía ser diferente.
     </simpara>
    </caution>
-  <example xml:id="language.oop5.traits.examples.ex7">
-   <title>Expresar Resquisitos con Métodos Abstractos</title>
+  <example xml:id="language.oop5.traits.abstract.ex1">
+   <title>Obligaciones requeridas por los métodos abstractos</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait Hola {
-    public function decirHolaMundo() {
-        echo 'Hola'.$this->obtenerMundo();
+trait Hello {
+    public function sayHelloWorld() {
+        echo 'Hello'.$this->getWorld();
     }
-    abstract public function obtenerMundo();
+    abstract public function getWorld();
 }
 
-class MiHolaMundo {
-    private $mundo;
-    use Hola;
-    public function obtenerMundo() {
-        return $this->mundo;
+class MyHelloWorld {
+    private $world;
+    use Hello;
+    public function getWorld() {
+        return $this->world;
     }
-    public function asignarMundo($val) {
-        $this->mundo = $val;
+    public function setWorld($val) {
+        $this->world = $val;
     }
 }
 ?>
@@ -369,115 +378,305 @@ class MiHolaMundo {
    </programlisting>
   </example>
  </sect2>
- 
+
  <sect2 xml:id="language.oop5.traits.static">
-  <title>Miembros Estáticos en Traits</title>
+  <title>Atributos estáticos en los Traits</title>
   <para>
-   Los trait pueden definir miembros y métodos estáticos.
+   Los traits pueden definir variables estáticas, métodos estáticos
+   y propiedades estáticas.
   </para>
-  <example xml:id="language.oop5.traits.examples.ex8">
+  <note>
+   <para>
+    A partir de PHP 8.1.0, llamar a un método estático o acceder a una
+    propiedad estática directamente en un trait es obsoleto.
+    Los métodos y propiedades estáticas deberían ser accedidos solo en una clase que use el trait.
+   </para>
+  </note>
+  <example xml:id="language.oop5.traits.static.ex1">
    <title>Variables estáticas</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait Contador {
-    public function inc() {
+
+trait Counter
+{
+    public function inc()
+    {
         static $c = 0;
         $c = $c + 1;
         echo "$c\n";
     }
 }
 
-class C1 {
-    use Contador;
+class C1
+{
+    use Counter;
 }
 
-class C2 {
-    use Contador;
+class C2
+{
+    use Counter;
 }
 
-$o = new C1(); $o->inc(); // echo 1
-$p = new C2(); $p->inc(); // echo 1
+$o = new C1();
+$o->inc();
+$p = new C2();
+$p->inc();
+
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+    <screen>
+<![CDATA[
+1
+1
+]]>
+    </screen>
   </example>
-  <example xml:id="language.oop5.traits.examples.ex9">
-   <title>Métodos Estáticos</title>
+  <example xml:id="language.oop5.traits.static.ex2">
+   <title>Métodos estáticos</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait EjemploEstatico {
-    public static function hacerAlgo() {
-        return 'Hacer algo';
+
+trait StaticExample
+{
+    public static function doSomething()
+    {
+        return 'Doing something';
     }
 }
 
-class Ejemplo {
-    use EjemploEstatico;
+class Example
+{
+    use StaticExample;
 }
 
-Ejemplo::hacerAlgo();
+echo Example::doSomething();
+
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+    <screen>
+<![CDATA[
+Doing something
+]]>
+    </screen>
   </example>
- </sect2>
- 
- <sect2 xml:id="language.oop5.traits.properties">
-  <title>Propiedades</title>
-  <para>
-   Los traits también pueden definir propiedades.
-  </para>
-  <example xml:id="language.oop5.traits.properties.example">
-   <title>Definir Propiedades</title>
+  <example xml:id="language.oop5.traits.static.ex3">
+   <title>Propiedades estáticas</title>
+   <caution>
+     <simpara>
+      Antes de PHP 8.3.0, las propiedades estáticas definidas en un trait eran compartidas
+      entre todas las clases de la misma jerarquía de herencia que usaban ese trait.
+      A partir de PHP 8.3.0, si una clase hija usa un trait con una propiedad estática,
+      esta será considerada como distinta de la definida en la clase padre.
+     </simpara>
+    </caution>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait PropiedadesTrait {
+
+trait StaticExample
+{
+    public static $counter = 1;
+}
+
+class A
+{
+    use T;
+
+    public static function incrementCounter()
+    {
+        static::$counter++;
+    }
+}
+
+class B extends A
+{
+    use T;
+}
+
+A::incrementCounter();
+
+echo A::$counter, "\n";
+echo B::$counter, "\n";
+
+?>
+]]>
+   </programlisting>
+   &example.outputs.83;
+    <screen>
+<![CDATA[
+2
+1
+]]>
+    </screen>
+  </example>
+ </sect2>
+ <sect2 xml:id="language.oop5.traits.properties">
+   <title>Propiedades</title>
+   <para>
+    Los traits también pueden definir propiedades.
+   </para>
+   <example xml:id="language.oop5.traits.properties.example">
+    <title>Definir propiedades</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+trait PropertiesTrait
+{
     public $x = 1;
 }
 
-class EjemploPropiedades {
-    use PropiedadesTrait;
+class PropertiesExample
+{
+    use PropertiesTrait;
 }
 
-$ejemplo = new EjemploPropiedades;
-$ejemplo->x;
+$example = new PropertiesExample();
+$example->x;
+
 ?>
 ]]>
-   </programlisting>
-  </example>
+    </programlisting>
+   </example>
+    <para>
+     Si un trait define una propiedad, entonces la clase no puede definir una
+     propiedad con el mismo nombre a menos que sea compatible (misma visibilidad, tipo,
+     modificador readonly, valor inicial), de lo contrario se produce un error fatal.
+    </para>
+   <example xml:id="language.oop5.traits.properties.conflicts">
+    <title>Resolución de conflictos</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+trait PropertiesTrait {
+    public $same = true;
+    public $different1 = false;
+    public bool $different2;
+    public bool $different3;
+}
+
+class PropertiesExample {
+    use PropertiesTrait;
+    public $same = true;
+    public $different1 = true; // Fatal error
+    public string $different2; // Fatal error
+    readonly protected bool $different3; // Fatal error
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </sect2>
+
+ <sect2 xml:id="language.oop5.traits.constants">
+  <title>&Constants;</title>
   <para>
-   Si un trait define una propiedad, una clase no puede definir una propiedad con
-   el mismo nombre, a menos que sea compatible (misma visibilidad y mismo valor inicial),
-   si no, se emitirá un error fatal.
-   Antes de PHP 7.0, definir una propiedad en una clase con la misma visibilidad
-   y el mismo valor inicial que en el rasgo, emitía un aviso E_STRICT.
+   Los traits pueden, a partir de PHP 8.2.0, también definir constantes.
   </para>
-  <example xml:id="language.oop5.traits.properties.conflicts">
-   <title>Resolución de Conflictos</title>
+  <example xml:id="language.oop5.traits.constants.example">
+   <title>Trait definiendo una constante</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-trait PropiedadesTrait {
-    public $misma = true;
-    public $diferente = false;
+trait ConstantsTrait {
+    public const FLAG_MUTABLE = 1;
+    final public const FLAG_IMMUTABLE = 5;
 }
 
-class EjemploPropiedades {
-    use PropiedadesTrait;
-    public $misma = true; // Permitido a partir de PHP 7.0.0; aviso E_STRICT anteriormente
-    public $diferente = true; // Error fatal
+class ConstantsExample {
+    use ConstantsTrait;
 }
+
+$example = new ConstantsExample;
+echo $example::FLAG_MUTABLE;
 ?>
 ]]>
    </programlisting>
+   &example.outputs;
+    <screen>
+<![CDATA[
+1
+]]>
+    </screen>
   </example>
- </sect2>
- 
-</sect1>
+  <para>
+   Si un trait define una constante, entonces una clase no puede definir una
+   constante con el mismo nombre, a menos que sea compatible (misma
+   visibilidad, mismo valor, etc.), de lo contrario se produce un error fatal.
+  </para>
+  <example xml:id="language.oop5.traits.constants.conflicts">
+   <title>Resolución de conflicto</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+trait ConstantsTrait {
+    public const FLAG_MUTABLE = 1;
+    final public const FLAG_IMMUTABLE = 5;
+}
 
+class ConstantsExample {
+    use ConstantsTrait;
+    public const FLAG_IMMUTABLE = 5; // Fatal error
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </sect2>
+  <sect2 xml:id="language.oop5.traits.final-methods">
+   <title>Métodos finales</title>
+   <simpara>
+    A partir de PHP 8.3.0, el modificador <link linkend="language.oop5.final">final</link>
+    puede ser aplicado usando el operador <literal>as</literal>
+    a los métodos importados desde los traits. Esto puede ser usado para impedir
+    que las clases hijas sobrecarguen el método. Sin embargo, la clase que usa
+    el trait puede seguir sobrecargando el método.
+   </simpara>
+   <example xml:id="language.oop5.traits.final-methods.example">
+    <title>Definir un método proveniente de un trait como <literal>final</literal></title>
+    <programlisting role="php">
+    <![CDATA[
+<?php
+
+trait CommonTrait
+{
+    public function method()
+    {
+        echo 'Hello';
+    }
+}
+
+class FinalExampleA
+{
+    use CommonTrait {
+        CommonTrait::method as final; // El 'final' impide que las clases hijas sobrecarguen el método
+    }
+}
+
+class FinalExampleB extends FinalExampleA
+{
+    public function method() {}
+}
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Fatal error: Cannot override final method FinalExampleA::method() in ...
+]]>
+    </screen>
+   </example>
+  </sect2>
+
+</sect1>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

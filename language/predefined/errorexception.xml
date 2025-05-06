@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: e6376e04ed2526138e5b71e16168cf6bb269fa8a Maintainer: yago Status: ready -->
-<!-- Reviewed: no Maintainer: yago -->
+<!-- EN-Revision: 2f3c1237bc46a7e40dae35e9f3aec2c1b2fa23b8 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <reference xml:id="class.errorexception" role="exception" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
  <title>ErrorException</title>
  <titleabbrev>ErrorException</titleabbrev>
 
  <partintro>
 
-  <!-- {{{ ErrorException intro -->
+<!-- {{{ ErrorException intro -->
   <section xml:id="errorexception.intro">
    &reftitle.intro;
    <para>
-    Una excepción de error.
+    Una excepción para los errores.
    </para>
   </section>
-  <!-- }}} -->
+<!-- }}} -->
 
   <section xml:id="errorexception.synopsis">
    &reftitle.classsynopsis;
 
-   <!-- {{{ Synopsis -->
+<!-- {{{ Synopsis -->
    <classsynopsis class="class">
     <ooexception>
      <exceptionname>ErrorException</exceptionname>
@@ -56,59 +56,65 @@
      <xi:fallback/>
     </xi:include>
    </classsynopsis>
-   <!-- }}} -->
+<!-- }}} -->
 
   </section>
 
-  <!-- {{{ ErrorException properties -->
+<!-- {{{ ErrorException properties -->
   <section xml:id="errorexception.props">
    &reftitle.properties;
    <variablelist>
     <varlistentry xml:id="errorexception.props.severity">
      <term><varname>severity</varname></term>
      <listitem>
-      <para>La gravedad de la excepción</para>
+      <para>La severidad de la excepción</para>
      </listitem>
     </varlistentry>
    </variablelist>
   </section>
-  <!-- }}} -->
-  <!-- {{{ Example -->
+<!-- }}} -->
+<!-- {{{ Example -->
   <section xml:id="errorexception.examples">
    &reftitle.examples;
    <para>
     <example xml:id="errorexception.example.error-handler"><!-- {{{ -->
-     <title>Utilizar <function>set_error_handler</function> para convertir mensajes de error en objetos ErrorException.</title>
+    <title>Uso de <function>set_error_handler</function> para cambiar todos los mensajes de error en ErrorException</title>
      <programlisting role="php">
-<![CDATA[
+ <![CDATA[
 <?php
-function exception_error_handler(int $errno, string $errstr, string $errfile = null, int $errline) {
+
+set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline) {
     if (!(error_reporting() & $errno)) {
-        // This error code is not included in error_reporting
+        // Este código de error no está incluido en error_reporting.
         return;
     }
-    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
-}
-set_error_handler(exception_error_handler(...));
-// Prior to PHP 8.1.0 and the introduction of the first class callable syntax, the following call must be used instead
-// set_error_handler(__NAMESPACE__ . "\\exception_error_handler");
 
-/* Trigger exception */
-strpos();
+    if ($errno === E_DEPRECATED || $errno === E_USER_DEPRECATED) {
+        // No lanzar excepción para advertencias de obsolescencia, ya que nuevas o inesperadas
+        // obsolescencias podrían romper la aplicación.
+        return;
+    }
+
+    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+});
+
+// Deserializar datos corruptos desencadena una advertencia que será convertida en
+// ErrorException por el manejador de errores.
+unserialize('broken data');
+
 ?>
 ]]>
      </programlisting>
      &example.outputs.similar;
      <screen>
 <![CDATA[
-Fatal error: Uncaught exception 'ErrorException' with message 'strpos() expects at least 2 parameters, 0 given' in /home/bjori/tmp/ex.php:12
+Fatal error: Uncaught ErrorException: unserialize(): Error at offset 0 of 11 bytes in test.php:16
 Stack trace:
-#0 [internal function]: exception_error_handler(2, 'strpos() expect...', '/home/bjori/php...', 12, Array)
-#1 /home/bjori/php/cleandocs/test.php(12): strpos()
+#0 [internal function]: {closure}(2, 'unserialize(): ...', 'test.php', 16)
+#1 test.php(16): unserialize('broken data')
 #2 {main}
-  thrown in /home/bjori/tmp/ex.php on line 12
-]]>
-     </screen>
+  thrown in test.php on line 16
+]]> </screen>
     </example><!-- }}} -->
    </para>
   </section>
@@ -139,4 +145,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-
