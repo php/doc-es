@@ -1,226 +1,147 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 75fb719c3c051fdd62a704bc110197edcba8f532 Maintainer: PhilDaiguille Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 53a400680d0cb2ddabd4493fb9846533c422e90d Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <sect1 xml:id="control-structures.foreach" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title><literal>foreach</literal></title>
+ <title>foreach</title>
  <?phpdoc print-version-for="foreach"?>
  <para>
-  El constructor <literal>foreach</literal> proporciona un modo sencillo de
-  iterar sobre arrays. <literal>foreach</literal> funciona sólo sobre arrays
-  y objetos, y emitirá un error al intentar usarlo con una variable
-  de un tipo diferente de datos o una variable no inicializada. Existen dos
-  sintaxis:
+  La estructura de lenguaje <literal>foreach</literal> proporciona una forma sencilla de
+  recorrer <type>array</type> y objetos <interfacename>Traversable</interfacename>.
+  <literal>foreach</literal> generará un error cuando se utilice con
+  una variable que contenga un tipo de datos diferente o con una variable no inicializada.
   <informalexample>
+   <simpara>
+    <literal>foreach</literal> puede eventualmente obtener la <literal>clave</literal> de cada elemento:
+   </simpara>
    <programlisting>
 <![CDATA[
-foreach (expresión_array as $valor)
-    sentencias
-foreach (expresión_array as $clave => $valor)
-    sentencias
+foreach (iterable_expression as $value) {
+    statement_list
+}
+
+foreach (iterable_expression as $key => $value) {
+    statement_list
+}
 ]]>
    </programlisting>
   </informalexample>
  </para>
  <simpara>
-  La primera forma recorre el array dado por
-  <literal>expresión_array</literal>. En cada iteración, el valor
-  del elemento actual se asigna a <literal>$valor</literal> y
-  el puntero interno del array avanza una posición (así en la próxima
-  iteración se estará observando el siguiente elemento).
+  La primera forma revisa el array
+  <literal>iterable_expression</literal>. En cada iteración, el valor del
+  elemento actual se asigna a <literal>$value</literal>.
  </simpara>
  <simpara>
-  La segunda forma además asigna la clave del elemento actual a
-  la variable <literal>$clave</literal> en cada iteración.
+  La segunda forma asignará además la clave del elemento actual
+  a la variable <literal>$key</literal> en cada iteración.
  </simpara>
  <simpara>
-  También es posible
-  <link linkend="language.oop5.iterations">personalizar la iteración de objetos</link>.
+  Es importante señalar que <literal>foreach</literal> no modifica el puntero
+  interno del array, que es utilizado por funciones como
+  <function>current</function> y <function>key</function>.
  </simpara>
- <para>
-  <note>
-   <para>
-    En PHP 5, cuando <literal>foreach</literal> inicia su ejecución, el
-    puntero interno del array se pone automáticamente en el primer elemento
-    del array. Esto significa que no es necesario llamar la función
-    <function>reset</function> antes de un bucle <literal>foreach</literal>.
-   </para>
-   <para>
-    Ya que <literal>foreach</literal> depende el puntero de array interno en PHP
-    5, cambiar éste dentro del bucle puede conducir a un comportamiento inesperado.
-   </para>
-   <para>
-    En PHP 7, <literal>foreach</literal> no utiliza el puntero interno
-    del array.
-   </para>
-  </note>
- </para>
- <para>
-  Para poder modificar directamente los elementos del array dentro de bucle, se ha de anteponer
-  &amp; a <literal>$valor</literal>. En este caso el valor será asignado por
-  <link linkend="language.references">referencia</link>.
-  <informalexample>
-   <programlisting role="php">
+ <simpara>
+  Es posible personalizar
+  <link linkend="language.oop5.iterations">la iteración sobre objetos</link>.
+ </simpara>
+
+ <example>
+  <title>Usos comunes de <literal>foreach</literal></title>
+  <programlisting role="php">
 <![CDATA[
 <?php
-$array = array(1, 2, 3, 4);
-foreach ($array as &$valor) {
-    $valor = $valor * 2;
-}
-// $array ahora es array(2, 4, 6, 8)
-unset($valor); // rompe la referencia con el último elemento
-?>
-]]>
-   </programlisting>
-  </informalexample>
- </para>
- <warning>
-  <para>
-   La referencia del <literal>$valor</literal> y el último elemento del array
-   permanecen aún después del bucle <literal>foreach</literal>. Se recomienda
-   destruirlos con <function>unset</function>.
-   De lo contrario, se experimentará el siguiente funcionamiento:
-  </para>
-  <informalexample>
-   <programlisting role="php">
-<![CDATA[
-<?php
-$array = array(1, 2, 3, 4);
-foreach ($array as &$valor) {
-    $valor = $valor * 2;
-}
-// $array ahora es array(2, 4, 6, 8)
 
-// sin unset($valor), $valor aún es una referencia al último elemento: $array[3]
+/* Ejemplo: valor únicamente */
 
-foreach ($array as $clave => $valor) {
-    // $array[3] se actualizará con cada valor de $array...
-    echo "{$clave} => {$valor} ";
-    print_r($array);
-}
-// ...hasta que finalmente el penúltimo valor se copia al último valor
+$array = [1, 2, 3, 17];
 
-// salida:
-// 0 => 2 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 2 )
-// 1 => 4 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 4 )
-// 2 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
-// 3 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
-?>
-]]>
-   </programlisting>
-  </informalexample>
- </warning>
- <para>
-  Antes de PHP 5.5.0, referenciar <literal>$valor</literal> sólo es posible si el array iterado puede ser
-  referenciado (es decir, si es una variable). El siguiente código solamente funciona a partir de PHP 5.5.0:
-  <informalexample>
-   <programlisting role="php">
-<![CDATA[
-<?php
-foreach (array(1, 2, 3, 4) as &$valor) {
-    $valor = $valor * 2;
-}
-?>
-]]>
-   </programlisting>
-  </informalexample>
- </para>
- <para>
-  <note>
-   <para>
-    <literal>foreach</literal> no soporta la capacidad de
-    suprimir mensajes de error usando '@'.
-   </para>
-  </note>
- </para>
- <para>
-  Algunos ejemplos más para demostrar su uso:
-  <informalexample>
-   <programlisting role="php">
-<![CDATA[
-<?php
-/* Ejemplo 1 de foreach: sólo el valor */
-
-$a = array(1, 2, 3, 17);
-
-foreach ($a as $v) {
-    echo "Valor actual de \$a: $v.\n";
+foreach ($array as $value) {
+    echo "Valor actual de \$array: $value.\n";
 }
 
-/* Ejemplo 2 de foreach: valor (con su notación de acceso manual impreso con fines ilustrativos) */
+/* Ejemplo: clave y valor */
 
-$a = array(1, 2, 3, 17);
-
-$i = 0; /* sólo para efectos ilustrativos */
-
-foreach ($a as $v) {
-    echo "\$a[$i] => $v.\n";
-    $i++;
-}
-
-/* Ejemplo 3 de foreach: clave y valor */
-
-$a = array(
+$array = [
     "uno" => 1,
     "dos" => 2,
     "tres" => 3,
     "diecisiete" => 17
-);
+];
 
-foreach ($a as $k => $v) {
-    echo "\$a[$k] => $v.\n";
+foreach ($array as $key => $value) {
+    echo "\$array[$key] => $value.\n";
 }
 
-/* Ejemplo 4 de foreach: arrays multidimensionales */
-$a = array();
-$a[0][0] = "a";
-$a[0][1] = "b";
-$a[1][0] = "y";
-$a[1][1] = "z";
+/* Ejemplo: arrays clave-valor multidimensionales */
+$grid = [];
+$grid[0][0] = "a";
+$grid[0][1] = "b";
+$grid[1][0] = "y";
+$grid[1][1] = "z";
 
-foreach ($a as $v1) {
-    foreach ($v1 as $v2) {
-        echo "$v2\n";
+foreach ($grid as $y => $row) {
+    foreach ($row as $x => $value) {
+        echo "Valor en la posición x=$x y y=$y: $value\n";
     }
 }
 
-/* Ejemplo 5 de foreach: arrays dinámicos */
+/* Ejemplo: arrays dinámicos */
 
-foreach (array(1, 2, 3, 4, 5) as $v) {
-    echo "$v\n";
+foreach (range(1, 5) as $value) {
+    echo "$value\n";
 }
 ?>
 ]]>
-   </programlisting>
-  </informalexample>
- </para>
+  </programlisting>
+ </example>
+ <note>
+  <para>
+   <literal>foreach</literal> no soporta la posibilidad de
+   suprimir los mensajes de error utilizando el
+   <link linkend="language.operators.errorcontrol"><literal>@</literal></link>.
+  </para>
+ </note>
 
  <sect2 xml:id="control-structures.foreach.list">
-  <title>Utilizando arrays anidados con list()</title>
+  <title>Extracción de arrays internos</title>
   <?phpdoc print-version-for="foreach.list"?>
-
   <para>
-   PHP 5.5 añade la posibilidad de recorrer un array de arrays y utilizar el
-   array interior en las variables del bucle proporcionando <function>list</function>
-   como el valor.
+   Es posible iterar sobre un array de arrays y descomponer el array anidado
+   en variables de bucle utilizando la
+   <link linkend="language.types.array.syntax.destructuring">desestructuración de array</link>
+   mediante <literal>[]</literal> o utilizando el constructor de lenguaje <function>list</function> como valor.
+
+   <note>
+    <simpara>
+     Es importante señalar que
+     <link linkend="language.types.array.syntax.destructuring">la desestructuración de array</link>
+     mediante <literal>[]</literal> solo es posible a partir de PHP 7.1.0
+    </simpara>
+   </note>
   </para>
 
   <para>
-   Por ejemplo:
-
    <informalexample>
+    <simpara>
+     En los dos ejemplos siguientes, <literal>$a</literal> será definido sobre
+     el primer elemento del array anidado y <literal>$b</literal> contendrá
+     el segundo elemento:
+    </simpara>
     <programlisting role="php">
-<![CDATA[
-<?php
+     <![CDATA[
+     <?php
 $array = [
     [1, 2],
     [3, 4],
 ];
 
+foreach ($array as [$a, $b]) {
+    echo "A: $a; B: $b\n";
+}
+
 foreach ($array as list($a, $b)) {
-    // $a contiene el primer elemento del array interior,
-    // y $b contiene el segundo elemento.
     echo "A: $a; B: $b\n";
 }
 ?>
@@ -237,39 +158,47 @@ A: 3; B: 4
   </para>
 
   <para>
-   Puedes proporcionar menos elementos a <function>list</function> de los que
-   hay en el array interior, en cuyo caso los elementos sobrantes del array serán
-   descartados:
+   Cuando hay menos variables que elementos en el array,
+   los elementos restantes serán ignorados.
+   De manera similar, los elementos pueden ser ignorados utilizando una coma:
 
    <informalexample>
     <programlisting role="php">
 <![CDATA[
 <?php
 $array = [
-    [1, 2],
-    [3, 4],
+     [1, 2, 3],
+    [3, 4, 6],
 ];
 
-foreach ($array as list($a)) {
-    // Observa que no hay $b en este caso.
-    echo "$a\n";
+foreach ($array as [$a, $b]) {
+    // Note que no hay $c aquí.
+    echo "$a $b\n";
 }
+
+foreach ($array as [, , $c]) {
+    // Ignorar $a y $b
+    echo "$c\n";
+}
+
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-1
-3
+1 2
+3 4
+5
+6
 ]]>
     </screen>
    </informalexample>
   </para>
 
   <para>
-   Se generará un notice si no hay suficientes elementos en el array para completar
-   el <function>list</function>:
+   Se generará una notificación si no hay suficientes elementos en el array
+   para llenar la función <function>list</function>:
 
    <informalexample>
     <programlisting role="php">
@@ -280,7 +209,7 @@ $array = [
     [3, 4],
 ];
 
-foreach ($array as list($a, $b, $c)) {
+foreach ($array as [$a, $b, $c]) {
     echo "A: $a; B: $b; C: $c\n";
 }
 ?>
@@ -289,7 +218,6 @@ foreach ($array as list($a, $b, $c)) {
     &example.outputs;
     <screen>
 <![CDATA[
-
 Notice: Undefined offset: 2 in example.php on line 7
 A: 1; B: 2; C:
 
@@ -301,41 +229,89 @@ A: 3; B: 4; C:
   </para>
  </sect2>
 
- <sect2 role="changelog">
-  &reftitle.changelog;
+ <sect2 xml:id="control-structures.foreach.reference">
+  <title>foreach y referencias</title>
   <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>7.0.0</entry>
-       <entry>
-        <literal>foreach</literal> ya no utiliza el puntero interno al array.
-       </entry>
-      </row>
-      <row>
-       <entry>5.5.0</entry>
-       <entry>
-        Hacer referencia a <literal>$valor</literal> está admitido para expresiones.
-        Anteriormente, solamente estaban admitidas las variables.
-       </entry>
-      </row>
-      <row>
-       <entry>5.5.0</entry>
-       <entry>
-        El desempaquetamiento de arrays anidados con <function>list</function> está admitido.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
+   Es posible modificar directamente los elementos del array en un bucle precediendo
+   <literal>$value</literal> con <literal>&amp;</literal>.
+   En este caso, el valor será asignado por
+   <link linkend="language.references">referencia</link>.
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$arr = [1, 2, 3, 4];
+foreach ($arr as &$value) {
+    $value = $value * 2;
+}
+// $arr ahora es [2, 4, 6, 8]
+unset($value); // romper la referencia con el último elemento
+?>
+]]>
+    </programlisting>
+   </informalexample>
   </para>
+  <warning>
+   <simpara>
+    La referencia a <literal>$value</literal> del último elemento del array
+    permanece incluso después del bucle <literal>foreach</literal>. Se recomienda
+    destruir estas referencias utilizando <function>unset</function>.
+    De lo contrario, se producirá el siguiente comportamiento:
+   </simpara>
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$arr = [1, 2, 3, 4];
+foreach ($arr as &$value) {
+    $value = $value * 2;
+}
+// $arr ahora es [2, 4, 6, 8]
+
+// sin unset($value), $value sigue siendo una referencia al último elemento: $arr[3]
+
+foreach ($arr as $key => $value) {
+    // $arr[3] será actualizado con cada valor de $arr...
+    echo "{$key} => {$value} ";
+    print_r($arr);
+}
+// ...hasta que finalmente el penúltimo valor sea copiado en el último valor
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+0 => 2 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 2 )
+1 => 4 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 4 )
+2 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+3 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+]]>
+    </screen>
+   </informalexample>
+  </warning>
+  <example>
+  <title>Iterar sobre los valores de un array constante por referencia</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+foreach ([1, 2, 3, 4] as &$value) {
+    $value = $value * 2;
+}
+?>
+]]>
+   </programlisting>
+  </example>
+ </sect2>
+
+ <sect2 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><link linkend="language.types.array">array</link></member>
+   <member><interfacename>Traversable</interfacename></member>
+   <member><link linkend="language.types.iterable">iterable</link></member>
+   <member><function>list</function></member>
+  </simplelist>
  </sect2>
 
 </sect1>
