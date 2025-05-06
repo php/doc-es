@@ -1,56 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 71b5a8fe9132b287da51b55290bce09d51512077 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <sect1 xml:id="language.oop5.autoload" xmlns="http://docbook.org/ns/docbook">
  <title>Autocarga de clases</title>
  <para>
   Muchos desarrolladores que escriben aplicaciones orientadas a objetos
-  crean un fichero fuente de PHP para cada definición de clase. Una de las
-  mayores molestias es tener que hacer una larga lista de inclusiones
-  al comienzo de cada script (uno por cada clase).
+  crean un fichero fuente por definición de clase. Uno de los mayores inconvenientes
+  de este método es tener que escribir una larga lista de inclusiones de
+  ficheros de clases al inicio de cada script: una inclusión por clase.
  </para>
  <para>
-  En PHP 5 esto ya no es necesario. La
-  función <function>spl_autoload_register</function> registra cualquier número de
-  autocargadores, posibilitando que las clases e interfaces sean cargadas automáticamente
-  si no están definidas actualmente. Al registrar autocargadores, a PHP se le da
-  una última oportunidad de cargar las clases o interfaces antes de que falle por un error.
+  La función <function>spl_autoload_register</function> registra un número cualquiera de
+  cargadores automáticos, lo que permite a las clases y a las interfaces ser
+  automáticamente cargadas si no están definidas actualmente.
+  Al registrar autocargadores, PHP da una última oportunidad de incluir una
+  definición de clase o interfaz, antes de que PHP falle con un error.
  </para>
- <tip>
+ <para>
+  Cualquier construcción similar a las clases puede ser autocargada de la
+  misma manera. Esto incluye las clases, interfaces, traits y enumeraciones.
+ </para>
+ <caution>
   <para>
-   Aunque la función <function>__autoload</function> también puede ser empleada para
-   autocargar clases e interfaces, es preferible utilizar la
-   función <function>spl_autoload_register</function>. Esto es debido a que es
-   una alternativa más flexible (posibilitando que se pueda especificar cualquier número
-   de autocargadores en la aplicación, tales como los de las bibliotecas de terceros). Por esta
-   razón, se desaconseja el uso de <function>__autoload</function> y es obsoleto
-   a partir de PHP 7.2.0.
+   Anterior a PHP 8.0.0, era posible utilizar <function>__autoload</function>
+   para autocargar las clases y las interfaces. Sin embargo, es una alternativa
+   menos flexible a <function>spl_autoload_register</function> y
+   <function>__autoload</function> está obsoleto a partir de PHP 7.2.0,
+   y eliminado a partir de PHP 8.0.0.
   </para>
- </tip>
+ </caution>
  <note>
   <para>
-   Antes de 5.3.0, las excepciones lanzadas en la función
-   <function>__autoload</function> no podían ser capturadas en el
-   bloque <link linkend="language.exceptions">catch</link>, resultando en
-   un error fatal. Desde 5.3 en adelante, esto es posible simpre que, si
-   se lanza una excepción personalizada, esté disponible la clase de la excepción personalizada.
-   La función <function>__autoload</function> podría utilizarse recursivamente para
-   cargar la clase de excepción personalizada.
-  </para>
- </note>
- <note>
-  <para>
-   La autocarga no está disponible si se utiliza PHP en el
-   <link linkend="features.commandline">modo interactivo</link> CLI.
-  </para>
- </note>
- <note>
-  <para>
-   Si el nombre de la clase se utiliza, por ejemplo, en <function>call_user_func</function>,
-   este puede contener algunos caracteres peligrosos tales como <literal>../</literal>.
-   Se recomienda no utilizar la entrada del usuario en tales funciones, o al menos
-   verificar dicha entrada en <function>__autoload</function>.
+   <function>spl_autoload_register</function> puede ser llamada varias veces
+   para registrar varios autocargadores. Lanzar una excepción desde una
+   función de autocarga, interrumpirá este proceso y no permitirá que las
+   funciones de autocarga siguientes sean ejecutadas. Por esta razón,
+   lanzar excepciones desde una función de autocarga es fuertemente
+   desaconsejado.
   </para>
  </note>
  <para>
@@ -58,14 +44,15 @@
    <title>Ejemplo de autocarga</title>
    <para>
     Este ejemplo intenta cargar las clases <literal>MiClase1</literal>
-    y <literal>MiClase2</literal> desde los ficheros <filename>MiClase1.php</filename>
-    y <filename>MiClase2.php</filename>, respectivamente.
+    y <literal>MiClase2</literal>, respectivamente desde los ficheros
+    <filename>MiClase1.php</filename> y
+    <filename>MiClase2.php</filename>.
    </para>
-   <programlisting role="php">
+   <programlisting role="php" annotations="interactive">
 <![CDATA[
 <?php
-spl_autoload_register(function ($nombre_clase) {
-    include $nombre_clase . '.php';
+spl_autoload_register(function ($class_name) {
+    include $class_name . '.php';
 });
 
 $obj  = new MiClase1();
@@ -77,94 +64,54 @@ $obj2 = new MiClase2();
   <example>
    <title>Otro ejemplo de autocarga</title>
    <para>
-    Este ejemplo intenta cargar la interfaz <literal>IPrueba</literal>.
+    Este ejemplo intenta cargar la interfaz <literal>ITest</literal>.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-spl_autoload_register(function ($nombre) {
-    var_dump($nombre);
+spl_autoload_register(function ($name) {
+    var_dump($name);
 });
 
-class Foo implements IPrueba {
+class Foo implements ITest {
 }
 
 /*
-string(7) "IPrueba"
+string(5) "ITest"
 
-Fatal error: Interface 'IPrueba' not found in ...
+Fatal error: Interface 'ITest' not found in ...
 */
 ?>
-]]>
-   </programlisting>
-  </example>
-  <example>
-   <title>Autocarga con manejo de excepciones para 5.3.0+</title>
-   <para>
-    Este ejemplo lanza una excepción y demuestra los bloques try/catch.
-   </para>
-   <programlisting role="php">
+    ]]>
+    </programlisting>
+   </example>
+   <example>
+    <title>Uso del autoloader de Composer</title>
+    <simpara>
+     &link.composer; genera un fichero <literal>vendor/autoload.php</literal>
+     configurado para cargar automáticamente los paquetes gestionados por Composer.
+     Al incluir este fichero, estos paquetes pueden ser utilizados sin trabajo
+     adicional.
+    </simpara>
+    <programlisting role="php" annotations="interactive">
 <![CDATA[
 <?php
-spl_autoload_register(function ($nombre) {
-    echo "Intentando cargar $nombre.\n";
-    throw new Exception("Imposible cargar $nombre.");
-});
+require __DIR__ . '/vendor/autoload.php';
 
-try {
-    $obj = new ClaseNoCargable();
-} catch (Exception $e) {
-    echo $e->getMessage(), "\n";
-}
+$uuid = Ramsey\Uuid\Uuid::uuid7();
+
+echo "Nuevo UUID generado -> ", $uuid->toString(), "\n";
 ?>
 ]]>
    </programlisting>
-   &example.outputs;
-   <screen>
-<![CDATA[
-Intentando cargar ClaseNoCargable.
-Imposible cargar ClaseNoCargable.
-]]>
-   </screen>
-  </example>
-  <example>
-   <title>Autocarga con manejo de excepciones para 5.3.0+: Excepción personalizada ausente</title>
-   <para>
-    Este ejemplo lanza una excepción para una excepción personalizada no cargable.
-   </para>
-   <programlisting role="php">
-<![CDATA[
-<?php
-spl_autoload_register(function ($nombre) {
-    echo "Intentando cargar $nombre.\n";
-    throw new ExcepciónAusente("Imposible cargar $nombre.");
-});
-
-try {
-    $obj = new ClaseNoCargable();
-} catch (Exception $e) {
-    echo $e->getMessage(), "\n";
-}
-?>
-]]>
-   </programlisting>
-   &example.outputs;
-   <screen>
-<![CDATA[
-Intentando cargar ClaseNoCargable.
-Intentando cargar ExcepciónAusente.
-
-Fatal error: Class 'ExcepciónAusente' not found in testExcepcionAusente.php on line 4
-]]>
-   </screen>
   </example>
  </para>
- 
-  <simplesect role="seealso">
-   &reftitle.seealso;
-   <para>
-    <simplelist>
+
+ <simplesect role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
      <member><function>unserialize</function></member>
      <member><link linkend="ini.unserialize-callback-func">unserialize_callback_func</link></member>
      <member><link linkend="ini.unserialize-max-depth">unserialize_max_depth</link></member>
@@ -172,9 +119,8 @@ Fatal error: Class 'ExcepciónAusente' not found in testExcepcionAusente.php on 
      <member><function>spl_autoload</function></member>
      <member><function>__autoload</function></member>
     </simplelist>
-   </para>
-  </simplesect>
- 
+  </para>
+ </simplesect>
 </sect1>
 
 <!-- Keep this comment at the end of the file

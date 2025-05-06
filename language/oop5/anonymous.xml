@@ -1,22 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: c373ef087f8ba9c2d4358c81edd42c57d1eb7452 Maintainer: seros Status: ready -->
+<!-- EN-Revision: d6f54016d62904cfd8200604aadd5e3f0d9bad97 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
 <sect1 xml:id="language.oop5.anonymous" xmlns="http://docbook.org/ns/docbook">
  <title>Clases anónimas</title>
- 
+
  <para>
-  En PHP 7 se ha añadido soporte para clases anónimas. Las clases anónimas son
-  útiles cuando es necesario crear objetos sencillos y únicos.
+  Las clases anónimas son útiles cuando se necesita crear objetos únicos simples.
  </para>
- 
+
  <informalexample>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-// Código anterior a PHP 7
+// Utilizando una clase explícita
 class Logger
 {
     public function log($msg)
@@ -27,7 +24,7 @@ class Logger
 
 $util->setLogger(new Logger());
 
-// Código de PHP 7+
+// Utilizando una clase anónima
 $util->setLogger(new class {
     public function log($msg)
     {
@@ -37,12 +34,11 @@ $util->setLogger(new class {
 ]]>
   </programlisting>
  </informalexample>
- 
+
  <para>
-  Pueden pasar argumentos a través de sus constructores, extender otras clases,
-  implementar interfaces, y utilizar rasgos al igual que una clase normal:
+  Se les pueden pasar argumentos a través del constructor, pueden extender otras clases, implementar interfaces o utilizar traits como con una clase normal.
  </para>
- 
+
  <informalexample>
   <programlisting role="php">
 <![CDATA[
@@ -74,22 +70,17 @@ object(class@anonymous)#1 (1) {
 ]]>
   </screen>
  </informalexample>
- 
+
  <para>
-  El anidamiento de una clase anónima dentro de otra clase no le proporciona acceso a
-  ningún método o propiedad privados o protegidos de la clase externa. Para
-  utilizar las propiedades o métodos protegidos de la clase externa, la clase anónima
-  puede extender la clase externa. Para utilizar las propiedades privadas de
-  la clase externa en la clase anónima, estos deben pasarse a su
-  constructor:
+  Anidar una clase anónima dentro de otra clase no da acceso a los métodos o propiedades privadas o protegidas de la clase contenedora. Para utilizar métodos o propiedades protegidas de la clase contenedora, la clase anónima debe extenderla. Para utilizar las propiedades privadas de la clase contenedora en la clase anónima, estas deben ser pasadas a través del constructor.
  </para>
- 
+
  <informalexample>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-class Externa
+class Outer
 {
     private $prop = 1;
     protected $prop2 = 2;
@@ -101,7 +92,7 @@ class Externa
 
     public function func2()
     {
-        return new class($this->prop) extends Externa {
+        return new class($this->prop) extends Outer {
             private $prop3;
 
             public function __construct($prop)
@@ -117,7 +108,7 @@ class Externa
     }
 }
 
-echo (new Externa)->func2()->func3();
+echo (new Outer)->func2()->func3();
 ]]>
   </programlisting>
   &example.outputs;
@@ -127,40 +118,37 @@ echo (new Externa)->func2()->func3();
 ]]>
   </screen>
  </informalexample>
- 
+
  <para>
-  Todos los objetos creados por la misma declaración de clase anónima son instancias de
-  esa misma clase.
+  Todos los objetos creados por la misma declaración de clase anónima son instancias de la misma clase.
  </para>
- 
+
  <informalexample>
   <programlisting role="php">
 <![CDATA[
 <?php
-function clase_anónima()
+function anonymous_class()
 {
     return new class {};
 }
 
-if (get_class(clase_anónima()) === get_class(clase_anónima())) {
-    echo 'misma clase';
+if (get_class(anonymous_class()) === get_class(anonymous_class())) {
+    echo 'same class';
 } else {
-    echo 'clase diferente';
+    echo 'different class';
 }]]>
-  </programlisting>
-  &example.outputs;
-  <screen>
+ </programlisting>
+ &example.outputs;
+ <screen>
 <![CDATA[
-misma clase
+same class
 ]]>
   </screen>
  </informalexample>
- 
+
  <note>
   <para>
-   Observe que el motor le asigna un nombre a las clases anónimas, como
-   se demuestra en el siguiente ejemplo. Este nombre name ha de considerarse un
-   detalle de implementación del cual no se debería depender.
+   Tenga en cuenta que las clases anónimas son asignadas un nombre por el motor, como se ilustra en el siguiente ejemplo. Este nombre debe considerarse como un detalle de implementación, que no debe ser invocado.
   </para>
   <informalexample>
    <programlisting role="php">
@@ -168,17 +156,41 @@ misma clase
 <?php
 echo get_class(new class {});
 ]]>
-   </programlisting>
-   &example.outputs.similar;
-   <screen>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
 <![CDATA[
 class@anonymous/in/oNi1A0x7f8636ad2021
 ]]>
    </screen>
   </informalexample>
  </note>
-</sect1>
+ <sect2 xml:id="language.oop5.anonymous.readonly">
+  <title>Clases anónimas de solo lectura</title>
+  <simpara>
+   A partir de PHP 8.3.0, el modificador <literal>readonly</literal> puede ser aplicado a las clases anónimas.
+  </simpara>
+  <example xml:id="language.oop5.anonymous.readonly.example">
+   <title>Definir una clase anónima de solo lectura</title>
+   <programlisting role="php">
+    <![CDATA[
+<?php
+// Utilización de una clase anónima
+var_dump(new readonly class('[DEBUG]') {
+    public function __construct(private string $prefix)
+    {
+    }
 
+    public function log($msg)
+    {
+        echo $this->prefix . ' ' . $msg;
+    }
+});
+]]>
+   </programlisting>
+  </example>
+ </sect2>
+</sect1>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 126eefa0db9fd7fa66ace49dc86157f7ec676d33 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 4a1dedc24b1e085f298ab1d5dadefe306373691b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<!-- CREDITS: DavidA. -->
+
 <refentry xml:id="function.array-rand" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>array_rand</refname>
-  <refpurpose>Seleccionar una o más claves aleatorias de un array</refpurpose>
+  <refpurpose>Toma una o varias claves, al azar en un array</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>array_rand</methodname>
+   <type class="union"><type>int</type><type>string</type><type>array</type></type><methodname>array_rand</methodname>
    <methodparam><type>array</type><parameter>array</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>num</parameter><initializer>1</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Selecciona uno o más valores aleatorios de un array y devuelve la
-   clave (o claves) de dichos valores aleatorios.
-   Utiliza un generador de números seudoaleatorios que no es apto para
-   fines criptográficos.
+   Selecciona uno o varios valores al azar en un array
+   y devuelve la o las claves de estos valores.
   </para>
+  &caution.cryptographically-insecure;
  </refsect1>
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,6 +32,7 @@
      <listitem>
       <para>
        El array de entrada.
+       No puede estar vacío.
       </para>
      </listitem>
     </varlistentry>
@@ -37,24 +40,33 @@
      <term><parameter>num</parameter></term>
      <listitem>
       <para>
-       Especifica cuántas entradas deberían seleccionarse.
+       Especifica el número de entradas que se desean recuperar.
+       Debe ser mayor a cero e inferior o igual a la longitud de <parameter>array</parameter>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Al seleccionar solamente una entrada, <function>array_rand</function> devolverá
-   la clave para una entrada aleatoria. De lo contrario, devolverá un array con las claves
-   de las entradas aleatorias. Esto se realiza de tal manera que se pueden seleccionar del array
-   tanto claves como valores aleatorios. Intentar seleccionar más elementos
-   de los que hay en el array resultará en un
-   error de nivel <constant>E_WARNING</constant>, devolviendo NULL .
+   Cuando se recupera una sola entrada, la función
+   <function>array_rand</function> devuelve la clave de una entrada elegida
+   al azar. De lo contrario, se devolverá un array de claves de entradas aleatorias. Esto permite hacer una selección al azar de claves,
+   o bien de valores. Si se devuelven varias claves, entonces lo serán en el orden en que estaban en el array original.
   </para>
  </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Lanza una <classname>ValueError</classname> si <parameter>array</parameter> está vacío,
+   o si <parameter>num</parameter> está fuera de rango.
+  </para>
+ </refsect1>
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -67,16 +79,29 @@
       </row>
      </thead>
      <tbody>
-     <row>
-       <entry>7.1.0</entry>
+      <row>
+       <entry>8.0.0</entry>
        <entry>
-        El algoritmo de aleatorización interno <link linkend="migration71.incompatible.rand-srand-aliases">se ha cambiado</link> para usar el generador de números aleatorios <link xlink:href="&url.mersenne;">Mersenne Twister</link> en lugar de la función libc rand.
+        <function>array_rand</function> ahora lanza una <classname>ValueError</classname>
+        si <parameter>num</parameter> está fuera de rango; anteriormente, se generaba un
+        <constant>E_WARNING</constant> y la función devolvía &null;.
        </entry>
       </row>
       <row>
-       <entry>5.2.10</entry>
+       <entry>8.0.0</entry>
        <entry>
-        El array de claves resultante ya no se mezcla.
+        <function>array_rand</function> ahora lanza una <classname>ValueError</classname>
+        si <parameter>array</parameter> está vacío; anteriormente, se generaba un
+        <constant>E_WARNING</constant> y la función devolvía &null;.
+       </entry>
+      </row>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        El algoritmo
+         interno de generación aleatoria <link linkend="migration71.incompatible.rand-srand-aliases">ha sido modificado</link> para usar el
+         generador de números aleatorios <link xlink:href="&url.mersenne;">
+         Mersenne Twister</link> en lugar de la función aleatoria libc
        </entry>
       </row>
      </tbody>
@@ -84,18 +109,19 @@
    </informaltable>
   </para>
  </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>array_rand</function></title>
+    <title>Ejemplo con <function>array_rand</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$entrada = array("Neo", "Morpheus", "Trinity", "Cypher", "Tank");
-$claves_aleatorias = array_rand($entrada, 2);
-echo $entrada[$claves_aleatorias[0]] . "\n";
-echo $entrada[$claves_aleatorias[1]] . "\n";
+$input = array("Neo", "Morpheus", "Trinity", "Cypher", "Tank");
+$rand_keys = array_rand($input, 2);
+echo $input[$rand_keys[0]] . "\n";
+echo $input[$rand_keys[1]] . "\n";
 ?>
 ]]>
     </programlisting>
@@ -106,12 +132,12 @@ echo $entrada[$claves_aleatorias[1]] . "\n";
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>shuffle</function></member>
+    <member><function>Random\Randomizer::pickArrayKeys</function></member>
+    <member><function>Random\Randomizer::shuffleArray</function></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
