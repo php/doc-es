@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: bb6247b68128cab1b166b49a3a73a87f40333267 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fwrite">
+ <refnamediv>
+  <refname>fwrite</refname>
+  <refpurpose>Escribe en un fichero en modo binario</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type class="union"><type>int</type><type>false</type></type><methodname>fwrite</methodname>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam><type>string</type><parameter>data</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>length</parameter><initializer>&null;</initializer></methodparam>
+  </methodsynopsis>
+  <simpara>
+   <function>fwrite</function> escribe el contenido de la cadena
+   <parameter>data</parameter> en el fichero apuntado por
+   <parameter>stream</parameter>.
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>stream</parameter></term>
+     <listitem>
+      &fs.file.pointer;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>data</parameter></term>
+     <listitem>
+      <para>
+       La cadena a escribir.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>length</parameter></term>
+     <listitem>
+      <para>
+       Si se proporciona la longitud <parameter>length</parameter>,
+       la escritura se detendrá después de
+       <parameter>length</parameter> bytes, o al final de la
+       cadena (lo que ocurra primero).
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <simpara>
+   <function>fwrite</function> devuelve el número de bytes escritos&return.falseforfailure;.
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   La función <function>fwrite</function> emite una <constant>E_WARNING</constant> si ocurre un error.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>length</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo con <function>fwrite</function></title>
+    <programlisting role="php">
+     <![CDATA[
+<?php
+$filename = 'test.txt';
+$somecontent = "Añadiendo cadena al fichero\n";
+
+// Asegurémonos de que el fichero es accesible en escritura
+if (is_writable($filename)) {
+
+    // En nuestro ejemplo, abrimos el fichero $filename en modo de añadir
+    // El puntero del fichero se coloca al final del fichero
+    // es ahí donde $somecontent será colocado
+    if (!$fp = fopen($filename, 'a')) {
+         echo "No se puede abrir el fichero ($filename)";
+         exit;
+    }
+
+    // Escribamos algo en nuestro fichero.
+    if (fwrite($fp, $somecontent) === FALSE) {
+        echo "No se puede escribir en el fichero ($filename)";
+        exit;
+    }
+
+    echo "La escritura de ($somecontent) en el fichero ($filename) ha tenido éxito";
+
+    fclose($fp);
+
+} else {
+    echo "El fichero $filename no es accesible en escritura.";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    La escritura en un flujo puede terminar antes de que la cadena completa sea
+    escrita. El valor devuelto por la función
+    <function>fwrite</function> puede ser verificado de la siguiente manera:
+    <programlisting role="php">
+<![CDATA[
+<?php
+function fwrite_stream($fp, $string) {
+    for ($written = 0; $written < strlen($string); $written += $fwrite) {
+        $fwrite = fwrite($fp, substr($string, $written));
+        if ($fwrite === false) {
+            return $fwrite;
+        }
+    }
+    return $written;
+}
+?>
+]]>
+    </programlisting>
+   </para>
+  </note>
+  <note>
+   <para>
+    En los sistemas que hacen la distinción entre ficheros binarios
+    y ficheros de texto (por ejemplo, Windows), el fichero debe ser abierto
+    con la opción 'b' incluida en el parámetro de modo de
+    <function>fopen</function>.
+   </para>
+  </note>
+  <note>
+   <para>
+    Si <parameter>stream</parameter> está abierto en modo añadir (<literal>append</literal>),
+    <function>fwrite</function> será atómico (excepto si el tamaño de
+    <parameter>data</parameter> excede el tamaño del bloque del sistema de ficheros,
+    en algunas plataformas, y siempre que el fichero se encuentre en el sistema de ficheros
+    local). Por lo tanto, no es necesario utilizar la función <function>flock</function>
+    en un recurso antes de llamar a la función <function>fwrite</function>;
+    todos los datos serán escritos sin interrupción.
+   </para>
+  </note>
+  <note>
+   <para>
+    Si se escribe dos veces en el fichero, los datos serán añadidos al final
+    del fichero; esto significa que el siguiente ejemplo no dará el resultado
+    esperado:
+
+        <programlisting role="php">
+<![CDATA[
+<?php
+$fp = fopen('data.txt', 'w');
+fwrite($fp, '1');
+fwrite($fp, '23');
+fclose($fp);
+
+// el contenido de 'data.txt' es ahora 123 y no 23 !
+?>
+]]>
+        </programlisting>
+   </para>
+  </note>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>fread</function></member>
+    <member><function>fopen</function></member>
+    <member><function>fsockopen</function></member>
+    <member><function>popen</function></member>
+    <member><function>file_get_contents</function></member>
+    <member><function>pack</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
