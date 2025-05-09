@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision$ -->
+<!-- EN-Revision: 539a9823a805ac29cab7fa4baf3ae3a28116a2f5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.hash-hkdf" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>hash_hkdf</refname>
+  <refpurpose>Genera una derivación de clave HKDF desde una clave proporcionada</refpurpose>
+ </refnamediv>
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis>
+   <type>string</type><methodname>hash_hkdf</methodname>
+   <methodparam><type>string</type><parameter>algo</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>key</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>length</parameter><initializer>0</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>info</parameter><initializer>""</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>salt</parameter><initializer>""</initializer></methodparam>
+  </methodsynopsis>
+
+ </refsect1>
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <para>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>algo</parameter></term>
+     <listitem>
+      <para>
+       Nombre del algoritmo de hash seleccionado (por ejemplo: <literal>"sha256"</literal>).
+       Para una lista de los algoritmos soportados ver <function>hash_hmac_algos</function>.
+       <note>
+        <para>
+         Las funciones de hash no criptográficas no están permitidas.
+        </para>
+       </note>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>key</parameter></term>
+     <listitem>
+      <para>
+       Datos (Input keying material) en binario que servirán para el clavetage.
+       No puede estar vacío.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>length</parameter></term>
+     <listitem>
+      <para>
+       Longitud deseada de los datos de salida en octetos.
+       No puede ser mayor que 255 veces el tamaño de la función de hash.
+      </para>
+      <para>
+       Si <parameter>length</parameter> vale <literal>0</literal>, la longitud de los
+       datos de salida será por defecto el tamaño de la función de hash elegida.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>info</parameter></term>
+     <listitem>
+      <para>
+       Información en forma de &string; específica de la aplicación/contexto.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>salt</parameter></term>
+     <listitem>
+      <para>
+       Sal a utilizar durante la derivación.
+      </para>
+      <para>
+       Aunque opcional, añadir una sal aleatoria aumenta significativamente la
+       robustez de HKDF.
+      </para>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <para>
+   Devuelve un &string; que contiene una representación binaria en bruto de la clave derivada
+   (también conocida como output keying material - OKM).
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Lanza una excepción <classname>ValueError</classname> si <parameter>key</parameter>
+   está vacío, <parameter>algo</parameter> es desconocido/no criptográfico,
+   <parameter>length</parameter> es menor que <literal>0</literal> o demasiado grande
+   (mayor que 255 veces el tamaño de la función de hash).
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+ &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        Lanza una excepción <classname>ValueError</classname> en caso de error a partir de ahora.
+        Anteriormente, se devolvía &false; y se emitía un mensaje <constant>E_WARNING</constant>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo con <function>hash_hkdf</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Genera una clave aleatoria y una sal para reforzarla durante la derivación.
+$inputKey = random_bytes(32);
+$salt = random_bytes(16);
+
+// Deriva un par de claves separadas, utilizando los mismos datos creados anteriormente.
+$encryptionKey = hash_hkdf('sha256', $inputKey, 32, 'aes-256-encryption', $salt);
+$authenticationKey = hash_hkdf('sha256', $inputKey, 32, 'sha-256-authentication', $salt);
+
+var_dump($encryptionKey !== $authenticationKey); // bool(true)
+?>
+]]>
+    </programlisting>
+    <para>
+     El ejemplo anterior produce un par de claves separadas, que es adecuado para crear
+     una construcción cifrar-entonces-HMAC (encrypt-then-HMAC), utilizando AES-256
+     y SHA-256 para el cifrado y la autenticación respectivamente.
+    </para>
+   </example>
+  </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>hash_pbkdf2</function></member>
+    <member><link xlink:href="&url.rfc;5869">RFC 5869</link></member>
+    <member><link xlink:href="&url.git.hub;narfbg/hash_hkdf_compat">implementación en userland</link></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
