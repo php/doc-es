@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ed1aff13602c94f86344bdd7c4fbc31f5a71bf84 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.odbc-statistics" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>odbc_statistics</refname>
-  <refpurpose>Recuperar las estadísticas de un tabla</refpurpose>
+  <refpurpose>Cálculo de estadísticas sobre una tabla</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>odbc_statistics</methodname>
-   <methodparam><type>resource</type><parameter>connection_id</parameter></methodparam>
-   <methodparam><type>string</type><parameter>qualifier</parameter></methodparam>
-   <methodparam><type>string</type><parameter>owner</parameter></methodparam>
-   <methodparam><type>string</type><parameter>table_name</parameter></methodparam>
+   <type class="union"><type>Odbc\Result</type><type>false</type></type><methodname>odbc_statistics</methodname>
+   <methodparam><type>Odbc\Connection</type><parameter>odbc</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>null</type></type><parameter>catalog</parameter></methodparam>
+   <methodparam><type>string</type><parameter>schema</parameter></methodparam>
+   <methodparam><type>string</type><parameter>table</parameter></methodparam>
    <methodparam><type>int</type><parameter>unique</parameter></methodparam>
    <methodparam><type>int</type><parameter>accuracy</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Obteber las estadísticas de una tabla y sus índices.
+   Cálculo de estadísticas sobre una tabla.
   </para>
  </refsect1>
 
@@ -28,29 +30,29 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>connection_id</parameter></term>
+     <term><parameter>odbc</parameter></term>
      <listitem>
       &odbc.connection.id;
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>qualifier</parameter></term>
+     <term><parameter>catalog</parameter></term>
      <listitem>
       <para>
-       El cualificador.
+       &odbc.parameter.catalog;
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>owner</parameter></term>
+     <term><parameter>schema</parameter></term>
      <listitem>
       <para>
-       El propietario.
+       &odbc.parameter.schema;
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>table_name</parameter></term>
+     <term><parameter>table</parameter></term>
      <listitem>
       <para>
        El nombre de la tabla.
@@ -61,7 +63,8 @@
      <term><parameter>unique</parameter></term>
      <listitem>
       <para>
-       El atributo unique.
+       El tipo del índice.
+       Uno de <constant>SQL_INDEX_UNIQUE</constant> o <constant>SQL_INDEX_ALL</constant>.
       </para>
      </listitem>
     </varlistentry>
@@ -69,7 +72,10 @@
      <term><parameter>accuracy</parameter></term>
      <listitem>
       <para>
-       La presición.
+       Uno de <constant>SQL_ENSURE</constant> o <constant>SQL_QUICK</constant>.
+       Este último solicita al controlador que recupere <literal>CARDINALITY</literal>
+       y <literal>PAGES</literal> solo si están inmediatamente disponibles
+       desde el servidor.
       </para>
      </listitem>
     </varlistentry>
@@ -80,34 +86,101 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un identificador de resultado ODBC &return.falseforfailure;.
+   &odbc.result.object-return-falseforfailure;
   </para>
   <para>
-   El conjunto de resultados tiene las siguientes columnas:
+   El conjunto de resultados contiene las siguientes columnas:
    <itemizedlist>
-    <listitem><simpara>TABLE_QUALIFIER</simpara></listitem>
-    <listitem><simpara>TABLE_OWNER</simpara></listitem>
-    <listitem><simpara>TABLE_NAME</simpara></listitem>
-    <listitem><simpara>NON_UNIQUE</simpara></listitem>
-    <listitem><simpara>INDEX_QUALIFIER</simpara></listitem>
-    <listitem><simpara>INDEX_NAME</simpara></listitem>
-    <listitem><simpara>TYPE</simpara></listitem>
-    <listitem><simpara>SEQ_IN_INDEX</simpara></listitem>
-    <listitem><simpara>COLUMN_NAME</simpara></listitem>
-    <listitem><simpara>COLLATION</simpara></listitem>
-    <listitem><simpara>CARDINALITY</simpara></listitem>
-    <listitem><simpara>PAGES</simpara></listitem>
-    <listitem><simpara>FILTER_CONDITION</simpara></listitem>
+    <listitem><simpara><literal>TABLE_CAT</literal></simpara></listitem>
+    <listitem><simpara><literal>TABLE_SCHEM</literal></simpara></listitem>
+    <listitem><simpara><literal>TABLE_NAME</literal></simpara></listitem>
+    <listitem><simpara><literal>NON_UNIQUE</literal></simpara></listitem>
+    <listitem><simpara><literal>INDEX_QUALIFIER</literal></simpara></listitem>
+    <listitem><simpara><literal>INDEX_NAME</literal></simpara></listitem>
+    <listitem><simpara><literal>TYPE</literal></simpara></listitem>
+    <listitem><simpara><literal>ORDINAL_POSITION</literal></simpara></listitem>
+    <listitem><simpara><literal>COLUMN_NAME</literal></simpara></listitem>
+    <listitem><simpara><literal>ASC_OR_DESC</literal></simpara></listitem>
+    <listitem><simpara><literal>CARDINALITY</literal></simpara></listitem>
+    <listitem><simpara><literal>PAGES</literal></simpara></listitem>
+    <listitem><simpara><literal>FILTER_CONDITION</literal></simpara></listitem>
    </itemizedlist>
+   &odbc.result.driver-specific;
   </para>
   <simpara>
-   El conjunto de resultados está ordenado por NON_UNIQUE, TYPE, INDEX_QUALIFIER,
-   INDEX_NAME y SEQ_IN_INDEX.
+   El conjunto de resultados está ordenado por <literal>NON_UNIQUE</literal>, <literal>TYPE</literal>, <literal>INDEX_QUALIFIER</literal>,
+   <literal>INDEX_NAME</literal> y <literal>ORDINAL_POSITION</literal>.
   </simpara>
  </refsect1>
 
-</refentry>
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &odbc.changelog.connection-param;
+     &odbc.changelog.result-return;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example xml:id="odbc-statistics.example.basic">
+   <title>Lista las estadísticas de una tabla</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$conn = odbc_connect($dsn, $user, $pass);
+$statistics = odbc_statistics($conn, 'TutorialDB', 'dbo', 'TEST', SQL_INDEX_UNIQUE, SQL_QUICK);
+while (($row = odbc_fetch_array($statistics))) {
+    print_r($row);
+    break; // filas adicionales omitidas por brevedad
+}
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+Array
+(
+    [TABLE_CAT] => TutorialDB
+    [TABLE_SCHEM] => dbo
+    [TABLE_NAME] => TEST
+    [NON_UNIQUE] =>
+    [INDEX_QUALIFIER] =>
+    [INDEX_NAME] =>
+    [TYPE] => 0
+    [ORDINAL_POSITION] =>
+    [COLUMN_NAME] =>
+    [ASC_OR_DESC] =>
+    [CARDINALITY] => 15
+    [PAGES] => 3
+    [FILTER_CONDITION] =>
+)
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><function>odbc_tables</function></member>
+   </simplelist>
+  </para>
+ </refsect1>
+
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
