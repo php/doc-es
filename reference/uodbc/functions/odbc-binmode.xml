@@ -1,84 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ed1aff13602c94f86344bdd7c4fbc31f5a71bf84 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.odbc-binmode" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>odbc_binmode</refname>
-  <refpurpose>Manejo de información de columna binaria</refpurpose>
+  <refpurpose>Modifica la gestión de columnas de datos binarios</refpurpose>
  </refnamediv>
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>bool</type><methodname>odbc_binmode</methodname>
-   <methodparam><type>resource</type><parameter>result_id</parameter></methodparam>
+   <type>true</type><methodname>odbc_binmode</methodname>
+   <methodparam><type>Odbc\Result</type><parameter>statement</parameter></methodparam>
    <methodparam><type>int</type><parameter>mode</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Habilita el manejo de información de columna binaria. Los tipos de SQL ODBC son
-   <literal>BINARY</literal>, <literal>VARBINARY</literal>, y
+   <function>odbc_binmode</function> controla la gestión de las
+   columnas de datos binarios. Los tipos ODBC SQL afectados son
+   <literal>BINARY</literal>, <literal>VARBINARY</literal> y
    <literal>LONGVARBINARY</literal>.
+   El modo predeterminado puede definirse utilizando la directiva &php.ini;
+   <link linkend="ini.uodbc.defaultbinmode">uodbc.defaultbinmode</link>
   </para>
   <para>
-   Cuando se convierte informaicón SQL binaria a información C de carácter, cada byte
-   (8 bits) de información fuente está representado como dos caractéres ASCII.
-   Estos caracteres la representación de caracteres ASCII del
-   número en su forma hexadecimal. Por ejemplo, el número binario
-   <literal>00000001</literal> se convierte a
-   <literal>"01"</literal> y <literal>11111111</literal>
-   se convierte a <literal>"FF"</literal>.
+   Cuando un dato SQL se convierte en carácter C,
+   (<constant>ODBC_BINMODE_CONVERT</constant>)
+   los 8 bits del carácter fuente se representan
+   por dos caracteres ASCII. Estos caracteres son representaciones
+   ASCII de los números en formato hexadecimal.
+   Por ejemplo, el binario <literal>00000001</literal> se
+   convierte en <literal>"01"</literal>
+   y el binario <literal>11111111</literal> se convierte
+   en <literal>"FF"</literal>.
+  </para>
+  <para>
+   Mientras que la gestión de las columnas <literal>BINARY</literal> y
+   <literal>VARBINARY</literal> depende únicamente del binmode,
+   la gestión de las columnas <literal>LONGVARBINARY</literal>
+   depende también de longreadlen, como se muestra a continuación:
    <table>
-    <title>Manejo de LONGVARBINARY</title>
+    <title>Conversión de <literal>LONGVARBINARY</literal></title>
     <tgroup cols="3">
      <thead>
       <row>
-       <entry>binmode</entry>
-       <entry>longreadlen</entry>
-       <entry>result</entry>
+       <entry>Modo</entry>
+       <entry>Longitud</entry>
+       <entry>Resultado</entry>
       </row>
      </thead>
      <tbody>
       <row>
        <entry><constant>ODBC_BINMODE_PASSTHRU</constant></entry>
        <entry>0</entry>
-       <entry>passthru</entry>
+       <entry><literal>passthru</literal></entry>
       </row>
       <row>
        <entry><constant>ODBC_BINMODE_RETURN</constant></entry>
        <entry>0</entry>
-       <entry>passthru</entry>
+       <entry><literal>passthru</literal></entry>
       </row>
       <row>
        <entry><constant>ODBC_BINMODE_CONVERT</constant></entry>
        <entry>0</entry>
-       <entry>passthru</entry>
+       <entry><literal>passthru</literal></entry>
       </row>
       <row>
        <entry><constant>ODBC_BINMODE_PASSTHRU</constant></entry>
-       <entry>0</entry>
-       <entry>passthru</entry>
-      </row>
-      <row>
-       <entry><constant>ODBC_BINMODE_PASSTHRU</constant></entry>
-       <entry>>0</entry>
-       <entry>passthru</entry>
+       <entry>&gt;0</entry>
+       <entry><literal>passthru</literal></entry>
       </row>
       <row>
        <entry><constant>ODBC_BINMODE_RETURN</constant></entry>
-       <entry>>0</entry>
-       <entry>devuelve como es</entry>
+       <entry>&gt;0</entry>
+       <entry>Tal cual</entry>
       </row>
       <row>
        <entry><constant>ODBC_BINMODE_CONVERT</constant></entry>
-       <entry>>0</entry>
-       <entry>devuelve como tipo char</entry>
+       <entry>&gt;0</entry>
+       <entry>Carácter</entry>
       </row>
      </tbody>
     </tgroup>
    </table>
   </para>
   <para>
-   Si se usa <function>odbc_fetch_into</function>, passthru significa se devuelve
-   una cadena vacía para esta columnas.
+   Si se utiliza <function>odbc_fetch_into</function>, <literal>passthru</literal>
+   significa que se devolverá una cadena vacía para estas columnas.
+   Si se utiliza la función <function>odbc_result</function>, passthru
+   significa que los datos se envían directamente al cliente (es decir, se imprimen).
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -86,22 +96,10 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>result_id</parameter></term>
+     <term><parameter>statement</parameter></term>
      <listitem>
       <para>
-       El identificador de resultado.
-      </para>
-      <para>
-       Si <parameter>result_id</parameter> es <literal>0</literal>, las
-       configuraciones se aplican por defecto para los nuevos resultados.
-       <note>
-        <simpara>
-         <literal>longreadlen</literal> por defecto es <literal>4096</literal> y
-         <parameter>mode</parameter> por defecto es
-         <literal>ODBC_BINMODE_RETURN</literal>. El manejo de columnas binarias
-         de tipo long también está afectado por <function>odbc_longreadlen</function>.
-        </simpara>
-       </note>
+       &odbc.result.object;.
       </para>
      </listitem>
     </varlistentry>
@@ -109,24 +107,30 @@
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       Los valores posibles para <parameter>mode</parameter> son:
+       Valores posibles para el parámetro <parameter>mode</parameter>:
        <itemizedlist>
         <listitem>
          <simpara>
-          <constant>ODBC_BINMODE_PASSTHRU</constant>: Realiza passthru en daots BINARY
+          <constant>ODBC_BINMODE_PASSTHRU</constant>: devolver los datos en binario
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>ODBC_BINMODE_RETURN</constant>: Devuelve como es
+          <constant>ODBC_BINMODE_RETURN</constant>: devolver sin conversión
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>ODBC_BINMODE_CONVERT</constant>: Covierte a tipo char y devuelve
+          <constant>ODBC_BINMODE_CONVERT</constant>: convertir en carácter
          </simpara>
         </listitem>
        </itemizedlist>
+       <note>
+        <simpara>
+         La gestión de columnas de tipo binary long también se ve afectada
+         por la función <function>odbc_longreadlen</function>.
+        </simpara>
+       </note>
       </para>
      </listitem>
     </varlistentry>
@@ -136,11 +140,26 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success;
+   &return.true.always;
   </para>
  </refsect1>
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &odbc.changelog.result-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

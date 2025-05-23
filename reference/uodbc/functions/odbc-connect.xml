@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: a22b112736a8066d2454e76e13aab1f309526303 Maintainer: agarzon Status: ready -->
-
+<!-- EN-Revision: c39225b6dd23f358824f44f5b8c733517b11830b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.odbc-connect" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>odbc_connect</refname>
-  <refpurpose>Conectar a una fuente de datos</refpurpose>
+  <refpurpose>Conexión a una fuente</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>odbc_connect</methodname>
+   <type class="union"><type>Odbc\Connection</type><type>false</type></type><methodname>odbc_connect</methodname>
    <methodparam><type>string</type><parameter>dsn</parameter></methodparam>
-   <methodparam><type>string</type><parameter>user</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>cursor_type</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>user</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>password</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>cursor_option</parameter><initializer><constant>SQL_CUR_USE_DRIVER</constant></initializer></methodparam>
   </methodsynopsis>
   <simpara>
-   El id de conexión devuelto por estas funciones es necesario por otras
-   funciones ODBC. Se pueden tener abiertas mútiples conexiones de una vez mientras
-   que usen bases de datos o credenciales diferentes.
+   El identificador de conexión devuelto por esta función es
+   necesario para todas las demás funciones ODBC. Puede
+   tener múltiples conexiones al mismo tiempo.
   </simpara>
   <simpara>
-   Con algunos controladores ODBC, el ejecutar un procedimiento de almacenamiento complejo puede
-   fallar con un error similar a: "Cannot open a cursor on a stored
-   procedure that has anything other than a single select statement
-   in it" (No se pudo abrir un cursor en un procedimiento de almacenamiento
-   que tiene una única declaración de selección). Se puede evitar este error usando SQL_CUR_USE_ODBC. También, algunos
-   controladores no soportan el parámetro opcional row_number en
-   <function>odbc_fetch_row</function>. SQL_CUR_USE_ODBC might también
-   ayuda en este case.
+   Con algunos controladores ODBC, la ejecución de procedimientos
+   almacenados complejos puede producir el siguiente error:
+   <literal>"Cannot open a cursor on a stored procedure that has anything
+   other than a single select statement in it"</literal>, lo que significa:
+   "No se puede abrir un cursor en un procedimiento almacenado que tenga
+   algo distinto de una única sentencia SELECT". Utilizar la opción SQL_CUR_USE_ODBC permite
+   evitar este error. Además, algunos controladores no soportan el parámetro
+   opcional de número de línea en <function>odbc_fetch_row</function>.
+   SQL_CUR_USE_ODBC puede también permitir resolver estos problemas.
   </simpara>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -42,8 +42,7 @@
      <term><parameter>dsn</parameter></term>
      <listitem>
       <para>
-       El nombre de la fuente de base de datos para la conexión. Alternativamente
-       se puede usar una cadena de conexión sin DSN.
+       El nombre de la fuente de datos (DSN), para la conexión.
       </para>
      </listitem>
     </varlistentry>
@@ -52,6 +51,9 @@
      <listitem>
       <para>
        El nombre de usuario.
+       Este parámetro se ignora si <parameter>dsn</parameter> contiene <literal>uid</literal>.
+       Para una conexión sin especificar un <parameter>user</parameter>,
+       utilizar &null;.
       </para>
      </listitem>
     </varlistentry>
@@ -60,19 +62,23 @@
      <listitem>
       <para>
        La contraseña.
+       Este parámetro se ignora si <parameter>dsn</parameter> contiene <literal>pwd</literal>.
+       Para una conexión sin especificar un <parameter>password</parameter>,
+       utilizar &null;.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>cursor_type</parameter></term>
+     <term><parameter>cursor_option</parameter></term>
      <listitem>
       <para>
-       Establece el tipo de cursor a usar
-       para esta conexión. Este parámetro normalmente no es necesario, pero
-       puede ser útil para evitar problemas con algunos controladores ODBC.
+       Establece el tipo de cursor de resultado
+       utilizado para esta conexión. Este parámetro no es
+       generalmente necesario, pero puede ser
+       útil para evitar ciertos problemas ODBC.
       </para>
       <simpara>
-       Las siguientes constantes están definidas para el tipo de cursor:
+       Las constantes siguientes están definidas como tipos de cursor:
       </simpara>
       <para>
        <itemizedlist>
@@ -98,39 +104,58 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una conexión ODBC o (&false;) si ocurre un error.
+   Devuelve una conexión ODBC, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &odbc.changelog.connection-return;
+     &odbc.changelog.credential-params;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Conexiones sin DSN</title>
+    <title>Conexión sin DSN</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Microsoft SQL Server usando SQL Native Client 10.0 ODBC Driver - permite la conexión a SQL 7, 2000, 2005 y 2008
-$conexión = odbc_connect("Driver={SQL Server Native Client 10.0};Server=$server;Database=$database;", $user, $password);
+// Microsoft SQL Server utiliza el controlador SQL Native Client 10.0 ODBC Driver:
+// permite las conexiones a SQL 7, 2000, 2005 y 2008
+$connection = odbc_connect("Driver={SQL Server Native Client 10.0};Server=$server;Database=$database;", $user, $password);
 
 // Microsoft Access
-$conexión = odbc_connect("Driver={Microsoft Access Driver (*.mdb)};Dbq=$mdbFilename", $user, $password);
+$connection = odbc_connect("Driver={Microsoft Access Driver (*.mdb)};Dbq=$mdbFilename", $user, $password);
 
 // Microsoft Excel
 $excelFile = realpath('C:/ExcelData.xls');
 $excelDir = dirname($excelFile);
-$conexión = odbc_connect("Driver={Microsoft Excel Driver (*.xls)};DriverId=790;Dbq=$excelFile;DefaultDir=$excelDir" , '', '');
+$connection = odbc_connect("Driver={Microsoft Excel Driver (*.xls)};DriverId=790;Dbq=$excelFile;DefaultDir=$excelDir" , '', '');
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -139,9 +164,8 @@ $conexión = odbc_connect("Driver={Microsoft Excel Driver (*.xls)};DriverId=790;
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
