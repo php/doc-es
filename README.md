@@ -7,6 +7,20 @@ Si desea leer la documentación y no escribirla, vaya al sitio PHP.net: https://
 Además, si hay un error en la documentación, comprueba que tampoco está en la documentación en inglés, si es así, corrígelo antes.
 La traducción al español seguirá la modificación realizada en la documentación en inglés.
 
+[![Build][build-badge]][build-action]
+
+[![Revision script][revcheck-graph]][revcheck-summary]
+
+[build-action]: https://github.com/php/doc-es/actions/workflows/integrate.yaml
+
+[build-badge]: https://github.com/php/doc-es/actions/workflows/integrate.yaml/badge.svg?branch=master
+
+[revcheck-summary]: http://doc.php.net/revcheck.php?p=filesummary&lang=es
+
+[revcheck-graph]: https://doc.php.net/img-status-lang.php?lang=es
+
+[wiki]: https://github.com/php/doc-es/wiki
+
 ## ¿Cómo contribuir?
 
 Lee la `guia.pdf` para ayuda de cómo traducir el manual de PHP.
