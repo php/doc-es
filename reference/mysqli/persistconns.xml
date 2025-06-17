@@ -1,118 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 28e9242331900e9ac4353d9c5d34fa22ab1b50f7 Maintainer: argosback Status: ready --> 
+<!-- EN-Revision: a714378ed87cdbdbde3b10ded183e8df7b243cb4 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <chapter xml:id="mysqli.persistconns" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
 
- <title>La extensión mysqli y conexiones persistentes</title>
+ <title>La extensión mysqli y las conexiones persistentes</title>
 
  <para>
-  EL soporte para conexiones persistentes fue introducido en PHP 5.3 para el
-  extensión <literal>mysqli</literal>. El soporte ya estaba presente en
-  PDO MYSQL y ext/mysql. La idea detrás de las conexiones persistentes es que
-  una conexión entre un proceso cliente y una base de datos puede ser
-  reutilizados por un proceso cliente, en lugar de ser creado y destruido
-  varias veces. Esto reduce la sobrecarga de la creación de conexiones nuevas
-  cada vez que es requerido, como las conexiones no utilizadas se almacenan en
-  caché y están lista para ser reutilizadas.
- </para>
- 
- <para>
-  A diferencia de la extensión mysql, mysqli no proporciona una función separada
-  para la apertura de conexiones persistentes. Para abrir una conexión persistente
-  debe de colocar <literal>p:</literal> al nombre del host cuando se conecta.
- </para>
-
- <para>  
-  El problema con las conexiones persistentes es que se pueden dejar en
-  estados impredecibles por los clientes. Por ejemplo, un bloqueo de tabla puede
-  ser activado antes de que un cliente termina de forma inesperada. Un nuevo
-  proceso cliente reusando esta conexión persistente tendrá la conexión
-  <quote>tal cual</quote>. Toda la limpieza tendría que ser realizada por el
-  nuevo proceso cliente antes de que pudiera hacer buen uso de la conexión
-  persistente, aumentando la carga sobre el programador.
+  La idea detrás de las conexiones persistentes es que las conexiones
+  entre los clientes y la base de datos pueden ser reutilizadas por otro proceso
+  cliente, en lugar de ser destruidas y recreadas numerosas veces. Esto reduce
+  el coste de creación de conexiones cada vez que una de ellas es requerida,
+  ya que las conexiones se almacenan en caché para ser recicladas.
  </para>
 
  <para>
-  La conexión persistente de la extensión <literal>mysqli</literal> no obstante
-  incorpora manejo para limpieza de código. La limpieza llevada a cabo por
-  <literal>mysqli</literal> incluye:
+  A diferencia de la extensión MySQL, MySQLi no proporciona una función
+  separada para abrir conexiones persistentes. Para abrir una conexión
+  persistente, se debe añadir <literal>p:</literal> al nombre del host
+  al conectar.
+ </para>
+
+ <para>
+  El problema de las conexiones persistentes es que pueden ser dejadas
+  en un estado impredecible por los clientes. Por ejemplo, un bloqueo de tabla
+  puede haber sido puesto antes de que el cliente se desconecte inesperadamente.
+  Un nuevo cliente tomará entonces la conexión, pero
+  <quote>tal cual</quote>. Sería necesario entonces que el nuevo cliente realice
+  una limpieza en profundidad de la conexión antes de poder reutilizarla
+  sin interferencias, lo cual es una desventaja para el programador.
+ </para>
+
+ <para>
+  La conexión persistente de la extensión <literal>mysqli</literal>
+  proporciona un método de limpieza automática. La limpieza es realizada
+  por <literal>mysqli</literal> e incluye:
  </para>
 
  <itemizedlist>
 
   <listitem>
    <para>
-    Rollback de transacciones activas
+    La cancelación de las transacciones activas.
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Cierre y borrado de tablas temporales
+    El cierre y destrucción de las tablas temporales.
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Desbloque de tablas
+    El desbloqueo de las tablas.
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Reestablece variables de sesión
+    La restauración de los valores por defecto de las variables de sesión.
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Cerrar consultas preparadas (siempre pasa con PHP)
+    La liberación de las sentencias preparadas (esto siempre ocurre con PHP).
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Cerrar controlador
+    El cierre del manejador.
    </para>
   </listitem>
 
   <listitem>
    <para>
-    Quitar bloqueos adquiridos con <function>GET_LOCK</function>
+    La liberación de los bloqueos puestos por <function>GET_LOCK</function>.
    </para>
   </listitem>
 
  </itemizedlist>
 
  <para>
-  Esto asegura que las conexiones persistentes se encuentran en un estado limpio
-  para el retorno del conjunto de conexiones, antes de que el proceso cliente los use.
+  Esto asegura que la conexión persistente está en una condición correcta
+  antes de ser devuelta al grupo de conexiones, y que un cliente diferente
+  la retome.
  </para>
 
  <para>
- La extensión <literal>mysqli</literal> hace la limpieza automáticamente
- llamando a la función <literal>mysql_change_user()</literal> de C-API.
+  La extensión <literal>mysqli</literal> realiza esta limpieza
+  llamando automáticamente a la función C <literal>mysql_change_user()</literal>.
  </para>
 
  <para>
-  La característica de limpieza automática tiene sus ventajas y desventajas
-  aunque. La ventaja es que el programador no necesita preocuparse por estar
-  añadiendo el código de limpieza, ya que es llamdo automáticamente. Asi mismo,
-  la desventaja es que el código podría volverse <emphasis>potencialmente</emphasis>
-  un poco más lento, pues el código para realizar la limpieza necesita ejecutarse
-  cada vez que una conexión es devuelta por el conjunto de conexiones.
+  La limpieza automática tiene sus ventajas e inconvenientes.
+  La ventaja es que el programador no necesita preocuparse por ello,
+  ya que es llamada automáticamente. Sin embargo, el inconveniente es
+  que este código puede <emphasis>finalmente</emphasis> ser un poco más
+  lento, ya que debe ser llamado cada vez que la conexión es
+  devuelta al grupo de espera.
  </para>
 
  <para>
-  Es posible desactivar el código de limpieza automática, mediante la
-  compilación de PHP si se define
-  <constant>MYSQLI_NO_CHANGE_USER_ON_PCONNECT</constant>.
+  Es posible desactivar la limpieza del código, compilando
+  PHP con la opción <constant>MYSQLI_NO_CHANGE_USER_ON_PCONNECT</constant>.
  </para>
 
  <note>
   <para>
-   La extensión <literal>mysqli</literal> soporta conexiones persistentes
-   utilizando ya sea el driver nativo de MySQL o la libreria cliente de MySQL.
+   La extensión <literal>mysqli</literal> soporta las conexiones
+   persistentes con el MySQL Native Driver y con la biblioteca
+   MySQL.
   </para>
  </note>
 

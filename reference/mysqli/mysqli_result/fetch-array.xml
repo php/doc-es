@@ -1,48 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 0d0936323e47f05268c7fc6f0fbc2353e74a669a Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-
+<!-- EN-Revision: 035c126c0393fe154bac46e2c3c489ebadce48a5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="mysqli-result.fetch-array" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_result::fetch_array</refname>
   <refname>mysqli_fetch_array</refname>
-  <refpurpose>Obtiene una fila de resultados como un array asociativo, numérico, o ambos</refpurpose>
+  <refpurpose>Obtiene la siguiente fila de un conjunto de resultados como un array asociativo, numérico o ambos</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>mixed</type><methodname>mysqli_result::fetch_array</methodname>
-   <methodparam choice="opt"><type>int</type><parameter>resulttype</parameter><initializer>MYSQLI_BOTH</initializer></methodparam>
+  <methodsynopsis role="mysqli_result">
+   <modifier>public</modifier> <type class="union"><type>array</type><type>null</type><type>false</type></type><methodname>mysqli_result::fetch_array</methodname>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>MYSQLI_BOTH</constant></initializer></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>mixed</type><methodname>mysqli_fetch_array</methodname>
+   <type class="union"><type>array</type><type>null</type><type>false</type></type><methodname>mysqli_fetch_array</methodname>
    <methodparam><type>mysqli_result</type><parameter>result</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>resulttype</parameter><initializer>MYSQLI_BOTH</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>MYSQLI_BOTH</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Retorna un array que corresponde a la fila obtenida o &null; si es que
-   no hay más filas en el resultset representado por el
-   parámetro <parameter>result</parameter>.
+   Devuelve una fila de datos del conjunto de resultados y la retorna como un array.
+   Cada llamada posterior a esta función retornará la siguiente fila en el conjunto de resultados,
+   o &null; si no hay más filas.
   </para>
   <para>
-   <function>mysqli_fetch_array</function> es una versión extendida de
-   la función <function>mysqli_fetch_row</function>. Además de guardar la
-   información en los índices numéricos del array resultante, la función 
-   <function>mysqli_fetch_array</function> también puede guardar la información
-   en índices asociativos, utilizando los nombres de los campos del resultado como claves.
+   Además de almacenar los datos como un array con índices numéricos,
+   también puede almacenarlos en un array asociativo,
+   utilizando los nombres de los campos como claves.
+  </para>
+  <para>
+   Si dos o más columnas del resultado tienen el mismo nombre,
+   la última columna tendrá prioridad y sobrescribirá todos los datos anteriores.
+   Para acceder a las otras columnas con el mismo nombre, se debe
+   utilizar el índice numérico o crear un alias para cada columna.
   </para>
   &database.field-case;
   &database.fetch-null;
-  <para>
-   Si dos o más columnas del resultado tienen el mismo nombre de campo, la última
-   columna tomará precedencia y sobrescribirá la información anterior. Para
-   acceder a múltiples columnas con el mismo nombre, hay que usar la versión
-   numéricamente indexada de la fila.
-  </para>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -51,20 +47,22 @@
    <variablelist>
     &mysqli.result.description;
     <varlistentry>
-     <term><parameter>resulttype</parameter></term>
+     <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       Este parámetro opcional es una constante que indica qué tipo de array
-       debiera generarse con la información de la fila actual. Los valores posibles para
-       este parámetro son las constantes <constant>MYSQLI_ASSOC</constant>,
-       <constant>MYSQLI_NUM</constant>, o <constant>MYSQLI_BOTH</constant>.
+       El segundo argumento opcional es una constante que indica qué
+       tipo de array debe ser retornado a partir de la fila de datos
+       actual. Los valores posibles para este parámetro son las constantes
+       <constant>MYSQLI_ASSOC</constant>, <constant>MYSQLI_NUM</constant>,
+       y <constant>MYSQLI_BOTH</constant>.
       </para>
       <para>
-       Al emplear la constante <constant>MYSQLI_ASSOC</constant> esta función
-       se comportará de manera idéntica a <function>mysqli_fetch_assoc</function>,
-       mientras que con <constant>MYSQLI_NUM</constant> se comportará exactamente igual que
-       la función <function>mysqli_fetch_row</function>. La última opción 
-       <constant>MYSQLI_BOTH</constant> creará un único array con los atributos de ambas dos.
+       Al utilizar la constante <constant>MYSQLI_ASSOC</constant>, esta función
+       se comportará como la función <function>mysqli_fetch_assoc</function>,
+       mientras que <constant>MYSQLI_NUM</constant> hará que actúe como la función
+       <function>mysqli_fetch_row</function>. La constante
+       <constant>MYSQLI_BOTH</constant> creará un array que será tanto
+       asociativo como indexado numéricamente.
       </para>
      </listitem>
     </varlistentry>
@@ -75,87 +73,64 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Retorna un array de strings que corresponde a la fila obtenida o &null; si
-   no hay más filas en el resultset.
+   Retorna un array que representa la fila recuperada,
+   &null; si no hay más filas en el conjunto de resultados, &return.falseforfailure;.
   </para>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>&style.oop;</title>
+   <title>Ejemplo de <methodname>mysqli_result::fetch_array</methodname></title>
+   <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión failed: %s\n", $mysqli->connect_error);
-    exit();
-}
-
-$query = "SELECT Name, CountryCode FROM City ORDER by ID LIMIT 3";
+$query = "SELECT Name, CountryCode FROM City ORDER BY ID LIMIT 3";
 $result = $mysqli->query($query);
 
-/* array numérico */
+/* Array numérico */
 $row = $result->fetch_array(MYSQLI_NUM);
-printf ("%s (%s)\n", $row[0], $row[1]);
+printf("%s (%s)\n", $row[0], $row[1]);
 
-/* array asociativo */
+/* Array asociativo */
 $row = $result->fetch_array(MYSQLI_ASSOC);
-printf ("%s (%s)\n", $row["Name"], $row["CountryCode"]);
+printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 
-/* array numérico y asociativo */
+/* Array asociativo y numérico */
 $row = $result->fetch_array(MYSQLI_BOTH);
-printf ("%s (%s)\n", $row[0], $row["CountryCode"]);
-
-/* liberar la serie de resultados */
-$result->free();
-
-/* cerrar la conexión */
-$mysqli->close();
-?>
+printf("%s (%s)\n", $row[0], $row["CountryCode"]);
 ]]>
    </programlisting>
-  </example>
-  <example>
-   <title>&style.procedural;</title>
+   <para>&style.procedural;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Conexión fallida: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = mysqli_connect("localhost", "my_user", "my_password", "world");
 
 $query = "SELECT Name, CountryCode FROM City ORDER by ID LIMIT 3";
-$result = mysqli_query($link, $query);
+$result = mysqli_query($mysqli, $query);
 
-/* array numérico */
+/* Array numérico */
 $row = mysqli_fetch_array($result, MYSQLI_NUM);
-printf ("%s (%s)\n", $row[0], $row[1]);
+printf("%s (%s)\n", $row[0], $row[1]);
 
-/* array asociativo */
+/* Array asociativo */
 $row = mysqli_fetch_array($result, MYSQLI_ASSOC);
-printf ("%s (%s)\n", $row["Name"], $row["CountryCode"]);
+printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 
-/* array numérico y asociativo */
+/* Array asociativo y numérico */
 $row = mysqli_fetch_array($result, MYSQLI_BOTH);
-printf ("%s (%s)\n", $row[0], $row["CountryCode"]);
-
-/* liberar la serie de resultados */
-mysqli_free_result($result);
-
-/* cerrar la conexión */
-mysqli_close($link);
-?>
+printf("%s (%s)\n", $row[0], $row["CountryCode"]);
 ]]>
    </programlisting>
-   &examples.outputs;
+   &examples.outputs.similar;
    <screen>
 <![CDATA[
 Kabul (AFG)
@@ -171,6 +146,7 @@ Herat (AFG)
   <para>
    <simplelist>
     <member><function>mysqli_fetch_assoc</function></member>
+    <member><function>mysqli_fetch_column</function></member>
     <member><function>mysqli_fetch_row</function></member>
     <member><function>mysqli_fetch_object</function></member>
     <member><function>mysqli_query</function></member>
@@ -180,7 +156,6 @@ Herat (AFG)
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

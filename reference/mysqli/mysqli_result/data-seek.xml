@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 4de8a4cb9a88fed43cbc73ca11a20ca735dfc9e0 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 035c126c0393fe154bac46e2c3c489ebadce48a5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="mysqli-result.data-seek" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_result::data_seek</refname>
   <refname>mysqli_data_seek</refname>
-  <refpurpose>Ajustar el puntero de resultado a una fila arbitraria del resultado</refpurpose>
+  <refpurpose>Mueve el puntero interno de resultado</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>bool</type><methodname>mysqli_result::data_seek</methodname>
+  <methodsynopsis role="mysqli_result">
+   <modifier>public</modifier> <type>bool</type><methodname>mysqli_result::data_seek</methodname>
    <methodparam><type>int</type><parameter>offset</parameter></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
@@ -23,11 +22,13 @@
    <methodparam><type>int</type><parameter>offset</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>mysqli_data_seek</function> salta a la posición
-   <parameter>offset</parameter> de un puntero de resultado.
+   La función <function>mysqli_data_seek</function> mueve el
+   puntero interno de resultado asociado al conjunto de resultados representado
+   por <parameter>result</parameter>, haciéndolo apuntar a
+   la fila especificada por <parameter>offset</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -37,114 +38,136 @@
      <term><parameter>offset</parameter></term>
      <listitem>
       <para>
-       Posición del campo. Debe estar comprendido entre cero y el número total de filas
-       menos uno (0..<function>mysqli_num_rows</function> - 1).
+       El desplazamiento de la fila. El parámetro <parameter>offset</parameter> debe estar
+       comprendido entre cero y <function>mysqli_num_rows</function> -
+       1 (0..<function>mysqli_num_rows</function> - 1).
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Sólo se puede usar esta función con resultados almacenados que se obtengan
-    mediante el uso de <function>mysqli_store_result</function> o de
-    <function>mysqli_query</function>.
-   </para>
-  </note>
- </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>&style.oop;</title>
+   <title>Ejemplo con <methodname>mysqli::data_seek</methodname></title>
+   <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir una conexión */
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "mundo");
 
-/* comprobar conexión */
-if (mysqli_connect_errno()) {
-    printf("Conexión fallida: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
 $query = "SELECT Name, CountryCode FROM City ORDER BY Name";
-if ($result = $mysqli->query($query)) {
+$result = $mysqli->query($query);
 
-    /* saltar a la fila numero 400 */
-    $result->data_seek(399);
+/* Busca la fila 401 */
+$result->data_seek(400);
 
-    /* obtener fila */
-    $row = $result->fetch_row();
-
-    printf ("Ciudad: %s  Código de país: %s\n", $row[0], $row[1]);
-
-    /* librar resultados */
-    $result->close();
-}
-
-/* cerrar conexión */
-$mysqli->close();
+/* Obtención de esta fila */
+$row = $result->fetch_row();
+printf("Ciudad: %s  Código País: %s\n", $row[0], $row[1]);
 ?>
 ]]>
    </programlisting>
-  </example>
-  <example>
-   <title>&style.procedural;</title>
+   <para>&style.procedural;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir conexión */
-$link = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "mundo");
 
-/* comprobar conexión */
-if (!$link) {
-    printf("Conexión faillida: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
 $query = "SELECT Name, CountryCode FROM City ORDER BY Name";
+$result = mysqli_query($link, $query);
 
-if ($result = mysqli_query($link, $query)) {
+/* Busca la fila 401 */
+mysqli_data_seek($result, 400);
 
-    /* saltar a la fila número 400 */
-    mysqli_data_seek($result, 399);
-
-    /* obtener fila */
-    $row = mysqli_fetch_row($result);
-
-    printf ("Ciudad: %s  Código de país: %s\n", $row[0], $row[1]);
-
-    /* liberar resultado */
-    mysqli_free_result($result);
-}
-
-/* cerrar conexión */
-mysqli_close($link);
-?>
+/* Obtención de esta fila */
+$row = mysqli_fetch_row($result);
+printf("Ciudad: %s  Código País: %s\n", $row[0], $row[1]);
 ]]>
    </programlisting>
    &examples.outputs;
    <screen>
 <![CDATA[
-Ciudad: Benin City  Código de país: NGA
+Ciudad: Benin City  Código País: NGA
+]]>
+   </screen>
+  </example>
+
+  <example>
+   <title>Ajuste del puntero de resultado durante la iteración</title>
+   <para>
+    Esta función puede ser útil durante la iteración sobre el conjunto de resultados para imponer
+    un orden personalizado o para rebobinar el conjunto de resultados durante iteraciones múltiples.
+   </para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
+
+$query = "SELECT Name, CountryCode FROM City ORDER BY Name LIMIT 15,4";
+$result = $mysqli->query($query);
+
+/* Consultar el conjunto de resultados en orden inverso */
+for ($row_no = $result->num_rows - 1; $row_no >= 0; $row_no--) {
+    $result->data_seek($row_no);
+
+    /* Obtención de esta fila */
+    $row = $result->fetch_row();
+    printf("Ciudad: %s  Código País: %s\n", $row[0], $row[1]);
+}
+
+/* Restablecer el puntero al inicio del conjunto de resultados */
+$result->data_seek(0);
+print "\n";
+
+/* Consultar nuevamente el mismo conjunto de resultados */
+while ($row = $result->fetch_row()) {
+    printf("Ciudad: %s  Código País: %s\n", $row[0], $row[1]);
+}
+]]>
+   </programlisting>
+   &examples.outputs;
+   <screen>
+<![CDATA[
+Ciudad: Acmbaro  Código País: MEX
+Ciudad: Abuja  Código País: NGA
+Ciudad: Abu Dhabi  Código País: ARE
+Ciudad: Abottabad  Código País: PAK
+Ciudad: Abottabad  Código País: PAK
+Ciudad: Abu Dhabi  Código País: ARE
+Ciudad: Abuja  Código País: NGA
+Ciudad: Acmbaro  Código País: MEX
 ]]>
    </screen>
   </example>
  </refsect1>
- 
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Esta función solo puede ser utilizada con resultados obtenidos
+    con la función <function>mysqli_store_result</function>,
+    <function>mysqli_query</function> o <function>mysqli_stmt_get_result</function>.
+   </para>
+  </note>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -159,9 +182,8 @@ Ciudad: Benin City  Código de país: NGA
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

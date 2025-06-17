@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 37287d6b0c8dbbc5afee4fe18a7df2d14242b1f1 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 63b99082ef83eade08151f8cb528246fded81db9 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="mysqli-stmt.store-result" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_stmt::store_result</refname>
   <refname>mysqli_stmt_store_result</refname>
-  <refpurpose>Transfiere un conjunto de resultados desde una sentencia preparada</refpurpose>
+  <refpurpose>Almacena un conjunto de resultados en un búfer interno</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>bool</type><methodname>mysqli_stmt::store_result</methodname>
-   <void />
+  <methodsynopsis role="mysqli_stmt">
+   <modifier>public</modifier> <type>bool</type><methodname>mysqli_stmt::store_result</methodname>
+   <void/>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
    <type>bool</type><methodname>mysqli_stmt_store_result</methodname>
-   <methodparam><type>mysqli_stmt</type><parameter>stmt</parameter></methodparam>
+   <methodparam><type>mysqli_stmt</type><parameter>statement</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Se debe llamar a <function>mysqli_stmt_store_result</function> para cada consulta que
-   produzca con éxito un conjunto de resultados (<literal>SELECT, SHOW, DESCRIBE, EXPLAIN</literal>),
-   y únicamente si se quiere almacenar en buffer el conjunto de resultados completo en el cliente,
-   por lo que las llamadas subsuguientes a <function>mysqli_stmt_fetch</function> devolverán datos almacenados en buffer.
+   Esta función debería ser llamada para consultas que produzcan un conjunto de resultados (por ejemplo, <literal>SELECT, SHOW, DESCRIBE, EXPLAIN</literal>)
+   solo si el conjunto de resultados completo debe ser almacenado en búfer por PHP.
+   Cada llamada sucesiva a <function>mysqli_stmt_fetch</function> devolverá
+   los datos almacenados en búfer.
   </para>
   <note>
    <para>
-    No es necesario llamar a <function>mysqli_stmt_store_result</function> para otras consultas,
-    pero si se hace, no perjudicará al rendimiento en ningún caso.
-    Se puede detectar si la consulta produjo un conjunto de resultados comprobando si
-    <function>mysqli_stmt_result_metadata</function> devolvió NULL.
+    No es necesario llamar a <function>mysqli_stmt_store_result</function>
+    para otros tipos de consultas, pero si se hace, no hay problema y no causará
+    ninguna pérdida notable de rendimiento en ningún caso. Puede detectarse en
+    todos los casos si la consulta va a producir un conjunto de resultados observando si la función
+    <function>mysqli_stmt_result_metadata</function> devuelve &false;.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -45,14 +45,19 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &mysqli.conditionalexception;
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -60,36 +65,18 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir una conexión */
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
 
-/* comprobar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-$consulta = "SELECT Name, CountryCode FROM City ORDER BY Name LIMIT 20";
-if ($sentencia = $mysqli->prepare($consulta)) {
+$query = "SELECT Name, CountryCode FROM City ORDER BY Name LIMIT 20";
+$stmt = $mysqli->prepare($query);
+$stmt->execute();
 
-    /* ejecutar la consulta */
-    $sentencia->execute();
+/* Almacenar el resultado en un búfer interno */
+$stmt->store_result();
 
-    /* almacenar el resultado */
-    $sentencia->store_result();
-
-    printf("Número de filas: %d.\n", $sentencia->num_rows);
-
-    /* liberar el resultado */
-    $sentencia->free_result();
-
-    /* cerrar la sentencia */
-    $sentencia->close();
-}
-
-/* cerrar la conexión */
-$mysqli->close();
-?>
+printf("Número de filas: %d.\n", $stmt->num_rows);
 ]]>
    </programlisting>
   </example>
@@ -98,37 +85,18 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Open a connection */
-/* Abrir una conexión */
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
 
-/* comprobar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-$consulta = "SELECT Name, CountryCode FROM City ORDER BY Name LIMIT 20";
-if ($sentencia = mysqli_prepare($enlace, $consulta)) {
+$query = "SELECT Name, CountryCode FROM City ORDER BY Name LIMIT 20";
+$stmt = mysqli_prepare($link, $query);
+mysqli_stmt_execute($stmt);
 
-    /* ejecutar la consulta */
-    mysqli_stmt_execute($sentencia);
+/* Almacenar el resultado en un búfer interno */
+mysqli_stmt_store_result($stmt);
 
-    /* almacenar el resultado */
-    mysqli_stmt_store_result($sentencia);
-
-    printf("Number of rows: %d.\n", mysqli_stmt_num_rows($sentencia));
-
-    /* liberar el resultado */
-    mysqli_stmt_free_result($sentencia);
-
-    /* cerrar la sentencia */
-    mysqli_stmt_close($sentencia);
-}
-
-/* cerrar la conexión */
-mysqli_close($enlace);
-?>
+printf("Número de filas: %d.\n", mysqli_stmt_num_rows($stmt));
 ]]>
    </programlisting>
    &examples.outputs;
@@ -139,7 +107,7 @@ Número de filas: 20.
    </screen>
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -150,9 +118,8 @@ Número de filas: 20.
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

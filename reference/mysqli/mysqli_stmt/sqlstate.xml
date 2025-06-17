@@ -1,29 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: c9ee929e0fdbbd8e9e9803a6baeea1dd9e4e85fb Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: d68e83b719028bb068785cccc3205c23be530564 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="mysqli-stmt.sqlstate" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mysqli_stmt::$sqlstate</refname>
   <refname>mysqli_stmt_sqlstate</refname>
-  <refpurpose>Devuelve el error SQLSTATE de la operación de sentencia previa</refpurpose>
+  <refpurpose>Devuelve el código SQLSTATE de la última operación MySQL</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <fieldsynopsis><type>string</type><varname linkend="mysqli-stmt.sqlstate">mysqli_stmt->sqlstate</varname></fieldsynopsis>
+  <fieldsynopsis><type>string</type><varname linkend="mysqli-stmt.sqlstate">mysqli_stmt-&gt;sqlstate</varname></fieldsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
    <type>string</type><methodname>mysqli_stmt_sqlstate</methodname>
-   <methodparam><type>mysqli_stmt</type><parameter>stmt</parameter></methodparam>
+   <methodparam><type>mysqli_stmt</type><parameter>statement</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve una cadena que contiene el código de error SQLSTATE
-   de la función más recientemente invocada de sentencia preparada que tuvo éxito o falló.
-   El código de error consiste en cinco caracteres. <literal>'00000'</literal> significa sin error.
-   Los valores están especificados por ANSI SQL y ODBC. Para una lista de valores posibles, véase
+   Devuelve un string que contiene el código de error SQLSTATE de la última
+   sentencia preparada. El código de error consta de 5 caracteres
+   <literal>'00000'</literal>. Los valores de los códigos de error están especificados por
+   las normas ANSI SQL y ODBC. Para la lista completa de valores, consulte el archivo
    <link xlink:href="&url.mysql.docs.error;">&url.mysql.docs.error;</link>.
   </para>
  </refsect1>
@@ -40,19 +39,10 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una cadena que contiene el código de error SQLSTATE del último error.
-   El código de error consiste en cinco caracteres. <literal>'00000'</literal> significa sin error.
+   Devuelve el string que contiene el código de error SQLSTATE. El código
+   de error consta de 5 caracteres. <literal>'00000'</literal>
+   representa la ausencia de error.
   </para>
- </refsect1>
-
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Observe que aún no están referenciados todos los errores de MySQL a SQLSTATE.
-    El valor <literal>HY000</literal> (error general) se utiliza para errores no referenciados.
-   </para>
-  </note>
  </refsect1>
 
  <refsect1 role="examples">
@@ -62,35 +52,34 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir una conexión */
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+/* Abre la conexión */
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
+/* Verifica la conexión */
 if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
+    printf("Fallo en la conexión: %s\n", mysqli_connect_error());
     exit();
 }
 
 $mysqli->query("CREATE TABLE myCountry LIKE Country");
 $mysqli->query("INSERT INTO myCountry SELECT * FROM Country");
 
+$query = "SELECT Name, Code FROM myCountry ORDER BY Name";
+if ($stmt = $mysqli->prepare($query)) {
 
-$consulta = "SELECT Name, Code FROM myCountry ORDER BY Name";
-if ($sentencia = $mysqli->prepare($consulta)) {
-
-    /* eliminar la tabla */
+    /* Borrado de la tabla */
     $mysqli->query("DROP TABLE myCountry");
 
-    /* ejecutar la sentencia */
-    $sentencia->execute();
+    /* Ejecución de la consulta */
+    $stmt->execute();
 
-    printf("Error: %s.\n", $sentencia->sqlstate);
+    printf("Error: %s.\n", $stmt->sqlstate);
 
-    /* cerrar la sentencia */
-    $sentencia->close();
+    /* Cierre de la consulta */
+    $stmt->close();
 }
 
-/* cerrar la conexión */
+/* Cierre de la conexión */
 $mysqli->close();
 ?>
 ]]>
@@ -101,36 +90,35 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir una conexión */
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
+/* Abre la conexión */
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
+/* Verifica la conexión */
 if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
+    printf("Fallo en la conexión: %s\n", mysqli_connect_error());
     exit();
 }
 
-mysqli_query($enlace, "CREATE TABLE myCountry LIKE Country");
-mysqli_query($enlace, "INSERT INTO myCountry SELECT * FROM Country");
+mysqli_query($link, "CREATE TABLE myCountry LIKE Country");
+mysqli_query($link, "INSERT INTO myCountry SELECT * FROM Country");
 
+$query = "SELECT Name, Code FROM myCountry ORDER BY Name";
+if ($stmt = mysqli_prepare($link, $query)) {
 
-$consulta = "SELECT Name, Code FROM myCountry ORDER BY Name";
-if ($sentencia = mysqli_prepare($enlace, $consulta)) {
+    /* Borrado de la tabla */
+    mysqli_query($link, "DROP TABLE myCountry");
 
-    /* eliminar la tabla */
-    mysqli_query($enlace, "DROP TABLE myCountry");
+    /* Ejecución de la consulta */
+    mysqli_stmt_execute($stmt);
 
-    /* ejecutar la sentencia */
-    mysqli_stmt_execute($sentencia);
+    printf("Error: %s.\n", mysqli_stmt_sqlstate($stmt));
 
-    printf("Error: %s.\n", mysqli_stmt_sqlstate($sentencia));
-
-    /* cerrar la sentencia */
-    mysqli_stmt_close($sentencia);
+    /* Cierre de la consulta */
+    mysqli_stmt_close($stmt);
 }
 
-/* cerrar la conexión */
-mysqli_close($enlace);
+/* Cierre de la conexión */
+mysqli_close($link);
 ?>
 ]]>
    </programlisting>
@@ -141,6 +129,17 @@ Error: 42S02.
 ]]>
    </screen>
   </example>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Tenga en cuenta que no todos los errores MySQL tienen una correspondencia
+    en SQLSTATE. El valor <literal>HY000</literal> (error general) se
+    utiliza para los errores sin correspondencia.
+   </para>
+  </note>
  </refsect1>
 
  <refsect1 role="seealso">
@@ -154,7 +153,6 @@ Error: 42S02.
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

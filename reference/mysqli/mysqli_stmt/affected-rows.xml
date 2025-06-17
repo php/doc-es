@@ -1,33 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: c9ee929e0fdbbd8e9e9803a6baeea1dd9e4e85fb Maintainer: chuso Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-
+<!-- EN-Revision: 2d5c6bed30ea22d847bf03dad1072f075694b4c3 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="mysqli-stmt.affected-rows" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_stmt::$affected_rows</refname>
   <refname>mysqli_stmt_affected_rows</refname>
-  <refpurpose>Devuelve el número total de filas cambiadas, borradas, o insertadas
-  por la última sentencia ejecutada</refpurpose>
+  <refpurpose>Devuelve el número total de filas modificadas, eliminadas, insertadas o coincidentes por la última consulta</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <fieldsynopsis><type>int</type><varname linkend="mysqli-stmt.affected-rows">mysqli_stmt->affected_rows</varname></fieldsynopsis>
+  <fieldsynopsis><type class="union"><type>int</type><type>string</type></type><varname linkend="mysqli-stmt.affected-rows">mysqli_stmt-&gt;affected_rows</varname></fieldsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>int</type><methodname>mysqli_stmt_affected_rows</methodname>
-   <methodparam><type>mysqli_stmt</type><parameter>stmt</parameter></methodparam>
+   <type class="union"><type>int</type><type>string</type></type><methodname>mysqli_stmt_affected_rows</methodname>
+   <methodparam><type>mysqli_stmt</type><parameter>statement</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve el número de filas afectadas por una consulta <literal>INSERT</literal>,
-   <literal>UPDATE</literal>, o <literal>DELETE</literal>.
+   Devuelve el número de filas afectadas por una consulta
+   <literal>INSERT</literal>, <literal>UPDATE</literal>
+   o <literal>DELETE</literal>.
   </para>
   <para>
-   Esta función sólo funciona con las consultas que actualizan una tabla. Con el fin de
-   obtener el número de filas de una consulta SELECT, usar
-   <function>mysqli_stmt_num_rows</function> en su lugar.
+   Funciona como <function>mysqli_stmt_num_rows</function> para
+   las consultas <literal>SELECT</literal>.
   </para>
  </refsect1>
 
@@ -44,104 +41,83 @@
   &reftitle.returnvalues;
   <para>
    Un entero mayor que cero indica el número de filas afectadas o recuperadas.
-   Cero indica que no hubo registros actualizados para un sentencia UPDATE/DELETE,
-   ninguna fila coincidio con la cláusula WHERE en la consulta o que ninguna
-   consulta ha sido ejecutado. -1 Indica que la consulta ha devuelto un error.
-   NULL indica un argumento no válido fue enviada a la función.
+   Cero indica que ningún registro fue modificado por una consulta de tipo
+   <literal>UPDATE</literal>, ninguna fila coincide con la cláusula
+   <literal>WHERE</literal> en la consulta o que ninguna consulta
+   fue ejecutada. <literal>-1</literal> indica que la consulta devolvió
+   un error o que, para una consulta <literal>SELECT</literal>,
+   <function>mysqli_stmt_affected_rows</function> fue llamado antes de llamar
+   <function>mysqli_stmt_store_result</function>.
   </para>
   <note>
    <para>
-    Si el número de filas afectadas es mayor que el valor entero maximo de PHP,
-    el número de filas afectadas se obtiene como una cadena.
+    Si el número de filas afectadas es mayor que el valor máximo
+    (<constant>PHP_INT_MAX</constant>) que puede tomar un entero, el número
+    de filas afectadas será devuelto como una cadena de caracteres.
    </para>
   </note>
  </refsect1>
 
  <refsect1 role="examples">
- &reftitle.examples;
+  &reftitle.examples;
   <example>
-   <title>&style.oop;</title>
+   <title>Ejemplo de <methodname>mysqli_stmt_affected_rows</methodname></title>
+   <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_clave", "world");
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-/* verificar conexión */
-if (mysqli_connect_errno()) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
-
-/* crear tabla temporal */
+/* Creación de una tabla temporal */
 $mysqli->query("CREATE TEMPORARY TABLE myCountry LIKE Country");
 
 $query = "INSERT INTO myCountry SELECT * FROM Country WHERE Code LIKE ?";
 
-/* preparar sentencia */
-if ($stmt = $mysqli->prepare($query)) {
+/* Preparación de la consulta */
+$stmt = $mysqli->prepare($query);
 
-    /* Agrega variable para marcador de posición */
-    $code = 'A%';
-    $stmt->bind_param("s", $code);
+/* Vincula una variable a un parámetro ficticio */
+$code = 'A%';
+$stmt->bind_param("s", $code);
 
-    /* ejecutar sentencia */
-    $stmt->execute();
+/* Ejecución de la consulta */
+$stmt->execute();
 
-    printf("filas insertadas: %d\n", $stmt->affected_rows);
-
-    /* cerrar sentencia */
-    $stmt->close();
-}
-
-/* cerrar conexión */
-$mysqli->close();
+printf("Filas insertadas: %d\n", $stmt->affected_rows);
 ?>
 ]]>
-  </programlisting>
-  </example>
-  <example>  
-  <title>&style.procedural;</title>
-  <programlisting role="php">
+   </programlisting>
+   <para>&style.procedural;</para>
+   <programlisting role="php">
 <![CDATA[
 <?php
-$link = mysqli_connect("localhost", "mi_usuario", "my_clave", "world");
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-/* verificar conexión */
-if (mysqli_connect_errno()) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
-
-/* crear tabla temporal*/
+/* Creación de una tabla temporal */
 mysqli_query($link, "CREATE TEMPORARY TABLE myCountry LIKE Country");
 
 $query = "INSERT INTO myCountry SELECT * FROM Country WHERE Code LIKE ?";
 
-/* preparar sentencia */
-if ($stmt = mysqli_prepare($link, $query)) {
+/* Preparación de la consulta */
+$stmt = mysqli_prepare($link, $query);
 
-    /* Agrega variable para marcador de posición */
-    $code = 'A%';
-    mysqli_stmt_bind_param($stmt, "s", $code);
+/* Vincula una variable a un parámetro ficticio */
+$code = 'A%';
+mysqli_stmt_bind_param($stmt, "s", $code);
 
-    /* ejecutar sentencia */
-    mysqli_stmt_execute($stmt);
+/* Ejecución de la consulta */
+mysqli_stmt_execute($stmt);
 
-    printf("filas insertadas: %d\n", mysqli_stmt_affected_rows($stmt));
-
-    /* cerrar sentencia */
-    mysqli_stmt_close($stmt);
-}
-
-/* cerrar conexión */
-mysqli_close($link);
+printf("Filas insertadas: %d\n", mysqli_stmt_affected_rows($stmt));
 ?>
 ]]>
-  </programlisting>
-  &example.outputs;
-  <screen>
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
-filas insertadas: 17
+Filas insertadas: 17
 ]]>
    </screen>
   </example>
@@ -152,13 +128,12 @@ filas insertadas: 17
   <para>
    <simplelist>
     <member><function>mysqli_stmt_num_rows</function></member>
-    <member><function>mysqli_prepare</function></member>
+    <member><function>mysqli_stmt_store_result</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
