@@ -1,30 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 4fd68bd86c4b6d2766765bf9ab902082eff9aa62 Maintainer: seros Status: ready -->
+<!-- EN-Revision: f977ae030850934859df8eb01f24fbb0c56ededa Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="mysqli.set-charset" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mysqli::set_charset</refname>
   <refname>mysqli_set_charset</refname>
-  <refpurpose>Establece el conjunto de caracteres predeterminado del cliente</refpurpose>
+  <refpurpose>Define el juego de caracteres del cliente</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>bool</type><methodname>mysqli::set_charset</methodname>
+  <methodsynopsis role="mysqli">
+   <modifier>public</modifier> <type>bool</type><methodname>mysqli::set_charset</methodname>
    <methodparam><type>string</type><parameter>charset</parameter></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
    <type>bool</type><methodname>mysqli_set_charset</methodname>
-   <methodparam><type>mysqli</type><parameter>link</parameter></methodparam>
+   <methodparam><type>mysqli</type><parameter>mysql</parameter></methodparam>
    <methodparam><type>string</type><parameter>charset</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Establece el conjunto de caracteres predeterminado a usar cuando se envían datos desde y hacia
-   el servidor de la base de datos.
+   Define el juego de caracteres a utilizar al enviar datos desde y hacia el servidor de base de datos.
   </para>
  </refsect1>
 
@@ -37,7 +35,7 @@
      <term><parameter>charset</parameter></term>
      <listitem>
       <para>
-       El conjunto de caracteres a establecer como predeterminado.
+       El juego de caracteres a definir.
       </para>
      </listitem>
     </varlistentry>
@@ -52,51 +50,28 @@
   </para>
  </refsect1>
 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Para usar esta función en una plataforma Windows se necesita la biblioteca cliente de MySQL
-    version 4.1.11 o superior (para MySQL 5.0 se necesita 5.0.6 o superior).
-   </para>
-  </note>
-  <note>
-   <para>
-    Esta es la mejor forma de cambiar el conjunto de caracteres. No se recomienda usar
-    <function>mysqli_query</function> para establecerlo (como <literal>SET NAMES utf8</literal>).
-    Véase la sección  <link linkend="mysqlinfo.concepts.charset">Conceptos del conjunto de caracteres de MySQL</link>
-    para más información.
-   </para>
-  </note>
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &mysqli.conditionalexception;
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <methodname>mysqli::set_charset</methodname></title>
+   <title>Ejemplo con <methodname>mysqli::set_charset</methodname></title>
    <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "test");
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "test");
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+printf("Juego de caracteres inicial: %s\n", $mysqli->character_set_name());
 
-printf("Conjunto de caracteres inicial: %s\n", $mysqli->character_set_name());
+/* Cambio del juego de resultados a utf8mb4 */
+$mysqli->set_charset("utf8mb4");
 
-/* cambiar el conjunto de caracteres a utf8 */
-if (!$mysqli->set_charset("utf8")) {
-    printf("Error cargando el conjunto de caracteres utf8: %s\n", $mysqli->error);
-    exit();
-} else {
-    printf("Conjunto de caracteres actual: %s\n", $mysqli->character_set_name());
-}
-
-$mysqli->close();
+printf("Juego de caracteres actual: %s\n", $mysqli->character_set_name());
 ?>
 ]]>
    </programlisting>
@@ -104,36 +79,40 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-$enlace = mysqli_connect('localhost', 'mi_usuario', 'mi_contraseña', 'test');
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect('localhost', 'my_user', 'my_password', 'test');
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+printf("Juego de caracteres inicial: %s\n", mysqli_character_set_name($link));
 
-printf("Conjunto de caracteres inicial: %s\n", mysqli_character_set_name($enlace));
+/* Cambio del juego de resultados a utf8mb4 */
+mysqli_set_charset($link, "utf8mb4");
 
-/* cambiar el conjunto de caracteres a utf8 */
-if (!mysqli_set_charset($enlace, "utf8")) {
-    printf("Error cargando el conjunto de caracteres utf8: %s\n", mysqli_error($enlace));
-    exit();
-} else {
-    printf("Conjunto de caracteres actual: %s\n", mysqli_character_set_name($enlace));
-}
-
-mysqli_close($enlace);
+printf("Juego de caracteres actual: %s\n", mysqli_character_set_name($link));
 ?>
 ]]>
    </programlisting>
    &examples.outputs.similar;
    <screen>
 <![CDATA[
-Conjunto de caracteres inicial: latin1
-Conjunto de caracteres actual: utf8
+Juego de caracteres inicial: latin1
+Juego de caracteres actual: utf8mb4
 ]]>
    </screen>
   </example>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Esta es la mejor forma de modificar el juego de caracteres.
+    No se recomienda utilizar la función
+    <function>mysqli_query</function> para definirlo
+    (como con la consulta <literal>SET NAMES utf8</literal>).
+    Ver la sección <link linkend="mysqlinfo.concepts.charset">Conceptos de
+    juegos de caracteres de MySQL</link> para más información.
+   </para>
+  </note>
  </refsect1>
 
  <refsect1 role="seealso">
@@ -142,14 +121,14 @@ Conjunto de caracteres actual: utf8
    <simplelist>
     <member><function>mysqli_character_set_name</function></member>
     <member><function>mysqli_real_escape_string</function></member>
-    <member><link linkend="mysqlinfo.concepts.charset">Conceptos sobre conjuntos de caracteres de MySQL</link></member>
-    <member><link xlink:href="&url.mysql.charsets;">Listado de los conjuntos de caracteres admitidos por MySQL</link></member>
+    <member><link linkend="mysqlinfo.concepts.charset">Conceptos de juegos de caracteres de MySQL</link></member>
+    <member><link xlink:href="&url.mysql.charsets;">Lista de juegos de caracteres
+      soportados por MySQL</link></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,40 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: d316f465df3ecaf4fe09440a05c261553c27d12d Maintainer: juanmi Status: ready -->
+<!-- EN-Revision: ee14f82484f6289278255f798f1e8b93cdc2cab5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 <refentry xml:id="mysqli.change-user" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli::change_user</refname>
   <refname>mysqli_change_user</refname>
-  <refpurpose>Cambia el usuario de la conexión de bases de datos especificada</refpurpose>
+  <refpurpose>Cambia el usuario de la conexión</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>bool</type><methodname>mysqli::change_user</methodname>
-   <methodparam><type>string</type><parameter>user</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
-   <methodparam><type>string</type><parameter>database</parameter></methodparam>
+  <methodsynopsis role="mysqli">
+   <modifier>public</modifier> <type>bool</type><methodname>mysqli::change_user</methodname>
+   <methodparam><type>string</type><parameter>username</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>null</type></type><parameter>database</parameter></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
    <type>bool</type><methodname>mysqli_change_user</methodname>
-   <methodparam><type>mysqli</type><parameter>link</parameter></methodparam>
-   <methodparam><type>string</type><parameter>user</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
-   <methodparam><type>string</type><parameter>database</parameter></methodparam>
+   <methodparam><type>mysqli</type><parameter>mysql</parameter></methodparam>
+   <methodparam><type>string</type><parameter>username</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>null</type></type><parameter>database</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Cambia el usuario de la conexión de base de datos especificada y establece 
-   la base de datos actual.
+   Intenta conectarse a la base de datos especificada utilizando las credenciales proporcionadas.
   </para>
   <para>
-   Para realizar con éxito el cambio de usuarios, un <parameter>username</parameter> y
-   <parameter>password</parameter> válidos deben ser indicados y ese usuario debe tener 
-   suficientes permisos para acceder a la base de datos deseada. Si por cualquier razón la autorización
-   falla, se mantendrá la autenticación de usuario existente.
+   A diferencia de <methodname>mysqli::connect</methodname>, este método
+   no desconectará la conexión actual si la nueva conexión no puede establecerse.
+  </para>
+  <para>
+   Para que esta función tenga éxito, los parámetros
+   <parameter>username</parameter> y <parameter>password</parameter> deben
+   ser válidos y el usuario en cuestión debe tener los permisos
+   de acceso a la base de datos deseada.
+   Si por alguna razón la autorización falla, el usuario
+   actual se conservará.
   </para>
  </refsect1>
 
@@ -44,10 +48,10 @@
    <variablelist>
     &mysqli.link.description;
     <varlistentry>
-     <term><parameter>user</parameter></term>
+     <term><parameter>username</parameter></term>
      <listitem>
       <para>
-       Nombre de usuario de MySQL.
+       El nombre de usuario MySQL.
       </para>
      </listitem>
     </varlistentry>
@@ -55,7 +59,7 @@
      <term><parameter>password</parameter></term>
      <listitem>
       <para>
-       Contraseña de MySQL.
+       La contraseña MySQL.
       </para>
      </listitem>
     </varlistentry>
@@ -63,12 +67,8 @@
      <term><parameter>database</parameter></term>
      <listitem>
       <para>
-       La base de datos a la que quiero cambiar.
-      </para>
-      <para>
-       Si se desea, se puede parar el valor &null; de modo que solo cambiará 
-       el usuario y no se seleccionará una base de datos. Para seleccionar una
-       base de datos en este caso, utilice la función <function>mysqli_select_db</function>.
+       El nombre de la base de datos. Si es &null; o una cadena vacía,
+       la conexión al servidor se abrirá sin una base de datos por defecto.
       </para>
      </listitem>
     </varlistentry>
@@ -83,59 +83,37 @@
   </para>
  </refsect1>
 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    El uso de este comando siempre causará que la conexión a la base de datos actual
-    se comporte como una conexión completamente nueva, independientemente de si 
-    la operación se ha completado con éxito. Este reinicio incluye la realización 
-    de un "rollback" a cualquier transacción activa, cerrando todas las tablas temporales,
-    y desbloqueando todas las tablas bloqueadas.
-   </para>
-  </note>
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &mysqli.conditionalexception;
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo del método <methodname>mysqli::change_user</methodname></title>
+   <title>Reinicio de la sesión de conexión</title>
    <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-/* connect database test */
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "test");
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "test");
 
-/* check connection */
-if (mysqli_connect_errno()) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
-
-/* Set Variable a */
 $mysqli->query("SET @a:=1");
 
-/* reiniciando todo, y realizando una nueva conexión a base de datos */
 $mysqli->change_user("my_user", "my_password", "world");
 
-if ($result = $mysqli->query("SELECT DATABASE()")) {
-    $row = $result->fetch_row();
-    printf("Base de datos predeterminada: %s\n", $row[0]);
-    $result->close();
+$result = $mysqli->query("SELECT DATABASE()");
+$row = $result->fetch_row();
+printf("Base de datos por defecto: %s\n", $row[0]);
+
+$result = $mysqli->query("SELECT @a");
+$row = $result->fetch_row();
+if ($row[0] === NULL) {
+    printf("El valor de la variable a es NULL\n");
 }
 
-if ($result = $mysqli->query("SELECT @a")) {
-    $row = $result->fetch_row();
-    if ($row[0] === NULL) {
-        printf("Value of variable a is NULL\n");
-    }
-    $result->close();
-}
-
-/* close connection */
-$mysqli->close();
 ?>
 ]]>
    </programlisting>
@@ -143,48 +121,69 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-/* connect database test */
-$link = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "test");
 
-/* check connection */
-if (!$link) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
-
-/* Set Variable a */
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "test");
 mysqli_query($link, "SET @a:=1");
 
-/* reinciando todo y realizando una nueva conexión a base de datos. */
-mysqli_change_user($link, "my_user", "my_password", "world");
+$result = mysqli_query($link, "SELECT DATABASE()");
+$row = mysqli_fetch_row($result);
+printf("Base de datos por defecto: %s\n", $row[0]);
 
-if ($result = mysqli_query($link, "SELECT DATABASE()")) {
-    $row = mysqli_fetch_row($result);
-    printf("Default database: %s\n", $row[0]);
-    mysqli_free_result($result);
+$result = mysqli_query($link, "SELECT @a");
+$row = mysqli_fetch_row($result);
+if ($row[0] === NULL) {
+    printf("El valor de la variable a es NULL\n");
 }
 
-if ($result = mysqli_query($link, "SELECT @a")) {
-    $row = mysqli_fetch_row($result);
-    if ($row[0] === NULL) {
-        printf("Value of variable a is NULL\n");
-    }
-    mysqli_free_result($result);
-}
-
-/* Cerrar conexión */
-mysqli_close($link);
 ?>
 ]]>
    </programlisting>
    &examples.outputs;
    <screen>
 <![CDATA[
-Default database: world
-Value of variable a is NULL
+Base de datos por defecto: world
+El valor de la variable a es NULL
 ]]>
    </screen>
   </example>
+  <example>
+   <title>Si <parameter>database</parameter> es &null; la conexión se abre sin seleccionar una base de datos por defecto</title>
+   <para>&style.oop;</para>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "test");
+
+$mysqli->change_user("my_user", "my_password", null);
+
+$result = $mysqli->query("SELECT DATABASE()");
+$row = $result->fetch_row();
+printf("Base de datos por defecto: %s\n", $row[0]);
+]]>
+   </programlisting>
+   &examples.outputs;
+   <screen>
+<![CDATA[
+Base de datos por defecto:
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    El uso de este comando implica siempre que la conexión sea
+    considerada como nueva, independientemente de si la función tiene éxito o no.
+    Una llamada a esta función anulará por lo tanto todas las transacciones activas,
+    cerrará las tablas temporales y desbloqueará las tablas
+    bloqueadas.
+   </para>
+  </note>
  </refsect1>
 
  <refsect1 role="seealso">
@@ -198,7 +197,6 @@ Value of variable a is NULL
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,36 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: d316f465df3ecaf4fe09440a05c261553c27d12d Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: c5ccd084c8f830801a939bf1829ddddcaf019730 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="mysqli-result.field-seek" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_result::field_seek</refname>
   <refname>mysqli_field_seek</refname>
-  <refpurpose>Establecer el puntero del resultado al índice del campo especificado</refpurpose>
+  <refpurpose>Desplaza el puntero de resultado al campo especificado</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>bool</type><methodname>mysqli_result::field_seek</methodname>
-   <methodparam><type>int</type><parameter>fieldnr</parameter></methodparam>
+  <methodsynopsis role="mysqli_result">
+   <modifier>public</modifier> <type>true</type><methodname>mysqli_result::field_seek</methodname>
+   <methodparam><type>int</type><parameter>index</parameter></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>bool</type><methodname>mysqli_field_seek</methodname>
+   <type>true</type><methodname>mysqli_field_seek</methodname>
    <methodparam><type>mysqli_result</type><parameter>result</parameter></methodparam>
-   <methodparam><type>int</type><parameter>fieldnr</parameter></methodparam>
+   <methodparam><type>int</type><parameter>index</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Establece el cursor del campo al índice dado. La siguiente llamada a
-   <function>mysqli_fetch_field</function> recuperará la definicion del campo
-   de la columna asociada con ese índice.
+   Coloca el cursor en el campo especificado por el número
+   <parameter>index</parameter>. La próxima llamada a la función
+   <function>mysqli_fetch_field</function> devolverá la definición del
+   campo de la columna asociada a esta posición.
   </para>
   <note>
    <para>
-    Para buscar al principio de una fila, pase un valor de índice de cero.
+    Para moverse al inicio de una fila, pase una posición con valor cero.
    </para>
   </note>
  </refsect1>
@@ -41,10 +40,10 @@
    <variablelist>
     &mysqli.result.description;
     <varlistentry>
-     <term><parameter>fieldnr</parameter></term>
+     <term><parameter>index</parameter></term>
      <listitem>
       <para>
-       El número de campo. Este valor debe estar en el rango de
+       El número del campo. Este valor debe estar en el intervalo
        <literal>0</literal> a <literal>número de campos - 1</literal>.
       </para>
      </listitem>
@@ -56,7 +55,31 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success;
+   &return.true.always;
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        Esta función devuelve ahora siempre &true;. Anteriormente, devolvía &false; en caso de fallo.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
 
@@ -67,32 +90,32 @@
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
+/* Verificación de la conexión */
 if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
+    printf("Fallo en la conexión: %s\n", mysqli_connect_error());
     exit();
 }
 
-$consulta = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
+$query = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
 
-if ($resultado = $mysqli->query($consulta)) {
+if ($result = $mysqli->query($query)) {
 
-    /* Obtener la información de campo de la 2ª columna */
-    $resultado->field_seek(1);
-    $info_campo = $resultado->fetch_field();
+    /* Obtención de información del campo para la 2ª columna */
+    $result->field_seek(1);
+    $finfo = $result->fetch_field();
 
-    printf("Nombre:        %s\n", $info_campo->name);
-    printf("Tabla:         %s\n", $info_campo->table);
-    printf("Longitud máx.: %d\n", $info_campo->max_length);
-    printf("Banderas:      %d\n", $info_campo->flags);
-    printf("Tipo:          %d\n\n", $info_campo->type);
+    printf("Name:     %s\n", $finfo->name);
+    printf("Table:    %s\n", $finfo->table);
+    printf("max. Len: %d\n", $finfo->max_length);
+    printf("Flags:    %d\n", $finfo->flags);
+    printf("Type:     %d\n\n", $finfo->type);
 
-    $resultado->close();
+    $result->close();
 }
 
-/* cerrar la conexión */
+/* Cierra la conexión */
 $mysqli->close();
 ?>
 ]]>
@@ -103,44 +126,44 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
+/* Verificación de la conexión */
 if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
+    printf("Fallo en la conexión: %s\n", mysqli_connect_error());
     exit();
 }
 
-$consulta = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
+$query = "SELECT Name, SurfaceArea from Country ORDER BY Code LIMIT 5";
 
-if ($resultado = mysqli_query($enlace, $consulta)) {
+if ($result = mysqli_query($link, $query)) {
 
-    /* Obtener la información de campo de la 2ª columna */
-    mysqli_field_seek($resultado, 1);
-    $info_campo = mysqli_fetch_field($resultado);
+    /* Obtención de información del campo para la 2ª columna */
+    mysqli_field_seek($result, 1);
+    $finfo = mysqli_fetch_field($result);
 
-    printf("Nombre:        %s\n", $info_campo->name);
-    printf("Tabla:         %s\n", $info_campo->table);
-    printf("Longitud máx.: %d\n", $info_campo->max_length);
-    printf("Banderas:      %d\n", $info_campo->flags);
-    printf("Tipo:          %d\n\n", $info_campo->type);
+    printf("Name:     %s\n", $finfo->name);
+    printf("Table:    %s\n", $finfo->table);
+    printf("max. Len: %d\n", $finfo->max_length);
+    printf("Flags:    %d\n", $finfo->flags);
+    printf("Type:     %d\n\n", $finfo->type);
 
-    mysqli_free_result($resultado);
+    mysqli_free_result($result);
 }
 
-/* cerrar la conexión */
-mysqli_close($enlace);
+/* Cierra la conexión */
+mysqli_close($link);
 ?>
 ]]>
    </programlisting>
    &examples.outputs;
    <screen>
 <![CDATA[
-Nombre:        SurfaceArea
-Tabla:         Country
-Longitud máx.: 10
-Banderas:      32769
-Tipo:          4
+Name:     SurfaceArea
+Table:    Country
+max. Len: 10
+Flags:    32769
+Type:     4
 
 ]]>
    </screen>
@@ -157,7 +180,6 @@ Tipo:          4
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

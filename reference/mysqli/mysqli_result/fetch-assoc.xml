@@ -1,34 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: fd05093addd4e3202fcb5f90a1973cd5df47f295 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 035c126c0393fe154bac46e2c3c489ebadce48a5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="mysqli-result.fetch-assoc" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_result::fetch_assoc</refname>
   <refname>mysqli_fetch_assoc</refname>
-  <refpurpose>Obtener una fila de resultado como un array asociativo</refpurpose>
+  <refpurpose>Recupera la siguiente fila de un conjunto de resultados como un array asociativo</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>array</type><methodname>mysqli_result::fetch_assoc</methodname>
-   <void />
+  <methodsynopsis role="mysqli_result">
+   <modifier>public</modifier> <type class="union"><type>array</type><type>null</type><type>false</type></type><methodname>mysqli_result::fetch_assoc</methodname>
+   <void/>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>array</type><methodname>mysqli_fetch_assoc</methodname>
+   <type class="union"><type>array</type><type>null</type><type>false</type></type><methodname>mysqli_fetch_assoc</methodname>
    <methodparam><type>mysqli_result</type><parameter>result</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Retorna un array asociativo correspondiente a la fila obtenida o &null;
-   si no hubiera más filas.
+   Devuelve una fila de datos del conjunto de resultados y la retorna como un array asociativo.
+   Cada llamada posterior a esta función retornará la siguiente fila en el conjunto de resultados,
+   o &null; si no hay más filas.
+  </para>
+  <para>
+   Si dos o más columnas del resultado tienen el mismo nombre,
+   la última columna tendrá prioridad y sobrescribirá todos los datos anteriores.
+   Para acceder a múltiples columnas con el mismo nombre, puede utilizarse <function>mysqli_fetch_row</function>
+   para recuperar el array indexado numéricamente
+   o pueden utilizarse alias en la lista de selección de la consulta SQL para dar
+   nombres diferentes a las columnas.
   </para>
   &database.field-case;
   &database.fetch-null;
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -37,88 +45,57 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array asociativo de strings que representa a la fila obtenida del conjunto de
-   resultados, donde cada clave del array representa el nombre de una de las columnas
-   de éste; o &null; si no hubieran más filas en dicho conjunto de resultados.
-  </para>
-  <para>
-   Si dos o más columnas del resultado tienen el mismo nombre de campo, la última
-   columna tomará precedencia. Para acceder a la/s otra/s columna/s con el mismo
-   nombre, es necesario acceder al resultado ya sea usando los índices numéricos mediante
-   <function>mysqli_fetch_row</function>, ya sea añadiéndole alias a los campos.
+   Devuelve un array asociativo que representa la fila recuperada,
+   donde cada clave del array representa el nombre de una de las columnas del conjunto de resultados,
+   &null; si no hay más filas en el conjunto de resultados, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>&style.oop;</title>
+   <title>Ejemplo <methodname>mysqli_result::fetch_assoc</methodname></title>
+   <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
 
-/* verificar la conexión */
-if ($mysqli->connect_errno) {
-    printf("Conexión fallida: %s\n", $mysqli->connect_error);
-    exit();
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
+
+$query = "SELECT Name, CountryCode FROM City ORDER BY ID DESC";
+
+$result = $mysqli->query($query);
+
+/* fetch associative array */
+while ($row = $result->fetch_assoc()) {
+    printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 }
-
-$consulta = "SELECT Name, CountryCode FROM City ORDER by ID DESC LIMIT 50,5";
-
-if ($resultado = $mysqli->query($consulta)) {
-
-    /* obtener un array asociativo */
-    while ($fila = $resultado->fetch_assoc()) {
-        printf ("%s (%s)\n", $fila["Name"], $fila["CountryCode"]);
-    }
-
-    /* liberar el conjunto de resultados */
-    $resultado->free();
-}
-
-/* cerrar la conexión */
-$mysqli->close();
-?>
 ]]>
    </programlisting>
-  </example>
-  <example>
-   <title>&style.procedural;</title>
+   <para>&style.procedural;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Conexión fallida: %s\n", mysqli_connect_error());
-    exit();
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = mysqli_connect("localhost", "my_user", "my_password", "world");
+
+$query = "SELECT Name, CountryCode FROM City ORDER BY ID DESC";
+
+$result = mysqli_query($mysqli, $query);
+
+/* fetch associative array */
+while ($row = mysqli_fetch_assoc($result)) {
+    printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 }
-
-$consulta = "SELECT Name, CountryCode FROM City ORDER by ID DESC LIMIT 50,5";
-
-if ($resultado = mysqli_query($enlace, $consulta)) {
-
-    /* obtener array asociativo */
-    while ($row = mysqli_fetch_assoc($resultado)) {
-        printf ("%s (%s)\n", $row["Name"], $row["CountryCode"]);
-    }
-
-    /* liberar el conjunto de resultados */
-    mysqli_free_result($resultado);
-}
-
-/* cerrar la conexión */
-mysqli_close($link);
-?>
 ]]>
    </programlisting>
-   &examples.outputs;
+   &examples.outputs.similar;
    <screen>
 <![CDATA[
 Pueblo (USA)
@@ -130,52 +107,63 @@ Santa Clara (USA)
    </screen>
   </example>
   <example xml:id="mysqli-result.example.iterator">
-   <title>Un ejemplo de <classname>mysqli_result</classname> comparando el uso de <classname>iterator</classname></title>
+   <title>Comparación del uso de <classname>mysqli_result</classname> <classname>iterator</classname> y <methodname>mysqli_result::fetch_assoc</methodname></title>
+   <para>
+    <classname>mysqli_result</classname> puede ser iterado utilizando un &foreach;.
+    El conjunto de resultados siempre será iterado desde la primera fila,
+    independientemente de la posición actual.
+   </para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$c = mysqli_connect('127.0.0.1','user', 'pass');
 
-// Usando iteradores (el soporte fue añadido con PHP 5.4)
-foreach ( $c->query('SELECT user,host FROM mysql.user') as $fila ) {
-    printf("'%s'@'%s'\n", $fila['user'], $fila['host']);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
+
+$query = 'SELECT Name, CountryCode FROM City ORDER BY ID DESC';
+
+// Utiliza un iterador
+$result = $mysqli->query($query);
+foreach ($result as $row) {
+    printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 }
 
 echo "\n==================\n";
 
-// Sin usar iteradores
-$result = $c->query('SELECT user,host FROM mysql.user');
-while ($fila = $result->fetch_assoc()) {
-    printf("'%s'@'%s'\n", $fila['user'], $fila['host']);
+// No utiliza iterador
+$result = $mysqli->query($query);
+while ($row = $result->fetch_assoc()) {
+    printf("%s (%s)\n", $row["Name"], $row["CountryCode"]);
 }
-
-?>
 ]]>
    </programlisting>
    &example.outputs.similar;
    <screen>
 <![CDATA[
-'root'@'192.168.1.1'
-'root'@'127.0.0.1'
-'dude'@'localhost'
-'lebowski'@'localhost'
+Pueblo (USA)
+Arvada (USA)
+Cape Coral (USA)
+Green Bay (USA)
+Santa Clara (USA)
 
 ==================
+Pueblo (USA)
+Arvada (USA)
+Cape Coral (USA)
+Green Bay (USA)
+Santa Clara (USA)
 
-'root'@'192.168.1.1'
-'root'@'127.0.0.1'
-'dude'@'localhost'
-'lebowski'@'localhost'
 ]]>
    </screen>
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>mysqli_fetch_array</function></member>
+    <member><function>mysqli_fetch_column</function></member>
     <member><function>mysqli_fetch_row</function></member>
     <member><function>mysqli_fetch_object</function></member>
     <member><function>mysqli_query</function></member>
@@ -183,9 +171,8 @@ while ($fila = $result->fetch_assoc()) {
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

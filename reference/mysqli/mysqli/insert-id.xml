@@ -1,39 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: cc13d6f1e32fa264f6fd10678e32951560242f20 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: c85c9d1d4429496b45f03cd5e77e896821b4f7f3 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="mysqli.insert-id" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli::$insert_id</refname>
   <refname>mysqli_insert_id</refname>
-  <refpurpose>Devuelve el id autogenerado que se utilizó en la última consulta</refpurpose>
+  <refpurpose>Devuelve el valor generado para una columna AUTO_INCREMENT por la última consulta</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <fieldsynopsis><type>mixed</type><varname linkend="mysqli.insert-id">mysqli->insert_id</varname></fieldsynopsis>
+  <fieldsynopsis><type class="union"><type>int</type><type>string</type></type><varname linkend="mysqli.insert-id">mysqli-&gt;insert_id</varname></fieldsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>mixed</type><methodname>mysqli_insert_id</methodname>
-   <methodparam><type>mysqli</type><parameter>link</parameter></methodparam>
+   <type class="union"><type>int</type><type>string</type></type><methodname>mysqli_insert_id</methodname>
+   <methodparam><type>mysqli</type><parameter>mysql</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>mysqli_insert_id</function> devuelve el ID generado
-   por una query (normalmente INSERT) en una tabla con una columna que tenga
-   el atributo AUTO_INCREMENT. Si no se enviaron declaraciones INSERT o UPDATE a través de esta 
-conexión, o si la tabla modificada no tiene una columna
-   con el atributo AUTO_INCREMENT, esta función devolverá cero.
+   Devuelve el ID generado por una consulta <literal>INSERT</literal> o
+   <literal>UPDATE</literal> en una tabla con una columna que tiene el atributo
+   <literal>AUTO_INCREMENT</literal>. En el caso de consultas multilínea
+   <literal>INSERT</literal>, esto devuelve el primer valor generado automáticamente
+   que fue insertado con éxito.
   </para>
-  <note>
-   <para>
-    Realizar una sentencia INSERT o UPDATE usando la función LAST_INSERT_ID()
-    modificará el valor retornado por la función
-    <function>mysqli_insert_id</function>.
-   </para>
-  </note>
+  <para>
+   Ejecutar una consulta <literal>INSERT</literal> o <literal>UPDATE</literal>
+   utilizando la función MySQL <literal>LAST_INSERT_ID()</literal> modificará
+   también el valor devuelto por <function>mysqli_insert_id</function>.
+   Si <literal>LAST_INSERT_ID(expr)</literal> se ha utilizado para generar el
+   valor de <literal>AUTO_INCREMENT</literal>, esto devuelve el valor de la
+   última <literal>expr</literal> en lugar del valor generado de
+   <literal>AUTO_INCREMENT</literal>.
+  </para>
+  <para>
+   Devuelve <literal>0</literal> si la consulta anterior no ha cambiado el
+   valor de <literal>AUTO_INCREMENT</literal>.
+   <function>mysqli_insert_id</function> debe ser llamado inmediatamente después
+   de que la consulta haya generado el valor.
+ </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -42,51 +49,47 @@ conexión, o si la tabla modificada no tiene una columna
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   El valor de el campo <literal>AUTO_INCREMENT</literal> que fué actualizado 
-   por la consulta anterior. Devuelve cero si no hubo una consulta previa en la 
-   conexión o si la consulta no actualiza un valor
-   <literal>AUTO_INCREMENT</literal>.
+   El valor del campo <literal>AUTO_INCREMENT</literal> modificado por la última consulta.
+   Devuelve cero si no ha habido consulta en la conexión o si la última consulta no ha
+   modificado el valor del <literal>AUTO_INCREMENT</literal>.
+  </para>
+  <para>
+   Solo las consultas emitidas por la conexión actual afectan el valor de retorno.
+   El valor no se ve afectado por las consultas que utilizan otras conexiones
+   o clientes.
   </para>
   <note>
    <para>
-    Si el número es mayor que el valor máximo int, <function>mysqli_insert_id</function> 
-    devolverá un string.
+    Si el número es mayor que el valor máximo de un integer,
+    será devuelto como un &string;
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <varname>$mysqli->insert_id</varname></title>
+   <title>Ejemplo con <varname>$mysqli-&gt;insert_id</varname></title>
    <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_password", "world");
-
-/* comprobar la conexión. */
-if (mysqli_connect_errno()) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
 $mysqli->query("CREATE TABLE myCity LIKE City");
 
 $query = "INSERT INTO myCity VALUES (NULL, 'Stuttgart', 'DEU', 'Stuttgart', 617000)";
 $mysqli->query($query);
 
-printf ("Nuevo registro con el id %d.\n", $mysqli->insert_id);
+printf("El nuevo registro tiene ID %d.\n", $mysqli->insert_id);
 
-/* drop table */
+/* eliminar tabla */
 $mysqli->query("DROP TABLE myCity");
-
-/* close connection */
-$mysqli->close();
 ?>
 ]]>
    </programlisting>
@@ -94,40 +97,31 @@ $mysqli->close();
    <programlisting role="php">
 <![CDATA[
 <?php
-$link = mysqli_connect("localhost", "mi_usuario", "mi_password", "world");
-
-/* comprobar la conexión. */
-if (mysqli_connect_errno()) {
-    printf("Error de conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
 mysqli_query($link, "CREATE TABLE myCity LIKE City");
 
 $query = "INSERT INTO myCity VALUES (NULL, 'Stuttgart', 'DEU', 'Stuttgart', 617000)";
 mysqli_query($link, $query);
 
-printf ("Nuevo registro con el id %d.\n", mysqli_insert_id($link));
+printf("El nuevo registro tiene ID %d.\n", mysqli_insert_id($link));
 
-/* drop table */
+/* eliminar tabla */
 mysqli_query($link, "DROP TABLE myCity");
-
-/* close connection */
-mysqli_close($link);
 ?>
 ]]>
    </programlisting>
    &examples.outputs;
    <screen>
 <![CDATA[
-Nuevo registro con el id 1.
+El nuevo registro tiene ID 1.
 ]]>
    </screen>
   </example>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

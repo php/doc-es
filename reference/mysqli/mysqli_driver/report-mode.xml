@@ -1,32 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 64fe9c6c775dbf44fdc1742076d87c7f08dc540c Maintainer: seros Status: ready -->
+<!-- EN-Revision: c8ba91f7e546462dc66c2a11a7eab6f55c93915b Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="mysqli-driver.report-mode" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_driver::$report_mode</refname>
   <refname>mysqli_report</refname>
-  <refpurpose>Habilita o desabilita las funciones internas de notificación</refpurpose>
+  <refpurpose>Define el modo de informe de errores de mysqli</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
   <fieldsynopsis>
-   <type>int</type><varname linkend="mysqli-driver.report-mode">mysqli_driver->report_mode</varname>
+   <type>int</type><varname linkend="mysqli-driver.report-mode">mysqli_driver-&gt;report_mode</varname>
   </fieldsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>bool</type><methodname>mysqli_report</methodname>
+   <type>true</type><methodname>mysqli_report</methodname>
    <methodparam><type>int</type><parameter>flags</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Una función útil para mejorar consultas durante el desarrollo de código y pruebas.
-   Dependiendo de las banderas, notifica errores desde llamadas a funciones de mysqli o
-   consultas que no usan un índice (o usan uno erróneo).
+   Según los flags, esto define el modo de informe de errores de mysqli
+   a excepción, advertencia o ninguno.
+   Cuando se define como <constant>MYSQLI_REPORT_ALL</constant> o <constant>MYSQLI_REPORT_INDEX</constant>
+   esto también informará sobre consultas que no utilizan un índice
+   (o un índice incorrecto).
+  </para>
+  <para>
+   A partir de PHP 8.1.0, el valor por omisión es <literal>MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT</literal>.
+   Anteriormente, era <constant>MYSQLI_REPORT_OFF</constant>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,8 +41,8 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       <table>
-        <title>Banderas admitidas</title>
+       <table xml:id="mysqli-driver.report-mode.parameters">
+        <title>Flags admitidos</title>
         <tgroup cols="2">
          <thead>
           <row>
@@ -47,26 +53,27 @@
          <tbody>
           <row>
            <entry><constant>MYSQLI_REPORT_OFF</constant></entry>
-           <entry>Desactiva la notificación</entry>
+           <entry>Desactiva los informes (valor por omisión)</entry>
           </row>
           <row>
            <entry><constant>MYSQLI_REPORT_ERROR</constant></entry>
-           <entry>Notifica errores desde llamadas a funciones de mysqli</entry>
+           <entry>Informa sobre errores desde llamadas a funciones mysqli</entry>
           </row>
           <row>
            <entry><constant>MYSQLI_REPORT_STRICT</constant></entry>
            <entry>
-            Lanza una <classname>mysqli_sql_exception</classname> para errors
-            en lugar de para advertencias
+            Lanza una excepción <classname>mysqli_sql_exception</classname>
+            para errores, en lugar de emitir alertas
            </entry>
           </row>
           <row>
            <entry><constant>MYSQLI_REPORT_INDEX</constant></entry>
-           <entry>Notifica si no se usó un índice o si era erróneo en una consulta </entry>
+           <entry>Informa si no se utiliza ningún índice o un índice incorrecto
+            en una consulta</entry>
           </row>
           <row>
            <entry><constant>MYSQLI_REPORT_ALL</constant></entry>
-           <entry>Establece todas las opciones (notifica todo)</entry>
+           <entry>Define todas las opciones (informa sobre todo)</entry>
           </row>
          </tbody>
         </tgroup>
@@ -77,44 +84,37 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success;
+   &return.true.always;
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.4</entry>
-       <entry>
-        El cambio de modo de notificación ahora es por solicitud, en vez de por proceso.
-       </entry>
-      </row>
-      <row>
-       <entry>5.2.15</entry>
-       <entry>
-        El cambio de modo de notificación ahora es por solicitud, en vez de por proceso.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.1.0</entry>
+      <entry>
+       El valor por omisión es ahora <literal>MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT</literal>.
+       Anteriormente, era <constant>MYSQLI_REPORT_OFF</constant>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
@@ -123,35 +123,22 @@
 <![CDATA[
 <?php
 
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
-
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
-
-/* activar la notificación */
-$controlador = new mysqli_driver();
-$controlador->report_mode = MYSQLI_REPORT_ALL;
+/* Activación del informe de errores */
+$driver = new mysqli_driver();
+$driver->report_mode = MYSQLI_REPORT_ALL;
 
 try {
+    /* si la conexión falla, se lanzará una mysqli_sql_exception */
+    $mysqli = new mysqli("localhost", "my_user", "my_password", "my_db");
 
-    /* esta consulta debería notificar un error */
-    $resultado = $mysqli->query("SELECT Name FROM Nonexistingtable WHERE population > 50000");
+    /* esta consulta debería informar sobre un error */
+    $result = $mysqli->query("SELECT Name FROM Nonexistingtable WHERE population > 50000");
 
-    /* esta consulta debería notificar un índice erróneo */
-    $resultado = $mysqli->query("SELECT Name FROM City WHERE population > 50000");
-
-    $resultado->close();
-
-    $mysqli->close();
-
+    /* esta consulta debería informar sobre un índice incorrecto, si la columna population no tiene un índice */
+    $result = $mysqli->query("SELECT Name FROM City WHERE population > 50000");
 } catch (mysqli_sql_exception $e) {
-
-    echo $e->__toString();
+    error_log($e->__toString());
 }
-?>
 ]]>
    </programlisting>
   </example>
@@ -160,47 +147,64 @@ try {
    <programlisting role="php">
 <![CDATA[
 <?php
-/* activar la notificación */
+
+/* Activación del informe de errores */
 mysqli_report(MYSQLI_REPORT_ALL);
 
-$enlace = mysqli_connect("localhost", "mi_usuario", "mi_contraseña", "world");
+try {
+    /* si la conexión falla, se lanzará una excepción mysqli_sql_exception */
+    $link = mysqli_connect("localhost", "my_user", "my_password", "my_db");
 
-/* verificar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
+    /* esta consulta debería informar sobre un error */
+    $result = mysqli_query($link, "SELECT Name FROM Nonexistingtable WHERE population > 50000");
+
+    /* esta consulta debería informar sobre un índice incorrecto, si la columna population no tiene un índice */
+    $result = mysqli_query($link, "SELECT Name FROM City WHERE population > 50000");
+} catch (mysqli_sql_exception $e) {
+    error_log($e->__toString());
 }
+]]>
+   </programlisting>
+  </example>
+  <example>
+   <title>Informe de errores a excepción de errores de índice incorrecto</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
 
-/* esta consulta debería notificar un error */
-$resultado = mysqli_query("SELECT Name FROM Nonexistingtable WHERE population > 50000");
+/* Activación del informe de errores */
+$driver = new mysqli_driver();
+$driver->report_mode = MYSQLI_REPORT_ALL;
 
-/* esta consulta debería notificar un índice erróneo */
-$resultado = mysqli_query("SELECT Name FROM City WHERE population > 50000");
+try {
+    /* si la conexión falla, se lanzará una mysqli_sql_exception */
+    $mysqli = new mysqli("localhost", "my_user", "my_password", "my_db");
 
-mysqli_free_result($resultado);
+    /* esta consulta debería informar sobre un error */
+    $result = $mysqli->query("SELECT Name FROM Nonexistingtable WHERE population > 50000");
 
-mysqli_close($enlace);
-?>
+    /* esto NO emitirá un error incluso si no hay ningún índice disponible */
+    $result = $mysqli->query("SELECT Name FROM City WHERE population > 50000");
+} catch (mysqli_sql_exception $e) {
+    error_log($e->__toString());
+}
 ]]>
    </programlisting>
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>mysqli_debug</function></member>
-    <member><function>mysqli_dump_debug_info</function></member>
     <member><classname>mysqli_sql_exception</classname></member>
     <member><function>set_exception_handler</function></member>
     <member><function>error_reporting</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

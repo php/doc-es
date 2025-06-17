@@ -1,67 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: cd09fab47b40563cb8b2316d817efc973d991713 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: Marqitos -->
+<!-- EN-Revision: d470f625f96a83d65464619297cccad7ce46e743 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="mysqli.query" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli::query</refname>
   <refname>mysqli_query</refname>
-  <refpurpose>Realiza una consulta a la base de datos</refpurpose>
+  <refpurpose>Ejecuta una consulta en la base de datos</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <methodsynopsis role="oop">
-   <type>mixed</type><methodname>mysqli::query</methodname>
+  <methodsynopsis role="mysqli">
+   <modifier>public</modifier> <type class="union"><type>mysqli_result</type><type>bool</type></type><methodname>mysqli::query</methodname>
    <methodparam><type>string</type><parameter>query</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>resultmode</parameter><initializer>MYSQLI_STORE_RESULT</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>result_mode</parameter><initializer><constant>MYSQLI_STORE_RESULT</constant></initializer></methodparam>
   </methodsynopsis>
   <para>&style.procedural;</para>
   <methodsynopsis>
-   <type>mixed</type><methodname>mysqli_query</methodname>
-   <methodparam><type>mysqli</type><parameter>link</parameter></methodparam>
+   <type class="union"><type>mysqli_result</type><type>bool</type></type><methodname>mysqli_query</methodname>
+   <methodparam><type>mysqli</type><parameter>mysql</parameter></methodparam>
    <methodparam><type>string</type><parameter>query</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>resultmode</parameter><initializer>MYSQLI_STORE_RESULT</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>result_mode</parameter><initializer><constant>MYSQLI_STORE_RESULT</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Realiza una consulta dada por <parameter>query</parameter> a la base de datos.
+   Ejecuta una consulta en la base de datos.
   </para>
+  &mysqli.sqlinjection.warning;
   <para>
-   Para consultas que no sean DML (distintas de INSERT, UPDATE o DELETE),
-   esta funcion es similar a invocar a
+   Para consultas no-DML (que no son un INSERT, un UPDATE o un DELETE),
+   esta función es similar a llamar a
    <function>mysqli_real_query</function> seguida de
    <function>mysqli_use_result</function> o
    <function>mysqli_store_result</function>.
   </para>
   <note>
    <para>
-    En el caso de pasarle una sentencia a
-    <function>mysqli_query</function> que sea mayor del valor de
-    <literal>max_allowed_packet</literal> del servidor, los códigos
-    de error retornados diferirán dependiendo de si se está usando el Controlador
-    Nativo de MySQL (<literal>mysqlnd</literal>) o la Biblioteca Cliente de MySQL
-    (<literal>libmysqlclient</literal>). El comportamiento es el siguiente:
+    Si se pasa una consulta a
+    <function>mysqli_query</function> que es más larga que
+    <literal>max_allowed_packet</literal>, los códigos de error devueltos serán
+    diferentes según si se utiliza MySQL Native Driver
+    (<literal>mysqlnd</literal>) o la MySQL Client Library
+    (<literal>libmysqlclient</literal>). El comportamiento se define como sigue:
    </para>
    <itemizedlist>
     <listitem>
      <para>
-      <literal>mysqlnd</literal> en Linux retorna un código de error 1153.
-      Este mensaje de error significa que <quote>se tiene un paquete mayor que
+      <literal>mysqlnd</literal> en Linux devuelve un código de error 1153.
+      El mensaje de error será <quote>got a packet bigger than
       <literal>max_allowed_packet</literal> bytes</quote>.
      </para>
     </listitem>
     <listitem>
      <para>
-      <literal>mysqlnd</literal> en Windows retorna un código de error 2006.
-      Este mensaje de error significa que <quote>el servidor no está disponible</quote>.
+      <literal>mysqlnd</literal> en Windows devuelve un código de error 2006.
+      El mensaje será del tipo <quote>server has gone away</quote>.
      </para>
     </listitem>
     <listitem>
      <para>
-      <literal>libmysqlclient</literal> en toda las plataformas retorna el código de
-      error 2006. Este mensaje de error significa que <quote>el servidor no
-      está disponible</quote>.
+      <literal>libmysqlclient</literal> en cualquier plataforma devuelve el código de error
+      2006. El mensaje será del tipo <quote>server has gone away</quote>.
      </para>
     </listitem>
    </itemizedlist>
@@ -77,32 +76,35 @@
      <term><parameter>query</parameter></term>
      <listitem>
       <para>
-       El &string; de la consulta.
-      </para>
-      <para>
-       Los datos dentro de la consulta deberían estar <link
-       linkend="mysqli.real-escape-string">adecuadamente escapados</link>.
+       La consulta, en forma de &string;.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>resultmode</parameter></term>
+     <term><parameter>result_mode</parameter></term>
      <listitem>
       <para>
-       La constante <constant>MYSQLI_USE_RESULT</constant> o
-       <constant>MYSQLI_STORE_RESULT</constant> dependiendo del compotamiento
-       deseado. Por defecto, se usa la constante <constant>MYSQLI_STORE_RESULT</constant>.
+       El modo de resultado puede ser una de las 3 constantes que indican cómo
+       el resultado será devuelto por el servidor MySQL.
       </para>
       <para>
-       Si se usa <constant>MYSQLI_USE_RESULT</constant> todas la llamadas posteriores
-       retornarán con un error <literal>Commands out of sync</literal> a menos que se
-       llame a <function>mysqli_free_result</function>
+       <constant>MYSQLI_STORE_RESULT</constant> (por omisión) - devuelve un objeto <classname>mysqli_result</classname>
+       con un conjunto de resultados almacenados en búfer.
       </para>
       <para>
-       Con <constant>MYSQLI_ASYNC</constant> (disponible con mysqlnd), es
-       posible hacer consulta de manera asíncrona.
-       <function>mysqli_poll</function> se utiliza para obtener los resultados de dichas
-       consultas.
+       <constant>MYSQLI_USE_RESULT</constant> - devuelve un objeto <classname>mysqli_result</classname>
+       con un conjunto de resultados no almacenados en búfer.
+       Mientras haya registros pendientes de ser recuperados, la línea de conexión estará ocupada
+       y todas las llamadas siguientes devolverán el error <literal>Commands out of sync</literal>.
+       Para evitar el error, todos los registros deben ser recuperados del servidor o el conjunto
+       de resultados debe ser descartado llamando a la <function>mysqli_free_result</function>.
+      </para>
+      <para>
+       <constant>MYSQLI_ASYNC</constant> (disponible con mysqlnd) - la consulta se ejecuta
+       de manera asíncrona y ningún conjunto de resultados es devuelto inmediatamente.
+       <function>mysqli_poll</function> se utiliza entonces para obtener los resultados de tales consultas.
+       Utilizada en combinación con la constante
+       <constant>MYSQLI_STORE_RESULT</constant> o <constant>MYSQLI_USE_RESULT</constant>.
       </para>
      </listitem>
     </varlistentry>
@@ -113,129 +115,77 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Retorna &false; en caso de error. Si una consulta del tipo <literal>SELECT, SHOW, DESCRIBE</literal> o
-   <literal>EXPLAIN</literal> es exitosa, <function>mysqli_query</function> retornará
-   un objeto <classname>mysqli_result</classname>. Para otras consultas exitosas de <function>mysqli_query</function>
-   retornará &true;.
+   Devuelve &false; en caso de fallo. Para consultas exitosas que producen
+   un conjunto de resultados como <literal>SELECT, SHOW, DESCRIBE</literal> o
+   <literal>EXPLAIN</literal>, <function>mysqli_query</function> devolverá un
+   objeto <classname>mysqli_result</classname>. Para otros tipos de
+   consultas exitosas, <function>mysqli_query</function> devolverá &true;.
   </para>
  </refsect1>
 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        Se agregó la posibilidad de realizar consultas asíncronas.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &mysqli.conditionalexception;
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <methodname>mysqli::query</methodname></title>
+   <title>Ejemplo con <methodname>mysqli::query</methodname></title>
    <para>&style.oop;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
-if ($mysqli->connect_errno) {
-    printf("Falló la conexión: %s\n", $mysqli->connect_error);
-    exit();
-}
+/* "Create table" no devolverá ningún conjunto de resultados */
+$mysqli->query("CREATE TEMPORARY TABLE myCity LIKE City");
+printf("Tabla myCity creada con éxito.\n");
 
-/* Crear una tabla que no devuelve un conjunto de resultados */
-if ($mysqli->query("CREATE TEMPORARY TABLE myCity LIKE City") === TRUE) {
-    printf("Se creó con éxtio la tabla myCity.\n");
-}
+/* Consulta "Select" devuelve un conjunto de resultados */
+$result = $mysqli->query("SELECT Name FROM City LIMIT 10");
+printf("Select ha devuelto %d líneas.\n", $result->num_rows);
 
-/* Consultas de selección que devuelven un conjunto de resultados */
-if ($resultado = $mysqli->query("SELECT Name FROM City LIMIT 10")) {
-    printf("La selección devolvió %d filas.\n", $resultado->num_rows);
+/* Si tenemos que recuperar muchos datos, utilizamos MYSQLI_USE_RESULT */
+$result = $mysqli->query("SELECT * FROM City", MYSQLI_USE_RESULT);
 
-    /* liberar el conjunto de resultados */
-    $resultado->close();
-}
-
-/* Si se ha de recuperar una gran cantidad de datos se emplea MYSQLI_USE_RESULT */
-if ($resultado = $mysqli->query("SELECT * FROM City", MYSQLI_USE_RESULT)) {
-
-    /* Observar que no se puede ejecutar ninguna función que interactue con el
-       servidor hasta que el conjunto de resultados se haya cerrado. Todas las llamadas devolverán un
-       error 'out of sync' */
-    if (!$mysqli->query("SET @a:='esto no funcionará'")) {
-        printf("Error: %s\n", $mysqli->error);
-    }
-    $resultado->close();
-}
-
-$mysqli->close();
-?>
+/* Tenga en cuenta que no podemos ejecutar ninguna función que actúe en el servidor mientras
+   el conjunto de resultados no esté cerrado. Todas las llamadas devolverán un 'out of sync' */
+$mysqli->query("SET @a:='this will not work'");
 ]]>
    </programlisting>
    <para>&style.procedural;</para>
    <programlisting role="php">
 <![CDATA[
 <?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $link = mysqli_connect("localhost", "my_user", "my_password", "world");
 
-/* comprobar la conexión */
-if (mysqli_connect_errno()) {
-    printf("Falló la conexión: %s\n", mysqli_connect_error());
-    exit();
-}
+/* "Create table" no devolverá ningún conjunto de resultados */
+mysqli_query($link, "CREATE TEMPORARY TABLE myCity LIKE City");
+printf("Tabla myCity creada con éxito.\n");
 
-/* Crear una tabla que no devuelve un conjunto de resultados */
-if (mysqli_query($link, "CREATE TEMPORARY TABLE myCity LIKE City") === TRUE) {
-    printf("Se creó con éxtio la tabla myCity.\n");
-}
+/* Consulta "Select" devuelve un conjunto de resultados */
+$result = mysqli_query($link, "SELECT Name FROM City LIMIT 10");
+printf("Select ha devuelto %d líneas.\n", mysqli_num_rows($result));
 
-/* Consultas de selección que devuelven un conjunto de resultados */
-if ($resultado = mysqli_query($link, "SELECT Name FROM City LIMIT 10")) {
-    printf("La selección devolvió %d filas.\n", mysqli_num_rows($resultado));
+/* Si tenemos que recuperar muchos datos, utilizamos MYSQLI_USE_RESULT */
+$result = mysqli_query($link, "SELECT * FROM City", MYSQLI_USE_RESULT);
 
-    /* liberar el conjunto de resultados */
-    mysqli_free_result($resultado);
-}
-
-/* If we have to retrieve large amount of data we use MYSQLI_USE_RESULT */
-if ($resultado = mysqli_query($link, "SELECT * FROM City", MYSQLI_USE_RESULT)) {
-
-    /* Observar que no se puede ejecutar ninguna función que interactue con el
-       servidor hasta que el conjunto de resultados se haya cerrado. Todas las llamadas devolverán un
-       error 'out of sync' */
-    if (!mysqli_query($link, "SET @a:='esto no funcionará'")) {
-        printf("Error: %s\n", mysqli_error($link));
-    }
-    mysqli_free_result($resultado);
-}
-
-mysqli_close($link);
-?>
+/* Tenga en cuenta que no podemos ejecutar ninguna función que actúe en el servidor mientras
+   el conjunto de resultados no esté cerrado. Todas las llamadas devolverán un 'out of sync' */
+mysqli_query($link, "SET @a:='this will not work'");
 ]]>
    </programlisting>
    &examples.outputs;
    <screen>
 <![CDATA[
-Se creó con éxtio la tabla myCity.
-La selección devolvió 10 filas.
-Error: Commands out of sync;  You can't run this command now
+Tabla myCity creada con éxito.
+Select ha devuelto 10 líneas.
+Fatal error: Uncaught mysqli_sql_exception: Commands out of sync; you can't run this command now in...
 ]]>
    </screen>
   </example>
@@ -245,15 +195,16 @@ Error: Commands out of sync;  You can't run this command now
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>mysqli_execute_query</function></member>
     <member><function>mysqli_real_query</function></member>
     <member><function>mysqli_multi_query</function></member>
+    <member><function>mysqli_prepare</function></member>
     <member><function>mysqli_free_result</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
