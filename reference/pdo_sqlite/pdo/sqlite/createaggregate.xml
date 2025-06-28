@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 51610360d58ed09bc9d1312f419057c0d1d1a998 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="pdo-sqlite.createaggregate" xmlns="http://docbook.org/ns/docbook">
+ <refnamediv>
+  <refname>Pdo\Sqlite::createAggregate</refname>
+  <refpurpose>
+   Registra una función de agregación definida por el usuario para su uso en instrucciones SQL
+  </refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis role="Pdo\\Sqlite">
+   <modifier>public</modifier> <type>bool</type><methodname>Pdo\Sqlite::createAggregate</methodname>
+   <methodparam><type>string</type><parameter>name</parameter></methodparam>
+   <methodparam><type>callable</type><parameter>step</parameter></methodparam>
+   <methodparam><type>callable</type><parameter>finalize</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>numArgs</parameter><initializer>-1</initializer></methodparam>
+  </methodsynopsis>
+  <simpara>
+   Este método es similar a <methodname>Pdo\Sqlite::createFunction</methodname>
+   excepto que registra funciones que pueden ser utilizadas para calcular un
+   resultado agregado sobre el conjunto de filas de una consulta.
+  </simpara>
+  <simpara>
+   La principal diferencia entre este método y
+   <methodname>Pdo\Sqlite::createFunction</methodname>
+   es que se necesitan dos funciones para manejar la agregación.
+  </simpara>
+  <tip>
+   <simpara>
+    Utilizando este método, es posible reemplazar las funciones SQL nativas.
+   </simpara>
+  </tip>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>name</parameter></term>
+    <listitem>
+     <simpara>
+      El nombre de la función utilizado en las instrucciones SQL.
+     </simpara>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>step</parameter></term>
+    <listitem>
+     <simpara>
+      La función de retrollamada llamada para cada fila del conjunto de resultados.
+      La función de retrollamada debe acumular el resultado y almacenarlo en el contexto de agregación.
+     </simpara>
+     <para>
+      Esta función debe ser definida como sigue:
+      <methodsynopsis>
+       <type>mixed</type><methodname><replaceable>step</replaceable></methodname>
+       <methodparam><type>mixed</type><parameter>context</parameter></methodparam>
+       <methodparam><type>int</type><parameter>rownumber</parameter></methodparam>
+       <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+       <methodparam rep="repeat"><type>mixed</type><parameter>values</parameter></methodparam>
+      </methodsynopsis>
+      <variablelist>
+       <varlistentry>
+        <term><parameter>context</parameter></term>
+        <listitem>
+         <simpara>
+          &null; para la primera fila; en las filas siguientes, tendrá el valor
+          que fue previamente retornado por la función de retrollamada; debe utilizarse
+          esto para mantener el estado de la agregación.
+         </simpara>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><parameter>rownumber</parameter></term>
+        <listitem>
+         <simpara>
+          El número de la fila actual.
+         </simpara>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><parameter>value</parameter></term>
+        <listitem>
+         <simpara>
+          El primer argumento pasado a la agregación.
+         </simpara>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><parameter>values</parameter></term>
+        <listitem>
+         <simpara>
+          Los argumentos adicionales pasados a la agregación.
+         </simpara>
+        </listitem>
+       </varlistentry>
+      </variablelist>
+      El valor de retorno de esta función será utilizado como argumento
+      <parameter>context</parameter> en la siguiente llamada a la función de retrollamada o
+      de finalización.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>finalize</parameter></term>
+    <listitem>
+     <simpara>
+      La función de retrollamada para agregar los datos "step" de cada fila.
+      Una vez que todas las filas han sido procesadas, esta función será llamada,
+      y debería entonces tomar los datos del contexto de agregación y retornar el resultado.
+      Esta función de retrollamada debe retornar un tipo comprendido por SQLite
+      (es decir, un <link linkend="language.types.intro">tipo escalar</link>).
+     </simpara>
+     <para>
+      Esta función debe ser definida como sigue:
+      <methodsynopsis>
+       <type>mixed</type><methodname><replaceable>fini</replaceable></methodname>
+       <methodparam><type>mixed</type><parameter>context</parameter></methodparam>
+       <methodparam><type>int</type><parameter>rowcount</parameter></methodparam>
+      </methodsynopsis>
+      <variablelist>
+       <varlistentry>
+        <term><parameter>context</parameter></term>
+        <listitem>
+         <para>
+          Contiene el valor de retorno de la última llamada a la función de retrollamada.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><parameter>rowcount</parameter></term>
+        <listitem>
+         <para>
+          Contiene el número de filas sobre las cuales se realizó la agregación.
+         </para>
+        </listitem>
+       </varlistentry>
+      </variablelist>
+      El valor de retorno de esta función será utilizado como valor de retorno para
+      la agregación.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>numArgs</parameter></term>
+    <listitem>
+     <simpara>
+      Indicación al analizador SQLite si la función de retrollamada acepta un
+      número predeterminado de argumentos.
+     </simpara>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <simpara>
+   &return.success;
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Pdo\Sqlite::createAggregate</methodname></title>
+   <simpara>
+    En este ejemplo, se creará una función de agregación personalizada llamada
+    <literal>max_length</literal> que puede ser utilizada en las consultas SQL.
+   </simpara>
+   <simpara>
+    En este ejemplo, se creará una función de agregación llamada
+    <literal>max_length</literal> que calculará la longitud del string más largo
+    en una de las columnas de la tabla.
+    Para cada fila, la función <literal>max_len_step</literal> es llamada y
+    pasa un parámetro <literal>$context</literal>.
+    El parámetro de contexto es como cualquier otra variable PHP y puede ser
+    definido para contener un <type>array</type> o incluso un <type>object</type>.
+    En este ejemplo, se utiliza para contener la longitud máxima que se ha visto hasta el momento;
+    si el <varname>$string</varname> tiene una longitud mayor que la longitud máxima actual,
+    se actualiza el contexto para contener esta nueva longitud máxima.
+   </simpara>
+   <simpara>
+    Después de que todas las filas han sido procesadas,
+    SQLite llama a la función <literal>max_len_finalize</literal> para determinar
+    el resultado agregado.
+    Es posible realizar algún tipo de cálculo basado en los datos en <literal>$context</literal>.
+    En este ejemplo básico, el resultado fue calculado a medida que la consulta progresaba,
+    por lo que el valor de contexto puede ser retornado directamente.
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$data = [
+   'one',
+   'two',
+   'three',
+   'four',
+   'five',
+   'six',
+   'seven',
+   'eight',
+   'nine',
+   'ten',
+];
+$db = new Pdo\Sqlite('sqlite::memory:');
+$db->exec("CREATE TABLE strings(a)");
+$insert = $db->prepare('INSERT INTO strings VALUES (?)');
+foreach ($data as $str) {
+    $insert->execute(array($str));
+}
+$insert = null;
+
+function max_len_step($context, $row_number, $string)
+{
+    if (strlen($string) > $context) {
+        $context = strlen($string);
+    }
+    return $context;
+}
+
+function max_len_finalize($context, $row_count)
+{
+    return $context === null ? 0 : $context;
+}
+
+$db->createAggregate('max_len', 'max_len_step', 'max_len_finalize');
+
+var_dump($db->query('SELECT max_len(a) from strings')->fetchAll());
+
+?>
+]]>
+   </programlisting>
+   <tip>
+    <simpara>
+     NO se recomienda almacenar una copia de los valores en el contexto
+     y procesarlos al final, ya que se obligaría a SQLite a utilizar mucha
+     memoria para procesar la consulta - imagine cuánta memoria se necesitaría
+     si un millón de filas fueran almacenadas en memoria, cada una conteniendo un string de 32 bytes
+     de longitud.
+    </simpara>
+   </tip>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>Pdo\Sqlite::createFunction</methodname></member>
+   <member><methodname>Pdo\Sqlite::createCollation</methodname></member>
+   <member><function>sqlite_create_function</function></member>
+   <member><function>sqlite_create_aggregate</function></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
