@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: dd07341fae2c414adc1f700be0890ff32e8daab4 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 648875cf73af01acdb6afaa5ca38b0bf6631bf42 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 
 <refentry xml:id="function.cubrid-lob2-write" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>cubrid_lob2_write</refname>
   <refpurpose>Escribe en un objeto LOB</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -17,12 +17,12 @@
    <methodparam><type>string</type><parameter>buf</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>cubrid_lob2_write</function> lee datos de
-   <parameter>buf</parameter> y los almacena en el objeto LOB. Observe que
-   esta función solamente agrega caracteres, por ahora.
+   La función <function>cubrid_lob2_write</function> lee los datos
+   desde el argumento <parameter>buf</parameter> y los almacena en el objeto LOB.
+   Tenga en cuenta que esta función solo puede añadir caracteres actualmente.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,93 +30,98 @@
     <varlistentry>
      <term><parameter>lob_identifier</parameter></term>
      <listitem>
-      <para>Un identificador de LOB, como un resultado de <function>cubrid_lob2_new</function> u obtenido de un conjunto de resultados.</para>
+      <para>
+       Un identificador LOB, obtenido desde la función
+       <function>cubrid_lob2_new</function> o desde el conjunto de resultados.
+      </para>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>buf</parameter></term>
      <listitem>
-      <para>Los datos que se necesitan escribir en el objeto LOB.</para>
+      <para>
+       Los datos que deben ser escritos en el objeto LOB.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &true; si el proceso tiene éxito y &false; en caso de error.
+   &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo 1 de <function>cubrid_lob2_write</function></title>
+   <title>Ejemplo 1 con <function>cubrid_lob2_write</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
 // test_lob (id INT, contents CLOB)
 
-$conexión = cubrid_connect("localhost", 33000, "demodb", "dba", "");
+$conn = cubrid_connect("localhost", 33000, "demodb", "dba", "");
 
-cubrid_execute($conexión,"DROP TABLE if exists test_lob");
-cubrid_execute($conexión,"CREATE TABLE test_lob (id INT, contents CLOB)");
+cubrid_execute($conn,"DROP TABLE if exists test_lob");
+cubrid_execute($conn,"CREATE TABLE test_lob (id INT, contents CLOB)");
 
-$petición = cubrid_prepare($conexión, "INSERT INTO test_lob VALUES(2, ?)");
+$req = cubrid_prepare($conn, "INSERT INTO test_lob VALUES(2, ?)");
 
-$lob = cubrid_lob2_new($conexión, 'CLOB');
-$longitud = cubrid_lob2_write($lob, "Hello world");
+$lob = cubrid_lob2_new($conn, 'CLOB');
+$len = cubrid_lob2_write($lob, "Hello world");
 
-cubrid_lob2_bind($petición, 1, $lob);
-cubrid_execute($petición);
+cubrid_lob2_bind($req, 1, $lob);
+cubrid_execute($req);
 
-cubrid_disconnect($conexión);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
   </example>
-  
+
   <example>
-   <title>Ejemplo 2 de <function>cubrid_lob2_write</function></title>
+   <title>Ejemplo 2 con <function>cubrid_lob2_write</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
 // test_lob (id INT, contents CLOB)
 
-$conexión = cubrid_connect("localhost", 33000, "demodb", "dba", "");
+$conn = cubrid_connect("localhost", 33000, "demodb", "dba", "");
 
-cubrid_execute($conexión,"DROP TABLE if exists test_lob");
-cubrid_execute($conexión,"CREATE TABLE test_lob (id INT, contents CLOB)");
+cubrid_execute($conn,"DROP TABLE if exists test_lob");
+cubrid_execute($conn,"CREATE TABLE test_lob (id INT, contents CLOB)");
 
-$petición = cubrid_prepare($conexión, "INSERT INTO test_lob VALUES(1, ?)");
-$lob1 = cubrid_lob2_new($conexión, 'CLOB');
+$req = cubrid_prepare($conn, "INSERT INTO test_lob VALUES(1, ?)");
+$lob1 = cubrid_lob2_new($conn, 'CLOB');
 $len = cubrid_lob2_write($lob1, "cubrid php driver");
-cubrid_lob2_bind($petición, 1, $lob1);
-cubrid_execute($petición);
+cubrid_lob2_bind($req, 1, $lob1);
+cubrid_execute($req);
 
-$petición = cubrid_execute($conexión, "select * from test_lob");
+$req = cubrid_execute($conn, "select * from test_lob");
 
-$fila = cubrid_fetch_row($petición, CUBRID_LOB);
-$lob2 = $fila[1];
+$row = cubrid_fetch_row($req, CUBRID_LOB);
+$lob2 = $row[1];
 cubrid_lob2_seek($lob2, 0, CUBRID_CURSOR_LAST);
 
 $pos = cubrid_lob2_tell($lob2);
-print "posición antes de la escritura: $pos\n";
+print "pos before write: $pos\n";
 
-cubrid_lob2_write($lob2, "Hola mundo");
+cubrid_lob2_write($lob2, "Hello world");
 
 $pos = cubrid_lob2_tell($lob2);
-print "posición después de la escritura: $pos\n";
+print "Posición después de escribir: $pos\n";
 
-cubrid_disconnect($conexión);
+cubrid_disconnect($conn);
 ?>
 ]]>
    </programlisting>
   </example>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -131,7 +136,7 @@ cubrid_disconnect($conexión);
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file
