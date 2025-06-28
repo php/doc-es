@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 51610360d58ed09bc9d1312f419057c0d1d1a998 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="pdo-sqlite.createfunction" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>Pdo\Sqlite::createFunction</refname>
+  <refpurpose>
+   Registra una función de usuario para su uso en las sentencias SQL
+  </refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description">
+  &reftitle.description;
+  <methodsynopsis role="Pdo\\Sqlite">
+   <modifier>public</modifier> <type>bool</type><methodname>Pdo\Sqlite::createFunction</methodname>
+   <methodparam><type>string</type><parameter>function_name</parameter></methodparam>
+   <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>num_args</parameter><initializer>-1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
+  </methodsynopsis>
+  <simpara>
+   Este método permite que las funciones PHP sean registradas con SQLite como
+   funciones definidas por el usuario, de modo que puedan ser llamadas en las consultas SQL.
+   La función definida puede ser utilizada en cualquier consulta SQL que permita llamadas a funciones,
+   por ejemplo <literal>SELECT</literal>, <literal>UPDATE</literal>, o disparadores.
+  </simpara>
+  <tip>
+   <simpara>
+    Utilizando este método, es posible reemplazar las funciones SQL nativas.
+   </simpara>
+  </tip>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>function_name</parameter></term>
+    <listitem>
+     <simpara>
+      El nombre de la función utilizado en las sentencias SQL.
+     </simpara>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>callback</parameter></term>
+    <listitem>
+     <simpara>
+      La retrollamada para gestionar la función SQL definida.
+     </simpara>
+     <note>
+      <simpara>
+       La retrollamada debe retornar un tipo comprendido por SQLite (es decir,
+       <link linkend="language.types.intro">tipo escalar</link>).
+      </simpara>
+     </note>
+     <para>
+      Esta función debe ser definida como:
+      <methodsynopsis>
+       <type>mixed</type><methodname><replaceable>callback</replaceable></methodname>
+       <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+       <methodparam rep="repeat"><type>mixed</type><parameter>values</parameter></methodparam>
+      </methodsynopsis>
+      <variablelist>
+       <varlistentry>
+        <term><parameter>value</parameter></term>
+        <listitem>
+         <para>
+          El primer argumento pasado a la función SQL.
+         </para>
+        </listitem>
+       </varlistentry>
+       <varlistentry>
+        <term><parameter>values</parameter></term>
+        <listitem>
+         <para>
+          Los argumentos adicionales pasados a la función SQL.
+         </para>
+        </listitem>
+       </varlistentry>
+      </variablelist>
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>num_args</parameter></term>
+    <listitem>
+     <simpara>
+      El número de argumentos que la función SQL toma.
+      Si este parámetro es <literal>-1</literal>,
+      entonces la función SQL puede tomar cualquier número de argumentos.
+     </simpara>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>flags</parameter></term>
+    <listitem>
+     <simpara>
+      Una máscara de bits de flags.
+      Actualmente, solo <constant>Pdo\Sqlite::DETERMINISTIC</constant> es soportado,
+      lo que especifica que la función retorna siempre el mismo resultado
+      dados los mismos valores de entrada en una sola sentencia SQL.
+     </simpara>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <simpara>
+   &return.success;
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example xml:id="pdo-sqlite.createfunction.example.basic">
+   <title>Ejemplo de <methodname>Pdo\Sqlite::createFunction</methodname></title>
+   <simpara>
+    En este ejemplo, tenemos una función que calcula la suma SHA256 de una
+    string, luego la invierte. Cuando la sentencia SQL es ejecutada, retorna
+    el valor del nombre de fichero transformado por nuestra función.
+    Los datos retornados en <varname>$rows</varname> contienen el resultado procesado.
+   </simpara>
+   <simpara>
+    La ventaja de esta técnica es que no es necesario procesar el
+    resultado utilizando un bucle &foreach; después de la ejecución de la consulta.
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+function sha256_and_reverse($string)
+{
+    return strrev(hash('sha256', $string));
+}
+
+$db = new Pdo\Sqlite('sqlite::sqlitedb');
+$db->sqliteCreateFunction('sha256rev', 'sha256_and_reverse', 1);
+$rows = $db->query('SELECT sha256rev(filename) FROM files')->fetchAll();
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>Pdo\Sqlite::createAggregate</methodname></member>
+   <member><methodname>Pdo\Sqlite::createCollation</methodname></member>
+   <member><function>sqlite_create_function</function></member>
+   <member><function>sqlite_create_aggregate</function></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
