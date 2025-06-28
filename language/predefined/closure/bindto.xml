@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 9c74079f12d67cabb52c124d761f48275417d7eb Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 80720e59fc88b2522fe2e119b0148caaaa214b0b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="closure.bindto" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Closure::bindTo</refname>
   <refpurpose>
-   Duplicar el cierre con un objeto vinculado y ámbito de clase nuevos
+   Duplica la cierre con un nuevo objeto vinculado y un nuevo contexto de clase.
   </refpurpose>
  </refnamediv>
 
@@ -17,39 +17,36 @@
    <methodparam choice="opt"><type class="union"><type>object</type><type>string</type><type>null</type></type><parameter>newScope</parameter><initializer>"static"</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Crea y devuelve una nueva <link linkend="functions.anonymous">función
-   anónima</link> con el cuerpo y variables vinculadas como ésta, pero
-   posiblemente con un objeto vinculado diferente y un nuevo ámbito de clase.
+   Crea y devuelve una nueva <link linkend="functions.anonymous">función anónima
+   </link> con el mismo cuerpo y las mismas variables vinculadas que la original, pero con un objeto vinculado
+   que puede ser diferente, y un nuevo contexto de clase.
   </para>
 
   <para>
-   El "objeto vinculado" determina el valor que <literal>$this</literal>
-   tendrá en el cuerpo de la función, y el "ámbito de clase" representa una clase
-   que determina los miembros privados y protegidos a los que será capaz
-   de acceder la función anónima. Concretamente, los miembros que serán
-   visibles son los mismos que si la función anónima fuese un método de
-   la clase dada como valor del parámetro
+   El objeto vinculado determina el valor que <literal>$this</literal> tendrá en el cuerpo de la función,
+   y el contexto de clase representa una clase que determina a qué miembros privados y protegidos
+   la función anónima tendrá acceso. En otras palabras, las propiedades que serán visibles serán las
+   mismas que si la función anónima fuera un método de la clase pasada a través del argumento
    <parameter>newScope</parameter>.
   </para>
 
   <para>
-   Los cierres estáticos no pueden tener ningún objeto vinculado (el valor del parámetro
-   <parameter>newThis</parameter> debería ser &null;), pero esta función puede,
-   no obstante, usarse para cambiar su ámbito de clase.
+   Las cierres estáticas no pueden tener un objeto vinculado (el valor del argumento
+   <parameter>newThis</parameter> debería ser &null;), pero este método puede
+   utilizarse para cambiar su ámbito de clase.
   </para>
 
   <para>
-   Esta función se asegurará de que a un cierre no estático que tenga una instancia
-   vinculada se le aplique un ámbito y viceversa. En este punto,
-   los cierres no estáticos que le son dados un ámbito, excepto una instancia &null;, son hechos
-   estáticos, y los cierres no estáticos y sin ámbito que le son dados una instancia no
-   nula se les aplica un ámbito de clase no especificado.
+   Este método verificará que una cierre no estática a la que se le pase
+   un contexto de objeto se vincule a este objeto (y ya no sea no estática),
+   y viceversa. Con este fin, las cierres no estáticas a las que se les pase un
+   contexto de clase pero &null; como contexto de objeto serán convertidas en estáticas, y viceversa.
   </para>
 
   <note>
    <para>
-    Si solamente se quieren duplicar las funciones anónimas, se puede usar
-    <link linkend="language.oop5.cloning">cloning</link> en su lugar.
+    Si solo se desea duplicar la función anónima, puede utilizarse
+    <link linkend="language.oop5.cloning">el clonado</link> en su lugar.
    </para>
   </note>
 
@@ -62,8 +59,7 @@
     <term><parameter>newThis</parameter></term>
     <listitem>
      <para>
-      El objeto al que la función anónima dada debería ser vinculado, o
-      &null; para que el cierre sea desvinculado.
+      El objeto al que vincular la función anónima, o &null; para una cierre estática.
      </para>
     </listitem>
    </varlistentry>
@@ -71,11 +67,11 @@
     <term><parameter>newScope</parameter></term>
     <listitem>
      <para>
-      El ámbito de la clase a la que se va a asociar el cierre, o
-      'static' para mantener el actual. Si se proporciona un objeto, el tipo del
-      mismo se usará en su lugar. Esto determina la visibilidad de métodos
-      protegidos y privados del objeto vinculado.
-      No se permite pasar (un objeto de) una clase interna a este parémtro.
+      El contexto de clase a asociar con la cierre, o 'static' para conservar el
+      contexto actual. Si se pasa un objeto, su tipo será utilizado.
+      Esto determina la visibilidad de los métodos protegidos y privados del objeto vinculado.
+      No está permitido pasar (un objeto de) una clase interna para
+      este argumento.
      </para>
     </listitem>
    </varlistentry>
@@ -85,7 +81,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el objeto <classname>Closure</classname> recién creado,
+   Devuelve la nueva cierre en forma de objeto <classname>Closure</classname>,
    o &null; en caso de error.
   </para>
  </refsect1>
@@ -93,19 +89,26 @@
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>Closure::bindTo</function></title>
+   <title>Ejemplo <function>Closure::bindTo</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-class A {
+class A
+{
     private $val;
-    function __construct($val) {
+
+    public function __construct($val)
+    {
         $this->val = $val;
     }
-    function getClosure() {
-        //devuelve el cierre vinculado a este objeto y el ámbito
-        return function() { return $this->val; };
+
+    public function getClosure()
+    {
+        //Retorna una cierre vinculada a este objeto y contexto
+        return function() {
+            return $this->val;
+        };
     }
 }
 
@@ -128,7 +131,6 @@ echo $cl(), "\n";
    </screen>
   </example>
  </refsect1>
-
 
  <refsect1 role="seealso">
   &reftitle.seealso;
