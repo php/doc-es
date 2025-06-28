@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 426d9a8f156bca7be9cb5475e24ba104ee814bc1 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.sapi-windows-vt100-support" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <refnamediv>
+  <refname>sapi_windows_vt100_support</refname>
+  <refpurpose>Obtiene o define el soporte VT100 para el flujo especificado asociado a un búfer de salida de una consola Windows.</refpurpose>
+ </refnamediv>
+
+ <refsect1 role="description"><!-- {{{ -->
+  &reftitle.description;
+  <methodsynopsis>
+   <type>bool</type><methodname>sapi_windows_vt100_support</methodname>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>bool</type><type>null</type></type><parameter>enable</parameter><initializer>&null;</initializer></methodparam>
+  </methodsynopsis>
+  <para>
+   Si <parameter>enable</parameter> es &null;, la función retorna &true; si el flujo <parameter>stream</parameter> tiene los códigos de control VT100 activados, de lo contrario &false;.
+  </para>
+  <para>
+   Si <parameter>enable</parameter> es un <type>bool</type>, la función intentará activar o desactivar las funcionalidades VT100 del flujo <parameter>stream</parameter>.
+   Si la funcionalidad ha sido activada (o desactivada) con éxito, la función retornará &true;, o &false; en caso contrario.
+  </para>
+  <para>
+   Al inicio, PHP intenta activar la funcionalidad VT100 de los flujos <constant>STDOUT</constant>/<constant>STDERR</constant>. Por cierto, si estos flujos son redirigidos a un fichero, las funcionalidades VT100 pueden no ser activadas.
+  </para>
+  <para>
+   Si el soporte VT100 está activado, es posible utilizar secuencias de control tal como son conocidas por el terminal VT100.
+   Estas permiten la modificación de la salida del terminal. En Windows, estas secuencias son llamadas secuencias de terminal virtual de consola (Console Virtual Terminal Sequences).
+  </para>
+  <warning>
+   <simpara>
+    Esta función utiliza el flag <constant>ENABLE_VIRTUAL_TERMINAL_PROCESSING</constant> implementado en la API de Windows 10, por lo que la funcionalidad VT100 puede no estar disponible en versiones antiguas de Windows.
+   </simpara>
+  </warning>
+ </refsect1><!-- }}} -->
+
+ <refsect1 role="parameters"><!-- {{{ -->
+  &reftitle.parameters;
+  <variablelist>
+   <varlistentry>
+    <term><parameter>stream</parameter></term>
+    <listitem>
+     <para>
+      El flujo sobre el cual la función operará.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>enable</parameter></term>
+    <listitem>
+     <para>
+      Si es <type>bool</type>, la funcionalidad VT100 será activada (si es &true;) o desactivada (si es &false;).
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1><!-- }}} -->
+
+ <refsect1 role="returnvalues"><!-- {{{ -->
+  &reftitle.returnvalues;
+  <para>
+   Si <parameter>enable</parameter> es &null;: retorna &true; si la funcionalidad VT100 está activada, de lo contrario &false;.
+  </para>
+  <para>
+   Si <parameter>enable</parameter> es un <type>bool</type>: &return.success;
+  </para>
+ </refsect1><!-- }}} -->
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>enable</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
+ <refsect1 role="examples"><!-- {{{ -->
+  &reftitle.examples;
+  <example>
+   <title>Estado por defecto de <function>sapi_windows_vt100_support</function></title>
+   <para>
+    Por omisión, <constant>STDOUT</constant> y <constant>STDERR</constant> tienen la funcionalidad VT100 activada.
+   </para>
+   <programlisting role="sh">
+    php -r "var_export(sapi_windows_vt100_support(STDOUT));echo ' ';var_export(sapi_windows_vt100_support(STDERR));"
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+true true
+]]>
+   </screen>
+   <para>
+    Además, si un flujo es redirigido, la funcionalidad VT100 no será activada:
+   </para>
+   <programlisting role="sh">
+    php -r "var_export(sapi_windows_vt100_support(STDOUT));echo ' ';var_export(sapi_windows_vt100_support(STDERR));" 2&gt;NUL
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+    true false
+   </screen>
+  </example>
+  <example>
+   <title><function>sapi_windows_vt100_support</function> cambiando el estado</title>
+   <para>
+    No será posible activar la funcionalidad VT100 de <constant>STDOUT</constant> o <constant>STDERR</constant> si el flujo es redirigido.
+   </para>
+   <programlisting role="sh">
+    php -r "var_export(sapi_windows_vt100_support(STDOUT, true));echo ' ';var_export(sapi_windows_vt100_support(STDERR, true));" 2&gt;NUL
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+true false
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Ejemplo de uso con soporte VT100 activado</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$out = fopen('php://stdout','w');
+fwrite($out, 'Just forgot a lettr.');
+// mueve el cursor dos caracteres hacia atrás
+fwrite($out, "\033[2D");
+// Inserta un espacio, desplazando el texto existente hacia la derecha -> Just forgot a lett r.
+fwrite($out, "\033[1@");
+fwrite($out, 'e');
+?>
+]]>
+   </programlisting>
+    &example.outputs;
+   <screen>
+<![CDATA[
+Just forgot a letter.
+]]>
+   </screen>
+  </example>
+ </refsect1>
+</refentry>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
