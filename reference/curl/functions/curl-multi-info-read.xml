@@ -1,60 +1,61 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e16c1b45873feb7d48235cd17484514104e144b8 Maintainer: yago Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 976425d4f6eec32448be3cc22ec063015921b753 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.curl-multi-info-read" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>curl_multi_info_read</refname>
-  <refpurpose>Obtiene información de las transferencias en curso</refpurpose>
+  <refpurpose>Lee las informaciones sobre las transferencias actuales</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>curl_multi_info_read</methodname>
-   <methodparam><type>resource</type><parameter>mh</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter role="reference">msgs_in_queue</parameter><initializer>&null;</initializer></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>curl_multi_info_read</methodname>
+   <methodparam><type>CurlMultiHandle</type><parameter>multi_handle</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter role="reference">queued_messages</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Pregunta al multi recurso si hay algún mensaje o información de cada una de las transferencias.
-   Los mensajes quizá incluyen información como códigos de error de la transferencia o simplemente
-   que la transferencia ha sido completada.
+   Invoca el gestor múltiple si existen mensajes o informaciones
+   provenientes de las transferencias individuales. Los mensajes pueden incluir
+   informaciones como un código de error de la transferencia, o simplemente el hecho de que la transferencia ha finalizado.
   </para>
-  <para>   
-   Cada vez que se llame a esta función devolverá un nuevo resultado, hasta que se devuelva &false;
-   como indicador de que no hay nada más que obtener por el momento. El integer que devuelve
-   <parameter>msgs_in_queue</parameter> contendrá el número de mensajes que quedan después de
-   que la función sea llamada.
+  <para>
+   Las llamadas repetidas a esta función devolverán un nuevo resultado cada vez,
+   hasta que &false; no sea devuelto, indicando que no hay nada más que recuperar
+   en este momento. El entero presente en el argumento <parameter>queued_messages</parameter>
+   representa el número de mensajes restantes una vez llamada esta función.
   </para>
   <warning>
    <para>
-    Los datos que devuelve el recurso no permanecerán si se llama a la función
-    <function>curl_multi_remove_handle</function>.
+    Los datos apuntados por el recurso devuelto, no sobrevivirán
+    a la llamada de la función <function>curl_multi_remove_handle</function>.
    </para>
   </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     &curl.mh.description;
     <varlistentry>
-     <term><parameter>msgs_in_queue</parameter></term>
+     <term><parameter>queued_messages</parameter></term>
      <listitem>
       <para>
-       Número de mensajes que todavía están en la cola
+       Número de mensajes aún presentes en la cola
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si funciona, devuelve un array asociativo como mensaje, si falla devuelve &false;.
+   Devuelve un array asociativo que contiene el mensaje en caso de éxito,
+   &false; si ocurre un error.
   </para>
   <para>
    <table>
@@ -62,133 +63,48 @@
     <tgroup cols="2">
      <thead>
       <row>
-       <entry>Clave:</entry>
-       <entry>Valor:</entry>
+       <entry>Key:</entry>
+       <entry>Value:</entry>
       </row>
      </thead>
      <tbody>
       <row>
        <entry><literal>msg</literal></entry>
-       <entry>La constante <constant>CURLMSG_DONE</constant>. Otros valores devueltos
-       no están actualmente disponibles.</entry>
+       <entry>La constante <constant>CURLMSG_DONE</constant>. Las demás valores devueltos
+        no están actualmente disponibles.</entry>
       </row>
       <row>
        <entry><literal>result</literal></entry>
-       <entry>Una de las constantes <constant>CURLE_*</constant>. Si todo es
-       OK, se devolverá <constant>CURLE_OK</constant>.</entry>
+       <entry>Una de las constantes <constant>CURLE_<replaceable>*</replaceable></constant>. Si todo ha transcurrido correctamente,
+        se devolverá la constante <constant>CURLE_OK</constant>.</entry>
       </row>
       <row>
        <entry><literal>handle</literal></entry>
-       <entry>Recurso de tipo curl que indica el controlador en cuestión.</entry>
+       <entry>Recurso de tipo curl que indica el gestor concernido.</entry>
       </row>
      </tbody>
     </tgroup>
    </table>
-  </para>  
- </refsect1>
- 
- <refsect1 role="examples">
-  &reftitle.examples;
-  <para>
-   <example>
-    <title>Un ejemplo de <function>curl_multi_info_read</function></title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-
-$urls = array(
-   "http://www.cnn.com/",
-   "http://www.bbc.co.uk/",
-   "http://www.yahoo.com/"
-);
-
-$mh = curl_multi_init();
-
-foreach ($urls as $i => $url) {
-    $conn[$i] = curl_init($url);
-    curl_setopt($conn[$i], CURLOPT_RETURNTRANSFER, 1);
-    curl_multi_add_handle($mh, $conn[$i]);
-}
-
-do {
-    $status = curl_multi_exec($mh, $active);
-    if ($active) {
-        curl_multi_select($mh);
-    }
-    $info = curl_multi_info_read($mh);
-    if (false !== $info) {
-        var_dump($info);
-    }
-} while ($active && $status == CURLM_OK);
-
-foreach ($urls as $i => $url) {
-    $res[$i] = curl_multi_getcontent($conn[$i]);
-    curl_close($conn[$i]);
-}
-
-var_dump(curl_multi_info_read($mh));
-
-?>
-]]>
-    </programlisting>
-    &example.outputs.similar;
-    <screen>
-<![CDATA[
-array(3) {
-  ["msg"]=>
-  int(1)
-  ["result"]=>
-  int(0)
-  ["handle"]=>
-  resource(5) of type (curl)
-}
-array(3) {
-  ["msg"]=>
-  int(1)
-  ["result"]=>
-  int(0)
-  ["handle"]=>
-  resource(7) of type (curl)
-}
-array(3) {
-  ["msg"]=>
-  int(1)
-  ["result"]=>
-  int(0)
-  ["handle"]=>
-  resource(6) of type (curl)
-}
-bool(false)
-]]>
-    </screen>
-   </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.2.0</entry>
-       <entry>
-        <parameter>msgs_in_queue</parameter> fue añadido.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &curl.changelog.multi-handle-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -199,7 +115,6 @@ bool(false)
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

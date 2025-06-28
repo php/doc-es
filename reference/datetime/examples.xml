@@ -1,141 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bb34cfdd321e52bb6ebf02062bfacb0ce66d9b2e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8cdc6621f9826d04abc3e50438c010804d7e8683 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
+<!-- CREDITS: DAnnebicque -->
 
 <chapter xml:id="datetime.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  &reftitle.examples;
- 
+
  <section xml:id="datetime.examples-arithmetic">
-  <title>Aritmética de DateTime</title>
+  <title>Aritmética con DateTime</title>
   <para>
-   Los siguientes ejemplos muestran algunos inconvenientes de la artimética de DateTime con respeco
-   a las transiciones de DST y a los meses que tengan diferente número de días.
+   Los ejemplos siguientes muestran algunos problemas de la aritmética de DateTime
+   en lo que respecta a las transiciones DST y los meses con diferente número
+   de días.
   </para>
   <para>
    <example>
-    <title>DateTime::add/sub, añadir intervalos que cubren el tiempo transcurrido</title>
+    <title>DateTimeImmutable::add/sub añadir un intervalo de tiempo transcurrido</title>
     <simpara>
-     Al añadir PT24H a una transición de DST parecerá que se añaden 23/25 horas (para
-     la mayoría de las zonas horarias).
+     Añadir PT24H más allá de una transición DST parecerá añadir 23/25 horas
+     (para la mayoría de los husos horarios).
     </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
-$dt = new DateTime("2015-11-01 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->add(new DateInterval("PT3H"));
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = new DateTimeImmutable("2015-11-01 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->add(new DateInterval("PT3H"));
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Inicio: 2015-11-01 00:00:00 -04:00
-Fin:    2015-11-01 02:00:00 -05:00
+Start: 2015-11-01 00:00:00 -04:00
+End:   2015-11-01 02:00:00 -05:00
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>DateTime::modify y strtotime, aumentar o disminuir valores de componentes individuales</title>
+    <title>DateTimeImmutable::modify y strtotime incrementar o decrementar valores individuales</title>
     <simpara>
-     Al añadir +24 hours a una transición de DST se añadirán exactamente 24 horas como se ve en
-     la cadena de fecha/hora (a menos que el inicio o el final esté en un punto de
-     transición).
+     Añadir +24 horas más allá de una transición DST puede añadir exactamente 24
+     horas como se ve con la cadena fecha/hora
+     (excepto si la hora de inicio o fin está en un punto de transición).
     </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
-$dt = new DateTime("2015-11-01 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->modify("+24 hours");
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = new DateTimeImmutable("2015-11-01 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->modify("+24 hours");
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Inicio: 2015-11-01 00:00:00 -04:00
-Fin:    2015-11-02 00:00:00 -05:00
+Start: 2015-11-01 00:00:00 -04:00
+End:   2015-11-02 00:00:00 -05:00
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>Añadir o restar horas puede sobrepasar o subpasar fechas</title>
+    <title>La adición o sustracción de fechas/horas puede exceder
+     (en más o en menos) fechas</title>
     <simpara>
-     January 31st + 1 month resultará en March 2nd (año bisiesto) o
-     3rd (año normal).
+     Como para 31 de Enero + 1 mes dará como resultado 2 de Marzo (año bisiesto) o
+     3 de Marzo (año normal).
     </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
-echo "Año normal:\n"; // February has 28 days
-$dt = new DateTime("2015-01-31 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->modify("+1 month");
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+echo "Normal year:\n"; // February has 28 days
+$dt = new DateTimeImmutable("2015-01-31 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->modify("+1 month");
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 
-echo "Año bisiesto:\n"; // February has 29 days
-$dt = new DateTime("2016-01-31 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->modify("+1 month");
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+echo "Leap year:\n"; // February has 29 days
+$dt = new DateTimeImmutable("2016-01-31 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->modify("+1 month");
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Año normal:
-Inicio: 2015-01-31 00:00:00 -05:00
-Fin:    2015-03-03 00:00:00 -05:00
-Año bisiesto:
-Inicio: 2016-01-31 00:00:00 -05:00
-Fin:    2016-03-02 00:00:00 -05:00
+Normal year:
+Start: 2015-01-31 00:00:00 -05:00
+End:   2015-03-03 00:00:00 -05:00
+Leap year:
+Start: 2016-01-31 00:00:00 -05:00
+End:   2016-03-02 00:00:00 -05:00
 ]]>
     </screen>
     <simpara>
-     Para obtener el último día del siguiente mes (esto es, para prevenir el desbordamiento),
-     a partir de PHP 5.3.0 está disponible el formato <literal>last day of</literal>.
+     Para obtener el último día del mes próximo (es decir, para prever el
+     excedente), el formato <literal>last day of</literal> está disponible.
     </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
-echo "Año normal:\n"; // February has 28 days
-$dt = new DateTime("2015-01-31 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->modify("last day of next month");
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+echo "Normal year:\n"; // February has 28 days
+$dt = new DateTimeImmutable("2015-01-31 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->modify("last day of next month");
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 
-echo "Año bisiesto:\n"; // February has 29 days
-$dt = new DateTime("2016-01-31 00:00:00", new DateTimeZone("America/New_York"));
-echo "Inicio: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
-$dt->modify("last day of next month");
-echo "Fin:    ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+echo "Leap year:\n"; // February has 29 days
+$dt = new DateTimeImmutable("2016-01-31 00:00:00", new DateTimeZone("America/New_York"));
+echo "Start: ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
+$dt = $dt->modify("last day of next month");
+echo "End:   ", $dt->format("Y-m-d H:i:s P"), PHP_EOL;
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Año normal:
-Inicio: 2015-01-31 00:00:00 -05:00
-Fin:    2015-02-28 00:00:00 -05:00
-Año bisiesto:
-Inicio: 2016-01-31 00:00:00 -05:00
-Fin:    2016-02-29 00:00:00 -05:00
+Normal year:
+Start: 2015-01-31 00:00:00 -05:00
+End:   2015-02-28 00:00:00 -05:00
+Leap year:
+Start: 2016-01-31 00:00:00 -05:00
+End:   2016-02-29 00:00:00 -05:00
 ]]>
     </screen>
    </example>
   </para>
  </section>
- 
+
 </chapter>
 
 <!-- Keep this comment at the end of the file

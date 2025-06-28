@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: fd997f01ab64e4f03e5383e91faad816e047c08c Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 1debc76060f0c33222789a299df72d0addd7fce3 Maintainer: yannick Status: ready -->
+<!-- Reviewed: yes Maintainer: pmartin -->
 <refentry xml:id="function.get-class-vars" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>get_class_vars</refname>
-  <refpurpose>Obtener las propiedades predeterminadas de una clase</refpurpose>
+  <refpurpose>Devuelve los valores por defecto de las propiedades de una clase</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>array</type><methodname>get_class_vars</methodname>
-   <methodparam><type>string</type><parameter>class_name</parameter></methodparam>
+   <methodparam><type>string</type><parameter>class</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene las propiedades predeterminadas de la clase dada.
+   Devuelve los valores por defecto de las propiedades de una clase.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -22,7 +22,7 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>class_name</parameter></term>
+     <term><parameter>class</parameter></term>
      <listitem>
       <para>
        El nombre de la clase
@@ -35,72 +35,33 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una matriz asociativa de las propiedades declaradas visibles desde el
-   ámbito actual, con su valor predeterminado.
-   Los elementos del array resultante están en la forma
-   <literal>nombre_variable => valor</literal>.
-   En caso de error devuelve &false;.
+   Devuelve un array asociativo que contiene los nombres/valores de
+   las propiedades visibles en el ámbito actual, con sus
+   valores por defecto. Los elementos del array resultante están
+   en la forma <literal>varname =&gt; value</literal>.
+   En caso de error, la función devolverá &false;.
   </para>
  </refsect1>
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.0.3</entry>
-       <entry>
-        <function>get_class_vars</function> 
-        devolverá sólo las propiedades que pueden ser accedidas desde el ámbito
-        actual.
-       </entry>
-      </row>
-      <row>
-       <entry>5.0.2</entry>
-       <entry>
-        Al llamar a <function>get_class_vars</function> ahora se expondrán
-        todas las propiedades como una matriz, a diferencia del comportamiento anterior donde
-        las propieades protected y private eran prefijadas con bytes nul.
-       </entry>
-      </row>
-      <row>
-       <entry>5.0.1</entry>
-       <entry>
-        Al llamar a <function>get_class_vars</function> se expondrán todas
-        las propiedades, como cuando se convierte un objeto en una clase.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>get_class_vars</function></title>
+    <title>Ejemplo con <function>get_class_vars</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-class miclase {
-
-    var $var1; // esta no tiene valor predeterminado...
-    var $var2 = "xyz";
-    var $var3 = 100;
-    private $var4;
+class MyClass
+{
+    public $var1; // Esto no tiene un valor por defecto explícito (técnicamente tiene NULL como valor por defecto)...
+    public $var2 = "xyz";
+    public $var3 = 100;
 
     // constructor
-    function __construct() {
-        // cambiar algunas propiedades
+    function __construct()
+    {
+        // cambio de algunas propiedades
         $this->var1 = "foo";
         $this->var2 = "bar";
         return true;
@@ -108,12 +69,12 @@ class miclase {
 
 }
 
-$mi_clase = new miclase();
+$my_class = new MyClass();
 
-$vars_clase = get_class_vars(get_class($mi_clase));
+$class_vars = get_class_vars(get_class($my_class));
 
-foreach ($vars_clase as $nombre => $valor) {
-    echo "$nombre : $valor\n";
+foreach ($class_vars as $name => $value) {
+     echo "{$name}: ", var_export($value, true), "\n";
 }
 
 ?>
@@ -122,38 +83,40 @@ foreach ($vars_clase as $nombre => $valor) {
     &example.outputs;
     <screen>
 <![CDATA[
-var1 :
-var2 : xyz
-var3 : 100
+var1: NULL
+var2: 'xyz'
+var3: 100
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title><function>get_class_vars</function> y comportamiento de ámbito</title>
+    <title>Ejemplo con <function>get_class_vars</function> y los contextos</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-function formato($matriz)
+
+function format($array)
 {
-    return implode('|', array_keys($matriz)) . "\r\n";
+    return implode('|', array_keys($array)) . "\r\n";
 }
 
 class TestCase
 {
-    public $a    = 1;
+    public $a = 1;
     protected $b = 2;
-    private $c   = 3;
+    private $c = 3;
 
     public static function expose()
     {
-        echo formato(get_class_vars(__CLASS__));
+        echo format(get_class_vars(__CLASS__));
     }
 }
 
 TestCase::expose();
-echo formato(get_class_vars('TestCase'));
+echo format(get_class_vars('TestCase'));
+
 ?>
 ]]>
     </programlisting>
@@ -186,7 +149,6 @@ a
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
