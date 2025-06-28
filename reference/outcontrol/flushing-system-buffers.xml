@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 7ad99aeafea66a1562f668aa3cb11dcc9d9cb951 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<chapter xml:id="outcontrol.flushing-system-buffers" xmlns="http://docbook.org/ns/docbook">
+ <title>Vaciar los búferes del sistema</title>
+ <para>
+  PHP ofrece dos formas de vaciar
+  (enviar y eliminar el contenido) los búferes del sistema:
+  mediante la llamada a <function>flush</function>
+  y activando el vaciado de búfer implícito
+  con <function>ob_implicit_flush</function>
+  o el parámetro <link linkend="ini.implicit-flush">implicit_flush</link>
+  de &php.ini;.
+ </para>
+
+ <section>
+  <title>Comportamiento de vaciado del búfer de salida</title>
+  <para>
+   Con el vaciado de búfer implícito desactivado, PHP solo vacía la salida cuando
+   se llama a <function>flush</function> o cuando finaliza el script.
+  </para>
+  <para>
+   Con el vaciado de búfer implícito activado, PHP intentará vaciar
+   después de cada bloque de código que produzca salida.
+   La salida en este contexto son datos de longitud no nula que son:
+   <itemizedlist xml:id="outputcontrol.what-is-output">
+    <listitem>
+     <simpara>
+      fuera de las etiquetas <literal>&#60;?php ?&#62;</literal>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      mostrados por construcciones del lenguaje y funciones
+      cuyo propósito explícito es mostrar variables o strings proporcionados por el usuario tales como
+      <function>echo</function>, <function>print</function>,
+      <function>printf</function>, <function>var_dump</function>,
+      <function>var_export</function>, <function>vprintf</function>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      mostrados por funciones cuyo propósito es recolectar y producir
+      datos/información sobre el script en ejecución o PHP tales como
+      <function>debug_print_backtrace</function>, <function>phpcredits</function>,
+      <function>phpinfo</function>,
+      <methodname>ReflectionExtension::info</methodname>
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      mostrados por PHP en una excepción no capturada o un error no manejado
+      (sujeto a los parámetros de
+      <link linkend="ini.display-errors">display_errors</link>
+      y <link linkend="ini.error-reporting">error_reporting</link>)
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      todo lo que se escribe en <literal>php://output</literal>
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <note>
+   <simpara>
+    Mostrar strings vacíos o enviar encabezados no se considera salida
+    y no desencadenará una operación de vaciado de búfer.
+   </simpara>
+  </note>
+  <warning>
+   <simpara>
+    Si el vaciado de búfer implícito está activado, los caracteres de control
+    (por ejemplo <literal>"\n"</literal>, <literal>"\r"</literal>,
+    <literal>"\0"</literal>)
+    también desencadenarán un vaciado de búfer.
+   </simpara>
+  </warning>
+ </section>
+
+ <section>
+  <title>Limitaciones</title>
+  <para>
+   Esta funcionalidad no puede vaciar los búferes de salida a nivel de usuario.
+   Para usarlos juntos, los búferes de salida a nivel de usuario deben ser vaciados
+   antes de vaciar los búferes del sistema para que PHP produzca una salida.
+  </para>
+  <warning>
+   <simpara>
+    Llamar a <function>flush</function> o activar el vaciado de búfer implícito
+    puede interferir con los manejadores de salida de los búferes de salida a nivel de usuario
+    que definen y envían encabezados en un contexto web
+    (por ejemplo <function>ob_gzhandler</function>)
+    al enviar encabezados antes de que estos manejadores lo hagan.
+   </simpara>
+  </warning>
+  <para>
+   El almacenamiento en búfer implementado por el software/hardware subyacente
+   no puede ser reemplazado por PHP y debe ser tenido en cuenta
+   al utilizar las funciones de control de búferes de PHP.
+   Verificar los parámetros de almacenamiento en búfer de los servidores web/navegadores/consolas
+   y trabajar con ellos puede mitigar los problemas potenciales.
+   Trabajando en un contexto web, ya sea los parámetros de almacenamiento en búfer del servidor web
+   o el almacenamiento en búfer del script podrían ser ajustados para funcionar en conjunto
+   mientras que trabajar con las estrategias de almacenamiento en búfer de varios navegadores
+   puede lograrse ajustando el almacenamiento en búfer en el script PHP.
+   En las consolas que implementan el almacenamiento en búfer por línea,
+   los caracteres de nueva línea podrían ser insertados en los lugares apropiados
+   antes de vaciar la salida.
+  </para>
+ </section>
+
+ <section>
+  <title>Diferencias en el vaciado entre <acronym>SAPI</acronym></title>
+  <para>
+   Aunque el vaciado de búfer es implementado por cada <acronym>SAPI</acronym>
+   de manera ligeramente diferente,
+   estas implementaciones caen en una de dos categorías:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Los <acronym>SAPI</acronym>s usados en un contexto web vaciarán primero los encabezados
+      seguidos de la salida.
+      <literal>Apache2Handler</literal>, <literal>CGI</literal>,
+      <literal>FastCGI</literal> y <literal>FPM</literal>
+      son tales <acronym>SAPI</acronym>s
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      otros <acronym>SAPI</acronym>s
+      tales como <literal>CLI</literal> y <literal>embed</literal>
+      vaciarán solo la salida
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+ </section>
+
+</chapter>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
