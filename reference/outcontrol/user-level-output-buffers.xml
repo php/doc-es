@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 2a8768782512db2b95e5da2f032dd0347806d203 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<chapter xml:id="outcontrol.user-level-output-buffers" xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude">
+ <title>Búferes de salida a nivel de usuario</title>
+ <para>
+  La bufferización de salida a nivel de usuario de PHP puede iniciarse, manipularse
+  y finalizar desde el código PHP.
+  Cada uno de estos búferes incluye un búfer de salida
+  y una función de gestión de salida asociada.
+ </para>
+
+ <section xml:id="outcontrol.what-output-is-buffered">
+  <title>¿Qué salida está bufferizada?</title>
+  <para>
+    Los búferes de salida a nivel de usuario de PHP bufferizan toda la salida
+    después de su inicio hasta que sean desactivados o el script finalice.
+    La salida en el contexto de los búferes de salida a nivel de usuario de PHP
+    es todo lo que PHP mostraría o enviaría al navegador.
+    En términos prácticos, la salida es cualquier dato de longitud no nula que sea:
+   <itemizedlist>
+    <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('outputcontrol.what-is-output')/*)"><xi:fallback/></xi:include>
+   </itemizedlist>
+  </para>
+  <note>
+   <simpara>
+    Los datos escritos directamente en <literal>stdout</literal>
+    o pasados a una función SAPI con una funcionalidad similar
+    no serán capturados por los búferes de salida a nivel de usuario.
+    Esto incluye
+    la escritura de datos en <literal>stdout</literal> con <function>fwrite</function>
+    o el envío de encabezados con <function>header</function>
+    o <function>setcookie</function>.
+   </simpara>
+  </note>
+ </section>
+
+ <section>
+  <title>Iniciar un búfer de salida</title>
+  <para>
+   Los búferes de salida a nivel de usuario pueden iniciarse
+   utilizando la función <function>ob_start</function> o definiendo
+   los parámetros <link linkend="ini.output-buffering">output_buffering</link>
+   y <link linkend="ini.output-handler">output_handler</link> de &php.ini;.
+   Tanto uno como otro pueden crear búferes de salida,
+   <function>ob_start</function> es más flexible
+   ya que acepta funciones definidas por el usuario como gestores de salida
+   y las operaciones permitidas en el búfer (flush, clean, remove)
+   pueden definirse también.
+   Los búferes de salida iniciados con <function>ob_start</function> estarán activos
+   a partir de la línea donde se llamó a la función,
+   mientras que los iniciados con
+   <link linkend="ini.output-buffering">output_buffering</link>
+   bufferizarán la salida desde la primera línea del script.
+  </para>
+  <para>
+   PHP también incluye un gestor de salida interno <literal>"URL-Rewriter"</literal>
+   que inicia su propio búfer de salida y solo permite dos instancias del mismo
+   funcionando al mismo tiempo
+   (una para la reescritura de URL a nivel de usuario
+   y otra para el soporte transparente de identificadores de sesión).
+   Estos búferes pueden iniciarse llamando
+   a la función <function>output_add_rewrite_var</function>
+   y/o activando el parámetro
+   <link linkend="ini.session.use-trans-sid">session.use_trans_sid</link>
+   de &php.ini;.
+  </para>
+  <para>
+   La extensión <literal>zlib</literal> tiene su propio búfer de salida
+   que puede activarse utilizando el parámetro
+   <link linkend="ini.zlib.output-compression">zlib.output_compression</link>
+   de &php.ini;.
+  </para>
+  <note>
+   <simpara>
+    Mientras que <literal>"URL-Rewriter"</literal> es especial
+    en cuanto a que solo permite dos instancias del mismo funcionando al mismo tiempo,
+    todos los búferes de salida a nivel de usuario utilizan los mismos búferes subyacentes
+    usados por <function>ob_start</function>
+    con su funcionalidad implementada por una función de gestión de salida personalizada.
+    Como tal, toda su funcionalidad puede emularse con código de usuario.
+   </simpara>
+  </note>
+ </section>
+
+ <section xml:id="outcontrol.nesting-output-buffers">
+  <title>Anidamiento de búferes de salida</title>
+  <para>
+   Si un búfer de salida está activo cuando se inicia un nuevo búfer,
+   el nuevo búfer se anidará dentro del búfer previamente activo.
+   El búfer interno se comportará de la misma manera, ya esté anidado o no,
+   pero la salida bufferizada por este no será bufferizada por el búfer externo.
+   Solo la salida vaciada por el búfer interno será bufferizada por el búfer externo.
+  </para>
+  <para>
+   La mayoría de las funciones <literal>ob_<replaceable>*</replaceable></literal>
+   solo funcionan con el búfer de salida activo (el último iniciado)
+   por lo que solo el búfer activo puede vaciarse, limpiarse y desactivarse.
+   Las funciones que funcionan con otros búferes son
+   <function>ob_list_handlers</function>
+   que devuelve la lista de todos los gestores de salida en uso
+   y <function>ob_get_status</function>
+   que puede devolver información sobre el búfer activo únicamente
+   o sobre todos los búferes en uso.
+  </para>
+  <para>
+   Llamar a <function>ob_get_level</function>
+   o <function>ob_get_status</function> devolverá
+   el nivel de anidamiento del búfer de salida activo.
+  </para>
+  <caution>
+   <simpara>
+    El valor para los niveles idénticos entre <function>ob_get_level</function>
+    y <function>ob_get_status</function> difiere en uno.
+    Para <function>ob_get_level</function>
+    el primer nivel es <literal>1</literal>,
+    mientras que para <function>ob_get_status</function>
+    el primer nivel es <literal>0</literal>.
+   </simpara>
+  </caution>
+ </section>
+
+ <section xml:id="outcontrol.buffer-size">
+  <title>Tamaño del búfer</title>
+  <para>
+   Los tamaños de los búferes de salida se expresan mediante enteros
+   y representan el número de bytes que el búfer puede almacenar sin vaciarse.
+   Cuando el tamaño de la salida en el búfer excede el tamaño del búfer,
+   el contenido del búfer se envía al gestor de salida,
+   su valor de retorno se lava y el búfer se vacía.
+  </para>
+  <para>
+   Con la excepción de <literal>"URL-Rewriter"</literal>,
+   el tamaño de los búferes de salida puede definirse cuando el búfer se inicia.
+   Si se define como <literal>0</literal>,
+   el búfer de salida solo está limitado por la memoria disponible para PHP.
+   Si se define como <literal>1</literal>,
+   el búfer se lava después de cada bloque de código que produce
+   una salida de longitud no nula.
+  </para>
+  <para>
+   El tamaño de los búferes de salida puede recuperarse llamando
+   a <function>ob_get_status</function>.
+  </para>
+  <para>
+   Los búferes de salida iniciados con <function>ob_start</function>
+   tendrán su tamaño de búfer definido al valor entero pasado
+   al segundo parámetro <parameter>chunk_size</parameter> de la función.
+   Si se omite, se define como <literal>0</literal>.
+  </para>
+  <para>
+   El búfer de salida iniciado con
+   <link linkend="ini.output-buffering">output_buffering</link>
+   definido como <literal>"On"</literal> tendrá su tamaño de búfer definido como <literal>0</literal>.
+   Si se define como un entero, el tamaño del búfer corresponderá a ese número.
+  </para>
+  <para>
+   El tamaño del búfer de salida de <literal>"URL-Rewriter"</literal> se define como <literal>0</literal>,
+   por lo que solo está limitado por la memoria disponible para PHP.
+  </para>
+  <para>
+   El tamaño del búfer de salida de <literal>zlib</literal> está controlado por el parámetro
+   <link linkend="ini.zlib.output-compression">zlib.output_compression</link>
+   de &php.ini;.
+   Si se define como <literal>"On"</literal>, el tamaño del búfer será <literal>"16K"</literal>/<literal>16384</literal>.
+   Si se define como un entero, el tamaño del búfer corresponderá a ese número en bytes.
+  </para>
+ </section>
+
+ <section xml:id="outcontrol.operations-on-buffers">
+  <title>Operaciones permitidas en los búferes</title>
+  <para>
+   Las operaciones permitidas en los búferes pueden controlarse
+   pasando uno de los
+   <link linkend="outcontrol.constants.buffer-control-flags">flags de control de búfer</link>
+   al tercer parámetro <parameter>flags</parameter> de <function>ob_start</function>.
+   Si se omite, todas las operaciones están permitidas por defecto.
+   Si se usa <literal>0</literal> en su lugar,
+   el búfer no puede vaciarse, limpiarse ni desactivarse
+   pero su contenido puede recuperarse.
+  </para>
+  <para>
+   <constant>PHP_OUTPUT_HANDLER_CLEANABLE</constant> permite a
+   <function>ob_clean</function> limpiar el contenido del búfer.
+  </para>
+  <warning>
+   <simpara>
+    La ausencia del flag <constant>PHP_OUTPUT_HANDLER_CLEANABLE</constant>
+    no evitará que <function>ob_end_clean</function>
+    o <function>ob_get_clean</function> limpien el contenido del búfer.
+   </simpara>
+  </warning>
+  <para>
+   <constant>PHP_OUTPUT_HANDLER_FLUSHABLE</constant> permite a
+   <function>ob_flush</function> vaciar el contenido del búfer.
+  </para>
+  <warning>
+   <simpara>
+    La ausencia del flag <constant>PHP_OUTPUT_HANDLER_FLUSHABLE</constant>
+    no evitará que <function>ob_end_flush</function>
+    o <function>ob_get_flush</function> vacíen el contenido del búfer.
+   </simpara>
+  </warning>
+  <para>
+   <constant>PHP_OUTPUT_HANDLER_REMOVABLE</constant> permite a
+   <function>ob_end_clean</function>, <function>ob_end_flush</function>,
+   <function>ob_get_clean</function> o <function>ob_get_flush</function>
+   desactivar el búfer.
+  </para>
+  <para>
+   <constant>PHP_OUTPUT_HANDLER_STDFLAGS</constant>,
+   la combinación de los tres flags, permite que cada una de las tres operaciones
+   se realice en el búfer.
+  </para>
+ </section>
+
+ <section>
+  <title>Lavar, acceder y limpiar el contenido del búfer</title>
+  <para>
+   Lavar envía y elimina el contenido del búfer activo.
+   Los búferes de salida se lavan cuando el tamaño de la salida
+   excede el tamaño del búfer, el script finaliza o
+   se llama a <function>ob_flush</function>, <function>ob_end_flush</function>,
+   o <function>ob_get_flush</function>.
+  </para>
+  <caution>
+   <simpara>
+    Llamar a <function>ob_end_flush</function>
+    o <function>ob_get_flush</function> desactivará el búfer activo.
+   </simpara>
+  </caution>
+  <caution>
+   <simpara>
+    Lavar los búferes lavará el valor de retorno del gestor de salida
+    que puede diferir del contenido del búfer.
+    Por ejemplo, usar <function>ob_gzhandler</function> comprimirá
+    la salida y lavará la salida comprimida.
+   </simpara>
+  </caution>
+  <para>
+   El contenido del búfer activo puede recuperarse llamando
+   a <function>ob_get_contents</function> o <function>ob_get_flush</function>.
+  </para>
+  <para>
+   Si solo se necesita la longitud del contenido del búfer,
+   <function>ob_get_length</function> o <function>ob_get_status</function>
+   devolverá la longitud del contenido en bytes.
+  </para>
+  <caution>
+   <simpara>
+    Llamar a <function>ob_get_clean</function>
+    o <function>ob_get_flush</function> desactivará el búfer activo
+    después de devolver su contenido.
+   </simpara>
+  </caution>
+  <para>
+   El contenido del búfer activo puede limpiarse llamando
+   a <function>ob_clean</function>, <function>ob_end_clean</function>
+   o <function>ob_get_clean</function>.
+  </para>
+  <caution>
+   <simpara>
+    Llamar a <function>ob_end_clean</function>
+    o <function>ob_get_clean</function> desactivará el búfer activo.
+   </simpara>
+  </caution>
+ </section>
+
+ <section>
+  <title>Desactivar los búferes</title>
+  <para>
+   Los búferes de salida pueden desactivarse llamando
+   a <function>ob_end_clean</function>, <function>ob_end_flush</function>,
+   <function>ob_get_flush</function> o <function>ob_get_clean</function>.
+  </para>
+  <warning>
+   <simpara>
+    Los búferes de salida iniciados sin el flag
+    <constant>PHP_OUTPUT_HANDLER_REMOVABLE</constant>
+    no pueden desactivarse y generarán un <constant>E_NOTICE</constant>.
+   </simpara>
+  </warning>
+  <para>
+   Cada búfer de salida que no haya sido desactivado al final del script
+   o cuando se llama a <function>exit</function> será lavado
+   y desactivado por el proceso de terminación de PHP.
+   Los búferes se lavarán y desactivarán en orden inverso
+   a su inicio.
+   El último búfer iniciado será el primero,
+   el primer búfer iniciado será el último en lavarse y desactivarse.
+  </para>
+  <caution>
+   <simpara>
+    Si no se desea el lavado del contenido del búfer,
+    debe usarse un gestor de salida personalizado para evitar el lavado al cerrar.
+   </simpara>
+  </caution>
+ </section>
+
+ <section xml:id="outcontrol.output-handlers">
+  <title>Gestores de salida</title>
+  <para>
+   Los gestores de salida son <type>callable</type>s asociados a los búferes de salida
+   que se invocan al llamar a <function>ob_clean</function>,
+   <function>ob_flush</function>, <function>ob_end_flush</function>,
+   <function>ob_get_flush</function>, <function>ob_end_clean</function>,
+   <function>ob_get_clean</function> o durante el proceso de terminación de PHP.
+  </para>
+  <note>
+   <simpara>
+    El proceso de terminación lavará los valores de retorno de los gestores de salida
+   </simpara>
+  </note>
+  <para>
+   Si se omite o es &null; al iniciar el búfer de salida
+   se utilizará el gestor de salida interno <literal>"gestor de salida por defecto"</literal>
+   que devuelve el contenido del búfer sin modificar cuando se invoca.
+   Los gestores de salida pueden usarse para devolver una versión modificada
+   del contenido del búfer y/o tener efectos secundarios (por ejemplo, enviar encabezados).
+  </para>
+  <para>
+   PHP incluye dos gestores de salida internos:
+   <literal>"default output handler"</literal>
+   y <literal>"URL-Rewriter"</literal> (que está integrado en
+   su propio búfer de salida y solo hasta dos instancias del mismo pueden iniciarse).
+  </para>
+  <para>
+   La extensión agrupada incluye cuatro gestores de salida adicionales:
+   <function>mb_output_handler</function>, <function>ob_gzhandler</function>,
+   <function>ob_iconv_handler</function>, <function>ob_tidyhandler</function>.
+  </para>
+ </section>
+
+ <section xml:id="outcontrol.working-with-output-handlers">
+  <title>Trabajar con los gestores de salida</title>
+  <para>
+   Al ser invocados, los gestores de salida reciben el contenido del búfer
+   y una máscara que indica el estado de la bufferización de salida.
+  </para>
+  <para>
+   <methodsynopsis>
+    <type>string</type>
+    <methodname>
+     <replaceable>handler</replaceable>
+    </methodname>
+    <methodparam>
+     <type>string</type>
+     <parameter>buffer</parameter>
+    </methodparam>
+    <methodparam choice="opt">
+     <type>int</type>
+     <parameter>phase</parameter>
+    </methodparam>
+   </methodsynopsis>
+   <variablelist>
+    <varlistentry>
+     <term><parameter>buffer</parameter></term>
+     <listitem>
+      <simpara>
+       El contenido del búfer.
+      </simpara>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>phase</parameter></term>
+     <listitem>
+      <simpara>
+       Una máscara de bits de las
+       <link linkend="constant.php-output-handler-start">
+        constantes
+        <constant>PHP_OUTPUT_HANDLER_<replaceable>*</replaceable></constant>
+       </link>.
+      </simpara>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+  </para>
+  <warning>
+   <simpara>
+    Llamar a cualquiera de las siguientes funciones desde un gestor de salida
+    resultará en un error fatal:
+    <function>ob_clean</function>, <function>ob_end_clean</function>,
+    <function>ob_end_flush</function>, <function>ob_flush</function>,
+    <function>ob_get_clean</function>, <function>ob_get_flush</function>,
+    <function>ob_start</function>.
+   </simpara>
+  </warning>
+  <note>
+   <simpara>
+    Si el <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> de un gestor está definido,
+    el gestor no será invocado al llamar a
+    <function>ob_end_clean</function>, <function>ob_end_flush</function>,
+    <function>ob_get_clean</function>, <function>ob_get_flush</function>
+    <function>ob_get_clean</function>, <function>ob_get_flush</function>,
+    <function>ob_clean</function>,
+    <function>ob_flush</function>
+    o durante el proceso de terminación de PHP.
+    Antes de PHP 8.4.0, este flag no tenía ningún efecto al llamar a las funciones <function>ob_clean</function>
+    o <function>ob_flush</function>.
+   </simpara>
+  </note>
+  <note>
+   <simpara>
+    El directorio de trabajo del script puede cambiar dentro de la función de parada
+    bajo ciertos servidores web, por ejemplo Apache o el servidor web integrado.
+   </simpara>
+  </note>
+ </section>
+
+ <section xml:id="outcontrol.flags-passed-to-output-handlers">
+  <title>Flags pasados a los gestores de salida</title>
+  <para>
+   La máscara de bits pasada al segundo parámetro <parameter>phase</parameter>
+   del gestor de salida proporciona información sobre la invocación del gestor.
+  </para>
+  <note>
+   <simpara>
+    La máscara de bits puede incluir más de un flag
+    y el operador <literal>&amp;</literal> debe usarse
+    para verificar si un flag está definido.
+   </simpara>
+  </note>
+  <warning>
+   <simpara>
+    El valor de <constant>PHP_OUTPUT_HANDLER_WRITE</constant> y su alias
+    <constant>PHP_OUTPUT_HANDLER_CONT</constant> es <literal>0</literal>
+    por lo que si está definido no puede determinarse
+    excepto usando un
+    <link linkend="language.operators.comparison">operador de igualdad</link>
+    (<literal>==</literal> o <literal>===</literal>).
+   </simpara>
+  </warning>
+  <para>
+   Los siguientes flags están definidos en una fase específica del ciclo de vida del gestor:
+   <constant>PHP_OUTPUT_HANDLER_START</constant> está definido
+   cuando un gestor es invocado por primera vez.
+   <constant>PHP_OUTPUT_HANDLER_FINAL</constant>
+   o su alias <constant>PHP_OUTPUT_HANDLER_END</constant>
+   está definido cuando un gestor es invocado por última vez,
+   es decir, cuando se desactiva. Este flag también está definido
+   cuando los búferes son desactivados por el proceso de terminación de PHP.
+  </para>
+  <para>
+   Los siguientes flags están definidos por una invocación específica del gestor:
+   <constant>PHP_OUTPUT_HANDLER_FLUSH</constant> está definido
+   cuando un gestor es invocado al llamar a <function>ob_flush</function>.
+   <constant>PHP_OUTPUT_HANDLER_WRITE</constant>
+   o su alias <constant>PHP_OUTPUT_HANDLER_CONT</constant>
+   está definido cuando el tamaño de su contenido es igual o excede el tamaño del búfer
+   y el gestor es invocado mientras el búfer se lava automáticamente.
+   <constant>PHP_OUTPUT_HANDLER_FLUSH</constant> está definido
+   cuando un gestor es invocado al llamar a <function>ob_clean</function>,
+   <function>ob_end_clean</function> o <function>ob_get_clean</function>.
+   Cuando se llama a <function>ob_end_clean</function> o <function>ob_get_clean</function>
+   también se define <constant>PHP_OUTPUT_HANDLER_FINAL</constant>.
+  </para>
+  <note>
+   <simpara>
+    Cuando se llama a <function>ob_end_flush</function> o <function>ob_get_flush</function>
+    se define <constant>PHP_OUTPUT_HANDLER_FINAL</constant>
+    pero <constant>PHP_OUTPUT_HANDLER_FLUSH</constant> no.
+   </simpara>
+  </note>
+ </section>
+
+ <section xml:id="outcontrol.output-handler-return-values">
+  <title>Valores de retorno de los gestores de salida</title>
+  <para>
+   El valor de retorno del gestor de salida se convierte internamente a una cadena
+   siguiendo las semánticas de tipo estándar de PHP, con dos excepciones:
+   los <type>array</type>s y los <type>bool</type>eanos.
+  </para>
+  <para>
+   Los arrays se convierten en la cadena <literal>"Array"</literal>
+   pero el mensaje de advertencia <literal>"Conversión de un array a cadena"</literal>
+   no se dispara.
+  </para>
+  <para>
+   Si el gestor de salida devuelve &false; se devuelve el contenido del búfer.
+   Si el gestor devuelve &true; se devuelve una cadena vacía.
+  </para>
+  <note>
+   <simpara>
+    Si un gestor devuelve &false; o lanza una excepción
+    su flag <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> está definido.
+   </simpara>
+  </note>
+ </section>
+
+ <section>
+  <title>Excepciones lanzadas en los gestores de salida</title>
+  <para>
+   Si una excepción no capturada es lanzada en un gestor de salida
+   el programa termina y el gestor es invocado
+   por el proceso de terminación después de lo cual
+   se devuelve el mensaje de error <literal>"Excepción no capturada"</literal>.
+  </para>
+  <para>
+   Si la excepción no capturada es lanzada en un gestor
+   invocado por <function>ob_flush</function>,
+   <function>ob_end_flush</function> o <function>ob_get_flush</function>,
+   el contenido del búfer se lava antes del mensaje de error.
+  </para>
+  <para>
+   Si una excepción no capturada es lanzada en un gestor de salida durante la terminación,
+   el gestor termina y ni el contenido del búfer ni
+   el mensaje de error son lavados.
+  </para>
+  <note>
+   <simpara>
+    Si un gestor lanza una excepción
+    su flag <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> está definido.
+   </simpara>
+  </note>
+ </section>
+
+ <section>
+  <title>Errores generados en los gestores de salida</title>
+  <para>
+   Si un error no fatal es generado en un gestor de salida
+   el programa continúa su ejecución.
+  </para>
+  <para>
+   Si un error no fatal es generado en un gestor invocado por
+   <function>ob_flush</function>, <function>ob_end_flush</function>
+   o <function>ob_get_flush</function>,
+   el búfer vacía algunos datos dependiendo del valor de retorno del gestor.
+   Si el gestor devuelve &false; el búfer y el mensaje de error son lavados.
+   Si el gestor devuelve otra cosa, el valor de retorno del gestor es lavado
+   pero no el mensaje de error.
+  </para>
+  <note>
+   <simpara>
+    Si un gestor devuelve &false;
+    su flag <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> está definido.
+   </simpara>
+  </note>
+  <para>
+   Si un error fatal es generado en un gestor de salida
+   el programa termina y el gestor es invocado
+   por el proceso de terminación después de lo cual el mensaje de error es lavado.
+  </para>
+  <para>
+   Si el error fatal es generado en un gestor invocado por
+   <function>ob_flush</function>, <function>ob_end_flush</function>
+   o <function>ob_get_flush</function>,
+   el contenido del búfer es lavado antes del mensaje de error.
+  </para>
+  <para>
+   Si un error fatal es generado en un gestor de salida durante la terminación
+   el programa termina sin lavar el contenido del búfer o el mensaje de error.
+  </para>
+ </section>
+
+ <section>
+  <title>Salida en los gestores de salida</title>
+  <para>
+   En circunstancias específicas, la salida producida en el gestor es lavada
+   con el contenido del búfer.
+   Esta salida no se añade al búfer y no forma parte de la cadena
+   devuelta por <function>ob_get_flush</function>.
+  </para>
+  <para>
+   Durante las operaciones de lavado de búfer (llamada a <function>ob_flush</function>,
+   <function>ob_end_flush</function>, <function>ob_get_flush</function>
+   y durante la terminación)
+   si el valor de retorno de un gestor es &false;
+   el contenido del búfer es lavado seguido de la salida.
+   Si el gestor no es invocado durante la terminación
+   el gestor lanzando una excepción o la llamada a <function>exit</function>
+   resulta en el mismo comportamiento.
+  </para>
+  <note>
+   <simpara>
+    Si un gestor devuelve &false;
+    su flag <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> está definido.
+   </simpara>
+  </note>
+ </section>
+
+ <section>
+  <title>Flags de estado de los gestores de salida</title>
+  <para>
+   Los
+   <link linkend="outcontrol.constants.flags-returned-by-handler">
+    flags de estado de los gestores
+   </link> de la máscara de bits <literal>flags</literal> del búfer
+   están definidos en cada invocación del gestor de salida
+   y forman parte de la máscara de bits <literal>flags</literal> devuelta por
+   <function>ob_get_status</function>.
+   Si el gestor se ejecuta con éxito y no devuelve &false;,
+   <constant>PHP_OUTPUT_HANDLER_STARTED</constant> y
+   <constant>PHP_OUTPUT_HANDLER_PROCESSED</constant> están definidos.
+   Si el gestor devuelve &false; o lanza una excepción durante la ejecución,
+   <constant>PHP_OUTPUT_HANDLER_STARTED</constant> y
+   <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> están definidos.
+  </para>
+  <note>
+   <simpara>
+    Si <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> de un gestor está definido,
+    el gestor no será invocado al llamar a
+    <function>ob_end_clean</function>, <function>ob_end_flush</function>,
+    <function>ob_get_clean</function>, <function>ob_get_flush</function>
+    <function>ob_get_clean</function>, <function>ob_get_flush</function>,
+    <function>ob_clean</function>,
+    <function>ob_flush</function>
+    o durante el proceso de terminación de PHP.
+    Antes de PHP 8.4.0, este flag no tenía ningún efecto al llamar a las funciones <function>ob_clean</function>
+    o <function>ob_flush</function>.
+   </simpara>
+  </note>
+ </section>
+</chapter>
