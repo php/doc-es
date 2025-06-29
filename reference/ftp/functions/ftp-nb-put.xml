@@ -1,28 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: a978bf5ba5179cddd07cc981af27fb3b900eb78c Maintainer: jesusruiz Status: ready -->
+<!-- EN-Revision: 4d1c34c9b7a30cfc3a59641122c707a2812cfed7 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ftp-nb-put" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ftp_nb_put</refname>
-  <refpurpose>Almacena un archivo en el servidor FTP (modo no-bloqueo)</refpurpose>
+  <refpurpose>Envía un fichero a un servidor FTP (no bloqueante)</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>int</type><methodname>ftp_nb_put</methodname>
-   <methodparam><type>resource</type><parameter>ftp_stream</parameter></methodparam>
-   <methodparam><type>string</type><parameter>remote_file</parameter></methodparam>
-   <methodparam><type>string</type><parameter>local_file</parameter></methodparam>
-   <methodparam><type>int</type><parameter>mode</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>startpos</parameter><initializer>0</initializer></methodparam>
+   <type class="union"><type>int</type><type>false</type></type><methodname>ftp_nb_put</methodname>
+   <methodparam><type>FTP\Connection</type><parameter>ftp</parameter></methodparam>
+   <methodparam><type>string</type><parameter>remote_filename</parameter></methodparam>
+   <methodparam><type>string</type><parameter>local_filename</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>FTP_BINARY</constant></initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>ftp_nb_put</function> almacena un archivo local en el servidor FTP.
+   <function>ftp_nb_put</function> escribe el fichero <parameter>remote_filename</parameter>
+   presente en la máquina local, en el servidor FTP <parameter>ftp</parameter>.
   </para>
   <para>
-   La diferencia entre esta función y <function>ftp_put</function>
-   es que esta función carga el archivo de forma asincrónica, de modo que su programa puede
-   realizar otras operaciones mientras el archivo está siendo cargado.
+   La diferencia entre esta función y <function>ftp_put</function> es
+   que esta función puede leer el fichero de manera asíncrona, de modo
+   que el programa pueda realizar otras tareas mientras el fichero
+   se está descargando.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -30,26 +32,24 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>ftp_stream</parameter></term>
+     <term><parameter>ftp</parameter></term>
+     <listitem>
+      &ftp.parameter.ftp;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>remote_filename</parameter></term>
      <listitem>
       <para>
-       El identificador de enlace de la conexión FTP.
+       La ruta hacia el fichero remoto.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>remote_file</parameter></term>
+     <term><parameter>local_filename</parameter></term>
      <listitem>
       <para>
-       La ruta del archivo remoto.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>local_file</parameter></term>
-     <listitem>
-      <para>
-       La ruta del archivo local.
+       La ruta hacia el fichero local.
       </para>
      </listitem>
     </varlistentry>
@@ -63,9 +63,12 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>startpos</parameter></term>
+     <term><parameter>offset</parameter></term>
      <listitem>
-      <para>La posición en el archivo remoto para empezar a subirlo.</para>
+      <para>
+       La posición en el fichero remoto desde la cual
+       comenzará la descarga.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -74,31 +77,56 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve <constant>FTP_FAILED</constant> o <constant>FTP_FINISHED</constant>
-   o <constant>FTP_MOREDATA</constant>.
+   Devuelve <constant>FTP_FAILED</constant>, <constant>FTP_FINISHED</constant>
+   o <constant>FTP_MOREDATA</constant>, o &false; en caso de fallo al abrir el fichero local.
   </para>
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ftp.changelog.ftp-param;
+     <row>
+      <entry>7.3.0</entry>
+      <entry>
+       El argumento <parameter>mode</parameter> ahora es opcional. Anteriormente
+       era obligatorio.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>ftp_nb_put</function></title>
+    <title>Ejemplo con <function>ftp_nb_put</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Iniciar la Carga
-$ret = ftp_nb_put($my_connection, "test.remote", "test.local", FTP_BINARY);
+// Inicialización de la carga
+$ret = ftp_nb_put($ftp, "test.remote", "test.local", FTP_BINARY);
 while ($ret == FTP_MOREDATA) {
-   
-   // Haga lo que quiera
+
+   // Realice lo que desee...
    echo ".";
 
-   // Continuar la carga...
-   $ret = ftp_nb_continue($my_connection);
+   // Continúa la carga...
+   $ret = ftp_nb_continue($ftp);
 }
 if ($ret != FTP_FINISHED) {
-   echo "Hubo un error al cargar el archivo...";
+   echo "Ocurrió un problema durante la carga del fichero...";
    exit(1);
 }
 ?>
@@ -106,27 +134,27 @@ if ($ret != FTP_FINISHED) {
     </programlisting>
    </example>
    <example>
-    <title>Reanudación de un proceso de carga con <function>ftp_nb_put</function></title>
+    <title>Reanudación de una carga con <function>ftp_nb_put</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Iniciar
-$ret = ftp_nb_put($my_connection, "test.remote", "test.local", 
+// Inicialización
+$ret = ftp_nb_put($ftp, "test.remote", "test.local",
                       FTP_BINARY, ftp_size("test.remote"));
-// O: $ret = ftp_nb_put($my_connection, "test.remote", "test.local", 
+// O: $ret = ftp_nb_put($ftp, "test.remote", "test.local",
 //                           FTP_BINARY, FTP_AUTORESUME);
 
 while ($ret == FTP_MOREDATA) {
-   
-   // Haga lo que quiera
+
+   // Realice lo que desee...
    echo ".";
 
-   // Continuar la carga...
-   $ret = ftp_nb_continue($my_connection);
+   // Continúa la carga...
+   $ret = ftp_nb_continue($ftp);
 }
 if ($ret != FTP_FINISHED) {
-   echo "Hubo un error al cargar el archivo...";
+   echo "Ocurrió un problema durante la carga...";
    exit(1);
 }
 ?>
@@ -147,7 +175,6 @@ if ($ret != FTP_FINISHED) {
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

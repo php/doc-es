@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: jesusruiz Status: ready -->
-<refentry xml:id='function.ftp-set-option' xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: 4d1c34c9b7a30cfc3a59641122c707a2812cfed7 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.ftp-set-option" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ftp_set_option</refname>
-  <refpurpose>Establecer varias opciones FTP de tiempo de ejecución</refpurpose>
+  <refpurpose>Modifica las opciones de la conexión FTP</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>ftp_set_option</methodname>
-   <methodparam><type>resource</type><parameter>ftp_stream</parameter></methodparam>
+   <methodparam><type>FTP\Connection</type><parameter>ftp</parameter></methodparam>
    <methodparam><type>int</type><parameter>option</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+   <methodparam><type class="union"><type>int</type><type>bool</type></type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función controla diversas opciones de tiempo de ejecución para la secuencia FTP 
-   especificada.
+   <function>ftp_set_option</function> controla diversas opciones de una
+   conexión FTP especificada.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -24,37 +24,45 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>ftp_stream</parameter></term>
+     <term><parameter>ftp</parameter></term>
      <listitem>
-      <para>
-       El identificador de enlace de la conexión FTP.
-      </para>
+      &ftp.parameter.ftp;
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>option</parameter></term>
      <listitem>
       <para>
-       Actualmente, se admiten las siguientes opciones:
+       Actualmente, las siguientes opciones son soportadas:
        <table>
-        <title>Opciones FTP de tiempo de ejecución soportadas</title>
+        <title>Opciones FTP soportadas</title>
         <tgroup cols="2">
          <tbody>
           <row>
            <entry><constant>FTP_TIMEOUT_SEC</constant></entry>
            <entry>
-            Cambia el tiempo de espera en segundos usado para todas las funciones 
-   de red. <parameter>value</parameter> debe ser un número entero
-            mayor que 0. El tiempo de espera predeterminado es 90 segundos.
+            Modifica el tiempo de espera de conexión en segundos utilizado para todas las
+            funciones de red. <parameter>value</parameter>
+            debe ser un integer mayor que 0. El tiempo de espera de conexión por defecto
+            es de 90 segundos.
            </entry>
           </row>
           <row>
            <entry><constant>FTP_AUTOSEEK</constant></entry>
            <entry>
-            Cuando se activa, las peticiones GET o PUT con un parámetro 
+            Cuando está activo, las peticiones GET o PUT con un argumento
             <parameter>resumepos</parameter> o <parameter>startpos</parameter>
-            buscarán primero la posición solicitada dentro del archivo.
-            Este parámetro es activado por defecto.
+            se posicionarán primero en la posición deseada en el archivo. Esto está activo
+            por defecto.
+           </entry>
+          </row>
+          <row>
+           <entry><constant>FTP_USEPASVADDRESS</constant></entry>
+           <entry>
+            Cuando está desactivado, PHP ignora la dirección IP devuelta por el
+            servidor FTP en respuesta al comando PASV y utiliza en su lugar
+            la dirección IP proporcionada en el ftp_connect().
+            <parameter>value</parameter> debe ser un valor booleano.
            </entry>
           </row>
          </tbody>
@@ -67,33 +75,51 @@
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       Este parámetro depende de qué <parameter>option</parameter> se elige 
-       para ser alterado.
+       Este argumento depende de la opción <parameter>option</parameter>
+       que se desea modificar.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ftp.changelog.ftp-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si la opción pudo ser establecida; &false; de lo contrario. 
-   Un mensaje de advertencia será lanzado si la <parameter>option</parameter>
-   no es soportada o el <parameter>value</parameter> pasado no coincide con 
-   el valor esperado para la <parameter>option</parameter> especificada.
+   Devuelve &true; si la opción pudo ser modificada, &false; en caso contrario. Un mensaje
+   de alerta será enviado si <parameter>option</parameter> no es soportada
+   o bien si el valor <parameter>value</parameter> no corresponde al valor esperado para la
+   opción <parameter>option</parameter> dada.
   </para>
  </refsect1>
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>ftp_set_option</function></title>
+    <title>Ejemplo con <function>ftp_set_option</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Establecer el tiempo de espera de red a 10 segundos
-ftp_set_option($conn_id, FTP_TIMEOUT_SEC, 10);
+// Definición del tiempo de espera de conexión a 10 segundos
+ftp_set_option($ftp, FTP_TIMEOUT_SEC, 10);
 ?>
 ]]>
     </programlisting>
@@ -109,7 +135,6 @@ ftp_set_option($conn_id, FTP_TIMEOUT_SEC, 10);
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

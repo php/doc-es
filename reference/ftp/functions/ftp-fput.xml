@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: jesusruiz Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 4d1c34c9b7a30cfc3a59641122c707a2812cfed7 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ftp-fput" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ftp_fput</refname>
-  <refpurpose>Carga un archivo abierto en el servidor FTP</refpurpose>
+  <refpurpose>Carga un fichero en un servidor FTP</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>ftp_fput</methodname>
-   <methodparam><type>resource</type><parameter>ftp_stream</parameter></methodparam>
-   <methodparam><type>string</type><parameter>remote_file</parameter></methodparam>
-   <methodparam><type>resource</type><parameter>handle</parameter></methodparam>
-   <methodparam><type>int</type><parameter>mode</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>startpos</parameter><initializer>0</initializer></methodparam>
+   <methodparam><type>FTP\Connection</type><parameter>ftp</parameter></methodparam>
+   <methodparam><type>string</type><parameter>remote_filename</parameter></methodparam>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>FTP_BINARY</constant></initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>ftp_fput</function> carga los datos desde un puntero de archivo
-   a un archivo remoto en el servidor FTP.
+   <function>ftp_fput</function> carga los datos del fichero
+   identificado por <parameter>stream</parameter> hasta el final del fichero.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -27,26 +26,25 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>ftp_stream</parameter></term>
+     <term><parameter>ftp</parameter></term>
+     <listitem>
+      &ftp.parameter.ftp;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>remote_filename</parameter></term>
      <listitem>
       <para>
-       El identificador de enlace de la conexión FTP.
+       La ruta hacia el fichero remoto.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>remote_file</parameter></term>
+     <term><parameter>stream</parameter></term>
      <listitem>
       <para>
-       La ruta del archivo remoto.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>handle</parameter></term>
-     <listitem>
-      <para>
-       Un apuntador de archivo abierto en el archivo local. La lectura se detiene al final del archivo.
+       Un puntero de fichero abierto sobre el fichero local. La lectura se detiene al final
+       del fichero.
       </para>
      </listitem>
     </varlistentry>
@@ -60,9 +58,12 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>startpos</parameter></term>
+     <term><parameter>offset</parameter></term>
      <listitem>
-      <para>La posición en el archivo remoto para empezar a subirlo.</para>
+      <para>
+       La posición en el fichero remoto a partir de la cual
+       comenzará la carga.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -74,34 +75,58 @@
    &return.success;
   </para>
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ftp.changelog.ftp-param;
+     <row>
+      <entry>7.3.0</entry>
+      <entry>
+       El argumento <parameter>mode</parameter> es ahora opcional. Anteriormente era obligatorio.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>ftp_fput</function></title>
+    <title>Ejemplo con <function>ftp_fput</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// abrir un archivo para su lectura
+// Apertura de algunos ficheros para lectura
 $file = 'somefile.txt';
 $fp = fopen($file, 'r');
 
-// establecer una conexión básica
-$conn_id = ftp_connect($ftp_server);
+// Establecimiento de una conexión básica
+$ftp = ftp_connect($ftp_server);
 
-// iniciar sesion con nombre de usuario y contraseña
-$login_result = ftp_login($conn_id, $ftp_user_name, $ftp_user_pass);
+// Identificación con un nombre de usuario y una contraseña
+$login_result = ftp_login($ftp, $ftp_user_name, $ftp_user_pass);
 
-// intentar cargar $file
-if (ftp_fput($conn_id, $file, $fp, FTP_ASCII)) {
-    echo "Cargado correctamente $file\n";
+// Intento de cargar el fichero $file
+if (ftp_fput($ftp, $file, $fp, FTP_ASCII)) {
+    echo "Carga exitosa del fichero $file\n";
 } else {
-    echo "Ha habido un problema al cargar $file\n";
+    echo "Hubo un problema durante la carga del fichero $file\n";
 }
 
-// cerrar la conexion ftp y el gestor de archivo
-ftp_close($conn_id);
+// Cierre de la conexión y del puntero de fichero
+ftp_close($ftp);
 fclose($fp);
 
 ?>
@@ -110,6 +135,7 @@ fclose($fp);
    </example>
   </para>
  </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -121,7 +147,6 @@ fclose($fp);
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

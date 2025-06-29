@@ -1,33 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 4a05f0dc9daeb7058e591a3954c465e9bbb1d8e0 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3c0b61c45a5dabe46865510311e57b77ea3dddb7 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
 <refentry xml:id="gearmanclient.addtask" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>GearmanClient::addTask</refname>
   <refpurpose>Añade una tarea para ser ejecutada en paralelo</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>GearmanTask</type><methodname>GearmanClient::addTask</methodname>
+  <methodsynopsis role="GearmanClient">
+   <modifier>public</modifier> <type class="union"><type>GearmanTask</type><type>false</type></type><methodname>GearmanClient::addTask</methodname>
    <methodparam><type>string</type><parameter>function_name</parameter></methodparam>
-   <methodparam><type>string</type><parameter>workload</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter role="reference">context</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>unique</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type></type><parameter>workload</parameter></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>unique_key</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Añade una tarea para ser ejecutada en paralelo con otras tareas. Debe
-   llamarse a este método en todas las tareas que van a ejecutarse en paralelo
-   y, entonces, llamar a <methodname>GearmanClient::runTasks</methodname> para
-   realizar el trabajo. Notar que se necesitan al menos tantos trabajadores
-   como tareas para que puedan ejecutarse todos en paralelo de forma
-   simultánea.
+   Añade una tarea para ser ejecutada en paralelo con otras tareas. Esta
+   método debe ser llamado para todas las tareas a ejecutar en paralelo, y
+   posteriormente, debe llamarse al método <methodname>GearmanClient::runTasks</methodname> para ejecutar las
+   tareas. Tenga en cuenta que es necesario contar con suficientes agentes disponibles para ejecutar
+   en paralelo todas las tareas.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -57,7 +54,7 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>unique</parameter></term>
+     <term><parameter>unique_key</parameter></term>
      <listitem>
       <para>
        &gearman.parameter.unique;
@@ -67,45 +64,45 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un objeto <classname>GearmanTask</classname> o &false; si no se puede
-  añadir la tarea.
+   Un objeto <classname>GearmanTask</classname> o &false;
+   si la tarea no pudo ser añadida.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Envío básico de dos tareas</title>
+    <title>Añadir 2 tareas</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-# Crear el servidor Gearman
-$gmclient= new GearmanClient(); 
+# Crea un cliente gearman
+$gmclient= new GearmanClient();
 
-# Establece una función a ser llamada cuando se complete el trabajo
-$gmclient->setCompleteCallback("complete"); 
+# Añade el servidor de trabajos por defecto
+$gmclient->addServer();
 
-# Añade el servidor por defecto
-$gmclient->addServer(); 
+# Define una función a llamar cuando el trabajo está completo
+$gmclient->setCompleteCallback("complete");
 
-# Añade una tarea que ejecuta la función "reverse" al string "Hello World!"
-$gmclient->addTask("reverse", "Hello World!", null, "1"); 
+# Añade una tarea que ejecuta la función "reverse" sobre la cadena "Hello World!"
+$gmclient->addTask("reverse", "Hello World!", null, "1");
 
-# Añade otra tarea para ejecutar la función "reverse" en el string "!dlroW olleH"
-$gmclient->addTask("reverse", "!dlroW olleH", null, "2"); 
+# Añade otra tarea que ejecuta la función "reverse" sobre la cadena "!dlroW olleH"
+$gmclient->addTask("reverse", "!dlroW olleH", null, "2");
 
 # Ejecuta las tareas
-$gmclient->runTasks(); 
+$gmclient->runTasks();
 
-function complete($task) 
-{ 
-  print "COMPLETE: " . $task->unique() . ", " . $task->data() . "\n"; 
+function complete($task)
+{
+  print "Completado : " . $task->unique() . ", " . $task->data() . "\n";
 }
 
 ?>
@@ -114,13 +111,13 @@ function complete($task)
     &example.outputs.similar;
     <screen>
 <![CDATA[
-COMPLETE: 2, Hello World!
-COMPLETE: 1, !dlroW olleH
+Completado : 2, Hello World!
+Completado : 1, !dlroW olleH
 ]]>
     </screen>
    </example>
    <example>
-    <title>Envío básico de dos tareas pasando contexto de la aplicación</title>
+    <title>Añadir 2 tareas pasando el contexto de la aplicación</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -128,21 +125,19 @@ COMPLETE: 1, !dlroW olleH
 $client = new GearmanClient();
 $client->addServer();
 
-# Establece una función a ser llamada cuando se complete el trabajo
+# Define una función a llamar cuando el trabajo está completo
 $client->setCompleteCallback("reverse_complete");
 
-
-# Añade algunas tareas y provee de un lugar donde poner los resultados
+# Añade algunas tareas que contienen un marcador en el lugar donde debe colocarse el resultado
 $results = array();
-$client->addTask("reverse", "Hello World!", &$results, "t1");
-$client->addTask("reverse", "!dlroW olleH", &$results, "t2");
+$client->addTask("reverse", "Hello World!", $results, "t1");
+$client->addTask("reverse", "!dlroW olleH", $results, "t2");
 
 $client->runTasks();
 
-# Los resultados deberían estar rellenos
+# El resultado debe estar ahora contenido en las funciones de devolución de llamada
 foreach ($results as $id => $result)
    echo $id . ": " . $result['handle'] . ", " . $result['data'] . "\n";
-
 
 function reverse_complete($task, $results)
 {
@@ -162,7 +157,7 @@ t1: H:foo:22, !dlroW olleH
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -176,9 +171,8 @@ t1: H:foo:22, !dlroW olleH
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

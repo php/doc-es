@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 31f64815aec19a740c922fb8988f63c7d38a19cf Maintainer: yago Status: ready -->
+<!-- EN-Revision: 21840cc5931a3d97534a17204d621471348fa4cb Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ftp-nb-fget" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ftp_nb_fget</refname>
-  <refpurpose>Recupera un archivo desde el servidor FTP y lo escribe en un archivo abierto (modo no-bloqueo)</refpurpose>
+  <refpurpose>Lee un fichero en un servidor FTP y lo escribe en un fichero (no bloqueante)</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>int</type><methodname>ftp_nb_fget</methodname>
-   <methodparam><type>resource</type><parameter>ftp_stream</parameter></methodparam>
-   <methodparam><type>resource</type><parameter>handle</parameter></methodparam>
-   <methodparam><type>string</type><parameter>remote_file</parameter></methodparam>
-   <methodparam><type>int</type><parameter>mode</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>resumepos</parameter><initializer>0</initializer></methodparam>
+   <methodparam><type>FTP\Connection</type><parameter>ftp</parameter></methodparam>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam><type>string</type><parameter>remote_filename</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>FTP_BINARY</constant></initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>ftp_nb_fget</function> recupera un archivo remoto desde el servidor FTP.
+   <function>ftp_nb_fget</function> lee el fichero <parameter>remote_filename</parameter>
+   presente en el servidor FTP <parameter>ftp</parameter>.
   </para>
   <para>
    La diferencia entre esta función y <function>ftp_fget</function> es
-   que esta función recupera el archivo de forma asincrónica, de modo que su programa puede
-   realizar otras operaciones mientras el archivo está siendo descargado.
+   que esta función puede leer el fichero de manera asíncrona, de modo que su
+   programa pueda realizar otras tareas mientras el fichero se descarga.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -30,26 +31,24 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>ftp_stream</parameter></term>
+     <term><parameter>ftp</parameter></term>
+     <listitem>
+      &ftp.parameter.ftp;
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>stream</parameter></term>
      <listitem>
       <para>
-       El identificador de enlace de la conexión FTP.
+       Un puntero de fichero abierto en el que se escriben los datos.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>handle</parameter></term>
+     <term><parameter>remote_filename</parameter></term>
      <listitem>
       <para>
-       Un apuntador de archivo abierto en el cual almacenar los datos.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>remote_file</parameter></term>
-     <listitem>
-      <para>
-       La ruta del archivo remoto.
+       La ruta hacia el fichero remoto.
       </para>
      </listitem>
     </varlistentry>
@@ -63,9 +62,12 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>resumepos</parameter></term>
+     <term><parameter>offset</parameter></term>
      <listitem>
-      <para>Posición en el fichero remoto en donde empezar la descarga</para>
+      <para>
+       La posición en el fichero remoto desde la cual
+       debe comenzar la descarga.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -78,39 +80,63 @@
    o <constant>FTP_MOREDATA</constant>.
   </para>
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ftp.changelog.ftp-param;
+     <row>
+      <entry>7.3.0</entry>
+      <entry>
+       El argumento <parameter>mode</parameter> ahora es opcional. Anteriormente era obligatorio.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>ftp_nb_fget</function></title>
+    <title>Ejemplo con <function>ftp_nb_fget</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// abrir un archivo para lectura
+// Apertura de algunos ficheros para escritura
 $file = 'index.php';
 $fp = fopen($file, 'w');
 
-$conn_id = ftp_connect($ftp_server);
+$ftp = ftp_connect($ftp_server);
 
-$login_result = ftp_login($conn_id, $ftp_user_name, $ftp_user_pass);
+$login_result = ftp_login($ftp, $ftp_user_name, $ftp_user_pass);
 
-// Iniciar la descarga
-$ret = ftp_nb_fget($conn_id, $fp, $file, FTP_BINARY);
+// Inicia la descarga
+$ret = ftp_nb_fget($ftp, $fp, $file, FTP_BINARY);
 while ($ret == FTP_MOREDATA) {
 
-   // Haga lo que quiera
+   // Realice lo que desee...
    echo ".";
 
-   // Continuar la descarga ...
-   $ret = ftp_nb_continue($conn_id);
+   // Continúa la descarga...
+   $ret = ftp_nb_continue($ftp);
 }
 if ($ret != FTP_FINISHED) {
-   echo "Hubo un error al descargar el archivo...";
+   echo "Ocurrió un error durante la descarga del fichero...";
    exit(1);
 }
 
-// cerrar el apuntador de archivo
+// Cierra el puntero de fichero
 fclose($fp);
 ?>
 ]]>
@@ -130,7 +156,6 @@ fclose($fp);
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

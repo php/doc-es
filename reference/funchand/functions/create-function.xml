@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a0efd60818b767c51af678fd7a62c7521665f35d Maintainer: seros Status: ready -->
+<!-- EN-Revision: 39752929cd4ab78db8a7310dfb328444c558df99 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.create-function" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>create_function</refname>
-  <refpurpose>Crear una función anónima (estilo lambda)</refpurpose>
+  <refpurpose>Crea una función anónima</refpurpose>
  </refnamediv>
- 
+
+ <refsynopsisdiv>
+  &warn.deprecated.function-7-2-0.removed-8-0-0;
+ </refsynopsisdiv>
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -15,28 +20,33 @@
    <methodparam><type>string</type><parameter>code</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Crea una función anónima desde los parámetros pasados, y
-   devuelve un nombre único para ella.
+   <function>create_function</function> crea una función anónima,
+   a partir de los argumentos pasados, y devuelve un nombre de función único.
   </para>
   <caution>
    <para>
-    Esta función realiza internamente un <function>eval</function> y como tal tiene los
-    mismos problemas de seguridad que <function>eval</function>. Además posee características
-    malas de rendimiento y uso de memoria.
+    Esta función, internamente, utiliza la función
+    <function>eval</function> y por lo tanto los requisitos
+    de seguridad son idénticos a los de la función <function>eval</function>.
+    Además, el rendimiento no es óptimo y el uso de memoria
+    es significativo.
    </para>
    <para>
-    Si se usa 5.3.0 o superior, se debería usar en su lugar una
-    <link linkend="functions.anonymous">función anónima</link> nativa.
+    Una <link linkend="functions.anonymous">función anónima</link> nativa
+    debería ser utilizada en su lugar.
    </para>
   </caution>
  </refsect1>
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
-   Normalmente estos parámetros serán pasados como una cadena entre comillas simples.
-   La razón de usar comillas simples es proteger a los nombres de las
-   variables de ser analizados, de otro modo, si se usan comillas dobles habrá
-   necesidad de escapar los nombres de las variables, p.ej. <literal>\$avar</literal>.
+   Generalmente, los argumentos <parameter>args</parameter> son
+   presentados en forma de una cadena entre comillas simples, y la misma
+   recomendación aplica para <parameter>code</parameter>.
+   La razón de usar comillas simples es proteger
+   los nombres de variables del reemplazo por su valor. Si se usan
+   comillas dobles, no se olvide de escapar
+   los nombres de variables (i.e. <literal>\$avar</literal>).
    <variablelist>
     <varlistentry>
      <term><parameter>args</parameter></term>
@@ -57,32 +67,34 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un nombre de función único como cadena, o &false; en caso de error.
+   Devuelve un nombre de función único, en forma de una &string;,
+   o &false; si ocurre un error.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
     <title>
-     Crear una función anónima con <function>create_function</function>
+     Creación de una función anónima con <function>create_function</function>
     </title>
     <para>
-     Se puede usar esta función para, por ejemplo, crear una función desde
-     información reunida en tiempo de ejecución:
+     Esta función puede ser utilizada para (por ejemplo) crear
+     una función a partir de información recolectada
+     durante la ejecución:
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-$nuevafunc = create_function('$a,$b', 'return "ln($a) + ln($b) = " . log($a * $b);');
-echo "Nueva función anónima: $nuevafunc\n";
-echo $nuevafunc(2, M_E) . "\n";
-// imprime
+$newfunc = create_function('$a,$b', 'return "ln($a) + ln($b) = " . log($a * $b);');
+echo "Nueva función anónima: $newfunc\n";
+echo $newfunc(2, M_E) . "\n";
+// mostrará:
 // Nueva función anónima: lambda_1
 // ln(2) + ln(2.718281828459) = 1.6931471805599
 ?>
@@ -91,86 +103,85 @@ echo $nuevafunc(2, M_E) . "\n";
    </example>
   </para>
   <para>
-   O quizás para tener una función gestora general que pueda aplicar un conjunto
-   de operaciones a una lista de parámetros:
+   O, para poder aplicar una función genérica
+   a una lista de argumentos.
   </para>
   <para>
    <example>
     <title>
-     Hacer una función de proceso general con
-     <function>create_function</function>
+     Procesamiento genérico por función con <function>create_function</function>
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
-function procesar($var1, $var2, $farr)
+function process($var1, $var2, $farr)
 {
     foreach ($farr as $f) {
         echo $f($var1, $var2) . "\n";
     }
 }
 
-// crear un puñado de funciones matemáticas
+// Creación de una serie de funciones matemáticas
 $f1 = 'if ($a >=0) {return "b*a^2 = ".$b*sqrt($a);} else {return false;}';
 $f2 = "return \"min(b^2+a, a^2,b) = \".min(\$a*\$a+\$b,\$b*\$b+\$a);";
 $f3 = 'if ($a > 0 && $b != 0) {return "ln(a)/b = ".log($a)/$b; } else { return false; }';
 $farr = array(
-    create_function('$x,$y', 'return "algo de trigonometría: ".(sin($x) + $x*cos($y));'),
+    create_function('$x,$y', 'return "un poco de trigonometría: ".(sin($x) + $x*cos($y));'),
     create_function('$x,$y', 'return "una hipotenusa: ".sqrt($x*$x + $y*$y);'),
     create_function('$a,$b', $f1),
     create_function('$a,$b', $f2),
     create_function('$a,$b', $f3)
     );
 
-echo "\nUsar la primera matriz de funciones anónimas\n";
+echo "\nUso de la primera lista de funciones anónimas\n";
 echo "parámetros: 2.3445, M_PI\n";
-procesar(2.3445, M_PI, $farr);
+process(2.3445, M_PI, $farr);
 
-// ahora hacer un puñado de funciones de proceso de cadenas
+// Ahora una lista de funciones sobre cadenas de caracteres
 $garr = array(
     create_function('$b,$a', 'if (strncmp($a, $b, 3) == 0) return "** \"$a\" '.
-    'y \"$b\"\n** ¡Para mí se parecen! (mirando los 3 primeros caracteres)";'),
+    'and \"$b\"\n** Look the same to me! (looking at the first 3 chars)";'),
     create_function('$a,$b', '; return "CRCs: " . crc32($a) . ", ".crc32($b);'),
-    create_function('$a,$b', '; return "similar(a,b) = " . similar_text($a, $b, &$p) . "($p%)";')
+    create_function('$a,$b', '; return "similaridad (a,b) = " . similar_text($a, $b, &$p) . "($p%)";')
     );
-echo "\nUsar la segunda matriz de funciones anónimas\n";
-procesar("Cuando los pájaros cantan", "Cuando es de noche", $garr);
+echo "\nUso de la segunda lista de funciones anónimas\n";
+process("Twas brilling and the slithy toves", "Twas the night", $garr);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Usar la primera matriz de funciones anónimas
+Uso de la primera lista de funciones anónimas
 parámetros: 2.3445, M_PI
-algo de trigonometría: -1.6291725057799
+un poco de trigonometría: -1.6291725057799
 una hipotenusa: 3.9199852871011
 b*a^2 = 4.8103313314525
 min(b^2+a, a^2,b) = 8.6382729035898
 ln(a)/b = 0.27122299212594
 
-Usar la segunda matriz de funciones anónimas
-** "Cuando es de noche" y "Cuando los pájaros cantan"
-** ¡Para mí se parecen! (mirando los 3 primeros caracteres)
+Uso de la segunda lista de funciones anónimas
+** "Twas the night" and "Twas brilling and the slithy toves"
+** Estas cadenas se parecen! (mirando los tres primeros caracteres)
 CRCs: -725381282, 342550513
-similar(a,b) = 11(45.833333333333%)
+similaridad (a,b) = 11(45.833333333333%)
 ]]>
     </screen>
    </example>
   </para>
   <para>
-   Pero quizás el uso más común de las funciones estilo lambda (anónimas)
-   sea el de crear funciones de llamada de retorno, por ejemplo cuando se usa
+   Pero el uso más común de las funciones lambda es la
+   función de devolución de llamada, por ejemplo, al utilizar
    <function>array_walk</function> o <function>usort</function>
   </para>
   <para>
    <example>
-    <title>Usar funciones anónimas como funciones de llamada de retorno</title>
+    <title>Uso de funciones anónimas como función de devolución de llamada</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$av = array("el ", "un ", "ese ", "este ");
-array_walk($av, create_function('&$v,$k', '$v = $v . "mango";'));
+$av = array("la ", "una ", "cette ", "une certaine ");
+array_walk($av, create_function('&$v,$k', '$v = $v . "maison";'));
 print_r($av);
 ?>
 ]]>
@@ -180,21 +191,21 @@ print_r($av);
 <![CDATA[
 Array
 (
-  [0] => el mango
-  [1] => un mango
-  [2] => ese mango
-  [3] => este mango
+  [0] => la maison
+  [1] => une maison
+  [2] => cette maison
+  [3] => une certaine maison
 )
 ]]>
     </screen>
     <para>
-     una matriz de cadenas ordenada de más corta a más larga
+     un array de cadenas de caracteres ordenadas de la más corta a la más larga
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-$sv = array("pequeña", "más larga", "una gran cadena", "esto es una 'señora' cadena");
+$sv = array("petite", "longue", "une très longue chaîne", "une phrase toute entière");
 print_r($sv);
 
 ?>
@@ -205,15 +216,15 @@ print_r($sv);
 <![CDATA[
 Array
 (
-  [0] => pequeña
-  [1] => más larga
-  [2] => una gran cadena
-  [3] => esto es una 'señora' cadena
+  [0] => petite
+  [1] => longue
+  [2] => une très longue chaîne
+  [3] => une phrase toute entière
 )
 ]]>
     </screen>
     <para>
-     ordenarla de más larga a más corta
+     ordenadas de la más larga a la más corta
     </para>
     <programlisting role="php">
 <![CDATA[
@@ -230,17 +241,17 @@ print_r($sv);
 <![CDATA[
 Array
 (
-  [0] => esto es una 'señora' cadena
-  [1] => una gran cadena
-  [2] => más larga
-  [3] => pequeña
+  [0] => une phrase toute entière
+  [1] => une très longue chaîne
+  [2] => longue
+  [3] => petite
 )
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -249,7 +260,7 @@ Array
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

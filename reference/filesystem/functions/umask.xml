@@ -1,27 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 04b11e621f6ccf857368d90262f051a8d40c865d Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: ea62fb83196997032641b50fe44420305466195e Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.umask">
  <refnamediv>
   <refname>umask</refname>
-  <refpurpose>Cambia la máscara de usuario actual</refpurpose>
+  <refpurpose>Cambia el "umask" actual</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>int</type><methodname>umask</methodname>
-   <methodparam choice="opt"><type>int</type><parameter>mask</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>mask</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>umask</function> establece la máscara de usuario de PHP a
-   <parameter>mask</parameter> &amp; 0777 y devuelve la anterior
-   máscara de usuario. Cuando PHP está siendo usado como un módulo de servidor, la máscara
-   de usuario es reestablecida al finalizar cada petición.
+   <function>umask</function> cambia el umask de PHP y lo
+   reemplaza por <parameter>mask</parameter>:
+   <literal>mask &amp; 0777</literal> y, a continuación, devuelve el viejo
+   umask. Cuando PHP se utiliza como módulo de servidor, el
+   umask recupera su valor al final de cada script.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,37 +31,60 @@
      <term><parameter>mask</parameter></term>
      <listitem>
       <para>
-       La nueva máscara de usuario.
+       El nuevo umask.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   <function>umask</function> sin argumentos devuelve simplemente la máscara
-   de usuario actual; de lo contrario devuelve la máscara de usuario anterior.
+   Si <parameter>mask</parameter> es &null;,
+   <function>umask</function> simplemente devuelve el umask actual
+   de lo contrario se devuelve el antiguo umask.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>mask</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>umask</function></title>
+    <title>Ejemplo con <function>umask</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$antigua = umask(0);
-chmod("/ruta/directorio/fichero.txt", 0755);
-umask($antigua);
+$old = umask(0);
+chmod("/path/some_dir/some_file.txt", 0755);
+umask($old);
 
-// Verificar
-if ($antigua != umask()) {
-    die('Ocurrió un error mientras se volvía a cambiar la máscara de usuario');
+// Verificación
+if ($old != umask()) {
+    die('Ocurrió un error al modificar los permisos');
 }
 ?>
 ]]>
@@ -68,22 +92,22 @@ if ($antigua != umask()) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Evite usar esta función en servidores web multihilo. Es mejor
-    cambiar los permisos de fichero con <function>chmod</function> después
-    de crear el fichero. Usar <function>umask</function> puede llevar a
-    comportamientos inesperados en los scripts que se ejecutan concurrentemente y
-    en el servidor web mismo, ya que pueden usar la misma máscara de usuario.
+    Evítese el uso de esta función en un servidor Web multithread.
+    Es preferible cambiar los permisos de un directorio con la función
+    <function>chmod</function>, después de la creación del directorio. Al utilizar
+    <function>umask</function>, puede encontrarse con comportamientos
+    indefinidos a nivel de otros scripts y del servidor, ya que todos utilizan
+    el mismo umask.
    </para>
   </note>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
