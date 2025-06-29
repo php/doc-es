@@ -1,30 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: yago Status: ready -->
-<refentry xml:id='function.proc-nice' xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: 4ecb2c1b4ba1b51c5e9678a7908e001df9bc92f5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.proc-nice" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>proc_nice</refname>
-  <refpurpose>Modificar la prioridad del proceso actual</refpurpose>
+  <refpurpose>Modifica la prioridad de ejecución del proceso actual</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>proc_nice</methodname>
-   <methodparam><type>int</type><parameter>increment</parameter></methodparam>
+   <methodparam><type>int</type><parameter>priority</parameter></methodparam>
   </methodsynopsis>
   <para>
-   <function>proc_nice</function> modifica la prioridad del proceso
-   actual por la cantidad especificada en
-   <parameter>increment</parameter>. Un
-   <parameter>increment</parameter> positivo reducirá la
-   prioridad del proceso actual, mientras que un
-   <parameter>increment</parameter> negativo la incrementará.
+   <function>proc_nice</function> modifica la prioridad del proceso actual
+   mediante el argumento especificado <parameter>priority</parameter>.
+   Un argumento <parameter>priority</parameter> positivo reducirá la
+   prioridad del proceso actual, mientras que un valor negativo
+   <parameter>priority</parameter> aumentará la prioridad.
   </para>
   <para>
-   <function>proc_nice</function> no está relacionada con
-   <function>proc_open</function> y sus funciones asociadas en ninguna
-   forma.
+   <function>proc_nice</function> no está relacionado con
+   <function>proc_open</function> ni con sus funciones asociadas de ninguna manera.
   </para>
  </refsect1>
 
@@ -33,11 +32,61 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>increment</parameter></term>
+     <term><parameter>priority</parameter></term>
      <listitem>
       <para>
-       El valor de incremento del cambio de prioridad.
+       El nuevo valor de prioridad, este valor puede variar según la plataforma.
       </para>
+      <para>
+       En Unix, un valor bajo, como <literal>-20</literal> indica una prioridad alta, mientras que un valor positivo indica una prioridad baja.
+      </para>
+      <para>
+       Para Windows, el argumento <parameter>priority</parameter> tiene las
+       siguientes significaciones:
+      </para>
+      <informaltable>
+       <tgroup cols="3">
+        <thead>
+         <row>
+          <entry valign="top">Clase de prioridad</entry>
+          <entry valign="top">Valores posibles</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry valign="top">Prioridad alta</entry>
+          <entry valign="top">
+           <parameter>priority</parameter> <literal>&lt; -9</literal>
+          </entry>
+         </row>
+         <row>
+          <entry valign="top">Por encima de la prioridad normal</entry>
+          <entry valign="top">
+           <parameter>priority</parameter> <literal>&lt; -4</literal>
+          </entry>
+         </row>
+         <row>
+          <entry valign="top">Prioridad normal</entry>
+          <entry valign="top">
+           <parameter>priority</parameter> <literal>&lt; 5</literal> &amp;
+           <parameter>priority</parameter> <literal>&gt; -5</literal>
+          </entry>
+         </row>
+         <row>
+          <entry valign="top">Por debajo de la prioridad normal</entry>
+          <entry valign="top">
+           <parameter>priority</parameter> <literal>&gt; 5</literal>
+          </entry>
+         </row>
+         <row>
+          <entry valign="top">Prioridad inactiva</entry>
+          <entry valign="top">
+           <parameter>priority</parameter> <literal>&gt; 9</literal>
+          </entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </informaltable>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -47,10 +96,53 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success; Si ocurre un error, como que el usuario carezca de
-   permisos para modificar la prioridad, un error de nivel
-   <constant>E_WARNING</constant> es generado también.
+   &return.success;
+   Si ocurre un error, por ejemplo, si el usuario que intenta cambiar la prioridad de un proceso no tiene
+   suficientes permisos para hacerlo, se genera un error de nivel
+   <constant>E_WARNING</constant> y se devuelve &false;.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        Esta función está ahora disponible en Windows.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Uso de <function>proc_nice</function> para establecer una prioridad de proceso alta</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Prioridad más alta
+proc_nice(-20);
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+
  </refsect1>
 
  <refsect1 role="notes">
@@ -58,17 +150,29 @@
   <note>
    <title>Disponibilidad</title>
    <para>
-    <function>proc_nice</function> existirá únicamente
-    si su sistema tiene soporte para 'nice'. 'nice' está
-    definido de acuerdo a los estándares: SVr4, SVID EXT,
-    AT&amp;T, X/OPEN, BSD 4.3. Esto quiere decir que
-    <function>proc_nice</function> no está disponible en
-    Windows.
+    <function>proc_nice</function> solo está disponible en sistemas que
+    disponen de capacidades NICE. NICE es compatible con: SVr4, SVID EXT,
+    AT&amp;T, X/OPEN, BSD 4.3.
+   </para>
+  </note>
+  <note>
+   <title>Solo Windows</title>
+   <para>
+    <function>proc_nice</function> cambiará la prioridad del <emphasis>proceso</emphasis>
+    actual incluso si PHP ha sido compilado utilizando la
+    seguridad de hilos.
    </para>
   </note>
  </refsect1>
-</refentry>
 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><function>pcntl_setpriority</function></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: af6fdf16ab44bcf4d045407963e43c3d9dd2ff29 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 32e694be42ba6e75a8c78483c17a75725937d247 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fgets">
  <refnamediv>
   <refname>fgets</refname>
-  <refpurpose>Obtiene una línea desde el puntero a un fichero</refpurpose>
+  <refpurpose>Recupera la línea actual a partir de la posición del puntero de archivo</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>fgets</methodname>
-   <methodparam><type>resource</type><parameter>handle</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>length</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>fgets</methodname>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>length</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene una línea desde el puntero al fichero.
+   Recupera la línea actual a partir de la posición del puntero de archivo.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>handle</parameter></term>
+     <term><parameter>stream</parameter></term>
      <listitem>
       &fs.validfp.all;
      </listitem>
@@ -34,34 +34,28 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La lectura termina cuando se han leído <parameter>length</parameter> - 1
-       bytes, o una nueva línea (la cual está incluida en el valor de retorno), o un EOF
-       (lo que suceda primero). Si no se especifica una longitud, se seguirá
-       leyendo desde el flujo hasta que alcance el final de la línea.
+       Lee hasta la longitud <parameter>length</parameter> - 1 byte
+       desde el puntero de archivo <parameter>stream</parameter>,
+       o bien el final del archivo, o una nueva línea (que es incluida
+       en el valor devuelto), o un EOF (el que llegue primero). Si no se
+       proporciona longitud, la función leerá el flujo hasta el final de la línea.
       </para>
-      <note>
-       <para>
-        Hasta PHP 4.3.0, al omitirlo se asumía una longitud de línea de 1024.
-        Si la mayoría de las lineas del fichero son todas mayores de 8KB,
-        es más eficiente para el script en cuestión de recursos especificar la
-        longitud máxima de línea.
-       </para>
-      </note>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una cadena de hasta <parameter>length</parameter> - 1 bytes leídos desde
-   el fichero apuntado por <parameter>handle</parameter>. Si no hay más datos
-   que leer en el puntero al fichero, devuelve &false;.
+   Devuelve un &string; que contiene los <parameter>length</parameter> primeros
+   caracteres, menos 1 byte desde el puntero de archivo
+   <parameter>stream</parameter>. &false; es devuelto si no hay más
+   datos para leer.
   </para>
   <para>
-   Si se produjo un error, devuelve &false;.
+   Si ocurre un error, la función devuelve &false;.
   </para>
  </refsect1>
 
@@ -69,38 +63,43 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Leer un fichero línea a línea</title>
+    <title>Lectura de un archivo línea por línea</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$gestor = @fopen("/tmp/inputfile.txt", "r");
-if ($gestor) {
-    while (($búfer = fgets($gestor, 4096)) !== false) {
-        echo $búfer;
+
+$fp = @fopen("/tmp/inputfile.txt", "r");
+
+if ($fp) {
+    while (($buffer = fgets($fp, 4096)) !== false) {
+        echo $buffer, PHP_EOL;
     }
-    if (!feof($gestor)) {
-        echo "Error: fallo inesperado de fgets()\n";
+    if (!feof($fp)) {
+        echo "Error: fgets() falló\n";
     }
-    fclose($gestor);
+
+    fclose($fp);
 }
+
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.line-endings;
   <note>
    <para>
-    Las personas que suele usar la semántica tipo 'C' de <function>fgets</function>
-    deberían observar la diferencia de cómo se devuelve <literal>EOF</literal>.
+    Los programadores acostumbrados a la programación 'C' notarán que
+    <function>fgets</function> no se comporta como su equivalente en C
+    al encontrar el final del archivo.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -116,9 +115,8 @@ if ($gestor) {
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,90 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e41aab5ecacf449e51179886c17f1d41735b0234  Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 6667724b8a42ba501172bc874dd1644a6744be0f Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<!-- splitted from ./en/functions/exec.xml, last change in rev 1.28 -->
-<refentry xml:id='function.proc-open' xmlns="http://docbook.org/ns/docbook">
+<refentry xml:id="function.proc-open" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>proc_open</refname>
   <refpurpose>
-   Ejecuta un comando y abre un puntero de fichero para entrada/salida
+   Ejecuta un comando y abre los punteros de ficheros para las entradas / salidas
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>proc_open</methodname>
-   <methodparam><type>string</type><parameter>cmd</parameter></methodparam>
-   <methodparam><type>array</type><parameter>descriptorspec</parameter></methodparam>
+   <type class="union"><type>resource</type><type>false</type></type><methodname>proc_open</methodname>
+   <methodparam><type class="union"><type>array</type><type>string</type></type><parameter>command</parameter></methodparam>
+   <methodparam><type>array</type><parameter>descriptor_spec</parameter></methodparam>
    <methodparam><type>array</type><parameter role="reference">pipes</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>cwd</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>env</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>other_options</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>cwd</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>env_vars</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>options</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>proc_open</function> es similar a <function>popen</function>
-   pero provee un grado de control mucho más grande sobre la ejecución del programa.
+   pero proporciona un mayor grado de control sobre la ejecución del programa.
   </para>
-  
-  <!-- ptys are currently disabled in the sources
-    <para>
-     PHP 5 introduces pty support for systems with Unix98 ptys. This allows
-     your script to interact with applications that expect to be talking to a
-     terminal.  A pty works like a pipe, but is bi-directional, so there is no
-     need to specify a read/write mode.  The example below shows how to use a
-     pty; note that you don't have to have all descriptors talking to a pty.
-     Also note that only one pty is created, even though pty is specified 3
-     times.  In a future version of PHP, it might be possible to do more than
-     just read and write to the pty.
-    </para>
--->
-  
  </refsect1>
- 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>cmd</parameter></term>
+     <term><parameter>command</parameter></term>
      <listitem>
       <para>
-       El comando a ejecutar
+       El comando a ejecutar como &string;. Los caracteres especiales
+       deben ser escapados correctamente, y una aplicación correcta de
+       las comillas debe ser aplicada.
       </para>
+      <note>
+       <simpara>
+        En <emphasis>Windows</emphasis>, a menos que <literal>bypass_shell</literal> esté definida a &true; en
+        <parameter>options</parameter>, <parameter>command</parameter> es
+        pasado a <command>cmd.exe</command> (en realidad, <literal>%ComSpec%</literal>)
+        con el flag <literal>/c</literal> como un &string; <emphasis>sin
+        comillas</emphasis> (es decir, exactamente como fue proporcionado a
+        <function>proc_open</function>). Esto puede causar
+        <command>cmd.exe</command> para eliminar las comillas que rodean
+        <parameter>command</parameter> (para más detalles ver la documentación
+        de <command>cmd.exe</command>), resultando en un comportamiento
+        inesperado, y potencialmente peligroso, ya que los mensajes de error de
+        <command>cmd.exe</command> pueden contener (una parte de) la
+        <parameter>command</parameter> pasada (ver ejemplo a continuación).
+       </simpara>
+      </note>
+      <para>
+       A partir de PHP 7.4.0, <parameter>command</parameter> puede ser pasado como
+       un &array; de argumentos de comandos.
+       En este caso el proceso será abierto directamente (sin pasar por un shell) y PHP se encargará de escapar los argumentos necesarios.
+      </para>
+      <note>
+       <para>
+        En Windows, el escape de los argumentos de los elementos del &array; asume
+        que el procesamiento de la línea de comandos del comando ejecutado es
+        compatible con el procesamiento de argumentos de línea de comandos realizado por el runtime VC.
+       </para>
+      </note>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>descriptorspec</parameter></term>
+     <term><parameter>descriptor_spec</parameter></term>
      <listitem>
       <para>
-       Un array indexado donde la clave representa el número descriptor y el valor
-       representa como PHP pasará que descriptor para que proceso hijo. 0 es stdin,
-       1 es stdout, 2 es stderr.
+       Un array indexado, donde las claves representan el número de descriptor
+       y el valor el método con el cual PHP pasará este descriptor al
+       proceso hijo. 0 es stdin, 1 es stdout, y 2 es stderr.
       </para>
       <para>
        Cada elemento puede ser:
        <simplelist>
-        <member>Un array que describe la tubería que se va a pasar al proceso. El primer
-         elemento es el tipo de descriptor, y el segundo elemento es una opción para
-         el tipo dado. Los tipos válidos son: <literal>pipe</literal> (en este caso el segundo
-         elemento sería <literal>r</literal> para pasar a leer el final de la tubería
-         para el proceso, o <literal>w</literal> para pasar a escribir al final) y
-         <literal>file</literal> (en este caso el segundo elemento sería el nombre de fichero).
+        <member>
+         Un array que describe el pipe a pasar al proceso. El primer elemento
+         es el tipo del descriptor y el segundo es una opción para el tipo dado.
+         Los tipos válidos son <literal>pipe</literal> (el segundo elemento es
+         <literal>r</literal> para pasar el extremo de lectura del pipe al proceso, o
+         <literal>w</literal> para pasar el extremo de escritura) y
+         <literal>file</literal> (el segundo elemento es el nombre de fichero).
+         Se debe notar que cualquier otro elemento diferente de <literal>w</literal> es tratado como <literal>r</literal>.
         </member>
         <member>
-         Un recurso de flujo representando un descriptor de un fichero real (p.e. un
-         fichero abierto, un socket, <constant>STDIN</constant>).
+         Un recurso de flujo que representa un descriptor de fichero (por ejemplo, un fichero
+         abierto, un socket, o bien <constant>STDIN</constant>).
         </member>
        </simplelist>
       </para>
       <para>
-       Los números descriptores de fichero no estan limitados a 0, 1 y 2. Se puede
-       especificar cualquier número descriptor válido de fichero, y este ser pasado
-       al proceso hijo. Esto permite a su script para inteoperar con otros
-       scripts que corren como "co-procesos". En particular esto es útil
-       pasando passphrases para programas como PGP, GPG y OpenSSL de una manera más
-       segura. Esto es útil también para la lectura de la información
-       del estado provista por estos programas en descriptores de fichero auxiliares.
+       Los números de punteros de ficheros no están limitados a 0, 1 y 2 -
+       se puede especificar cualquier número de descriptor válido, y
+       será pasado al proceso hijo. Esto permitirá que su script interactúe
+       con otros scripts, y que sea ejecutado como "co-proceso". En particular,
+       es muy práctico para pasar contraseñas a programas como
+       PGP, GPG y openssl, con un método muy protegido. También es práctico
+       para leer información de estado proporcionada por estos programas, en
+       descriptores auxiliares.
       </para>
      </listitem>
     </varlistentry>
@@ -92,8 +109,9 @@
      <term><parameter>pipes</parameter></term>
      <listitem>
       <para>
-       En un array indexado es establecerán los punteros de fichero que se corresponden con el fin de cualquier tuberia
-       PHP que se haya creado.
+       Debe ser definido como un array indexado de punteros de ficheros que
+       corresponden al extremo de cualquier descriptor PHP que sean
+       creados.
       </para>
      </listitem>
     </varlistentry>
@@ -101,36 +119,51 @@
      <term><parameter>cwd</parameter></term>
      <listitem>
       <para>
-       El directorio inicial de trabajo para el comando. Este debe
-       ser una ruta <emphasis role="strong">absoluta</emphasis>, o si se prefiere puede ser &null;
-       si se desea usar el valor por defecto (entonces será el directorio de trabajo del proceso
-       PHP en curso)
+       El directorio inicial de trabajo del comando. Esto debe ser
+       una ruta <emphasis role="strong">absoluta</emphasis>
+       al directorio o &null; si se quiere utilizar el valor
+       por omisión (el directorio de trabajo del proceso PHP actual)
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>env</parameter></term>
+     <term><parameter>env_vars</parameter></term>
      <listitem>
       <para>
-       Un array con las variables de entorno para el comando que será
-       ejecutado, o &null; para usar el mismo entorno como el del proceso PHP en curso.
+       Un array que contiene las variables de entorno para el comando
+       que debe ser ejecutado, o &null; para utilizar el mismo entorno
+       que el proceso PHP actual
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>other_options</parameter></term>
+     <term><parameter>options</parameter></term>
      <listitem>
       <para>
-       Permite especificar opciones adicionales. Actualmente las opciones soportadas
-       incluidas son:
+       Permite especificar opciones adicionales. Las opciones
+       actualmente soportadas son:
        <simplelist>
         <member>
-         <literal>suppress_errors</literal> (solo windows): suprime errores
-         generados por esta función cuando es establece en &true;
+         <literal>suppress_errors</literal> (solo Windows): supresión de
+         errores generados por esta función cuando está definida a &true;
         </member>
         <member>
-         <literal>bypass_shell</literal> (solo windows): Desvia
-         en la consola de <literal>cmd.exe</literal> cuando se establece en &true;
+         <literal>bypass_shell</literal> (solo Windows): omisión del shell
+         <literal>cmd.exe</literal> cuando está definida a &true;
+        </member>
+        <member>
+         <literal>blocking_pipes</literal> (solo Windows): fuerza
+         los pipes bloqueantes cuando está definida a &true;
+        </member>
+        <member>
+         <literal>create_process_group</literal> (solo Windows): permite
+         al proceso hijo manejar los eventos <literal>CTRL</literal>
+         cuando está a &true;
+        </member>
+        <member>
+         <literal>create_new_console</literal> (solo Windows): el nuevo
+         proceso tiene una nueva consola, en lugar de heredar la consola de su
+         padre.
         </member>
        </simplelist>
       </para>
@@ -139,16 +172,23 @@
    </variablelist>
   </para>
  </refsect1>
- 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un recurso representando el proceso, cuando se haya terminado con él,
-   deberá ser liberado usando<function>proc_close</function>. En caso de error
-   devuelve &false;.
+   Retorna un recurso que representa el proceso, que podrá ser utilizado por
+   la función <function>proc_close</function> cuando ya no sea necesario.
+   En caso de fallo, &false; será retornado.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <simpara>
+   A partir de PHP 8.3.0, se lanza una excepción <exceptionname>ValueError</exceptionname> si
+   <parameter>command</parameter> es un array sin al menos un elemento no vacío.
+  </simpara>
+ </refsect1>
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -162,10 +202,31 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.2.1</entry>
+       <entry>8.3.0</entry>
        <entry>
-        Añadida la opción <literal>bypass_shell</literal>
-        al parámetro <parameter>other_options</parameter>.
+        Se lanzará una excepción <exceptionname>ValueError</exceptionname> si
+        <parameter>command</parameter> es un array sin al menos un elemento no vacío.
+       </entry>
+      </row>
+      <row>
+       <entry>7.4.4</entry>
+       <entry>
+        Se añadió la opción <literal>create_new_console</literal> al parámetro
+        <parameter>options</parameter>.
+       </entry>
+      </row>
+      <row>
+       <entry>7.4.0</entry>
+       <entry>
+        <function>proc_open</function> ahora acepta un &array;
+        para <parameter>command</parameter>.
+       </entry>
+      </row>
+      <row>
+       <entry>7.4.0</entry>
+       <entry>
+        Se añadió la opción <literal>create_process_group</literal> al parámetro
+        <parameter>options</parameter>.
        </entry>
       </row>
      </tbody>
@@ -173,19 +234,18 @@
    </informaltable>
   </para>
  </refsect1>
- 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>proc_open</function></title>
+    <title>Ejemplo con <function>proc_open</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $descriptorspec = array(
-   0 => array("pipe", "r"),  // stdin es una tubería usada por el hijo para lectura
-   1 => array("pipe", "w"),  // stdout es una tubería usada por el hijo para escritura
-   2 => array("file", "/tmp/error-output.txt", "a") // stderr es un fichero para escritura
+   0 => array("pipe", "r"),  // stdin es un pipe donde el proceso leerá
+   1 => array("pipe", "w"),  // stdout es un pipe donde el proceso escribirá
+   2 => array("file", "/tmp/error-output.txt", "a") // stderr es un fichero
 );
 
 $cwd = '/tmp';
@@ -194,22 +254,22 @@ $env = array('some_option' => 'aeiou');
 $process = proc_open('php', $descriptorspec, $pipes, $cwd, $env);
 
 if (is_resource($process)) {
-    // $pipes ahora será algo como:
-    // 0 => gestor de escritura conectado al stdin hijo
-    // 1 => gestor de lectura conectado al stdout hijo
-    // Cualquier error de salida será anexado a /tmp/error-output.txt
+    // $pipes se parece a:
+    // 0 => fichero accesible en escritura, conectado a la entrada estándar del proceso hijo
+    // 1 => fichero accesible en lectura, conectado a la salida estándar del proceso hijo
+    // Cualquier error será añadido al fichero /tmp/error-output.txt
 
     fwrite($pipes[0], '<?php print_r($_ENV); ?>');
     fclose($pipes[0]);
 
-    echo "--".stream_get_contents($pipes[1])."--";
+    echo stream_get_contents($pipes[1]);
     fclose($pipes[1]);
 
-    // Es importante que se cierren todas las tubería antes de llamar a
-    // proc_close para evitar así un punto muerto
+    // Es importante que cierre los pipes antes de llamar
+    // a proc_close para evitar un bloqueo.
     $return_value = proc_close($process);
 
-    echo "command returned $return_value\n";
+    echo "El comando retornó $return_value\n";
 }
 ?>
 ]]>
@@ -224,57 +284,69 @@ Array
     [SHLVL] => 1
     [_] => /usr/local/bin/php
 )
-command returned 0
+El comando retornó 0
 ]]>
     </screen>
    </example>
   </para>
-  
-  <!-- ptys are currently disabled
   <para>
    <example>
-    <title>ptys usage</title>
+    <title>Comportamiento extraño de <function>proc_open</function> en Windows</title>
+    <simpara>
+     Aunque se podría esperar que el siguiente programa busque
+     el fichero <filename>filename.txt</filename> para el texto
+     <literal>search</literal> y muestre los resultados,
+     se comporta de manera diferente.
+    </simpara>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Crear un pseudo terminal para el proceso hijo
-$descriptorspec = array(
-   0 => array("pty"),
-   1 => array("pty"),
-   2 => array("pty")
-);
-$process = proc_open("cvs -d:pserver:cvsread@cvs.php.net:/repository login", $descriptorspec, $pipes);
-if (is_resource($process)) {
-   // el trabajo con él iria aquí
-}
+$descriptorspec = [STDIN, STDOUT, STDOUT];
+$cmd = '"findstr" "search" "filename.txt"';
+$proc = proc_open($cmd, $descriptorspec, $pipes);
+proc_close($proc);
 ?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+'findstr" "search" "filename.txt' no se reconoce como un comando interno o externo,
+programa ejecutable o archivo por lotes.
+]]>
+    </screen>
+    <simpara>
+     Para evitar este comportamiento, generalmente es suficiente rodear
+     <parameter>command</parameter> con comillas adicionales:
+    </simpara>
+    <programlisting role="php">
+<![CDATA[
+$cmd = '""findstr" "search" "filename.txt""';
 ]]>
     </programlisting>
    </example>
   </para>
--->
-  
  </refsect1>
- 
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Compatibilidad con Windows: Los descriptores por encima de 2 (stderr) se ponen a disposición
-    del proceso hijo como gestores heredables, pero desde la arquitectura de Windows
-    no se asocia el número descriptor de fichero con los gestores de bajo nivel.
-    El proceso hijo (todavia) no tiene un medio de acceso a estos gestores.
-    Stdin, stdout and stderr funcionan como se esperaba.
+    Compatibilidad Windows: los descriptores más allá de 2 (stderr) son
+    accesibles al proceso hijo, en forma de punteros heredados, pero
+    como la arquitectura Windows no asocia números a los descriptores
+    de bajo nivel, el proceso hijo no tiene, actualmente, ningún medio
+    para acceder a ellos. Por otro lado, stdin, stdout y stderr funcionan
+    como de costumbre.
    </para>
   </note>
   <note>
    <para>
-    Si solamente se necesita una tubería de proceso unidireccional, es mejor usar
-    <function>popen</function> en su lugar, ya que es mucho más fácil de utilizar.
+    Si solo se necesita un proceso unidireccional,
+    <function>popen</function> será más práctico, ya que es más
+    sencillo de utilizar.
    </para>
   </note>
  </refsect1>
- 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -284,12 +356,11 @@ if (is_resource($process)) {
     <member><function>system</function></member>
     <member><function>passthru</function></member>
     <member><function>stream_select</function></member>
-    <member>The <link linkend="language.operators.execution">backtick operator</link></member>
+    <member><link linkend="language.operators.execution">Las comillas invertidas</link></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

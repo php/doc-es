@@ -1,42 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 6501c09deda9a063eb47e05ca3cbb6d922b7eb49 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fgetcsv">
+<!-- EN-Revision: 781f2ec04ee8817687e5e333bc3e64ab973322d7 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.fgetcsv" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>fgetcsv</refname>
-  <refpurpose>Obtiene una línea de un puntero a un fichero y la analiza en busca de campos CSV</refpurpose>
+  <refpurpose>Obtiene una línea desde un puntero de archivo y la analiza para campos CSV</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>fgetcsv</methodname>
-   <methodparam><type>resource</type><parameter>handle</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>length</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>delimiter</parameter><initializer>","</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>enclosure</parameter><initializer>'"'</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>escape</parameter><initializer>"\"</initializer></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>fgetcsv</methodname>
+   <methodparam><type>resource</type><parameter>stream</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>length</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>separator</parameter><initializer>","</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>enclosure</parameter><initializer>"\""</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>escape</parameter><initializer>"\\"</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Similar a <function>fgets</function> excepto que
-   <function>fgetcsv</function> analiza la línea que lee para buscar campos en formato
-   <acronym>CSV</acronym>, devolviendo un array que contiene los campos
-   leídos.
+   Similar a <function>fgets</function> pero <function>fgetcsv</function>
+   analiza la línea que lee y busca los campos <acronym>CSV</acronym>,
+   que devuelve en un array que los contiene.
   </para>
+  <note>
+   <simpara>
+    Los parámetros de configuración local son tenidos en cuenta por esta función.
+    Por ejemplo, los datos codificados en ciertos juegos de caracteres de un byte pueden ser analizados
+    incorrectamente si <constant>LC_CTYPE</constant> es
+    <literal>en_US.UTF-8</literal>.
+   </simpara>
+  </note>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>handle</parameter></term>
+     <term><parameter>stream</parameter></term>
      <listitem>
       <para>
-       Un puntero a un fichero abierto correctamente por
-       <function>fopen</function>, <function>popen</function>, o
-       <function>fsockopen</function>.
+       Un puntero válido a un archivo abierto con <function>fopen</function>,
+       <function>popen</function> o <function>fsockopen</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -44,19 +49,24 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud. Debe ser mayor que la línea más larga (en caracteres) encontrada en
-       el fichero CSV (permitiendo caracteres fin de línea finales). Es
-       opcional en PHP 5. Al omitir este parámetro (o estableciéndolo a 0 en PHP
-       5.1.0 y posterior), la longitud máxima de línea no está limitada, lo que es
-       ligeramente más lento.
+       Debe ser mayor que la línea más larga (en términos de caracteres)
+       a leer en el archivo (incluyendo el carácter de fin de línea).
+       En caso contrario la línea será dividida en fragmentos de <parameter>length</parameter> caracteres,
+       a menos que la división ocurra dentro de un encierro.
+      </para>
+      <para>
+       Omitir este parámetro (o establecerlo a 0, o &null; en PHP 8.0.0 o
+       versiones posteriores) hace que la longitud máxima de la línea no esté limitada,
+       lo cual es ligeramente más lento.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>delimiter</parameter></term>
+     <term><parameter>separator</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>delimiter</parameter> establece el delimitador de campo (un sólo carácter).
+       El parámetro <parameter>separator</parameter> define el separador de campo.
+       Debe tratarse de un carácter de un solo byte.
       </para>
      </listitem>
     </varlistentry>
@@ -64,7 +74,8 @@
      <term><parameter>enclosure</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>enclosure</parameter> establece el carácter circundante de cada campo (un sólo carácter).
+       El parámetro <parameter>enclosure</parameter> define el carácter de encierro de los campos.
+       Debe tratarse de un carácter de un solo byte.
       </para>
      </listitem>
     </varlistentry>
@@ -72,34 +83,64 @@
      <term><parameter>escape</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>escape</parameter> establece el carácter de escape (un sólo carácter). Por defecto, es una barra invertida.
+       El parámetro <parameter>escape</parameter> define el carácter de escape.
+       Debe tratarse de un carácter de un solo byte o una cadena vacía.
+       La cadena vacía (<literal>""</literal>) desactiva el mecanismo de escape propietario.
       </para>
+      <note>
+       <simpara>
+        Generalmente un carácter de encierro <parameter>enclosure</parameter> es
+        escapado dentro de un campo duplicándolo;
+        Sin embargo, el carácter de escape <parameter>escape</parameter> puede ser utilizado como alternativa.
+        Por lo tanto, para los valores por omisión <literal>""</literal> y <literal>\"</literal>
+        tienen el mismo significado. Además de escapar el carácter de encierro <parameter>enclosure</parameter>
+        el carácter de escape <parameter>escape</parameter> no tiene
+        significado especial; ni siquiera para escapar a sí mismo.
+       </simpara>
+      </note>
+      <warning>
+       <simpara>
+        A partir de PHP 8.4.0, el uso del valor por omisión de
+        <parameter>escape</parameter> está deprecado.
+        Debe ser proporcionado explícitamente ya sea por posición o mediante el uso
+        de los <link linkend="functions.named-arguments">argumentos nombrados</link>.
+       </simpara>
+      </warning>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
+  &warning.csv.escape-parameter;
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array indexado que contiene los campos leídos.
+   Devuelve un array indexado que contiene los campos leídos en caso de éxito, &return.falseforfailure;.
   </para>
   <note>
    <para>
-    Una línea en blanco en un fichero CSV será devuelta como un array
-    que comprende un único campo <type>null</type>, por lo que no será tratada
+    Una línea vacía en un archivo CSV será devuelta
+    en forma de un array que contiene el valor &null; y no será tratada
     como un error.
    </para>
   </note>
   &note.line-endings;
-  <para>
-   <function>fgetcsv</function> devuelve &null; si se proporciona un
-   <parameter>handle</parameter> no válido, o &false; en los demás errores,
-   incluido el final de fichero.
-  </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <simpara>
+   Genera una <exceptionname>ValueError</exceptionname> si
+   <parameter>separator</parameter> o <parameter>enclosure</parameter>
+   no tiene una longitud de un byte.
+  </simpara>
+  <simpara>
+   Genera una <exceptionname>ValueError</exceptionname> si
+   <parameter>escape</parameter> no tiene una longitud de un byte o es una cadena vacía.
+  </simpara>
+ </refsect1>
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -113,27 +154,30 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.3.0</entry>
+       <entry>8.4.0</entry>
        <entry>
-        Se añadió el parámetro <parameter>escape</parameter>
+        Confiar en el valor por omisión de <parameter>escape</parameter> está ahora
+        deprecado.
        </entry>
       </row>
       <row>
-       <entry>5.1.0</entry>
+       <entry>8.3.0</entry>
        <entry>
-        El parámetro <parameter>length</parameter> ahora es opcional.
-        El valor predeterminado es <literal>0</literal>, significando sin límite de longitud.
-        <!--
-        Note to documentors: the length parameter was actually
-        made optional in PHP 5.0.4 but didn't behave properly.
-        Let's gloss over that here. :)
-        -->
+        Una cadena vacía es devuelta en lugar de una cadena que contiene un solo
+        byte nulo para el último campo si este contiene únicamente un delimitador no terminado.
        </entry>
       </row>
       <row>
-       <entry>4.3.5</entry>
+       <entry>8.0.0</entry>
        <entry>
-        <function>fgetcsv</function> ahora es segura al trabajar con datos binarios
+        <parameter>length</parameter> ahora es nullable.
+       </entry>
+      </row>
+      <row>
+       <entry>7.4.0</entry>
+       <entry>
+        El parámetro <parameter>escape</parameter> ahora acepta una cadena vacía
+        para desactivar el mecanismo de escape propietario.
        </entry>
       </row>
      </tbody>
@@ -141,26 +185,26 @@
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Leer e imprimir el contenido completo de un fichero CSV</title>
+    <title>Lee y muestra el contenido de un archivo CSV</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$fila = 1;
-if (($gestor = fopen("test.csv", "r")) !== FALSE) {
-    while (($datos = fgetcsv($gestor, 1000, ",")) !== FALSE) {
-        $numero = count($datos);
-        echo "<p> $numero de campos en la línea $fila: <br /></p>\n";
-        $fila++;
-        for ($c=0; $c < $numero; $c++) {
-            echo $datos[$c] . "<br />\n";
+$row = 1;
+if (($handle = fopen("test.csv", "r")) !== FALSE) {
+    while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+        $num = count($data);
+        echo "<p> $num campos en la línea $row: <br /></p>\n";
+        $row++;
+        for ($c=0; $c < $num; $c++) {
+            echo $data[$c] . "<br />\n";
         }
     }
-    fclose($gestor);
+    fclose($handle);
 }
 ?>
 ]]>
@@ -168,33 +212,23 @@ if (($gestor = fopen("test.csv", "r")) !== FALSE) {
    </example>
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Esta función toma en cuenta los parámetros de configuraciones regionales. Si
-    <varname>LANG</varname> es, p.ej., <literal>en_US.UTF-8</literal>, los ficheros
-    codificados con un byte son leídos de forma errónea por esta función.
-   </para>
-  </note>
- </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>str_getcsv</function></member>
-    <member><function>explode</function></member>
-    <member><function>file</function></member>
-    <member><function>pack</function></member>
-    <member><function>fputcsv</function></member>
-   </simplelist>
-  </para>
+  <simplelist>
+   <member><function>fputcsv</function></member>
+   <member><function>str_getcsv</function></member>
+   <member><methodname>SplFileObject::fgetcsv</methodname></member>
+   <member><methodname>SplFileObject::fputcsv</methodname></member>
+   <member><methodname>SplFileObject::setCsvControl</methodname></member>
+   <member><methodname>SplFileObject::getCsvControl</methodname></member>
+   <member><function>explode</function></member>
+   <member><function>file</function></member>
+   <member><function>pack</function></member>
+  </simplelist>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

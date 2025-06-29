@@ -1,38 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9cc4767b2ddf65c4ed592c9deb818cbb2c9def7b Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 9b1673cf114a1e10c4563ab9223cb56aed552b89 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.strftime" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>strftime</refname>
-  <refpurpose>Formatea una fecha/hora local según una configuración local</refpurpose>
+  <refpurpose>Formatea una fecha/hora local con la configuración local</refpurpose>
  </refnamediv>
- 
+
+ <refsynopsisdiv>
+  &warn.deprecated.function-8-1-0.alternatives;
+  <simplelist role="alternatives">
+   <member><function>date</function></member>
+   <member><methodname>IntlDateFormatter::format</methodname></member>
+  </simplelist>
+ </refsynopsisdiv>
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>strftime</methodname>
+   <modifier role="attribute">#[\Deprecated]</modifier>
+   <type class="union"><type>string</type><type>false</type></type><methodname>strftime</methodname>
    <methodparam><type>string</type><parameter>format</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>timestamp</parameter><initializer>time()</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>timestamp</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Formatea una fecha/hora local según la configuración local. Los nombres del mes y del día
-   de la semana y otras cadenas dependientes del lenguaje respetan el localismo establecido
-   con <function>setlocale</function>.
+   Formatea una fecha y/o una hora según la localización local. Los nombres
+   de los meses, de los días de la semana pero también de otras cadenas dependientes
+   de la localización, respetarán la localización actual definida por la función
+   <function>setlocale</function>.
   </para>
-  <para>
-   No todos los especificadores de conversión pueden estar soportados por su biblioteca C, en cuyo
-   caso no estarán soportados por la función <function>strftime</function> de PHP.
-   Además, no todas las plataformas soportan marcas temporales negativas, por lo que el
-   rango de fechas puede estar limitado a fechas que no sean anteriores a la época Unix.
-   Eso significa que %e, %T, %R y, %D (y posiblemente otros), así como las fechas anteriores al
-   <literal>1 de enero de 1970</literal>, no funcionarán en Windows, en algunas distribucioes de Linux,
-   y en otros pocos sistemas operativos. Para los sistemas Windows, se puede encontrar un resumen
-   de los especificadores de conversión soportados en
-   <link xlink:href="&url.strftime.win32;"><acronym>MSDN</acronym></link>.
-  </para>
+  <warning>
+   <para>
+    Todos los caracteres modificadores no siempre son soportados por
+    todas las bibliotecas C. En este caso, no serán soportados por PHP tampoco. Además, todas las plataformas no soportan
+    los timestamps negativos, y sus fechas podrían estar limitadas por el
+    inicio de la época Unix. Esto significa que
+    <literal>%e</literal>, <literal>%T</literal>, <literal>%R</literal> y <literal>%D</literal>
+    (y puede que otros) y las fechas anteriores al
+    <literal>1 de Enero de 1970</literal> no funcionarán bajo Windows,
+    en algunas distribuciones de Linux, y en algunos sistemas operativos.
+    Para Windows, una lista completa de las opciones de conversión está disponible
+    en el <link xlink:href="&url.strftime.win32;">sitio de <acronym>MSDN</acronym></link>.
+    Utilice en su lugar el método <methodname>IntlDateFormatter::format</methodname>.
+   </para>
+  </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -42,8 +56,8 @@
      <listitem>
       <para>
        <table>
-        <title>Los siguientes caracteres están reconocidos en el
-         parámetro de cadena <parameter>format</parameter></title>
+        <title>Los siguientes caracteres son reconocidos en el argumento
+         <parameter>format</parameter></title>
         <tgroup cols="3">
          <thead>
           <row>
@@ -60,41 +74,39 @@
           </row>
           <row>
            <entry><literal>%a</literal></entry>
-           <entry>Una representación textual abreviada del día</entry>
-           <entry><literal>dom</literal> hasta <literal>sáb</literal></entry>
+           <entry>Nombre abreviado del día de la semana</entry>
+           <entry>De <literal>Sun</literal> a <literal>Sat</literal></entry>
           </row>
           <row>
            <entry><literal>%A</literal></entry>
-           <entry>Una representación textual completa del día</entry>
-           <entry><literal>domingo</literal> hasta <literal>sábado</literal></entry>
+           <entry>Nombre completo del día de la semana</entry>
+           <entry>De <literal>Sunday</literal> a <literal>Saturday</literal></entry>
           </row>
           <row>
            <entry><literal>%d</literal></entry>
-           <entry>El día del mes con dos dígitos (con ceros iniciales)</entry>
-           <entry><literal>01</literal> a <literal>31</literal></entry>
+           <entry>Día del mes en formato numérico, con 2 dígitos (con el cero inicial)</entry>
+           <entry>De <literal>01</literal> a <literal>31</literal></entry>
           </row>
           <row>
            <entry><literal>%e</literal></entry>
-           <entry>
-            El día del mes, con un espacio precediendo a los dígitos simples. No
-            está implementado como está descrito en Windows. Véase más abajo para más información.
-           </entry>
-           <entry><literal> 1</literal> a <literal>31</literal></entry>
+           <entry>Día del mes, con un espacio precediendo al primer dígito.
+           La implementación de Windows es diferente, véase más abajo para más información.</entry>
+           <entry>De <literal> 1</literal> a <literal>31</literal></entry>
           </row>
           <row>
            <entry><literal>%j</literal></entry>
-           <entry>Día del año, tres dígitos con ceros iniciales</entry>
+           <entry>Día del año, con 3 dígitos con cero inicial</entry>
            <entry><literal>001</literal> a <literal>366</literal></entry>
           </row>
           <row>
            <entry><literal>%u</literal></entry>
-           <entry>Representación numérica del día de la semana del ISO-8601</entry>
-           <entry><literal>1</literal> (para lunes) hasta <literal>7</literal> (para domingo)</entry>
+           <entry>Representación ISO-8601 del día de la semana</entry>
+           <entry>De <literal>1</literal> (para Lunes) a <literal>7</literal> (para Domingo)</entry>
           </row>
           <row>
            <entry><literal>%w</literal></entry>
            <entry>Representación numérica del día de la semana</entry>
-           <entry><literal>0</literal> (para domingo) hasta <literal>6</literal> (para sábado)</entry>
+           <entry>De <literal>0</literal> (para Domingo) a <literal>6</literal> (para Sábado)</entry>
           </row>
           <row>
            <entry align="center"><emphasis>Semana</emphasis></entry>
@@ -103,24 +115,24 @@
           </row>
           <row>
            <entry><literal>%U</literal></entry>
-           <entry>Número de semana del año dado, comenzando con el primer
-            domingo como la primera semana</entry>
+           <entry>Número de la semana del año dado, comenzando por el primer
+            Lunes como primera semana</entry>
            <entry><literal>13</literal> (para la 13ª semana completa del año)</entry>
           </row>
           <row>
            <entry><literal>%V</literal></entry>
-           <entry>Número de semana del año dado del ISO-8601:1988, comenzando con
-            la primera semana del año con al menos 4 días de semana, con el lunes
-            como principio de la semana</entry>
-           <entry><literal>01</literal> hasta <literal>53</literal> (donde 53
-            cuenta para una semana traslapada)</entry>
+           <entry>Número de la semana del año, siguiendo la norma ISO-8601:1988,
+            comenzando como primera semana, la semana del año que contiene al menos
+            4 días, y donde Lunes es el inicio de la semana</entry>
+           <entry>De <literal>01</literal> a <literal>53</literal> (donde 53
+            cuenta como semana de solapamiento)</entry>
           </row>
           <row>
            <entry><literal>%W</literal></entry>
            <entry>Una representación numérica de la semana del año, comenzando
-            con el primer domingo como la primera semana</entry>
-           <entry><literal>46</literal> (para la 46ª semana del año comenzando
-            con un lunes)</entry>
+            por el primer Lunes de la primera semana</entry>
+           <entry><literal>46</literal> (para la 46ª semana de la semana comenzando
+            por un Lunes)</entry>
           </row>
           <row>
            <entry align="center"><emphasis>Mes</emphasis></entry>
@@ -129,23 +141,23 @@
           </row>
           <row>
            <entry><literal>%b</literal></entry>
-           <entry>Nombre del mes abreviado, basado en el localismo</entry>
-           <entry><literal>ene</literal> hasta <literal>dic</literal></entry>
+           <entry>Nombre del mes, abreviado, según la localización</entry>
+           <entry>De <literal>Jan</literal> a <literal>Dec</literal></entry>
           </row>
           <row>
            <entry><literal>%B</literal></entry>
-           <entry>Nombre del mes completo, basado en el localismo</entry>
-           <entry><literal>enero</literal> hasta <literal>diciembre</literal></entry>
+           <entry>Nombre completo del mes, según la localización</entry>
+           <entry>De <literal>January</literal> a <literal>December</literal></entry>
           </row>
           <row>
            <entry><literal>%h</literal></entry>
-           <entry>Nombre del mes abreviado, basado en el localismo (un alias de %b)</entry>
-           <entry><literal>ene</literal> hasta <literal>dic</literal></entry>
+           <entry>Nombre del mes abreviado, según la localización (alias de %b)</entry>
+           <entry>De <literal>Jan</literal> a <literal>Dec</literal></entry>
           </row>
           <row>
            <entry><literal>%m</literal></entry>
-           <entry>Representación de dos dígitos del mes</entry>
-           <entry><literal>01</literal> (para enero) hasta <literal>12</literal> (para diciembre)</entry>
+           <entry>Mes, con 2 dígitos</entry>
+           <entry>De <literal>01</literal> (para Enero) a <literal>12</literal> (para Diciembre)</entry>
           </row>
           <row>
            <entry align="center"><emphasis>Año</emphasis></entry>
@@ -154,27 +166,27 @@
           </row>
           <row>
            <entry><literal>%C</literal></entry>
-           <entry>Representación de dos dígitos del siglo (año dividido entre 100, truncado a un entero)</entry>
-           <entry><literal>19</literal> para el Siglo XX</entry>
+           <entry>Representación, con 2 dígitos, del siglo (año dividido por 100, reducido a un entero)</entry>
+           <entry><literal>19</literal> para el siglo 20</entry>
           </row>
           <row>
            <entry><literal>%g</literal></entry>
-           <entry>Representación de dos dígitos del año por el estándar ISO-8601:1988 (véase %V)</entry>
+           <entry>Representación, con 2 dígitos, del año, compatible con los estándares ISO-8601:1988 (véase %V)</entry>
            <entry>Ejemplo: <literal>09</literal> para la semana del 6 de enero de 2009</entry>
           </row>
           <row>
            <entry><literal>%G</literal></entry>
-           <entry>La versión completa de cuatro dígitos de %g</entry>
-           <entry>Ejemplo: <literal>2008</literal> para la semana del 3 de Enero de 2009</entry>
+           <entry>La versión completa de 4 dígitos de %g</entry>
+           <entry>Ejemplo: <literal>2009</literal> para la semana del 3 de enero de 2009</entry>
           </row>
           <row>
            <entry><literal>%y</literal></entry>
-           <entry>Representación de dos dígitos del año</entry>
+           <entry>El año, con 2 dígitos</entry>
            <entry>Ejemplo: <literal>09</literal> para 2009, <literal>79</literal> para 1979</entry>
           </row>
           <row>
            <entry><literal>%Y</literal></entry>
-           <entry>Representación de cuatro dígitos del año</entry>
+           <entry>El año, con 4 dígitos</entry>
            <entry>Ejemplo: <literal>2038</literal></entry>
           </row>
           <row>
@@ -184,196 +196,210 @@
           </row>
           <row>
            <entry><literal>%H</literal></entry>
-           <entry>Representación de dos dígitos de la hora en formato de 24 horas</entry>
-           <entry><literal>00</literal> hasta <literal>23</literal></entry>
+           <entry>La hora, con 2 dígitos, en formato 24 horas</entry>
+           <entry>De <literal>00</literal> a <literal>23</literal></entry>
           </row>
           <row>
            <entry><literal>%k</literal></entry>
-           <entry>La hora en format de 24 horas, con un espacio precediendo a las horas de un dígito</entry>
-           <entry><literal> 0</literal> hasta <literal>23</literal></entry>
+           <entry>La hora en formato 24 horas, con un espacio precediendo a
+            un solo dígito</entry>
+           <entry>De <literal> 0</literal> a <literal>23</literal></entry>
           </row>
           <row>
            <entry><literal>%I</literal></entry>
-           <entry>Representación de dos dígitos de la hora en formato de 12 horas</entry>
-           <entry><literal>01</literal> hasta <literal>12</literal></entry>
+           <entry>Hora, con 2 dígitos, en formato 12 horas</entry>
+           <entry>De <literal>01</literal> a <literal>12</literal></entry>
           </row>
           <row>
-           <entry><literal>%l ('L' minúscula)</literal></entry>
-           <entry>La hora en formato de 12 horas, con un espacio precediendo a los dígitos simples</entry>
-           <entry><literal> 1</literal> hasta <literal>12</literal></entry>
+           <entry><literal>%l</literal> ('L' minúscula)</entry>
+           <entry>Hora, en formato 12 horas, con un espacio precediendo a un solo dígito</entry>
+           <entry>De <literal> 1</literal> a <literal>12</literal></entry>
           </row>
           <row>
            <entry><literal>%M</literal></entry>
-           <entry>Representación de dos dígitos de los minutos</entry>
-           <entry><literal>00</literal> hasta <literal>59</literal></entry>
+           <entry>Minuto, con 2 dígitos</entry>
+           <entry>De <literal>00</literal> a <literal>59</literal></entry>
           </row>
           <row>
            <entry><literal>%p</literal></entry>
-           <entry>"AM" o "PM" en MAYÚSCULAS basados en la hora dada</entry>
-           <entry>Ejemplo: <literal>AM</literal> para 00:31, <literal>PM</literal> para 22:23</entry>
+           <entry>'AM' o 'PM', en mayúsculas, basado en la hora proporcionada</entry>
+           <entry>
+            Ejemplo: <literal>AM</literal> para 00:31, <literal>PM</literal> para 22:23.
+            El resultado exacto depende del sistema operativo, y pueden devolver también variantes en minúsculas,
+            o variantes con puntos (como <literal>a.m.</literal>).
+           </entry>
           </row>
           <row>
            <entry><literal>%P</literal></entry>
-           <entry>"am" o "pm" en minúsculas basados en la hora dada</entry>
-           <entry>Ejemplo: <literal>am</literal> para 00:31, <literal>pm</literal> para 22:23</entry>
+           <entry>'am' o 'pm', en minúsculas, basado en la hora proporcionada</entry>
+           <entry>
+            Ejemplo: <literal>am</literal> para 00:31, <literal>pm</literal> para 22:23.
+            No soportado por todos los sistemas operativos.
+           </entry>
           </row>
           <row>
            <entry><literal>%r</literal></entry>
-           <entry>Lo mismo que "%I:%M:%S %p"</entry>
+           <entry>Idéntico a "%I:%M:%S %p"</entry>
            <entry>Ejemplo: <literal>09:34:17 PM</literal> para 21:34:17</entry>
           </row>
           <row>
            <entry><literal>%R</literal></entry>
-           <entry>Lo mismo que "%H:%M"</entry>
+           <entry>Idéntico a "<literal>%H:%M</literal>"</entry>
            <entry>Ejemplo: <literal>00:35</literal> para 12:35 AM, <literal>16:44</literal> para 4:44 PM</entry>
           </row>
           <row>
            <entry><literal>%S</literal></entry>
-           <entry>Representación de dos dígitos de los segundos</entry>
-           <entry><literal>00</literal> hasta <literal>59</literal></entry>
+           <entry>Segundo, con 2 dígitos</entry>
+           <entry>De <literal>00</literal> a <literal>59</literal></entry>
           </row>
           <row>
            <entry><literal>%T</literal></entry>
-           <entry>Lo mismo que "%H:%M:%S"</entry>
+           <entry>Idéntico a "<literal>%H:%M:%S</literal>"</entry>
            <entry>Ejemplo: <literal>21:34:17</literal> para 09:34:17 PM</entry>
           </row>
           <row>
            <entry><literal>%X</literal></entry>
-           <entry>Representación preferida de la hora basda en el localismo, sin la fecha</entry>
+           <entry>Representación de la hora, basada en la localización, sin la fecha</entry>
            <entry>Ejemplo: <literal>03:59:16</literal> o <literal>15:59:16</literal></entry>
           </row>
           <row>
            <entry><literal>%z</literal></entry>
-           <entry>El índice de la zona horaria. No implementado como está descrito en
-            Windows. Véase más abajo para más información.</entry>
-           <entry>Ejemplo: <literal>-0500</literal> para Hora del Este de EEUU</entry>
+           <entry>
+            El desplazamiento horario. No implementado tal como se describe en Windows.
+            Ver más abajo para más información.</entry>
+           <entry>Ejemplo: <literal>-0500</literal> para la hora del este de EE.UU.</entry>
           </row>
           <row>
            <entry><literal>%Z</literal></entry>
-           <entry>La abreviatura de la zona horaria No implementado como está descrito en
-            Windows. Véase más abajo para más información.</entry>
-           <entry>Ejemplo: <literal>EST</literal> para Hora del Este</entry>
+           <entry>
+            La abreviación del desplazamiento horario. No implementado tal como se describe en
+            Windows. Ver más abajo para más información.
+           </entry>
+           <entry>
+            Ejemplo: <literal>EST</literal> para la hora del este
+           </entry>
           </row>
           <row>
-           <entry align="center"><emphasis>Marcas de fecha y hora</emphasis></entry>
+           <entry align="center"><emphasis>Hora y fecha</emphasis></entry>
            <entry>---</entry>
            <entry>---</entry>
           </row>
           <row>
            <entry><literal>%c</literal></entry>
-           <entry>Marca preferida de la fecha y hora basadas en el localismo</entry>
+           <entry>Fecha y hora preferidas, basadas en la localización</entry>
            <entry>Ejemplo: <literal>Tue Feb  5 00:45:10 2009</literal> para
             el 5 de febrero de 2009 a las 12:45:10 AM</entry>
           </row>
           <row>
            <entry><literal>%D</literal></entry>
-           <entry>Lo mismo que "%m/%d/%y"</entry>
+           <entry>Idéntico a "<literal>%m/%d/%y</literal>"</entry>
            <entry>Ejemplo: <literal>02/05/09</literal> para el 5 de febrero de 2009</entry>
           </row>
           <row>
            <entry><literal>%F</literal></entry>
-           <entry>Lo mismo que "%Y-%m-%d" (normalmente usado en las marcas de fecha de bases de datos)</entry>
+           <entry>
+            Idéntico a "<literal>%Y-%m-%d</literal>"
+            (usado habitualmente por las bases de datos)
+           </entry>
            <entry>Ejemplo: <literal>2009-02-05</literal> para el 5 de febrero de 2009</entry>
           </row>
           <row>
            <entry><literal>%s</literal></entry>
-           <entry>Marca temporal del instante de la Época Unix (lo mismo que la función
-            <function>time</function>)</entry>
+           <entry>Timestamp de la época Unix (idéntico a la función <function>time</function>)</entry>
            <entry>Ejemplo: <literal>305815200</literal> para el 10 de septiembre de 1979 08:40:00 AM</entry>
           </row>
           <row>
            <entry><literal>%x</literal></entry>
-           <entry>Representación preferida de la fecha basda en la configuración local, sin la hora</entry>
+           <entry>Representación preferida de la fecha, basada en la localización, sin la hora</entry>
            <entry>Ejemplo: <literal>02/05/09</literal> para el 5 de febrero de 2009</entry>
           </row>
           <row>
-           <entry align="center"><emphasis>Miscelánea</emphasis></entry>
+           <entry align="center"><emphasis>Varios</emphasis></entry>
            <entry>---</entry>
            <entry>---</entry>
           </row>
           <row>
            <entry><literal>%n</literal></entry>
-           <entry>Un carácter de nueva línea ("\n")</entry>
+           <entry>Una nueva línea ("\n")</entry>
            <entry>---</entry>
           </row>
           <row>
            <entry><literal>%t</literal></entry>
-           <entry>Un carácter de tabulación ("\t")</entry>
+           <entry>Una tabulación ("\t")</entry>
            <entry>---</entry>
           </row>
           <row>
            <entry><literal>%%</literal></entry>
-           <entry>Un carácter de porcentaje literal ("%")</entry>
+           <entry>El carácter de porcentaje ("<literal>%</literal>")</entry>
            <entry>---</entry>
           </row>
          </tbody>
         </tgroup>
        </table>
       </para>
-      <para>
-       La longitud máxima de este parámetro es de 1023 caracteres.
-      </para>
       <warning>
        <simpara>
-        A diferencia del ISO-9899:1999, Solaris de Sun comienza con el domingo como 1. Como
-        resultado, <literal>%u</literal> podría no funcionar como está descrito en este
-        manual.
+        A diferencia de la norma <literal>ISO-9899:1999</literal>, Sun Solaris
+        comienza con el Domingo a 1. También, el formato <literal>%u</literal>
+        no funcionará tal como se describe en este manual.
        </simpara>
       </warning>
       <warning>
        <para>
-        <emphasis>Solamente para Windows:</emphasis>
+        <emphasis>Solo Windows:</emphasis>
        </para>
        <para>
-        El modificador <literal>%e</literal> no está soportado en la implementación
-        para Windows de esta función. Para obtener este valor se puede usar
-        en su lugar el modificador <literal>%#d</literal>. El ejemplo de abajo
-        ilustra cómo escribir una función multiplataforma compatible.
+        El modificador <literal>%e</literal>
+        no es soportado bajo Windows. Para calcular el valor, el modificador
+        <literal>%#d</literal> puede ser utilizado en su lugar. El ejemplo de abajo ilustra la
+        manera de escribir un código multiplataforma.
        </para>
        <para>
         Los modificadores <literal>%z</literal> y <literal>%Z</literal>
-        devuelven el nombre de la zona horaria en lugar del índice o de la abreviatura.
+        devuelven ambos el nombre de la zona horaria en lugar del desplazamiento
+        o de la abreviación.
        </para>
       </warning>
       <warning>
        <simpara>
-        <emphasis>Solamente para macOS:</emphasis> El modificador <literal>%P</literal> 
-        no está soportado en la implementación para macOS de esta función.
+        <emphasis>Solo macOS y musl:</emphasis> El modificador <literal>%P</literal>
+        no es soportado por la implementación de esta función bajo macOS.
        </simpara>
-      </warning>   
+      </warning>
      </listitem>
     </varlistentry>
-    
+
     &date.timestamp.description;
-    
+
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una cadena formateada según <parameter>format</parameter>
-   empleando el parámetro <parameter>timestamp</parameter> dado o el instante
-   local actual si no se da una marca temporal. Los nombres del mes y del día de la semana y
-   otras cadenas dependientes del lenguaje respetan el localismo establecido
-   con <function>setlocale</function>.
+   Devuelve una &string; formateada según el argumento <parameter>format</parameter>
+   dado, utilizando el argumento <parameter>timestamp</parameter> o la fecha local
+   actual si no se proporciona ningún timestamp. Los nombres de los meses, de los días de la
+   semana pero también de otras cadenas dependientes de la localización, respetarán
+   la localización actual definida por la función <function>setlocale</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   &date.timezone.errors.description;
   <para>
-   Ya que la salida depende de la biblioteca C subyacente, algunos especificadores
-   de conversión no están soportados. En Windows, proporcionar especificadores de
-   conversión desconocidos resultará en 5 mensajes <constant>E_WARNING</constant> y
-   devolverá &false;. En otros sistemas operativos podría no obtenerse ningún
-   mensaje <constant>E_WARNING</constant> y la salida podría contener los
-   especificadores de conversión no convertidos.
+   Dado que la salida depende de la biblioteca C subyacente, algunos
+   especificadores de conversión no son soportados. Bajo Windows,
+   el hecho de proporcionar un especificador de conversión desconocido devolverá
+   5 mensajes de nivel <constant>E_WARNING</constant> y devolverá &false;
+   al final. Bajo otros sistemas operativos, no recibirá ningún
+   mensaje de nivel <constant>E_WARNING</constant> y la salida contendrá los
+   especificadores no convertidos.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -386,33 +412,36 @@
       </row>
      </thead>
      <tbody>
-      
-      &date.timezone.errors.changelog;
-      
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        <parameter>timestamp</parameter> ahora es nullable.
+       </entry>
+      </row>
      </tbody>
     </tgroup>
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   Este ejemplo funcionará si se tienen instalados los localismos respectivos
-   en el sistema.
+   Este ejemplo solo funcionará si tiene las localizaciones respectivas
+   instaladas en su sistema.
    <example>
-    <title>Ejemplos de localismos con <function>strftime</function></title>
+    <title>Ejemplo con <function>strftime</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 setlocale(LC_TIME, "C");
 echo strftime("%A");
 setlocale(LC_TIME, "fi_FI");
-echo strftime(" en finlandés es %A,");
+echo strftime(" in Finnish is %A,");
 setlocale(LC_TIME, "fr_FR");
-echo strftime(" en francés %A y");
+echo strftime(" in French %A and");
 setlocale(LC_TIME, "de_DE");
-echo strftime(" en alemán %A.\n");
+echo strftime(" in German %A.\n");
 ?>
 ]]>
     </programlisting>
@@ -420,18 +449,18 @@ echo strftime(" en alemán %A.\n");
   </para>
   <para>
    <example>
-    <title>Ejemplo de número de semana del ISO 8601:1988</title>
+    <title>Ejemplo en formato de fecha ISO 8601:1988</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 /*     Diciembre 2002 / Enero 2003
-SemISO L   M   X   J   V   S   D
------- ----------------------------
-51      16  17  18  19  20  21  22
-52      23  24  25  26  27  28  29
-1       30  31   1   2   3   4   5
-2        6   7   8   9  10  11  12
-3       13  14  15  16  17  18  19   */
+ISOWk  L   M   X   J   V   S   D
+----- ----------------------------
+51     16  17  18  19  20  21  22
+52     23  24  25  26  27  28  29
+1      30  31   1   2   3   4   5
+2       6   7   8   9  10  11  12
+3      13  14  15  16  17  18  19   */
 
 // Muestra: 12/28/2002 - %V,%G,%Y = 52,2002,2002
 echo "12/28/2002 - %V,%G,%Y = " . strftime("%V,%G,%Y", strtotime("12/28/2002")) . "\n";
@@ -445,16 +474,14 @@ echo "1/3/2003 - %V,%G,%Y = " . strftime("%V,%G,%Y",strtotime("1/3/2003")) . "\n
 // Muestra: 1/10/2003 - %V,%G,%Y = 2,2003,2003
 echo "1/10/2003 - %V,%G,%Y = " . strftime("%V,%G,%Y",strtotime("1/10/2003")) . "\n";
 
-
-
 /*     Diciembre 2004 / Enero 2005
-SemISO L   M   X   J   V   S   D
------- ----------------------------
-51      13  14  15  16  17  18  19
-52      20  21  22  23  24  25  26
-53      27  28  29  30  31   1   2
-1        3   4   5   6   7   8   9
-2       10  11  12  13  14  15  16   */
+ISOWk  L   M   X   J   V   S   D
+----- ----------------------------
+51     13  14  15  16  17  18  19
+52     20  21  22  23  24  25  26
+53     27  28  29  30  31   1   2
+1       3   4   5   6   7   8   9
+2      10  11  12  13  14  15  16   */
 
 // Muestra: 12/23/2004 - %V,%G,%Y = 52,2004,2004
 echo "12/23/2004 - %V,%G,%Y = " . strftime("%V,%G,%Y",strtotime("12/23/2004")) . "\n";
@@ -475,21 +502,21 @@ echo "1/3/2005 - %V,%G,%Y = " . strftime("%V,%G,%Y",strtotime("1/3/2005")) . "\n
   </para>
   <para>
    <example>
-    <title>Ejemplo multiplataforma compatible del modificador <literal>%e</literal></title>
+    <title><literal>%e</literal> funcionando en toda plataforma</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Jan 1: resulta en: '%e%1%' (%%, e, %%, %e, %%)
-$formato = '%%e%%%e%%';
+// 1 de Enero: resultados en: '%e%1%' (%%, e, %%, %e, %%)
+$format = '%%e%%%e%%';
 
-// Comprobación para Windows para hallar y remplazar el 
-// modificador %e adecuadamente
+// Verifica bajo Windows, para encontrar y reemplazar el modificador %e
+// correctamente
 if (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN') {
-    $formato = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $formato);
+    $format = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $format);
 }
 
-echo strftime($formato);
+echo strftime($format);
 ?>
 ]]>
     </programlisting>
@@ -497,88 +524,89 @@ echo strftime($formato);
   </para>
   <para>
    <example>
-    <title>Mostrar todos los formatos conocidos y desconocidos.</title>
+    <title>Muestra todos los formatos conocidos o no</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Describir los formatos.
-$formatos_strftime = array(
+
+// Describe los formatos
+$strftimeFormats = array(
     'A' => 'Una representación textual completa del día',
-    'B' => 'Nombre del mes completo, basado en el localismo',
-    'C' => 'Representación de dos dígitos del siglo (año dividido entre 100, truncado a un entero)',
-    'D' => 'Lo mismo que "%m/%d/%y"',
+    'B' => 'Nombre del mes completo, basado en la localización',
+    'C' => 'Representación con 2 dígitos del año (año, dividido por 100, truncado a entero)',
+    'D' => 'Idéntico a "%m/%d/%y"',
     'E' => '',
-    'F' => 'Lo mismo que "%Y-%m-%d"',
-    'G' => 'La versión completa de cuatro dígitos de %g',
-    'H' => 'Representación de dos dígitos de la hora en formato de 24 horas',
-    'I' => 'Representación de dos dígitos de la hora en formato de 12 horas',
+    'F' => 'Idéntico a "%Y-%m-%d"',
+    'G' => 'La versión completa, con 4 dígitos de %g',
+    'H' => 'Una representación con 2 dígitos de la hora en formato 24-horas',
+    'I' => 'Una representación con 2 dígitos de la hora en formato 12-horas',
     'J' => '',
     'K' => '',
     'L' => '',
-    'M' => 'Representación de dos dígitos de los minutos',
+    'M' => 'Una representación con 2 dígitos de los minutos',
     'N' => '',
     'O' => '',
-    'P' => '"am" o "pm" en minúsculas basados en la hora dada',
+    'P' => '"am" o "pm" (en minúsculas) basado en la hora actual',
     'Q' => '',
-    'R' => 'Lo mismo que "%H:%M"',
-    'S' => 'Representación de dos dígitos de los segundos',
-    'T' => 'Lo mismo que "%H:%M:%S"',
-    'U' => 'Número de semana del año dado, comenzando con el primer domingo como la primera semana',
-    'V' => 'Número de semana del año dado del ISO-8601:1988, comenzando con la primera semana del año con al menos 4 días de semana, con el lunes como principio de la semana',
-    'W' => 'Una representación numérica de la semana del año, comenzando con el primer domingo como la primera semana',
-    'X' => 'Representación preferida de la hora basda en el localismo, sin la fecha',
-    'Y' => 'Representación de cuatro dígitos del año',
-    'Z' => 'La opción de índice/abreviatura de la zona horaria NO dada por %z (depende del sistema operativo)',
-    'a' => 'Una representación textual abreviada del día',
-    'b' => 'Nombre del mes abreviado, basado en el localismo',
-    'c' => 'Marca preferida de la fecha y hora basadas en el localismo',
-    'd' => 'El día del mes con dos dígitos (con ceros iniciales)',
-    'e' => 'El día del mes, con un espacio precediendo a los dígitos simples',
+    'R' => 'Idéntico a "%H:%M"',
+    'S' => 'Una representación con 2 dígitos de los segundos',
+    'T' => 'Idéntico a "%H:%M:%S"',
+    'U' => 'Número de la semana para el año actual, comenzando por el primer Domingo como primera semana',
+    'V'  => 'Número ISO-8601:1988 de la semana del año actual, comenzando por la primera semana del año con al menos 4 días de semana, con el Lunes como inicio de semana',
+    'W' => 'Una representación numérica de la semana del año, comenzando por el primer Lunes como primera semana',
+    'X' => 'Representación preferida para la hora, basada en la localización, sin la fecha',
+    'Y' => 'Una representación con 4 dígitos del año',
+    'Z' => 'La abreviación del desplazamiento horario, no proporcionada por %z (depende del sistema operativo)',
+    'a' => 'La abreviación de la representación textual del día',
+    'b' => 'La abreviación del nombre del mes, basada en la localización',
+    'c' => 'Timestamp preferido basado en la localización',
+    'd' => 'Día del mes con 2 dígitos (con el cero inicial)',
+    'e' => 'Día del mes, con un espacio precediendo a un solo dígito',
     'f' => '',
-    'g' => 'Representación de dos dígitos del año por el estándar ISO-8601:1988 (véase %V)',
-    'h' => 'Nombre del mes abreviado, basado en el localismo (un alias de %b)',
+    'g' => 'Una representación con 2 dígitos del año en formato ISO-8601:1988 (ver %V)',
+    'h' => 'Abreviación del nombre del mes, basada en la localización (alias de %b)',
     'i' => '',
-    'j' => 'Día del año, tres dígitos con ceros iniciales',
-    'k' => 'La hora en formato de 24 horas, con un espacio precediendo a los dígitos simples',
-    'l' => 'La hora en formato de 12 horas, con un espacio precediendo a los dígitos simples',
-    'm' => 'Representación de dos dígitos del mes',
+    'j' => 'Día del año, con 3 dígitos con cero inicial',
+    'k' => 'Hora, en formato 24-horas, con un espacio precediendo a un solo dígito',
+    'l' => 'Hora, en formato 12-horas, con un espacio precediendo a un solo dígito',
+    'm' => 'Una representación del mes con 2 dígitos',
     'n' => 'Un carácter de nueva línea ("\n")',
     'o' => '',
-    'p' => '"AM" o "PM" en MAYÚSCULAS basados en la hora dada',
+    'p' => '"AM" o "PM" (en mayúsculas) basado en la hora actual',
     'q' => '',
-    'r' => 'Lo mismo que "%I:%M:%S %p"',
-    's' => 'Marca temporal del instante de la Época Unix',
+    'r' => 'Idéntico a "%I:%M:%S %p"',
+    's' => 'Timestamp respecto a la época Unix',
     't' => 'Un carácter de tabulación ("\t")',
-    'u' => 'Representación numérica del día de la semana del ISO-8601',
+    'u' => 'Representación numérica del día de la semana en formato ISO-8601',
     'v' => '',
     'w' => 'Representación numérica del día de la semana',
-    'x' => 'Representación preferida de la fecha basda en la configuración local, sin la hora',
-    'y' => 'Representación de dos dígitos del año',
-    'z' => 'El índice de la zona horaria UTC o la abreviatura (depende del sistema operativo)',
-    '%' => 'Un carácter de porcentaje literal ("%")',
+    'x' => 'Representación preferida de la fecha, basada en la localización, sin la hora',
+    'y' => 'Representación del año con 2 dígitos',
+    'z' => 'O bien el desplazamiento horario desde UTC o su abreviación (según el sistema operativo)',
+    '%' => 'Un carácter porcentaje ("%")',
 );
 
-// Resultados.
-$valores_strftime = array();
+// Resultados
+$strftimeValues = array();
 
-// Evaluar los formatos, mientras suprime cualquier error.
-foreach($formatos_strftime as $formato => $descripción){
-    if (False !== ($valor = @strftime("%{$formato}"))){
-        $valores_strftime[$formato] = $valor;
+// 2value los formatos mientras se eliminan los errores
+foreach ($strftimeFormats as $format => $description) {
+    if (false !== ($value = @strftime("%{$format}"))) {
+        $strftimeValues[$format] = $value;
     }
 }
 
-// Encontrar el valor más largo.
-$longitudValorMáx = 2 + max(array_map('strlen', $valores_strftime));
+// Encuentra el valor más largo
+$maxValueLength = 2 + max(array_map('strlen', $strftimeValues));
 
-// Notificar los formatos conocidos.
-foreach($valores_strftime as $formato => $valor){
-    echo "Formato conocido    : '{$formato}' = ", str_pad("'{$valor}'", $longitudValorMáx), " ( {$formatos_strftime[$formato]} )\n";
+// Muestra todos los formatos conocidos
+foreach ($strftimeValues as $format => $value) {
+    echo "Formato conocido: '{$format}' = ", str_pad("'{$value}'", $maxValueLength), " ( {$strftimeFormats[$format]} )\n";
 }
 
-// Notificar los formatos desconocidos.
-foreach(array_diff_key($formatos_strftime, $valores_strftime) as $formato => $descripción){
-    echo "Formato desconocido : '{$formato}'   ", str_pad(' ', $longitudValorMáx), ($descripción ? " ( {$descripción} )" : ''), "\n";
+// Muestra todos los formatos no conocidos
+foreach (array_diff_key($strftimeFormats, $strftimeValues) as $format => $description) {
+    echo "Formato desconocido: '{$format}'   ", str_pad(' ', $maxValueLength), ($description ? " ( {$description} )" : ''), "\n";
 }
 ?>
 ]]>
@@ -586,91 +614,94 @@ foreach(array_diff_key($formatos_strftime, $valores_strftime) as $formato => $de
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Formato conocido    : 'A' = 'Friday'            ( Una representación textual completa del día )
-Formato conocido    : 'B' = 'December'          ( Nombre del mes completo, basado en el localismo )
-Formato conocido    : 'H' = '11'                ( Representación de dos dígitos de la hora en formato de 24 horas )
-Formato conocido    : 'I' = '11'                ( Representación de dos dígitos de la hora en formato de 12 horas )
-Formato conocido    : 'M' = '24'                ( Representación de dos dígitos de los minutos )
-Formato conocido    : 'S' = '44'                ( Representación de dos dígitos de los segundos )
-Formato conocido    : 'U' = '48'                ( Número de semana del año dado, comenzando con el primer domingo como la primera semana )
-Formato conocido    : 'W' = '48'                ( Una representación numérica de la semana del año, comenzando con el primer domingo como la primera semana )
-Formato conocido    : 'X' = '11:24:44'          ( Representación preferida de la hora basda en el localismo, sin la fecha )
-Formato conocido    : 'Y' = '2010'              ( Representación de cuatro dígitos del año )
-Formato conocido    : 'Z' = 'GMT Standard Time' ( La opción de índice/abreviatura de la zona horaria NO dada por %z (depende del sistema operativo) )
-Formato conocido    : 'a' = 'Fri'               ( Una representación textual abreviada del día )
-Formato conocido    : 'b' = 'Dec'               ( Nombre del mes abreviado, basado en el localismo )
-Formato conocido    : 'c' = '12/03/10 11:24:44' ( Marca preferida de la fecha y hora basadas en el localismo )
-Formato conocido    : 'd' = '03'                ( El día del mes con dos dígitos (con ceros iniciales) )
-Formato conocido    : 'j' = '337'               ( Día del año, tres dígitos con ceros iniciales )
-Formato conocido    : 'm' = '12'                ( Representación de dos dígitos del mes )
-Formato conocido    : 'p' = 'AM'                ( "AM" o "PM" en MAYÚSCULAS basados en la hora dada )
-Formato conocido    : 'w' = '5'                 ( Representación numérica del día de la semana )
-Formato conocido    : 'x' = '12/03/10'          ( Representación preferida de la fecha basda en la configuración local, sin la hora )
-Formato conocido    : 'y' = '10'                ( Representación de dos dígitos del año )
-Formato conocido    : 'z' = 'GMT Standard Time' ( El índice de la zona horaria UTC o la abreviatura (depende del sistema operativo) )
-Formato conocido    : '%' = '%'                 ( Un carácter de porcentaje literal ("%") )
-Formato desconocido : 'C'                       ( Representación de dos dígitos del siglo (año dividido entre 100, truncado a un entero) )
-Formato desconocido : 'D'                       ( Lo mismo que "%m/%d/%y" )
-Formato desconocido : 'E'
-Formato desconocido : 'F'                       ( Lo mismo que "%Y-%m-%d" )
-Formato desconocido : 'G'                       ( La versión completa de cuatro dígitos de %g )
-Formato desconocido : 'J'
-Formato desconocido : 'K'
-Formato desconocido : 'L'
-Formato desconocido : 'N'
-Formato desconocido : 'O'
-Formato desconocido : 'P'                       ( "am" o "pm" en minúsculas basados en la hora dada )
-Formato desconocido : 'Q'
-Formato desconocido : 'R'                       ( Lo mismo que "%H:%M" )
-Formato desconocido : 'T'                       ( Lo mismo que "%H:%M:%S" )
-Formato desconocido : 'V'                       ( Número de semana del año dado del ISO-8601:1988, comenzando con la primera semana del año con al menos 4 días de semana, con el lunes como principio de la semana )
-Formato desconocido : 'e'                       ( El día del mes, con un espacio precediendo a los dígitos simples )
-Formato desconocido : 'f'
-Formato desconocido : 'g'                       ( Representación de dos dígitos del año por el estándar ISO-8601:1988 (véase %V) )
-Formato desconocido : 'h'                       ( Nombre del mes abreviado, basado en el localismo (un alias de %b) )
-Formato desconocido : 'i'
-Formato desconocido : 'k'                       ( La hora en formato de 24 horas, con un espacio precediendo a los dígitos simples )
-Formato desconocido : 'l'                       ( La hora en formato de 12 horas, con un espacio precediendo a los dígitos simples )
-Formato desconocido : 'n'                       ( Un carácter de nueva línea ("\n") )
-Formato desconocido : 'o'
-Formato desconocido : 'q'
-Formato desconocido : 'r'                       ( Lo mismo que "%I:%M:%S %p" )
-Formato desconocido : 's'                       ( Marca temporal del instante de la Época Unix )
-Formato desconocido : 't'                       ( Un carácter de tabulación ("\t") )
-Formato desconocido : 'u'                       ( Representación numérica del día de la semana del ISO-8601 )
-Formato desconocido : 'v'
+Formato conocido: 'A' = 'Friday'            ( Una representación textual completa del día )
+Formato conocido: 'B' = 'December'          ( Nombre del mes completo, basado en la localización )
+Formato conocido: 'H' = '11'                ( Una representación con 2 dígitos de la hora en formato 24-horas )
+Formato conocido: 'I' = '11'                ( Una representación con 2 dígitos de la hora en formato 12-horas )
+Formato conocido: 'M' = '24'                ( Una representación con 2 dígitos de los minutos )
+Formato conocido: 'S' = '44'                ( Una representación con 2 dígitos de los segundos )
+Formato conocido: 'U' = '48'                ( Número de la semana para el año actual, comenzando por el primer Domingo como primera semana )
+Formato conocido: 'W' = '48'                ( Una representación numérica de la semana del año, comenzando por el primer Lunes como primera semana )
+Formato conocido: 'X' = '11:24:44'          ( Representación preferida para la hora, basada en la localización, sin la fecha )
+Formato conocido: 'Y' = '2010'              ( Una representación con 4 dígitos del año )
+Formato conocido: 'Z' = 'GMT Standard Time' ( La abreviación del desplazamiento horario, no proporcionada por %z (depende del sistema operativo) )
+Formato conocido: 'a' = 'Fri'               ( La abreviación de la representación textual del día )
+Formato conocido: 'b' = 'Dec'               ( La abreviación del nombre del mes, basada en la localización )
+Formato conocido: 'c' = '12/03/10 11:24:44' ( Timestamp preferido basado en la localización )
+Formato conocido: 'd' = '03'                ( Día del mes con 2 dígitos (con el cero inicial) )
+Formato conocido: 'j' = '337'               ( Día del año, con 3 dígitos con cero inicial )
+Formato conocido: 'm' = '12'                ( Una representación del mes con 2 dígitos )
+Formato conocido: 'p' = 'AM'                ( "AM" o "PM" (en mayúsculas) basado en la hora actual )
+Formato conocido: 'w' = '5'                 ( Representación numérica del día de la semana )
+Formato conocido: 'x' = '12/03/10'          ( Representación preferida de la fecha, basada en la localización, sin la hora )
+Formato conocido: 'y' = '10'                ( Representación del año con 2 dígitos )
+Formato conocido: 'z' = 'GMT Standard Time' ( O bien el desplazamiento horario desde UTC o su abreviación (según el sistema operativo) )
+Formato conocido: '%' = '%'                 ( Un carácter porcentaje ("%") )
+Formato desconocido: 'C'                       ( Representación con 2 dígitos del año (año, dividido por 100, truncado a entero) )
+Formato desconocido: 'D'                       ( Idéntico a "%m/%d/%y" )
+Formato desconocido: 'E'
+Formato desconocido: 'F'                       ( Idéntico a "%Y-%m-%d" )
+Formato desconocido: 'G'                       ( La versión completa, con 4 dígitos de %g )
+Formato desconocido: 'J'
+Formato desconocido: 'K'
+Formato desconocido: 'L'
+Formato desconocido: 'N'
+Formato desconocido: 'O'
+Formato desconocido: 'P'                       ( "am" o "pm" (en minúsculas) basado en la hora actual )
+Formato desconocido: 'Q'
+Formato desconocido: 'R'                       ( Idéntico a "%H:%M" )
+Formato desconocido: 'T'                       ( Idéntico a "%H:%M:%S" )
+Formato desconocido: 'V'                       ( Número ISO-8601:1988 de la semana del año actual, comenzando por la primera semana del año con al menos 4 días de semana, con el Lunes como inicio de semana )
+Formato desconocido: 'e'                       ( Día del mes, con un espacio precediendo a un solo dígito )
+Formato desconocido: 'f'
+Formato desconocido: 'g'                       ( Una representación con 2 dígitos del año en formato ISO-8601:1988 (ver %V) )
+Formato desconocido: 'h'                       ( Abreviación del nombre del mes, basada en la localización (alias de %b) )
+Formato desconocido: 'i'
+Formato desconocido: 'k'                       ( Hora, en formato 24-horas, con un espacio precediendo a un solo dígito )
+Formato desconocido: 'l'                       ( Hora, en formato 12-horas, con un espacio precediendo a un solo dígito )
+Formato desconocido: 'n'                       ( Un carácter de nueva línea ("\n") )
+Formato desconocido: 'o'
+Formato desconocido: 'q'
+Formato desconocido: 'r'                       ( Idéntico a "%I:%M:%S %p" )
+Formato desconocido: 's'                       ( Timestamp respecto a la época Unix )
+Formato desconocido: 't'                       ( Un carácter de tabulación ("\t") )
+Formato desconocido: 'u'                       ( Representación numérica del día de la semana en formato ISO-8601 )
+Formato desconocido: 'v'
 ]]>
     </screen>
    </example>
-  </para>  
+  </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <simpara>
-    %G y %V, los cuales están basados en el número de semana del ISO 8601:1988, pueden
-    dar resultados inesperados (aunque correctos) si el sistema numérico
-    no se entendió perfectamente. Véanse los ejemplos de %V en esta página del manual.
+    <literal>%G</literal> y <literal>%V</literal>, que están basadas
+    en la semana <literal>ISO 8601:1988</literal>, pueden conducir
+    a resultados inesperados (aunque correctos) si el
+    sistema de numeración no es conocido. Ver el ejemplo
+    <literal>%V</literal> de esta página.
    </simpara>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link xlink:href="&url.strftime.format.designer;">Herramienta de diseño del formato de strftime() en línea</link></member>
+    <member><methodname>IntlDateFormatter::format</methodname></member>
+    <member><methodname>DateTimeInterface::format</methodname></member>
+    <member><link xlink:href="&url.strftime.format.designer;">Herramienta de formato strftime() en línea</link></member>
     <member><function>setlocale</function></member>
     <member><function>mktime</function></member>
     <member><function>strptime</function></member>
     <member><function>gmstrftime</function></member>
-    <member><link xlink:href="&spec.strftime;">Especificación de <function>strftime</function> del Open Group</link></member>
+    <member><link xlink:href="&spec.strftime;">grupo de especificaciones de <function>strftime</function></link></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

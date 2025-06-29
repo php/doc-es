@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 4d81bf20250c93fdfb7b114c5d8abe13f311fba4 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 62126c55f1c6ed444043e7272c4f9e233818a44b Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<!-- splitted from ./en/functions/exec.xml, last change in rev 1.2 -->
+
 <refentry xml:id="function.escapeshellcmd" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>escapeshellcmd</refname>
-  <refpurpose>Escapar meta-caracteres del intérprete de comandos</refpurpose>
+  <refpurpose>Protege los caracteres especiales del Shell</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -16,21 +16,21 @@
    <methodparam><type>string</type><parameter>command</parameter></methodparam>
   </methodsynopsis>
   <para>
-   <function>escapeshellcmd</function> escapa cualquier caracter en una
-   cadena que pudiera ser usada para engañar a un comando shell para que ejecute
-   comandos arbitrarios. Esta función debería usarse para asegurarse de
-   que cualquier información procedente de la entrada del usuario sea escapada antes de que dicha información
-   sea pasada a las funciones <function>exec</function> o
-   <function>system</function>, o al <link
-   linkend="language.operators.execution">operador de comilla
-   invertida</link>.
+   <function>escapeshellcmd</function> escapa todos los
+   caracteres de la cadena <parameter>command</parameter>
+   que podrían tener un significado especial en una
+   orden Shell. Esta función permite asegurarse de que la orden será
+   correctamente pasada al ejecutor de órdenes Shell
+   <function>exec</function> y <function>system</function>, o incluso
+   a <link linkend="language.operators.execution">comillas invertidas</link>.
   </para>
   <para>
-   Los siguientes caracteres son precedidos por una barra invertida:
-   <literal>#&amp;;`|*?~&lt;&gt;^()[]{}$\</literal>, <literal>\x0A</literal>
+   Los siguientes caracteres serán escapados:
+   <literal>&amp;#;`|*?~&lt;&gt;^()[]{}$\</literal>, <literal>\x0A</literal>
    y <literal>\xFF</literal>. <literal>'</literal> y <literal>"</literal>
-   son escapados únicamente si no están emparejados. En Windows, todos estos caracteres
-   más <literal>%</literal> son reemplazados en su lugar por un espacio.
+   son escapados solo si no están en pares. En Windows, todos estos caracteres
+   así como <literal>%</literal> y <literal>!</literal> son precedidos por
+   un circunflejo (<literal>^</literal>).
   </para>
  </refsect1>
 
@@ -42,7 +42,7 @@
      <term><parameter>command</parameter></term>
      <listitem>
       <para>
-       El comando a ser escapado.
+       La orden a escapar.
       </para>
      </listitem>
     </varlistentry>
@@ -61,16 +61,16 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>escapeshellcmd</function></title>
+    <title>Ejemplo con <function>escapeshellcmd</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Permitimos intencionadamente un número arbitrario de argumentos aquí.
-$comando = './configure '.$_POST['configure_options'];
+// Se permiten intencionalmente un número arbitrario de argumentos aquí.
+$command = './configure '.$_POST['configure_options'];
 
-$comando_escapado = escapeshellcmd($comando);
+$escaped_command = escapeshellcmd($command);
 
-system($comando_escapado);
+system($escaped_command);
 ?>
 ]]>
     </programlisting>
@@ -80,12 +80,28 @@ system($comando_escapado);
 
  <refsect1 role="notes">
   &reftitle.notes;
+   <warning xmlns="http://docbook.org/ns/docbook">
+    <para>
+     La función <function>escapeshellcmd</function> debe ser utilizada
+     sobre toda la cadena de orden, y permite
+     a personas malintencionadas pasar un número arbitrario
+     de argumentos. Para escapar un solo argumento,
+     la función <function>escapeshellarg</function> debería ser
+     utilizada en su lugar.
+    </para>
+   </warning>
   <warning xmlns="http://docbook.org/ns/docbook">
    <para>
-    <function>escapeshellcmd</function> debería usarse en la cadena de comandos
-    completa, y aún permitir al atacante pasar
-    un número de argumentos arbitrario. Para escapar un único argumento
-    se debería usar en su lugar la función <function>escapeshellarg</function>.
+    Los espacios no son escapados por <function>escapeshellcmd</function>
+    lo cual puede ser problemático en Windows con rutas como:
+    <literal>C:\Program Files\ProgramName\program.exe</literal>.
+    Esto puede ser mitigado utilizando el siguiente fragmento de código:
+    <programlisting role="php">
+<![CDATA[
+<?php
+$cmd = preg_replace('`(?<!^) `', '^ ', escapeshellcmd($cmd));
+]]>
+    </programlisting>
    </para>
   </warning>
  </refsect1>
@@ -98,7 +114,7 @@ system($comando_escapado);
     <member><function>exec</function></member>
     <member><function>popen</function></member>
     <member><function>system</function></member>
-    <member><link linkend="language.operators.execution">operador de comilla invertida</link></member>
+    <member><link linkend="language.operators.execution">las comillas invertidas</link></member>
    </simplelist>
   </para>
  </refsect1>

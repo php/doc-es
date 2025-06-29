@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.fnmatch">
+<!-- EN-Revision: 39a98b1f1776afd4c41f79ce528309c95f62b10a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.fnmatch" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>fnmatch</refname>
-  <refpurpose>Compara un nombre de fichero con un patrón</refpurpose>
+  <refpurpose>Prueba un nombre de fichero mediante un patrón de búsqueda</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>fnmatch</methodname>
    <methodparam><type>string</type><parameter>pattern</parameter></methodparam>
-   <methodparam><type>string</type><parameter>string</parameter></methodparam>
+   <methodparam><type>string</type><parameter>filename</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>fnmatch</function> comprueba si el <parameter>string</parameter> pasado
-   coincide con el comodín tipo shell <parameter>pattern</parameter>.
+   <function>fnmatch</function> verifica si la cadena <parameter>filename</parameter>
+   cumple con el patrón de shell <parameter>pattern</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,121 +30,169 @@
      <term><parameter>pattern</parameter></term>
      <listitem>
       <para>
-       El patrón comodín tipo shell.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>string</parameter></term>
-     <listitem>
-      <para>
-       La cadena comprobada. Esta función es especialmente útil con nombres de fichero,
-       pero también se puede usar con cadenas normales.
-      </para>
-      <para>
-       El usuario medio puede estar familiarizado con patrones tipo shell, o por lo menos con sus
-       formas más sencillas de los comodines <literal>'?'</literal> y <literal>'*'</literal>
-       por lo que usar <function>fnmatch</function> en vez de
-       <function>preg_match</function> para el proceso de
-       entrada de expresiones de búsqueda puede ser una forma más convenienete
-       para ususarios no programadores.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>flags</parameter></term>
-     <listitem>
-      <para>
-       El valor de <parameter>flags</parameter> puede ser una combinación
-       de las siguientes banderas, unidas por el
-       <link linkend="language.operators.bitwise">operador binario OR (|)</link>.
-       <table>
-        <title>
-         Un lista de las posibles banderas para <function>fnmatch</function>
-        </title>
-        <tgroup cols="2">
-         <thead>
-          <row>
-           <entry><parameter>Flag</parameter></entry>
-           <entry>Descripción</entry>
-          </row>
-         </thead>
-         <tbody>
-          <row>
-           <entry><constant>FNM_NOESCAPE</constant></entry>
-           <entry>
-            Deshabilita el escape de la barra invertida.
+       El <parameter>pattern</parameter> a comparar. Habitualmente, el <parameter>pattern</parameter> contendrá
+       caracteres genéricos como <literal>'?'</literal> y <literal>'*'</literal>.
+      <table>
+       <title>
+        Caracteres genéricos a utilizar en el parámetro <parameter>pattern</parameter>
+       </title>
+       <tgroup cols="2">
+        <thead>
+         <row>
+          <entry>Carácter genérico</entry>
+          <entry>&Description;</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry>
+           <literal>?</literal>
+          </entry>
+          <entry>
+           El signo de interrogación coincidirá con cualquier carácter único.
+           Por ejemplo, el patrón <literal>"file?.txt"</literal> coincidirá con <literal>"file1.txt"</literal> y
+           <literal>"fileA.txt"</literal>, pero no coincidirá con <literal>"file10.txt"</literal>.
+          </entry>
+         </row>
+         <row>
+          <entry>
+           <literal>*</literal>
+          </entry>
+          <entry>
+           El asterisco coincidirá con cero o más caracteres.
+           Por ejemplo, el patrón <literal>"foo*.xml"</literal> coincidirá con <literal>"foo.xml"</literal> y
+           <literal>"foobar.xml"</literal>.
+          </entry>
+         </row>
+         <row>
+          <entry>
+           <literal>[ ]</literal>
+          </entry>
+          <entry>
+           Los corchetes se utilizan para crear rangos de puntos de código ASCII o conjuntos de caracteres.
+           Por ejemplo, el patrón <literal>"index.php[45]"</literal> coincidirá con <literal>"index.php4"</literal> y
+           <literal>"index.php5"</literal>, pero no coincidirá con <literal>"index.phpt"</literal>.
+           Rangos conocidos son <literal>[0-9]</literal>, <literal>[a-z]</literal> y <literal>[A-Z]</literal>.
+           Varios conjuntos y rangos pueden utilizarse simultáneamente, por ejemplo <literal>[0-9a-zABC]</literal>.
+          </entry>
+         </row>
+         <row>
+          <entry>
+           <literal>!</literal>
+          </entry>
+          <entry>
+           El signo de exclamación se utiliza para negar caracteres dentro de los corchetes.
+           Por ejemplo, <literal>"[!A-Z]*.html"</literal> coincidirá con <literal>"demo.html"</literal>, pero no coincidirá con
+           <literal>"Demo.html"</literal>.
+          </entry>
+         </row>
+         <row>
+          <entry>
+           <literal>\</literal>
+          </entry>
+          <entry>
+           La barra invertida se utiliza para escapar caracteres especiales.
+           Por ejemplo, <literal>"Name\?"</literal> coincidirá con <literal>"Name?"</literal>, pero no coincidirá con
+           <literal>"Names"</literal>.
+          </entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </table>
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>filename</parameter></term>
+    <listitem>
+     <para>
+      La cadena a probar. Esta función es particularmente útil para los
+      nombres de fichero, pero también puede utilizarse con cadenas
+      regulares.
+     </para>
+     <para>
+      El usuario medio de Shell puede estar familiarizado con los patrones de Shell,
+      o al menos, sus expresiones más simples, como <literal>'?'</literal> y
+      <literal>'*'</literal>. De esta manera, utilizar
+      <function>fnmatch</function> en lugar de
+      <function>preg_match</function> para búsquedas puede ser más
+      práctico para los no iniciados.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>flags</parameter></term>
+    <listitem>
+     <para>
+      El valor de <parameter>flags</parameter> puede ser una combinación
+      de los siguientes flags, unidos con el
+      <link linkend="language.operators.bitwise">operador binario OR (|)</link>.
+      <table>
+       <title>
+        Lista de flags posibles para <function>fnmatch</function>
+       </title>
+       <tgroup cols="2">
+        <thead>
+         <row>
+          <entry><parameter>Flag</parameter></entry>
+          <entry>&Description;</entry>
+         </row>
+        </thead>
+        <tbody>
+         <row>
+          <entry><constant>FNM_NOESCAPE</constant></entry>
+          <entry>
+           Desactiva el escape de las barras invertidas.
+          </entry>
+         </row>
+         <row>
+          <entry><constant>FNM_PATHNAME</constant></entry>
+          <entry>
+           Una barra diagonal en una cadena coincide únicamente con una barra diagonal
+           en el patrón proporcionado.
            </entry>
-          </row>
-          <row>
-           <entry><constant>FNM_PATHNAME</constant></entry>
-           <entry>
-            Una barra en la cadena sólo coincide con otra en el patrón dado.
-           </entry>
-          </row>
-          <row>
-           <entry><constant>FNM_PERIOD</constant></entry>
-           <entry>
-            Un punto en la cadena debe coincidir exactamente con otro en el patrón dado.
-           </entry>
-          </row>
-          <row>
-           <entry><constant>FNM_CASEFOLD</constant></entry>
-           <entry>
-            Comparación sensible a mayúsculas-minúsculas. Parte de la extensión GNU.
-           </entry>
-          </row>
-         </tbody>
-        </tgroup>
-       </table>
-      </para>
-     </listitem>
-    </varlistentry>
+         </row>
+         <row>
+          <entry><constant>FNM_PERIOD</constant></entry>
+          <entry>
+           Un punto al inicio de la cadena debe coincidir exactamente con
+           un punto en el patrón proporcionado.
+          </entry>
+         </row>
+         <row>
+          <entry><constant>FNM_CASEFOLD</constant></entry>
+          <entry>
+           Las coincidencias no distinguen mayúsculas y minúsculas. Forma parte
+           de la extensión GNU.
+          </entry>
+         </row>
+        </tbody>
+       </tgroup>
+      </table>
+     </para>
+    </listitem>
+   </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si hay coincidencia, &false; si no.
+   Devuelve &true; si hay resultados, &false; en caso contrario.
   </para>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        Esta función ahora está disponible en plataformas Windows.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Comprobar un adjetivo con un patrón comodín tipo shell</title>
+    <title>Verificar el nombre de un color con un patrón de Shell</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-if (fnmatch("*o[bs]curo", $cadena)) {
-  echo "alguna forma de oscuro ...";
+if (fnmatch("*gr[ae]y", $color)) {
+  echo "formas de gris ...";
 }
 ?>
 ]]>
@@ -152,17 +200,17 @@ if (fnmatch("*o[bs]curo", $cadena)) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <warning>
    <para>
-    Por ahora esta función no está disponible en sistemas que no admiten POSIX
-    excepto Windows.
+    Actualmente, esta función no está disponible para
+    sistemas no-POSIX, a excepción de Windows.
    </para>
   </warning>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -175,9 +223,8 @@ if (fnmatch("*o[bs]curo", $cadena)) {
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

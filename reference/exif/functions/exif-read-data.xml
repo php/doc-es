@@ -1,139 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: cff6fa6abc65d088f4e93aa35a09c38c000fe79f Maintainer: seros Status: ready -->
-<!-- splitted from ./en/functions/image.xml, last change in rev 1.78 -->
+<!-- EN-Revision: f57352dd7a678230f929e1bac0d4a9189631cf16 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.exif-read-data" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>exif_read_data</refname>
-  <refpurpose>Lee las cabeceras <acronym>EXIF</acronym> desde un <acronym>JPEG</acronym> o un <acronym>TIFF</acronym></refpurpose>
+  <refpurpose>Lee los encabezados <acronym>EXIF</acronym> en las imágenes</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>exif_read_data</methodname>
-   <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>sections</parameter><initializer>&null;</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>arrays</parameter><initializer>false</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>thumbnail</parameter><initializer>false</initializer></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>exif_read_data</methodname>
+   <methodparam><type class="union"><type>resource</type><type>string</type></type><parameter>file</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>required_sections</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>as_arrays</parameter><initializer>&false;</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>read_thumbnail</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>exif_read_data</function> lee las
-   cabeceras <acronym>EXIF</acronym> desde un archivo de imagen <acronym>JPEG</acronym> o
-   <acronym>TIFF</acronym>. De esta forma se puede leer los meta-datos
-   generados por cámaras digitales.
+   <function>exif_read_data</function> lee los encabezados <acronym>EXIF</acronym>
+   de las imágenes.
+   Con esta función, se pueden leer los datos meta generados por las cámaras
+   digitales.
   </para>
   <para>
-   Las cabeceras <acronym>EXIF</acronym> tienden a estar presentes en imágenes JPEG/TIFF
-   generadas por cámaras digitales, pero desafortunadamente cada fabricante de cámaras digitales
-   tiene una idea diferente de cómo etiquetar sus imágenes, por lo que no siempre se puede contar
-   con que una cabecera Exif específica esté presente.
+   Los encabezados <acronym>EXIF</acronym> tienden a estar presentes en las imágenes
+   JPEG/TIFF generadas por las cámaras digitales, pero desafortunadamente,
+   cada cámara digital tiene una idea diferente de cómo
+   sus imágenes deben ser marcadas, por lo que no siempre se puede contar
+   con un encabezado EXIF específico, aunque esté presente.
   </para>
   <para>
-   <literal>Height</literal> y <literal>Width</literal> son computados de
-   la misma forma que lo hace <function>getimagesize</function> por lo que sus valores no deben ser
-   parte de ninguna cabecera devuelta. También, <literal>html</literal> es una
-   cadena de texto de alto/ancho para usar dentro de un <acronym>HTML</acronym> normal.
+   Los parámetros <literal>Height</literal> y <literal>Width</literal>
+   se calculan de la misma manera que para la función <function>getimagesize</function>,
+   por lo que sus valores no formarán parte de ningún encabezado devuelto. De igual manera, el índice
+   <literal>html</literal> es la representación textual de la altura/ancho
+   utilizada en una etiqueta de imagen <acronym>HTML</acronym> clásica.
   </para>
   <para>
-   Cuando una cabecera Exif contiene una nota de Copyright, puede contener ella misma dos
-   valores. Como la solución es inconsistente en el estándar Exif 2.10, la
-   sección <literal>COMPUTED</literal> devolverá las dos entradas
-   <literal>Copyright.Photographer</literal> y
-   <literal>Copyright.Editor</literal> mientras que las secciones <literal>IFD0</literal>
-   contienen la matriz de bytes con el carácter  NULL que divide ambas entradas.
-   O sólo la primera entrada si el tipo de información era erróneo (el comportamiento normal
-   de Exif). <literal>COMPUTED</literal> también contendrá la entrada
-   <literal>Copyright</literal> que es la cadena del copyright original,
-   o una lista separada por comas del copyright de la fotografía y del editor.
+   Cuando un encabezado EXIF contiene una nota de Copyright, este encabezado
+   puede contener a su vez dos valores. Como esta solución es inconsistente con los estándares EXIF 2.10, la sección <literal>COMPUTED</literal>
+   devolverá los dos encabezados, <literal>Copyright.Photographer</literal>
+   y <literal>Copyright.Editor</literal>, mientras que las secciones <literal>IFD0</literal>
+   contienen el array de bytes con caracteres NULL para separar las dos entradas;
+   o bien, solo la primera entrada si el tipo de datos era incorrecto
+   (comportamiento por defecto de EXIF). La sección <literal>COMPUTED</literal> también
+   contendrá una entrada <literal>Copyright</literal>, que será ya sea la cadena original
+   de copyright, o una lista de valores separados por comas de
+   fotos y copyright del autor.
   </para>
   <para>
-   La etiqueta <literal>UserComment</literal> tiene el mismo problema que la etiqueta
-   Copyright. Puede almacenar dos valores. El primero es el que usa la codificación, y el segundo
-   es el valor mismo. Por lo que si la sección <literal>IFD</literal> sólo contiene la codificación
-   o una matriz de bytes, la sección <literal>COMPUTED</literal> almacenará la dos entradas
-   <literal>UserCommentEncoding</literal> y
-   <literal>UserComment</literal>. La entrada <literal>UserComment</literal>
-   está disponible en ambos casos por lo que se debería usar con preferencia al valor de
-   la sección <literal>IFD0</literal>.
+   La etiqueta <literal>UserComment</literal> presenta el mismo problema que la etiqueta Copyright.
+   Puede almacenar dos valores: primero, el juego de caracteres utilizado, luego
+   el valor en sí. Si es así, la sección <literal>IFD</literal> contendrá solo
+   el juego de caracteres, o un array de bytes. La sección <literal>COMPUTED</literal>
+   almacenará las dos entradas <literal>UserCommentEncoding</literal> y
+  <literal>UserComment</literal>. El índice <literal>UserComment</literal>
+  está disponible en ambos casos, y es preferible usarlo, en lugar del valor de la sección <literal>IFD0</literal>.
   </para>
   <para>
-   <function>exif_read_data</function> también valida las etiquetas de información EXIF según
-   la especifiación EXIF (<link
+   <function>exif_read_data</function> valida los datos de las etiquetas EXIF de acuerdo
+   con la especificación EXIF (<link
    xlink:href="&url.exifspec;">&url.exifspec;</link>, página 20).
   </para>
-  <note>
-   <para>
-    Windows Me/XP pueden borrar las cabeceras Exif cuando se conecta una cámara.
-   </para>
-  </note>
  </refsect1>
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>filename</parameter></term>
+     <term><parameter>file</parameter></term>
      <listitem>
       <para>
-       El nombre de la imagen que se va a leer. No puede ser una
-       <acronym>URL</acronym>.
+       La ubicación del archivo de imagen. Puede ser ya sea una ruta de acceso
+       al archivo (los wrappers de flujo también son soportados como
+       de costumbre), o un flujo <type>resource</type>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>sections</parameter></term>
+     <term><parameter>required_sections</parameter></term>
      <listitem>
       <para>
-       Es una lista separada por comas de las secciones que necesitan estar presentes en el archivo
-       para producir un <type>array</type> resultante. Si no se puede encontrar ninguna
-       sección el valor devuelto es &false;.
+       Lista de valores separados por comas
+       de las secciones que deben presentarse en el array de resultado.
+       Si ninguna de las secciones solicitadas se encuentra, el valor devuelto
+       es &false;.
        <informaltable>
         <tgroup cols="2">
          <tbody>
           <row>
            <entry>FILE</entry>
-           <entry>FileName, FileSize, FileDateTime, SectionsFound</entry>
+           <entry>FileName (nombre del archivo), FileSize (tamaño del archivo),
+           FileDateTime (fecha de modificación del archivo), SectionsFound (secciones encontradas)</entry>
           </row>
           <row>
            <entry>COMPUTED</entry>
            <entry>
-            html, Width, Height, IsColor, y más si están disponibles. Height y
-            Width son computados de la misma forma que lo hace <function>getimagesize</function>
-            por lo que sus valores no deben ser parte de ninguna cabecera devuelta. 
-            También, <literal>html</literal> es una cadena de texto de alto/ancho para usar dentro de un
-            <acronym>HTML</acronym> normal.
+            Atributo Html, ancho, altura, color o blanco y negro y más si está disponible.
+            El ancho y la altura se calculan de la misma manera que la función
+            <function>getimagesize</function>, por lo que sus valores nunca
+            deberían diferir. De igual manera, el índice
+           <literal>html</literal> es la representación textual de la altura/ancho
+           utilizada en una etiqueta de imagen <acronym>HTML</acronym> clásica.
            </entry>
           </row>
           <row>
            <entry>ANY_TAG</entry>
-           <entry>Cualquier información que tenga una Etiqueta, p.ej., <literal>IFD0</literal>,
-            <literal>EXIF</literal>, ...</entry>
+           <entry>
+            Toda la información concerniente a esta etiqueta, como
+            <literal>IFD0</literal>, <literal>EXIF</literal>, ...
+           </entry>
           </row>
           <row>
            <entry>IFD0</entry>
            <entry>
-            Toda la información etiquetada de IFD0. En archivos de imagen normales, ésto contiene
-            el tamaño de la imagen y así sucesivamente.
+            Todas las etiquetas <literal>IFD0</literal>.
+            En imágenes normales, contienen las
+            dimensiones de la imagen, etc.
            </entry>
           </row>
           <row>
            <entry>THUMBNAIL</entry>
            <entry>
-            Se supone que un archivo contiene una miniatura si tiene un segundo <literal>IFD</literal>.
-            Toda la información etiquetada acerca de la miniatura embebida es almacenada en
-            esta sección.
+            Un archivo que contiene una miniatura, si hay un segundo <literal>IFD</literal>.
+            Toda la información etiquetada sobre esta miniatura
+            será almacenada en esta sección.
            </entry>
           </row>
           <row>
            <entry>COMMENT</entry>
-           <entry>Cabeceras de comentarios de imágenes JPEG.</entry>
+           <entry>Encabezado de comentario de las imágenes JPEG.</entry>
           </row>
           <row>
            <entry>EXIF</entry>
            <entry>
-            La sección EXIF es una subsección de <literal>IFD0</literal>. Contiene
-            información más detallada sobre la imagen. La mayoría de estas entradas
-            están relacionadas con la cámara digital.
+            La sección EXIF es una subsección de la sección <literal>IFD0</literal>. Ella
+            contiene información más detallada sobre las imágenes. La mayoría
+            de estos índices están relacionados con las cámaras digitales.
            </entry>
           </row>
          </tbody>
@@ -143,38 +146,45 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>arrays</parameter></term>
-     <listitem>
+     <term><parameter>as_arrays</parameter></term>
+      <listitem>
       <para>
-       Especifica si cada sección se convierte o no en una matriz. 
-       <parameter>sections</parameter> <literal>COMPUTED</literal>,
-       <literal>THUMBNAIL</literal>, y <literal>COMMENT</literal> 
-       siempre se convierten en matrices ya que pueden contener valores cuyos nombres
-       entran en conflicto con otras secciones.
+       Especifica si cada sección debe convertirse en un array o no.
+       Las <parameter>required_sections</parameter>  <literal>COMPUTED</literal>,
+       <literal>THUMBNAIL</literal> y <literal>COMMENT</literal> siempre serán
+       convertidas en arrays, ya que contienen nombres que podrían entrar en conflicto.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>thumbnail</parameter></term>
+     <term><parameter>read_thumbnail</parameter></term>
      <listitem>
       <para>
-       Cuando se establece a &true; se lee la miniatura misma. Si no, sólo se lee
-       la información etiquetada.
+       Cuando se define como &true;, la miniatura misma es leída. De lo contrario,
+       solo se leen los datos contenidos en el archivo.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
- </refsect1>    
+ </refsect1>
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un <type>array</type> asociativo donde los índices de la matriz son
-   los nombres de las cabeceras y los valores de la matriz son los valores asociados con
-   esas cabeceras. Si no se puede devolver información,
+   Devuelve un array asociativo donde los índices son los nombres de los encabezados y los valores
+   son los valores asociados a estos encabezados. Si no se puede devolver ningún dato,
    <function>exif_read_data</function> devolverá &false;.
   </para>
  </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Pueden generarse errores de nivel <constant>E_WARNING</constant> y/o <constant>E_NOTICE</constant>
+   para etiquetas no soportadas u otras condiciones de error potencial, pero la función intenta leer toda la información comprensible.
+  </para>
+ </refsect1>
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -188,38 +198,30 @@
      </thead>
      <tbody>
       <row>
-       <entry>4.3.0</entry>
+       <entry>8.0.0</entry>
        <entry>
-        Se puede leer toda la información <acronym>IFD</acronym> embebida incluidas matrices
-        (devueltas como tales). También, el tamaño de una miniatura embebida es devuelto
-        en una submatriz <literal>THUMBNAIL</literal>, y puede
-        devolver miniaturas en formato <acronym>TIFF</acronym>. Además, ya no hay
-        una longitud máxima para los valores devueltos (no mientras el límite de memoria 
-        haya sido alcanzado)
+        <parameter>required_sections</parameter> ahora es nullable.
        </entry>
       </row>
       <row>
-       <entry>4.3.0</entry>
+       <entry>7.2.0</entry>
        <entry>
-        Si PHP tiene soporte para <link linkend="ref.mbstring">mbstring</link>,
-        el comentario de usuario puede cambiar automáticamente de codificación. También, si el
-        comentario de usuario utiliza la codificación <literal>Unicode</literal> o
-        <literal>JIS</literal>, esta codificación será cambiada automáticamente según la configuración
-        inicial de exif en
-        &php.ini;
-       </entry>
-      </row>
-      <row>
-       <entry>4.3.0</entry>
-       <entry>
-        Si la imagen contiene cualquier información <literal>IFD0</literal>, entonces
-        <literal>COMPUTED</literal> contiene la entrada
-        <literal>ByteOrderMotorola</literal> la cuál es 0 para el orden de byte
-        <literal>little-endian</literal> (intel) y 1 para el orden de byte
-        <literal>big-endian</literal> (motorola). También,
-        <literal>COMPUTED</literal> y <literal>UserComment</literal> ya no
-        contienen la primera entrada de copyright si el tipo de información era
-        erróneo.
+        <para>
+         Se ha añadido el soporte para los siguientes formatos EXIF:
+         <simplelist>
+          <member>Samsung</member>
+          <member>DJI</member>
+          <member>Panasonic</member>
+          <member>Sony</member>
+          <member>Pentax</member>
+          <member>Minolta</member>
+          <member>Sigma/Foveon</member>
+          <member>AGFA</member>
+          <member>Kyocera</member>
+          <member>Ricoh</member>
+          <member>Epson</member>
+         </simplelist>
+        </para>
        </entry>
       </row>
      </tbody>
@@ -231,32 +233,32 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>exif_read_data</function></title>
+    <title>Ejemplo con <function>exif_read_data</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-echo "prueba1.jpg:<br />\n";
-$exif = exif_read_data('pruebas/prueba1.jpg', 'IFD0');
-echo $exif===false ? "No se encontró información de cabecera.<br />\n" : "La imagen contiene cabeceras<br />\n";
+echo "test1.jpg:<br />\n";
+$exif = exif_read_data('tests/test1.jpg', 'IFD0');
+echo $exif===false ? "No se encontraron encabezados de datos.<br />\n" : "La imagen contiene encabezados<br />\n";
 
-$exif = exif_read_data('pruebas/prueba2.jpg', 0, true);
-echo "prueba2.jpg:<br />\n";
-foreach ($exif as $clave => $sección) {
-    foreach ($sección as $nombre => $valor) {
-        echo "$clave.$nombre: $valor<br />\n";
+$exif = exif_read_data('tests/test2.jpg', 0, true);
+echo "test2.jpg:<br />\n";
+foreach ($exif as $key => $section) {
+    foreach ($section as $name => $val) {
+        echo "$key.$name: $val<br />\n";
     }
 }
 ?>
 ]]>
     </programlisting>
     <para>
-     La primera llamada falla ya que la imagen no tiene información de cabecera.
+     La primera llamada falla porque la imagen no tiene encabezado de información.
     </para>
     &example.outputs.similar;
     <screen role="php">
 <![CDATA[
 test1.jpg:
-No header data found.
+No se encontraron encabezados de datos.
 test2.jpg:
 FILE.FileName: test2.jpg
 FILE.FileDateTime: 1017666176
@@ -287,18 +289,92 @@ THUMBNAIL.Thumbnail.Height: 1
     </screen>
    </example>
   </para>
+  <para>
+   <example>
+    <title><function>exif_read_data</function> con flujos disponibles desde PHP 7.2.0</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Abrir el archivo, esto debería ser en modo binario
+$fp = fopen('/path/to/image.jpg', 'rb');
+
+if (!$fp) {
+    echo 'Error: No se pudo abrir la imagen para lectura';
+    exit;
+}
+
+// Intentar leer los encabezados EXIF
+$headers = exif_read_data($fp);
+
+if (!$headers) {
+    echo 'Error: No se pudieron leer los encabezados exif';
+    exit;
+}
+
+// Mostrar los encabezados 'COMPUTED'
+echo 'EXIF Headers:' . PHP_EOL;
+
+foreach ($headers['COMPUTED'] as $header => $value) {
+    printf(' %s => %s%s', $header, $value, PHP_EOL);
+}
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen role="php">
+<![CDATA[
+EXIF Headers:
+ Height => 576
+ Width => 1024
+ IsColor => 1
+ ByteOrderMotorola => 0
+ ApertureFNumber => f/5.6
+ UserComment =>
+ UserCommentEncoding => UNDEFINED
+ Copyright => Denis
+ Thumbnail.FileType => 2
+ Thumbnail.MimeType => image/jpeg
+]]>
+    </screen>
+   </example>
+  </para>
  </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <note>
+   <para>
+    Si <link linkend="ref.mbstring">mbstring</link> está activado, EXIF intentará
+    tratar el Unicode y elegir un juego de caracteres como se especifica por
+    <link linkend="ini.exif.decode-unicode-motorola">exif.decode_unicode_motorola</link> y
+    <link linkend="ini.exif.decode-unicode-intel">exif.decode_unicode_intel</link>.
+    La extensión EXIF no intentará determinar el codificado por sí misma, y es
+    responsabilidad del usuario especificar correctamente el codificado a usar
+    para el decodificado definiendo una de las dos directivas INI antes
+    de llamar a <function>exif_read_data</function>.
+   </para>
+  </note>
+  <note>
+   <para>
+    Si el parámetro <parameter>file</parameter> se usa para pasar un
+    flujo a la función, entonces el flujo debe ser reposicionable. Tenga en cuenta que la
+    posición del puntero de un archivo no se modifica después del retorno de
+    esta función.
+   </para>
+  </note>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>exif_thumbnail</function></member>
     <member><function>getimagesize</function></member>
+    <member><xref linkend="wrappers"/></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
