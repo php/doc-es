@@ -1,86 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision: 297028 -->
-<!-- EN-Revision: 99a5cc447fc5ab7c3deeeb6f7462f9891bc86852 Maintainer: tkzexe Status: ready -->
+<!-- EN-Revision: b0b19b66183b28cebc1ffbcf1e2b8763f9d9c7b3 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<!-- splitted from ./en/functions/dir.xml, last change in rev 1.2 -->
 <refentry xml:id="function.readdir" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>readdir</refname>
-  <refpurpose>Lee una entrada desde un gestor de directorio</refpurpose>
+  <refpurpose>Lee una entrada del directorio</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>readdir</methodname>
-   <methodparam choice="opt"><type>resource</type><parameter>dir_handle</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>readdir</methodname>
+   <methodparam choice="opt"><type class="union"><type>resource</type><type>null</type></type><parameter>dir_handle</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve el nombre de la siguiente entrada del directorio. Las
-   entradas son devueltas en el orden en que fueron almacenadas por
-   el sistema de ficheros.
+   <function>readdir</function> devuelve el nombre de la próxima entrada
+   del directorio identificado por <parameter>dir_handle</parameter>.
+   Las entradas se devuelven en el orden en que están registradas
+   en el sistema de archivos.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>gestor_dir</parameter></term>
+     <term><parameter>dir_handle</parameter></term>
      <listitem>
       <para>
-       El gestor de directorio <type>resource</type> previamente abierto por <function>opendir</function>.
-       Si el gestor de directorio no se especifica, la ultima conexión abierta por <function>opendir</function> 
-       es asumida.
+       El <type>recurso</type> de directorio abierto previamente con
+       <function>opendir</function>. Si el recurso de directorio
+       no está especificado, se utilizará el último recurso abierto con la función
+       <function>opendir</function>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Retorna el nombre de la entrada en caso de éxito &return.falseforfailure;.
-  </para> 
+   Devuelve el nombre de la entrada en caso de éxito,&return.falseforfailure;.
+  </para>
   &return.falseproblem;
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>dir_handle</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Listar todas las entradas de un directorio</title>
+    <title>Lista de todas las entradas de un directorio</title>
     <para>
-     Por favor observe que la forma en que el valor de retorno de <function>readdir</function>
-     es chequeado en los siguientes ejemplos. Se está probando explícitamente si el valor de retorno es idéntico 
-     (igual y del mismo tipo, vea los  <link
-     linkend="language.operators.comparison">Operadores de Comparación</link> 
-     para más información) a &false; ya que de otra forma, 
-     cualquier entrada de directorio cuyo nombre evalúe a  &false; detendrá
-     el ciclo (p.ej. un directorio llamado "0").
+     Observe cómo se verifica el valor de retorno de <function>dir</function>
+     en el siguiente ejemplo. Se comprueba si el valor es idéntico (igual y del mismo tipo -- véase <link
+     linkend="language.operators.comparison">operadores de comparación</link>
+     para más detalles) &false; de lo contrario, cualquier entrada en el nombre se evaluaría
+     como &false; causaría el fin del ciclo (ejemplo, un directorio llamado 0).
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
- 
-if ($gestor = opendir('/path/to/files')) {
-    echo "Gestor de directorio: $gestor\n";
+
+if ($handle = opendir('/ruta/al/directorio')) {
+    echo "Controlador del directorio: $handle\n";
     echo "Entradas:\n";
- 
-    /* Esta es la forma correcta de iterar sobre el directorio. */
-    while (false !== ($entrada = readdir($gestor))) {
-        echo "$entrada\n";
+
+    /* Esta es la forma correcta de recorrer un directorio. */
+    while (false !== ($entry = readdir($handle))) {
+        echo "$entry\n";
     }
- 
-    /* Esta es la forma errónea de iterar sobre el directorio. */
-    while ($entrada = readdir($gestor)) {
-        echo "$entrada\n";
+
+    /* Esta es la FORMA INCORRECTA de recorrer un directorio. */
+    while ($entry = readdir($handle)) {
+        echo "$entry\n";
     }
- 
-    closedir($gestor);
+
+    closedir($handle);
 }
 ?>
 ]]>
@@ -90,19 +110,19 @@ if ($gestor = opendir('/path/to/files')) {
   <para>
    <example>
     <title>
-    Listar todas las entradas del directorio actual y descartar <literal>.</literal>
-     y <literal>..</literal>
+     Lista todas las entradas del directorio actual y elimina los
+     <literal>.</literal> y <literal>..</literal>
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
-if ($gestor = opendir('.')) {
-    while (false !== ($entrada = readdir($gestor))) {
-        if ($entrada != "." && $entrada != "..") {
-            echo "$entrada\n";
+if ($handle = opendir('.')) {
+    while (false !== ($entry = readdir($handle))) {
+        if ($entry != "." && $entry != "..") {
+            echo "$entry\n";
         }
     }
-    closedir($gestor);
+    closedir($handle);
 }
 ?>
 ]]>
@@ -110,7 +130,7 @@ if ($gestor = opendir('.')) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -123,7 +143,6 @@ if ($gestor = opendir('.')) {
   </para>
  </refsect1>
 </refentry>
- 
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

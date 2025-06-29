@@ -1,26 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 44428b04b7b046593e9ab33874eddd1fea7dfab1 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: PhilDaiguille -->
+
 <refentry xml:id="function.dba-popen" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>dba_popen</refname>
-  <refpurpose>Abrir una base de datos de forma persistente</refpurpose>
+  <refpurpose>Establece una conexión persistente a una base de datos DBA</refpurpose>
  </refnamediv>
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>dba_popen</methodname>
+   <type class="union"><type>Dba\Connection</type><type>false</type></type><methodname>dba_popen</methodname>
    <methodparam><type>string</type><parameter>path</parameter></methodparam>
    <methodparam><type>string</type><parameter>mode</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>handler</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>...</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>handler</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>permission</parameter><initializer>0644</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>map_size</parameter><initializer>0</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>flags</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>dba_popen</function> establece una instancia de base de
-   datos persistente para el archivo en <parameter>path</parameter> con el <parameter>mode</parameter> indicado,
-   usando <parameter>handler</parameter>.
+   <function>dba_popen</function> establece una conexión persistente
+   a la base identificada por <parameter>path</parameter>
+   con el modo <parameter>mode</parameter>, utilizando el identificador
+   <parameter>handler</parameter>.
   </para>
  </refsect1>
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -29,18 +36,17 @@
      <term><parameter>path</parameter></term>
      <listitem>
       <para>
-       Usualmente una ruta normal en su sistema de archivos.
-     </para>
+       Ruta en el sistema de ficheros.
+      </para>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       Es <literal>r</literal> para acceso de lectura, <literal>w</literal>
-       para acceso de lectura/escritura a una base de datos existente, <literal>c</literal> para acceso de
-       lectura/escritura y creación de base de datos si no existe actualmente,
-       y <literal>n</literal> para crear, truncar y tener acceso de lectura/escritura.
+       Puede ser <literal>r</literal> para solo lectura, <literal>w</literal> para
+       lectura/escritura, <literal>c</literal> para lectura/escritura y creación si la base no existe,
+       y <literal>n</literal> para creación, sobrescritura y acceso en lectura/escritura.
       </para>
      </listitem>
     </varlistentry>
@@ -48,22 +54,112 @@
      <term><parameter>handler</parameter></term>
      <listitem>
       <para>
-       El nombre del <link linkend="dba.requirements">gestor</link>
-       que será usado para acceder a <parameter>path</parameter>. A él se le pasan todos los
-       parámetros opcionales dados a <function>dba_popen</function>
-       y puede actuar sobre ellos.
+       El nombre del
+       <link linkend="dba.requirements">gestor</link> que debe ser
+       utilizado para acceder a <parameter>path</parameter>. El gestor recibe todos los argumentos adicionales
+       pasados a la función <function>dba_popen</function>. Si el argumento <parameter>handler</parameter> es &null;,
+       entonces se invoca el gestor por defecto.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>permission</parameter></term>
+     <listitem>
+      <para>
+       Argumento opcional de tipo entero (&integer;) que se pasa al controlador. Tiene el mismo significado
+       que el argumento <parameter>permissions</parameter> de la función <function>chmod</function>,
+       y su valor por omisión es <literal>0644</literal>.
+      </para>
+      <para>
+       Los controladores <literal>db1</literal>, <literal>db2</literal>,
+       <literal>db3</literal>, <literal>db4</literal>, <literal>dbm</literal>,
+       <literal>gdbm</literal>,
+       <literal>ndbm</literal> y <literal>lmdb</literal> admiten el argumento
+       <parameter>permission</parameter>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>map_size</parameter></term>
+     <listitem>
+      <para>
+       Argumento opcional de tipo &integer; que se pasa al controlador. Su valor debe ser un múltiplo de la
+       tamaño de página del sistema operativo, o cero para utilizar el tamaño de mapa por omisión.
+      </para>
+      <para>
+       El controlador <literal>lmdb</literal> acepta el argumento <parameter>map_size</parameter>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>flags</parameter></term>
+     <listitem>
+      <para>
+       Permite pasar banderas a los controladores de base de datos. Actualmente, solo el controlador LMDB con
+       las banderas <constant>DBA_LMDB_USE_SUB_DIR</constant> y <constant>DBA_LMDB_NO_SUB_DIR</constant> es soportado.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un gestor positivo en caso de éxito, o &return.falseforfailure;.
+   Devuelve una instancia de <classname>Dba\Connection</classname> en caso de éxito&return.falseforfailure;.
   </para>
  </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   El valor &false; es devuelto y un error de nivel <constant>E_WARNING</constant> es emitido cuando
+   el argumento <parameter>handler</parameter> es &null;, pero no hay ningún gestor por defecto disponible.
+  </para>
+ </refsect1>
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+        <row>
+          <entry>&Version;</entry>
+          <entry>&Description;</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+         <entry>8.4.0</entry>
+         <entry>
+          Ahora devuelve una instancia de <classname>Dba\Connection</classname>;
+          anteriormente se devolvía un &resource;.
+         </entry>
+        </row>
+        <row>
+         <entry>8.2.0</entry>
+          <entry>
+            Se añadió el argumento <parameter>flags</parameter>.
+          </entry>
+        </row>
+        <row>
+          <entry>8.2.0</entry>
+          <entry>
+            El argumento <parameter>handler</parameter> ahora es nullable.
+          </entry>
+        </row>
+        <row>
+          <entry>7.3.14, 7.4.2</entry>
+          <entry>
+            El controlador <literal>lmdb</literal> ahora soporta un argumento
+            adicional <parameter>map_size</parameter>.
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>

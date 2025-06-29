@@ -1,32 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 400f2c8445459bcd44b1ee0b62a18e607c206123 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-
+<!-- EN-Revision: d9ac376dbee6e45ef775059456caf0ec348ada6a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="datetimezone.construct" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>DateTimeZone::__construct</refname>
   <refname>timezone_open</refname>
-  <refpurpose>Crea un nuevo objeto DateTimeZone</refpurpose>
+  <refpurpose>Crea un nuevo objeto <classname>DateTimeZone</classname></refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <para>&style.oop;</para>
-  <constructorsynopsis role="oop">
+  <constructorsynopsis role="DateTimeZone">
    <modifier>public</modifier> <methodname>DateTimeZone::__construct</methodname>
    <methodparam><type>string</type><parameter>timezone</parameter></methodparam>
   </constructorsynopsis>
   <para>&style.procedural;</para>
-  <methodsynopsis role="procedural">
-   <type>DateTimeZone</type><methodname>timezone_open</methodname>
+  <methodsynopsis>
+   <type class="union"><type>DateTimeZone</type><type>false</type></type><methodname>timezone_open</methodname>
    <methodparam><type>string</type><parameter>timezone</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Crea un nuevo objeto DateTimeZone.
+   Crea un nuevo objeto <classname>DateTimeZone</classname>.
+  </para>
+  <para>
+   Un objeto DateTimeZone proporciona acceso a tres tipos diferentes de reglas
+   de zona horaria: un desplazamiento UTC (tipo <literal>1</literal>), una
+   abreviatura de zona horaria (tipo <literal>2</literal>), y un
+   <link linkend="timezones">identificador de zona horaria</link> tal como
+   se publica en la base de datos de zonas horarias IANA (tipo <literal>3</literal>).
+  </para>
+  <para>
+   El objeto DateTimeZone puede ser adjuntado a los objetos <classname>DateTime</classname>
+   y <classname>DateTimeImmutable</classname> con el fin de poder representar
+   la zona horaria encapsulada por estos objetos en una zona horaria local.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,31 +45,32 @@
      <term><parameter>timezone</parameter></term>
      <listitem>
       <para>
-       Uno de los <link linkend="timezones">nombres de zonas horarias</link> admitidos
-       o un índice válido (+0200).
+       Una de las <link linkend="timezones">zonas horarias</link> soportadas,
+       un valor de desplazamiento (+0200), o una abreviatura de zona (BST).
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un objeto <classname>DateTimeZone</classname> si tuvo éxito.
-   &return.falseforfailure.style.procedural;
+   Devuelve un objeto <classname>DateTimeZone</classname> en caso de éxito.
+   &return.falseforfailure.style.procedural;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Este método lanza una <classname>Exception</classname> si la zona horaria suministrada no es
-   reconocida como una zona horaria válida.
+   Este método lanza una <classname>DateInvalidTimeZoneException</classname>
+   si la zona horaria proporcionada no es reconocida como una zona horaria válida.
+   Anteriormente a PHP 8.3, esto era una <exceptionname>Exception</exceptionname>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -73,9 +84,11 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.5.10</entry>
+       <entry>8.3.0</entry>
        <entry>
-        El parámetro <parameter>timezone</parameter> acepta valores de índice.
+        Los valores inválidos ahora lanzan una
+        <exceptionname>DateInvalidTimeZoneException</exceptionname> en lugar
+        de una <exceptionname>Exception</exceptionname> genérica.
        </entry>
       </row>
      </tbody>
@@ -83,21 +96,50 @@
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Atrapar errores cuando se instancia un <classname>DateTimeZone</classname></title>
+    <title>Creación y adjuntado de DateTimeZone a un DateTimeImmutable</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Manejo de errores atrapando excepciones
-$zonas_horarias = array('Europe/London', 'Mars/Phobos', 'Jupiter/Europa');
+$d = new DateTimeImmutable("2022-06-02 15:44:48 UTC");
 
-foreach ($zonas_horarias as $zh) {
+$timezones = [ 'Europe/London', 'GMT+04:45', '-06:00', 'CEST' ];
+
+foreach ($timezones as $tz) {
+    $tzo = new DateTimeZone($tz);
+
+    $local = $d->setTimezone($tzo);
+    echo $local->format(DateTimeInterface::RFC2822 . ' — e'), "\n";
+}
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+Thu, 02 Jun 2022 16:44:48 +0100 — Europe/London
+Thu, 02 Jun 2022 20:29:48 +0445 — +04:45
+Thu, 02 Jun 2022 09:44:48 -0600 — -06:00
+Thu, 02 Jun 2022 17:44:48 +0200 — CEST
+    </screen>
+   </example>
+  </para>
+
+  <para>
+   <example>
+    <title>Intercepción de errores con <classname>DateTimeZone</classname></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Manejo de errores por intercepción de excepciones
+$timezones = array('Europe/London', 'Mars/Phobos', 'Jupiter/Europa');
+
+foreach ($timezones as $tz) {
     try {
-        $marte = new DateTimeZone($zh);
+        $mars = new DateTimeZone($tz);
     } catch(Exception $e) {
         echo $e->getMessage() . '<br />';
     }
@@ -113,11 +155,10 @@ DateTimeZone::__construct() [datetimezone.--construct]: Unknown or bad timezone 
 ]]>
     </screen>
    </example>
-  </para>
- </refsect1>
- 
-</refentry>
+   </para>
+  </refsect1>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

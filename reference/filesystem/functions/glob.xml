@@ -1,28 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e41aab5ecacf449e51179886c17f1d41735b0234 Maintainer: seros Status: ready -->
+<!-- EN-Revision: bb9bfdfc5a4a8ffe27ab4edcfe0d8747a375e2f2 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.glob">
+<refentry xml:id="function.glob" xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude">
  <refnamediv>
   <refname>glob</refname>
-  <refpurpose>Buscar coincidencias de nombres de ruta con un patrón</refpurpose>
+  <refpurpose>Búsqueda de rutas que coinciden con un patrón</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>glob</methodname>
+   <type class="union"><type>array</type><type>false</type></type><methodname>glob</methodname>
    <methodparam><type>string</type><parameter>pattern</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>glob</function> busca todos los nombres de ruta que
-   coinciden con <parameter>pattern</parameter> según las reglas usadas por la
-   función glob() de la biblioteca estándar de C, las cuales son similares a
-   las reglas usadas por intérpretes de comandos comunes.
+   <function>glob</function> busca todas las rutas que coinciden con
+   el patrón <parameter>pattern</parameter>, siguiendo las reglas utilizadas por
+   la función <literal>glob()</literal> de la libc, que son las mismas que las
+   utilizadas por el Shell en general.
   </para>
+  <simpara>
+   El comportamiento en sistemas Unix y macOS está determinado por
+   la implementación de glob() del sistema. En Windows, se utiliza una
+   implementación conforme a la definición POSIX 1003.2 de glob(), con
+   una extensión para manejar la convención <literal>[!...]</literal> que permite
+   negar un rango.
+  </simpara>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -31,7 +37,44 @@
      <term><parameter>pattern</parameter></term>
      <listitem>
       <para>
-       El patrón. No se realiza la expansión de tilde o la sustitución de parámetro.
+       El patrón. No se realiza sustitución de tilde
+       (<literal>~</literal>) ni de parámetro.
+      </para>
+      <para>
+       Caracteres especiales:
+       <itemizedlist>
+        <listitem>
+         <simpara>
+          <literal>*</literal> - Asocia cero o más caracteres.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>?</literal> - Asocia exactamente un carácter (cualquier
+          carácter).
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>[...]</literal> - Asocia un carácter de un conjunto de
+          caracteres. Si el primer carácter es <literal>!</literal>,
+          asocia cualquier carácter que no esté en este conjunto.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>{a,b,c}</literal> - Asocia una cadena de un grupo de
+          cadenas separadas por comas cuando se utiliza el flag
+          <constant>GLOB_BRACE</constant>.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>\</literal> - Escapa el carácter siguiente, excepto cuando
+          se utiliza el flag <constant>GLOB_NOESCAPE</constant>.
+         </simpara>
+        </listitem>
+       </itemizedlist>
       </para>
      </listitem>
     </varlistentry>
@@ -39,109 +82,37 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Banderas válidas:
-       <itemizedlist>
-        <listitem>
-         <simpara>
-          <constant>GLOB_MARK</constant> - Añade un barra a cada directorio devuelto
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_NOSORT</constant> - Devuelve los ficheros tal como aparecen en el
-          directorio (sin ordenar). Cuando no se emple este indicador, los parámetros se
-          ordenan alfabéticamente
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_NOCHECK</constant> - Devuelve el patrón de búsqueda si no
-          se encontraron ficheros coincidentes
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_NOESCAPE</constant> - Las barras invertidas no escapan
-          meta-caracteres
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_BRACE</constant> - Expande {a,b,c} para coincidir con 'a', 'b',
-          o 'c'
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_ONLYDIR</constant> - Devuelve sólo entradas de directorio
-          que coinciden con el patrón
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          <constant>GLOB_ERR</constant> - Se detiene si se produjeron errores de lectura
-          (como directorios ilegibles), por defecto los errores son ignorados.
-         </simpara>
-        </listitem>
-       </itemizedlist>
+       Cualquiera de las constantes <constant>GLOB_<replaceable>*</replaceable></constant>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una matriz que contiene los ficheros/directorios coincidentes, una matriz vacía
-   si no hubo ficheros coincidentes o &false; si se produjo un error.
-  </para>
-  <note>
-   <para>
-    En algunos sistemas es imposible distinguir entre una coincidencia vacía y un
-    error.
-   </para>
-  </note>
- </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.1.0</entry>
-       <entry>
-        Se añadió <constant>GLOB_ERR</constant>
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
+   Devuelve un array que contiene los ficheros y directorios que coinciden con
+   el patrón, un array vacío si no hay coincidencias, o &false; si ocurre un error.
+   A menos que se utilice <literal>GLOB_NOSORT</literal>, los nombres serán ordenados
+   alfabéticamente.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
     <title>
-     Manera conveniente de cómo <function>glob</function> puede remplazar a
-     <function>opendir</function> y similares.
+     Un método práctico para reemplazar <function>opendir</function>
+     por <function>glob</function>
     </title>
     <programlisting role="php">
 <![CDATA[
 <?php
-foreach (glob("*.txt") as $nombre_fichero) {
-    echo "Tamaño de $nombre_fichero " . filesize($nombre_fichero) . "\n";
+foreach (glob("*.txt") as $filename) {
+    echo "$filename ocupa " . filesize($filename) . "\n";
 }
 ?>
 ]]>
@@ -149,31 +120,49 @@ foreach (glob("*.txt") as $nombre_fichero) {
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Tamaño de funclist.txt 44686
-Tamaño de funcsummary.txt 267625
-Tamaño de quickref.txt 137820
+funclist.txt ocupa 44686
+funcsummary.txt ocupa 267625
+quickref.txt ocupa 137820
+]]>
+    </screen>
+   </example>
+   <example>
+    <title>
+     Ejemplo con un patrón más complejo
+    </title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+foreach (glob("path/*/*.{txt,md}", \GLOB_BRACE) as $filename) {
+    echo "$filename\n";
+}
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+path/docs/mailinglist-rules.md
+path/docs/README.md
+path/docs/release-process.md
+path/pear/install-pear.txt
+path/Zend/README.md
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.no-remote;
   <note>
    <simpara>
-    Está función no está disponible en algunos sistemas (p.ej. antiguos sistemas operativos de Sun).
-   </simpara>
-  </note>
-  <note>
-   <simpara>
-    La bandera <constant>GLOB_BRACE</constant> no está disponible en algunos sistemas que no
-    son GNU, como Solaris.
+    Esta función no está disponible en algunos sistemas (por ejemplo, viejos Sun OS).
    </simpara>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -185,9 +174,8 @@ Tamaño de quickref.txt 137820
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

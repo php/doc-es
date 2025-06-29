@@ -1,39 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 52ac14fb9776027eb61be0a8d124b6711bfa98ec Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 3abd17e61d5022d503604cc06894254e3281acf5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.file-get-contents" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>file_get_contents</refname>
-  <refpurpose>Transmite un fichero completo a una cadena</refpurpose>
+  <refpurpose>Lee todo un fichero en una cadena</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>file_get_contents</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>file_get_contents</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
    <methodparam choice="opt"><type>bool</type><parameter>use_include_path</parameter><initializer>&false;</initializer></methodparam>
-   <methodparam choice="opt"><type>resource</type><parameter>context</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>resource</type><type>null</type></type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>maxlen</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>length</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Esta función es similar a <function>file</function>, excepto que
-   <function>file_get_contents</function> devuelve el fichero a un
-   <type>string</type>, comenzando por el <parameter>offset</parameter> especificado
-   hasta <parameter>maxlen</parameter> bytes. Si falla,
-   <function>file_get_contents</function> devolverá &false;.
+   Similar a la función <function>file</function>, excepto que
+   <function>file_get_contents</function> devuelve el fichero
+   <parameter>filename</parameter> en una cadena, comenzando
+   desde la posición <parameter>offset</parameter> y hasta
+   <parameter>length</parameter> bytes.
+   En caso de error, <function>file_get_contents</function> devuelve
+   &false;.
   </para>
   <para>
-   <function>file_get_contents</function> es la manera preferida de transmitir el
-   contenido de un fichero a una cadena. Para mejorar el rendimiento, utiliza técnicas
-   de mapeado de memoria si sistema operativo lo admite..
+   <function>file_get_contents</function> es el método recomendado para leer
+   el contenido de un fichero en una &string;. Utilizará un buffer en
+   memoria si este mecanismo es soportado por el sistema, con el fin de mejorar
+   el rendimiento.
   </para>
   <note>
    <para>
-    Si se está abriendo un URI con caracteres especiales, tales como espacios,
-    se necesita codificar el URI con <function>urlencode</function>.
+    Si se abre una URI con caracteres especiales, como espacios, es necesario
+    codificar esta URI con la función <function>urlencode</function>.
    </para>
   </note>
  </refsect1>
@@ -55,14 +57,13 @@
      <listitem>
       <note>
        <para>
-        A partir de PHP 5, se puede usar la constante <constant>FILE_USE_INCLUDE_PATH</constant>
-        para lanzar la búsqueda en
-        <link linkend="ini.include-path">include_path</link>.
-        Esto no es posible si está habilitada la <link
-        linkend="language.types.declarations.strict">tipificación esctricta</link>,
-        ya que <constant>FILE_USE_INCLUDE_PATH</constant> es de tipo
+        La constante <constant>FILE_USE_INCLUDE_PATH</constant>
+        puede ser utilizada para activar la búsqueda en el
+        <link linkend="ini.include-path">ruta de inclusión</link>.
+        Esto no es posible si <link
+        linkend="language.types.declarations.strict">strict typing</link>
+        está activado, ya que <constant>FILE_USE_INCLUDE_PATH</constant> es un
         <type>int</type>. Utilice &true; en su lugar.
-
        </para>
       </note>
      </listitem>
@@ -71,9 +72,10 @@
      <term><parameter>context</parameter></term>
      <listitem>
       <para>
-       Un recurso de contexto válido creado con
-       <function>stream_context_create</function>. Si no se necesita usar un
-       contexto a medida, se puede saltar este parámetro usando &null;.
+       Un recurso de contexto válido, creado con la función
+       <function>stream_context_create</function>. Si no es necesario
+       utilizar un contexto específico, este parámetro puede ser omitido
+       asignándole el valor &null;.
       </para>
      </listitem>
     </varlistentry>
@@ -81,23 +83,25 @@
      <term><parameter>offset</parameter></term>
      <listitem>
       <para>
-       El índice donde comienza la lectura en el flujo original.
-       Los índices negativos inician la cuenta desde el final del flujo.
+       La posición desde la cual se comienza a leer en el flujo original.
+       Una posición negativa cuenta desde el final del flujo.
       </para>
       <para>
-       La búsqueda de (<parameter>offset</parameter>) no está soportada con ficheros remotos.
-       Intentar buscar un fichero no local puede funcionar con índices pequeños, pero
-       es impredecible debido a que trabaja sobre el flujo almacenado en buffer.
+       El desplazamiento en el fichero (<parameter>offset</parameter>) no es
+       soportado en ficheros remotos. Si se intenta desplazarse en un fichero
+       que no es local puede funcionar en pequeños desplazamientos, pero el
+       comportamiento puede no ser el esperado ya que el proceso utiliza el
+       flujo del buffer.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>maxlen</parameter></term>
+     <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud máxima de los datos leídos. De manera predeterminada se lee hasta que
-       se alcance el final del fichero. Observe que este parámetro se aplica al
-       flujo procesado por los filtros.
+       El tamaño máximo de datos a leer. El comportamiento por defecto es leer
+       hasta el final del fichero. Este parámetro se aplica al flujo procesado
+       por los filtros.
       </para>
      </listitem>
     </varlistentry>
@@ -108,7 +112,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Esta función devuelve los datos leídos &return.falseforfailure;.
+   Devuelve los datos leídos &return.falseforfailure;.
   </para>
   &return.falseproblem;
  </refsect1>
@@ -116,78 +120,16 @@
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Se genera un error de nivel <constant>E_WARNING</constant> si <parameter>filename</parameter> no se pudo encontrar, <parameter>maxlength</parameter>
-   es menor de cero, o si falla la búsqueda del <parameter>offset</parameter> especificado en el flujo.
+   Genera una advertencia de tipo <constant>E_WARNING</constant> si,
+   <parameter>filename</parameter> no puede ser encontrado, si el
+   parámetro <parameter>length</parameter> es menor que cero,
+   o si el desplazamiento a la posición <parameter>offset</parameter>
+   especificado en el flujo falla.
   </para>
- </refsect1>
-
- <refsect1 role="examples">
-  &reftitle.examples;
   <para>
-   <example>
-    <title>Obtiene y muestra el código fuente de la página de inicio de un sitio web</title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-$página_inicio = file_get_contents('http://www.example.com/');
-echo $página_inicio;
-?>
-]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>Buscar dentro de include_path</title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// <= PHP 5
-$fichero = file_get_contents('./gente.txt', true);
-// > PHP 5
-$fichero = file_get_contents('./gente.txt', FILE_USE_INCLUDE_PATH);
-?>
-]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>Leer una sección de un fichero</title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// Leer 14 caracteres comenzando desde el carácter número 21
-$sección = file_get_contents('./people.txt', FALSE, NULL, 20, 14);
-var_dump($sección);
-?>
-]]>
-    </programlisting>
-    &example.outputs.similar;
-    <screen>
-<![CDATA[
-string(14) "lle Bjori Ro"
-]]>
-    </screen>
-   </example>
-   <example>
-    <title>Usar contextos de flujo</title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// Crear un flujo
-$opciones = array(
-  'http'=>array(
-    'method'=>"GET",
-    'header'=>"Accept-language: en\r\n" .
-              "Cookie: foo=bar\r\n"
-  )
-);
-
-$contexto = stream_context_create($opciones);
-
-// Abre el fichero usando las cabeceras HTTP establecidas arriba
-$fichero = file_get_contents('http://www.example.com/', false, $contexto);
-?>
-]]>
-    </programlisting>
-   </example>
+   Cuando <function>file_get_contents</function> es llamado sobre un directorio,
+   se genera un error de nivel <constant>E_WARNING</constant> en Windows,
+   y a partir de PHP 7.4 en otros sistemas operativos también.
   </para>
  </refsect1>
 
@@ -204,21 +146,90 @@ $fichero = file_get_contents('http://www.example.com/', false, $contexto);
      </thead>
      <tbody>
       <row>
-       <entry>7.1.0</entry>
+       <entry>8.0.0</entry>
        <entry>
-        Se añadió soporte para valores negativos de <parameter>offset</parameter>.
+        <parameter>length</parameter> ahora es nullable.
        </entry>
       </row>
       <row>
-       <entry>5.1.0</entry>
+       <entry>7.1.0</entry>
        <entry>
-        Se añadieron los parámetros <parameter>offset</parameter> y
-        <parameter>maxlen</parameter>.
+        Se añade soporte para posiciones <parameter>offset</parameter> negativas.
        </entry>
       </row>
      </tbody>
     </tgroup>
    </informaltable>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Lee y muestra el código HTML de un sitio web</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$homepage = file_get_contents('http://www.example.com/');
+echo $homepage;
+?>
+]]>
+    </programlisting>
+   </example>
+   <example>
+    <title>Busca un fichero en el include_path</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Si el tipado estricto está activado c.à.d. declare(strict_types=1);
+$file = file_get_contents('./people.txt', true);
+// De lo contrario
+$file = file_get_contents('./people.txt', FILE_USE_INCLUDE_PATH);
+?>
+]]>
+    </programlisting>
+   </example>
+   <example>
+    <title>Lee una sección de un fichero</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Lee 14 caracteres a partir del 21º carácter
+$section = file_get_contents('./people.txt', FALSE, NULL, 20, 14);
+var_dump($section);
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+string(14) "lle Bjori Ro"
+]]>
+    </screen>
+   </example>
+   <example>
+    <title>Uso de contextos de flujo</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Creación de un flujo
+$opts = [
+  'http'=> [
+    'method'=>"GET",
+    'header'=>"Accept-language: en\r\n" .
+              "Cookie: foo=bar\r\n",
+  ]
+];
+
+$context = stream_context_create($opts);
+
+// Acceso a un fichero HTTP con los encabezados HTTP indicados arriba
+$file = file_get_contents('http://www.example.com/', false, $context);
+?>
+]]>
+    </programlisting>
+   </example>
   </para>
  </refsect1>
 

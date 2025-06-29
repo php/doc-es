@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.chmod">
+<!-- EN-Revision: 5eb55cda5cc4bc61e94f17468c6402d631edafa5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: PhilDaiguille -->
+<refentry xml:id="function.chmod" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>chmod</refname>
-  <refpurpose>Cambia el modo de un fichero</refpurpose>
+  <refpurpose>Cambia el modo del fichero</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,11 +13,11 @@
   <methodsynopsis>
    <type>bool</type><methodname>chmod</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam><type>int</type><parameter>mode</parameter></methodparam>
+   <methodparam><type>int</type><parameter>permissions</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Intenta cambiar el modo de un fichero especificado por el dado en
-   <parameter>mode</parameter>.
+   Reemplaza el modo del fichero <parameter>filename</parameter>
+   por el modo <parameter>permissions</parameter>.
   </para>
  </refsect1>
 
@@ -29,43 +29,42 @@
      <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-       Ruta del fichero.
+       Ruta hacia el fichero.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>mode</parameter></term>
+     <term><parameter>permissions</parameter></term>
      <listitem>
       <para>
-       Observe que no se asume que <parameter>mode</parameter> sea automáticamente
-       un valor octal, por lo que, para asegurarse de que la operación sea la esperada,
-       es necesario prefijar <parameter>mode</parameter> con un cero (0).
-       String tales como "g+w" no funcionarán adecuadamente.
+       Se debe tener en cuenta que el modo <parameter>permissions</parameter> es
+       considerado como un número en notación octal, por lo que, para asegurarse,
+       se puede prefigurar el modo <parameter>permissions</parameter> con un cero. Las cadenas como "g+w"
+       no funcionarán correctamente:
       </para>
       <para>
        <informalexample>
         <programlisting role="php">
 <![CDATA[
 <?php
-chmod("/directorio/fichero", 755);   // decimal; probablemente incorrecto
-chmod("/directorio/fichero", "u+rwx,go+rx"); // string; incorrecto
-chmod("/directorio/fichero", 0755);  // octal; valor de modo correcto
+chmod("/somedir/somefile", 755);   // notación decimal: probablemente incorrecto
+chmod("/somedir/somefile", "u+rwx,go+rx"); // string: incorrecto
+chmod("/somedir/somefile", 0755);  // notación octal: valor del modo correcto
 ?>
 ]]>
         </programlisting>
        </informalexample>
       </para>
       <para>
-       El parámetro <parameter>mode</parameter> consiste en tres componentes
-       numéricos octales que especifican las restricciones de acceso para el propietario,
-       el grupo de usuarios al que pertenece el propietario, y para todos los demás, en
-       este orden. Un componente puede ser computado sumando los permisos
-       necesarios para ese usuario objetivo base. El número 1 significa que se conceden
-       derechos de ejecución, el número 2 significa que se puede escribir
-       en el fichero, el número 4 significa que el fichero se puede leer. Sume
-       estos números para especificar los derechos necesarios. Se puede leer más
-       sobre los modos en sistemas Unix con '<command>man 1 chmod</command>'
-       y '<command>man 2 chmod</command>'.
+       El argumento <parameter>permissions</parameter> se compone de tres
+       valores octales que especifican los derechos para el propietario,
+       el grupo del propietario y los demás, respectivamente. Cada
+       componente puede ser calculado sumando los derechos deseados.
+       El número 1 otorga los derechos de ejecución, el número 2 los derechos
+       de escritura y el número 4 los derechos de lectura. Simplemente
+       sume estos números para especificar los derechos deseados. También
+       puede leer el manual de los sistemas Unix con <command>man 1 chmod</command> y
+       <command>man 2 chmod</command>.
       </para>
       <para>
        <informalexample>
@@ -73,16 +72,16 @@ chmod("/directorio/fichero", 0755);  // octal; valor de modo correcto
 <![CDATA[
 <?php
 // Lectura y escritura para el propietario, nada para los demás
-chmod("/directorio/fichero", 0600);
+chmod("/somedir/somefile", 0600);
 
 // Lectura y escritura para el propietario, lectura para los demás
-chmod("/directorio/fichero", 0644);
+chmod("/somedir/somefile", 0644);
 
-// Todo para el propietario, lectura y ejecución para los otros
-chmod("/directorio/fichero", 0755);
+// Todo para el propietario, lectura y ejecución para los demás
+chmod("/somedir/somefile", 0755);
 
-// Todo para el propietario, lectura y ejecución para el grupo del propietario
-chmod("/directorio/fichero", 0750);
+// Todo para el propietario, lectura y ejecución para el grupo, nada para los demás
+chmod("/somedir/somefile", 0750);
 ?>
 ]]>
         </programlisting>
@@ -101,13 +100,21 @@ chmod("/directorio/fichero", 0750);
   </para>
  </refsect1>
 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   En caso de error, se emite un error <constant>E_WARNING</constant>.
+  </para>
+ </refsect1>
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    El usuario actual es el usuario bajo el que se ejecuta PHP. Probablemente no sea
-    el mismo usuario que se utilize para el intérprete de comandos normal o el acceso FTP.
-    EL modo puede ser cambiado sólo por el usuario al que pertenece el fichero en la mayoría de sistemas.
+    El usuario actual es el usuario con el que PHP funciona.
+    Probablemente sea diferente del usuario que se utiliza
+    en modo Shell o FTP. El modo solo puede ser modificado por el usuario
+    al que pertenece el fichero en la mayoría de los sistemas.
    </para>
   </note>
   &note.no-remote;
@@ -126,7 +133,6 @@ chmod("/directorio/fichero", 0750);
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
