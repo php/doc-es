@@ -1,30 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
+<!-- EN-Revision: f80105b4fc1196bd8d5fecb98d686b580b1ff65d Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.stat">
+<refentry xml:id="function.stat" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>stat</refname>
-  <refpurpose>Da información acerca de un fichero</refpurpose>
+  <refpurpose>Proporciona información sobre un fichero</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>stat</methodname>
+   <type class="union"><type>array</type><type>false</type></type><methodname>stat</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Reúne las estadísticas del fichero nombrado por
-   <parameter>filename</parameter>. Si <parameter>filename</parameter> es un
-   enlace simbólico, las estadísticas son las del fichero mismo, no las del enlace simbólico.
+   Proporciona información sobre el fichero <parameter>filename</parameter>.
+   Si <parameter>filename</parameter> es un enlace simbólico, la información
+   proviene del fichero en sí, y no del enlace simbólico.
+   Antes de PHP 7.4.0, en Windows <abbrev>NTS</abbrev> compila los valores estáticos
+   <literal>size</literal>, <literal>atime</literal>, <literal>mtime</literal> y
+   <literal>ctime</literal> desde los enlaces simbólicos, en este caso.
   </para>
   <para>
-   <function>lstat</function> es idéntica a <function>stat</function>
-   excepto que está basada en el estado de los enlaces simbólicos.
+   <function>lstat</function> es idéntico a
+   <function>stat</function> excepto que la información se basa
+   en el enlace simbólico.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -33,14 +37,14 @@
      <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-       Ruta del fichero.
+       La ruta al fichero.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
@@ -50,8 +54,8 @@
     <tgroup cols="3">
      <thead>
       <row>
-       <entry>Numérico</entry>
-       <entry>Asociativo</entry>
+       <entry>Número</entry>
+       <entry>Nombre</entry>
        <entry>Descripción</entry>
       </row>
      </thead>
@@ -59,17 +63,17 @@
       <row>
        <entry>0</entry>
        <entry>dev</entry>
-       <entry>número de dispositivo</entry>
+       <entry>volumen (***)</entry>
       </row>
       <row>
        <entry>1</entry>
        <entry>ino</entry>
-       <entry>número de i-nodo *</entry>
+       <entry>Número de inodo (****)</entry>
       </row>
       <row>
        <entry>2</entry>
        <entry>mode</entry>
-       <entry>modo de protección del i-nodo</entry>
+       <entry>derechos de acceso al inodo *****</entry>
       </row>
       <row>
        <entry>3</entry>
@@ -79,17 +83,17 @@
       <row>
        <entry>4</entry>
        <entry>uid</entry>
-       <entry>ID de usuario del propietario *</entry>
+       <entry>userid del propietario (*)</entry>
       </row>
       <row>
        <entry>5</entry>
        <entry>gid</entry>
-       <entry>ID de grupo del propietario *</entry>
+       <entry>groupid del propietario (*)</entry>
       </row>
       <row>
        <entry>6</entry>
        <entry>rdev</entry>
-       <entry>tipo de dispositivo, si es un dispositivo i-nodo</entry>
+       <entry>tipo de volumen, si el volumen es un inodo</entry>
       </row>
       <row>
        <entry>7</entry>
@@ -99,75 +103,180 @@
       <row>
        <entry>8</entry>
        <entry>atime</entry>
-       <entry>momento del último acceso (tiempo Unix)</entry>
+       <entry>fecha del último acceso (timestamp Unix)</entry>
       </row>
       <row>
        <entry>9</entry>
        <entry>mtime</entry>
-       <entry>momento de la última modificación (tiempo Unix)</entry>
+       <entry>fecha de la última modificación (timestamp Unix)</entry>
       </row>
       <row>
        <entry>10</entry>
        <entry>ctime</entry>
-       <entry>momento de la última modificación del i-nodo (tiempo Unix)</entry>
+       <entry>fecha del último cambio de inodo (timestamp Unix)</entry>
       </row>
       <row>
        <entry>11</entry>
        <entry>blksize</entry>
-       <entry>tamaño del bloque E/S del sistema de ficheros **</entry>
+       <entry>tamaño de bloque (**)</entry>
       </row>
       <row>
        <entry>12</entry>
        <entry>blocks</entry>
-       <entry>número de bloques de 512 bytes asignados **</entry>
+       <entry>número de bloques de 512 bytes asignados (**)</entry>
       </row>
      </tbody>
     </tgroup>
    </table>
-   * en Windows esto siempre será 0.
   </para>
   <para>
-   ** Sólo válido para sistemas que soportan el tipo st_blksize type - otros
-   sistemas (p.ej. Windows) devuelven -1.
+   * - En Windows, esto siempre será <literal>0</literal>.
   </para>
   <para>
-   En caso de que se produzca un error, <function>stat</function> devuelve &false;.
+   ** - Solo en sistemas que soportan el tipo <literal>st_blksize</literal>.
+   Los otros sistemas (ej. Windows) devuelven <literal>-1</literal>.
+  </para>
+  <para>
+   *** - En Windows, desde PHP 7.4.0, será el número de serie del volumen que
+   contiene el fichero, que será un entero 64-bit <emphasis>sin signo</emphasis>
+   que puede desbordarse. Anteriormente, era la representación numérica de la letra
+   del volumen (ej. <literal>2</literal> para <literal>C:</literal>) para la función
+   <function>stat</function>, y <literal>0</literal> para la función
+   <function>lstat</function>.
+  </para>
+  <para>
+   **** - En Windows, desde PHP 7.4.0, es el identificador asociado con el fichero,
+   que será un entero 64-bit <emphasis>sin signo</emphasis> que puede desbordarse.
+   Anteriormente, siempre era <literal>0</literal>.
+  </para>
+  <para>
+   ***** En Windows, el bit de permiso de escritura se define en función del atributo
+   de solo lectura del fichero, y el mismo valor se reporta para todos los usuarios,
+   grupo y propietario. El ACL no se tiene en cuenta, a diferencia de
+   <function>is_writable</function>.
+  </para>
+  <para>
+   El valor de <literal>mode</literal> contiene información leída por
+   varias funciones. Cuando se escribe en octal, comenzando por la derecha,
+   los tres primeros dígitos son devueltos por <function>chmod</function>.
+   El siguiente dígito es ignorado por PHP. Los dos siguientes dígitos indican
+   el tipo de fichero:
+   <table>
+    <title>Los tipos de ficheros <literal>mode</literal></title>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry><literal>mode</literal> en octal</entry>
+       <entry>Significado</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry><literal>0140000</literal></entry>
+       <entry>socket</entry>
+      </row>
+      <row>
+       <entry><literal>0120000</literal></entry>
+       <entry>enlace simbólico</entry>
+      </row>
+      <row>
+       <entry><literal>0100000</literal></entry>
+       <entry>fichero regular</entry>
+      </row>
+      <row>
+       <entry><literal>0060000</literal></entry>
+       <entry>dispositivo de bloque</entry>
+      </row>
+      <row>
+       <entry><literal>0040000</literal></entry>
+       <entry>directorio</entry>
+      </row>
+      <row>
+       <entry><literal>0020000</literal></entry>
+       <entry>dispositivo de carácter</entry>
+      </row>
+      <row>
+       <entry><literal>0010000</literal></entry>
+       <entry>FIFO (un tubo nombrado)</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+   Por ejemplo, un fichero regular podría ser
+   <literal>0100644</literal> y un directorio podría
+   <literal>0040755</literal>.
+  </para>
+  <para>
+   En caso de error, <function>stat</function> devuelve &false;.
   </para>
   &fs.file.32bit;
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Si falla, se emite un <constant>E_WARNING</constant>.
+   Si ocurre un error, se emite una advertencia de tipo
+   <constant>E_WARNING</constant>.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>7.4.0</entry>
+      <entry>
+       En Windows, el número del volumen es ahora el número de serie que contiene
+       el fichero, y el número de inodo es el identificador asociado con el fichero.
+      </entry>
+     </row>
+     <row>
+      <entry>7.4.0</entry>
+      <entry>
+       Los valores estáticos <literal>size</literal>, <literal>atime</literal>,
+       <literal>mtime</literal> y <literal>ctime</literal> de los enlaces simbólicos
+       son siempre los de la meta. Esto no era así previamente
+       para los builds <abbrev>NTS</abbrev> en Windows.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>stat</function></title>
+    <title>Ejemplo con <function>stat</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Obtener las estadísticas de un fichero */
-$estadísticas = stat('C:\php\php.exe');
+/* Obtención de la información */
+$stat = stat('C:\php\php.exe');
 
 /*
- * Imprime el momento de acceso del fichero,
- * esto es lo mismo que llamar a fileatime()
+ * Mostrar la fecha y hora del acceso a este fichero,
+ * idéntico a la llamada a la función fileatime()
  */
-echo 'Momento de acceso: ' . $estadísticas['atime'];
+echo 'Fecha y hora de acceso : ' . $stat['atime'];
 
 /*
- * Imprime el momento de modificación del fichero,
- * esto es lo mismo que llamar a filemtime()
+ * Mostrar la fecha y hora de modificación del fichero,
+ * idéntico a la llamada a la función filemtime()
  */
-echo 'Momento de modificación: ' . $estadísticas['mtime'];
+echo 'Fecha y hora de modificación : ' . $stat['mtime'];
 
-/* Imprime el número de dispositivo */
-echo 'Número de dispositivo: ' . $estadísticas['dev'];
+/* Mostrar el número del dispositivo */
+echo 'Número del dispositivo : ' . $stat['dev'];
 ?>
 ]]>
     </programlisting>
@@ -175,28 +284,29 @@ echo 'Número de dispositivo: ' . $estadísticas['dev'];
   </para>
   <para>
    <example>
-    <title>Usar la información de <function>stat</function> junto con <function>touch</function></title>
+    <title>Uso de la información obtenida de <function>stat</function>
+    junto con la función <function>touch</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Obtener las estadísticas del fichero */
-$estadísticas = @stat('C:\php\php.exe');
+/* Obtención de la información de la función stat */
+$stat = stat('C:\php\php.exe');
 
-/* ¿Falló al obtener la información de stat? */
-if(!$estadísticas) {
-    echo 'La llamada a stat() falló...';
+/* ¿Ha fallado el acceso a la información? */
+if (!$stat) {
+    echo 'La llamada a stat() ha fallado...';
 } else {
     /*
-     * Queremos que el tiempo de acceso sea 1 semana
-     * después que el tiempo de acceso actual.
+     * Queremos que la fecha y hora de acceso sea una
+     * semana después de la fecha actual.
      */
-    $atime = $estadísticas['atime'] + 604800;
+    $atime = $stat['atime'] + 604800;
 
-    /* Afectar el fichero */
-    if(!@touch('fichero.txt', time(), $atime)) {
-        echo 'Falló al afectar el fichero...';
+    /* Modificamos el fichero */
+    if(!touch('some_file.txt', time(), $atime)) {
+        echo 'Fallo al llamar a la función touch()...';
     } else {
-        echo 'touch() devolvió con éxito...';
+        echo 'La llamada a touch() ha tenido éxito...';
     }
 }
 ?>
@@ -205,14 +315,14 @@ if(!$estadísticas) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.filesystem-time-res;
   &note.clearstatcache;
   &tip.fopen-wrapper.stat;
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -221,12 +331,12 @@ if(!$estadísticas) {
     <member><function>fstat</function></member>
     <member><function>filemtime</function></member>
     <member><function>filegroup</function></member>
+    <member><classname>SplFileInfo</classname></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

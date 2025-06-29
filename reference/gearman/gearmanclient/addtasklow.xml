@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 552b2b938cc6f2e33001916ec6391931a663936f Maintainer: tatai Status: ready -->
-
+<!-- EN-Revision: 3c0b61c45a5dabe46865510311e57b77ea3dddb7 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="gearmanclient.addtasklow" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>GearmanClient::addTaskLow</refname>
-  <refpurpose>Añade una tarea de baja prioridad para ejecutar en paralelo</refpurpose>
+  <refpurpose>Añade una tarea de baja prioridad para ser ejecutada en paralelo</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>GearmanTask</type><methodname>GearmanClient::addTaskLow</methodname>
+  <methodsynopsis role="GearmanClient">
+   <modifier>public</modifier> <type class="union"><type>GearmanTask</type><type>false</type></type><methodname>GearmanClient::addTaskLow</methodname>
    <methodparam><type>string</type><parameter>function_name</parameter></methodparam>
-   <methodparam><type>string</type><parameter>workload</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter role="reference">context</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>unique</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type></type><parameter>workload</parameter></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>unique_key</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Añade una tarea de baja prioridad en segundo plano para ejecutar en paralelo
-   junto con otras tareas. Debe llamarse a este método para todas las tareas que
-   se ejecutan en paralelo y entonces llamar a
-   <methodname>GearmanClient::runTasks</methodname> para realizar el trabajo.
-   Tareas con una baja prioridad se seleccionarán de la cola después de las tareas
-   de prioridad normal o alta.
+   Añade una tarea de baja prioridad para ser ejecutada en paralelo con otras tareas.
+   Esta método debe ser llamado para que todas las tareas se ejecuten simultáneamente, luego
+   debe llamarse a <methodname>GearmanClient::runTasks</methodname> para realizar el trabajo. Las tareas con baja prioridad
+   serán seleccionadas de la cola después de las de mayor prioridad.
   </para>
  </refsect1>
 
@@ -56,7 +53,7 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>unique</parameter></term>
+     <term><parameter>unique_key</parameter></term>
      <listitem>
       <para>
        &gearman.parameter.unique;
@@ -70,8 +67,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un objeto <classname>GearmanTask</classname> o &false; si la tarea no puede
-   ser añadida.
+   Un objeto <classname>GearmanTask</classname> o &false; si la tarea no puede ser añadida.
   </para>
  </refsect1>
 
@@ -79,40 +75,40 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Una tarea de baja prioridad junto con dos tareas de prioridad normal</title>
+    <title>Una tarea de baja prioridad junto con dos tareas normales</title>
     <para>
-     Se incluye una tarea de prioridad baja junto a otras dos tareas. Se dispone
-     de un solo trabajador, de modo que únicamente se ejecuta una tarea por vez
-     y la tarea de baja prioridad la última.
+  Se añade una tarea de baja prioridad junto con otras dos tareas. Solo hay un agente
+  disponible, por lo que las tareas se ejecutan una tras otra, con la de baja prioridad
+  al final.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-# Crea el cliente gearman
+# crea el cliente Gearman
 $gmc= new GearmanClient();
 
-# Añade el servidor de trabajos por defecto
+# añade el servidor por defecto
 $gmc->addServer();
 
-# Establece la llamada de retorno para cuando el trabajo ha terminado
-$gmc->setCompleteCallback("reverse_complete");
+# establece la devolución de llamada cuando la tarea está completada
+$gmc->setCompleteCallback("inverse_complete");
 
-# Añade tareas, una de ellas de baja prioridad
-$task= $gmc->addTask("reverse", "Hello World!", null, "1");
-$task= $gmc->addTaskLow("reverse", "!dlroW olleH", null, "2");
-$task= $gmc->addTask("reverse", "Hello World!", null, "3");
+# añade tareas, una de ellas con baja prioridad
+$task= $gmc->addTask("inverse", "¡Hola mundo!", null, "1");
+$task= $gmc->addTaskLow("inverse", "!ednom el ruojnoB", null, "2");
+$task= $gmc->addTask("inverse", "¡Hola mundo!", null, "3");
 
 if (! $gmc->runTasks())
 {
     echo "ERROR " . $gmc->error() . "\n";
     exit;
 }
-echo "DONE\n";
+echo "Hecho\n";
 
-function reverse_complete($task)
+function inverse_complete($task)
 {
-    echo "COMPLETE: " . $task->unique() . ", " . $task->data() . "\n";
+    echo "Completada : " . $task->unique() . ", " . $task->data() . "\n";
 }
 
 ?>
@@ -121,10 +117,10 @@ function reverse_complete($task)
     &example.outputs.similar;
     <screen>
 <![CDATA[
-COMPLETE: 3, !dlroW olleH
-COMPLETE: 1, !dlroW olleH
-COMPLETE: 2, Hello World!
-DONE
+Completada : 3, !ednom el ruojnoB
+Completada : 1, !ednom el ruojnoB
+Completada : 2, ¡Hola mundo!
+Hecho
 ]]>
     </screen>
    </example>
@@ -146,7 +142,6 @@ DONE
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

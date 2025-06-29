@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5832a97c699c5e1bc808ee900447fe751af0d540 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.call-user-func-array" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>call_user_func_array</refname>
-  <refpurpose>Llamar a una llamada de retorno con un array de parámetros</refpurpose>
+  <refpurpose>Llama a una función de retorno con los argumentos agrupados en un array</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,11 +13,12 @@
   <methodsynopsis>
    <type>mixed</type><methodname>call_user_func_array</methodname>
    <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
-   <methodparam><type>array</type><parameter>param_arr</parameter></methodparam>
+   <methodparam><type>array</type><parameter>args</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Llama a la llamada de retorno dada por el primer parámetro <parameter>callback</parameter> con
-   los parámetros de <parameter>param_arr</parameter>.
+   Llama a la función de retorno <parameter>callback</parameter>
+   proporcionada con los argumentos <parameter>args</parameter>,
+   agrupados en un array.
   </para>
  </refsect1>
 
@@ -29,15 +30,31 @@
      <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       La función llamable (<type>callable</type>) a llamar.
+       La función de retorno a llamar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>param_arr</parameter></term>
+     <term><parameter>args</parameter></term>
      <listitem>
       <para>
-       Los parámetros a pasar a la llamada de retorno, como matriz indexada.
+       Los argumentos a pasar a la función de retorno,
+       en forma de array.
+      </para>
+      <para>
+        Si las claves de <parameter>args</parameter> son todas numéricas,
+        las claves son ignoradas y cada elemento será transmitido a
+        <parameter>callback</parameter> como argumento posicional, en el orden.
+      </para>
+      <para>
+        Si algunas claves de <parameter>args</parameter> son strings,
+        estos elementos serán transmitidos a <parameter>callback</parameter>
+        como argumentos nombrados, con el nombre dado por la clave.
+      </para>
+      <para>
+        No es permitido tener una clave numérica en <parameter>args</parameter>
+        que aparezca después de una clave de string, o tener una clave de string
+        que no corresponda al nombre de algún parámetro de <parameter>callback</parameter>
       </para>
      </listitem>
     </varlistentry>
@@ -48,74 +65,72 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor devuelto por la llamada de retorno, o &false; en caso de error.
+   Retorna el valor retornado por la función
+   de retorno, o &false; si ocurre un error.
   </para>
  </refsect1>
 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        La interpretación de palabras clave orientadas a objetos como <literal>parent</literal>
-        y <literal>self</literal> ha cambiado. Anteriormente al llamarlas usando la
-        sintaxis de dobles dos puntos emitiría una advertencia <constant>E_STRICT</constant> porque
-        eran interpretadas como estáticas.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
+  <refsect1 role="changelog">
+    &reftitle.changelog;
+    <para>
+      <informaltable>
+        <tgroup cols="2">
+          <thead>
+            <row>
+              <entry>&Version;</entry>
+              <entry>&Description;</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>8.0.0</entry>
+              <entry>
+                Las claves <parameter>args</parameter> serán interpretadas como nombres de parámetros,
+                en lugar de ser ignoradas silenciosamente.
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+    </para>
+  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>call_user_func_array</function></title>
+    <title>Ejemplo con <function>call_user_func_array</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 function foobar($arg, $arg2) {
-    echo __FUNCTION__, " obtuvo $arg y $arg2\n";
+    echo __FUNCTION__, " recibió $arg y $arg2\n";
 }
 class foo {
     function bar($arg, $arg2) {
-        echo __METHOD__, " obtuvo $arg y $arg2\n";
+        echo __METHOD__, " recibió $arg y $arg2\n";
     }
 }
 
-
 // Llamar a la función foobar() con 2 argumentos
-call_user_func_array("foobar", array("uno", "dos"));
+call_user_func_array("foobar", array("one", "two"));
 
 // Llamar al método $foo->bar() con 2 argumentos
 $foo = new foo;
-call_user_func_array(array($foo, "bar"), array("tres", "cuatro"));
+call_user_func_array(array($foo, "bar"), array("three", "four"));
 ?>
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-foobar obtuvo uno y dos
-foo::bar obtuvo tres y cuatro
+foobar recibió one y two
+foo::bar recibió three y four
 ]]>
     </screen>
    </example>
    <example>
-    <title><function>call_user_func_array</function> usando un nombre de espacio de nombres</title>
+    <title>Ejemplo con <function>call_user_func_array</function> utilizando un espacio de nombres</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -123,30 +138,28 @@ foo::bar obtuvo tres y cuatro
 namespace Foobar;
 
 class Foo {
-    static public function prueba($nombre) {
-        print "¡Hola {$nombre}!\n";
+    static public function test($name) {
+        print "¡Hola {$name}!\n";
     }
 }
 
-// A partir de PHP 5.3.0
-call_user_func_array(__NAMESPACE__ .'\Foo::prueba', array('Gema'));
+call_user_func_array(__NAMESPACE__ .'\Foo::test', array('Hannes'));
 
-// A partir de PHP 5.3.0
-call_user_func_array(array(__NAMESPACE__ .'\Foo', 'prueba'), array('Pedro'));
+call_user_func_array(array(__NAMESPACE__ .'\Foo', 'test'), array('Philip'));
 
 ?>
 ]]>
     </programlisting>
-    &example.outputs.similar;
+    &example.outputs;
     <screen>
 <![CDATA[
-¡Hola Gema!
-¡Hola Pedro!
+¡Hola Hannes!
+¡Hola Philip!
 ]]>
     </screen>
    </example>
    <example>
-    <title>Usar una función lambda</title>
+    <title>Uso de una función lambda</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -155,7 +168,7 @@ $func = function($arg1, $arg2) {
     return $arg1 * $arg2;
 };
 
-var_dump(call_user_func_array($func, array(2, 4))); /* A partir de PHP 5.3.0 */
+var_dump(call_user_func_array($func, array(2, 4)));
 
 ?>
 ]]>
@@ -167,29 +180,67 @@ int(8)
 ]]>
     </screen>
    </example>
+   <example>
+    <title>Pasando un valor por referencia</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+function mega(&$a){
+    $a = 55;
+    echo "function mega \$a=$a\n";
+}
+$bar = 77;
+call_user_func_array('mega',array(&$bar));
+echo "global \$bar=$bar\n";
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+function mega $a=55
+global $bar=55
+]]>
+    </screen>
+   </example>
+   <example>
+    <title><function>call_user_func_array</function> utilizando argumentos nombrados</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function foobar($first, $second) {
+    echo __FUNCTION__, " recibió $first y $second\n";
+}
+
+// Llamar a la función foobar() con argumentos nombrados en orden no posicional
+call_user_func_array("foobar", array("second" => "two", "first" => "one"));
+
+// Llamar a la función foobar() con un argumento nombrado
+call_user_func_array("foobar", array("foo", "second" => "bar"));
+
+// Error fatal: No se puede usar un argumento posicional después de un argumento nombrado
+call_user_func_array("foobar", array("first" => "one", "bar"));
+
+?>
+]]>
+    </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+foobar recibió one y two
+foobar recibió foo y bar
+
+Fatal error: Uncaught Error: Cannot use positional argument after named argument
+]]>
+    </screen>
+   </example>
   </para>
  </refsect1>
 
  <refsect1 role="notes">
   &reftitle.notes;
-  <note>
-   <para>
-    Antes de PHP 5.4, las variables referenciadas de <parameter>param_arr</parameter>
-    son pasadas a la función por referencia, sin tener en cuenta si la función
-    espera que el parámetro respectivo sea pasado por referencia. Esta forma de
-    paso por referncia en tiempo de llamda no emite un aviso de obsolescencia, pero,
-    no obstante, está obsoleta, y ha sido eliminada en PHP 5.4.
-    Además, esto no se aplica a funciones internas, para las que
-    la firma de la funcion es aceptada. Pasar por valor cuando la función
-    espera un parámetro por referencia resulta en una advertencia, y
-    <function>call_user_func</function> devolverá &false; (existe, sin embargo, una
-    excepción para valores pasados con cuenta de referencia = 1, como en los literales,
-    ya que pueden convertirse en referencias  sin efectos dañinos — aunque también
-    sin escribir que esos valores tengan ningún efecto —; sin embargo,
-    no confíe en este comportamiento, ya que la cuenta de referencia es un detalle
-    de implementación y la solidez de este comportamiento es cuestinable).
-   </para>
-  </note>
   &note.func-callback-exceptions;
  </refsect1>
 
@@ -205,7 +256,6 @@ int(8)
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

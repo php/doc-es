@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 1a34931477c98bef69ac1708ebe9947705045d52 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 2b56c905fb0d6fcab44cc0c2abdbf393fc2b69ea Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.touch">
  <refnamediv>
   <refname>touch</refname>
-  <refpurpose>Establece el momento de acceso y modificación de un archivo</refpurpose>
+  <refpurpose>Modifica la fecha de modificación y de último acceso de un fichero</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>touch</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>time</parameter><initializer>time()</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>atime</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>mtime</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>atime</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Intenta establecer los momentos de acceso y modificación del archivo nombrado por el
-   parámetro <parameter>filename</parameter> al valor dado en
-   <parameter>time</parameter>.
-   Observe que el momento de acceso se modifica siempre, sin importar el número
-   de parámetros.
+   Intenta forzar la fecha de modificación del fichero
+   designado por el parámetro <parameter>filename</parameter> a la fecha
+   especificada por el parámetro <parameter>mtime</parameter>.
+   Tenga en cuenta que la fecha de último acceso se modifica, independientemente
+   del número de argumentos.
   </para>
   <para>
-   Si el archivo no existe, será creado. 
+   Si el fichero no existe, PHP intentará crearlo.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,16 +35,16 @@
      <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-       El nombre del archivo que va a ser afectado.
+       El nombre del fichero a crear.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>time</parameter></term>
+     <term><parameter>mtime</parameter></term>
      <listitem>
       <para>
-       El momento de afectación. Si <parameter>time</parameter> no es proporcionado, 
-       se usa la hora actual del sistema.
+       La fecha de creación. Si <parameter>mtime</parameter> es omitido,
+       se utiliza la hora actual <function>time</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -52,61 +52,59 @@
      <term><parameter>atime</parameter></term>
      <listitem>
       <para>
-       Si está presente, el momento de acceso del nombre de archivo dado se establece
-       al valor de <parameter>atime</parameter>. De otro modo, se establece al
-       valor pasado al parámetro <parameter>time</parameter>.
-       Si ninguno está presente, se usa el momento actual del sistema.
+       Si no es &null;, la hora de acceso al fichero proporcionado se establecerá a la
+       valor del parámetro <parameter>atime</parameter>. De lo contrario, se establecerá a
+       la valor pasada al parámetro <parameter>mtime</parameter>.
+       Si ambos son &null;, se utilizará la hora actual del sistema.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        Se hizo posible cambiar el momento de modificación de un directorio 
-        bajo Windows.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>mtime</parameter> y <parameter>atime</parameter>
+       ahora son nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>touch</function></title>
+    <title>Ejemplo con <function>touch</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-if (touch($nombre_archivo)) {
-    echo 'El momento de modificación de ' . $nombre_archivo . ' ha sido cambiada a la hora actual';
+if (touch($FileName)) {
+    echo "La fecha de modificación de $FileName ha sido modificada a la fecha actual";
 } else {
-    echo 'Lo siento, no se pudo cambiar el momento de modificación de ' . $nombre_archivo;
+    echo "Lo sentimos, no es posible cambiar la fecha de modificación de $FileName";
 }
 ?>
 ]]>
@@ -115,18 +113,22 @@ if (touch($nombre_archivo)) {
   </para>
   <para>
    <example>
-    <title><function>touch</function> usando el parámetro <parameter>time</parameter></title>
+    <title>Ejemplo con <function>touch</function> utilizando el parámetro
+    <parameter>mtime</parameter></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Este es el momento afectado, lo estableceremos a una hora antes
-$momento = time() - 3600;
+/*
+ * Esta es la fecha y hora del último acceso, le añadimos 1 hora
+ * en el pasado.
+ */
+$time = time() - 3600;
 
-// Afectar el archivo
-if(!touch('archivo.txt', $momento)) {
-    echo 'Lo sieno, algo fue mal...';
+/* ¡Toquemos el fichero! */
+if (!touch('some_file.txt', $time)) {
+    echo '¡Ups, ha ocurrido un error...';
 } else {
-    echo 'Archivo afectado con éxito';
+    echo 'La llamada a la función touch() ha tenido éxito';
 }
 ?>
 ]]>
@@ -134,20 +136,13 @@ if(!touch('archivo.txt', $momento)) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.filesystem-time-res;
-  <warning>
-   <para>
-    Antes de PHP 5.3.0 no era posible cambiar el momento de modificación
-    de un directorio con esta función bajo Windows.
-   </para>
-  </warning>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

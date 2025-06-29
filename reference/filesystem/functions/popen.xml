@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8dd00a873bd77dc347397f1147fee3fba4cd1b4c Maintainer: seros Status: ready -->
+<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.popen">
+<refentry xml:id="function.popen" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>popen</refname>
-  <refpurpose>Abre un proceso de un puntero a un fichero</refpurpose>
+  <refpurpose>Crea un puntero de archivo de proceso</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>popen</methodname>
+   <type class="union"><type>resource</type><type>false</type></type><methodname>popen</methodname>
    <methodparam><type>string</type><parameter>command</parameter></methodparam>
    <methodparam><type>string</type><parameter>mode</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Abre una tubería hacia un proceso ejecutado bifurcando el comando dado
-   por <parameter>command</parameter>.
+   Crea un puntero de archivo de proceso, ejecutado mediante un fork
+   de la orden proporcionada por el argumento <parameter>command</parameter>.
   </para>
  </refsect1>
 
@@ -29,7 +29,7 @@
      <term><parameter>command</parameter></term>
      <listitem>
       <para>
-       El comando
+       La orden
       </para>
      </listitem>
     </varlistentry>
@@ -37,7 +37,16 @@
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       El modo
+       El modo. Puede ser <literal>'r'</literal> para lectura, o <literal>'w'</literal>
+       para escritura.
+      </para>
+      <para>
+       En Windows, <function>popen</function> utiliza el modo texto por defecto,
+       es decir, todo carácter <literal>\n</literal> escrito o leído del pipe será
+       traducido a <literal>\r\n</literal>.
+       Si esto no es deseado, el modo binario puede ser forzado definiendo
+       el <parameter>mode</parameter> a <literal>'rb'</literal> y
+       <literal>'wb'</literal>, respectivamente.
       </para>
      </listitem>
     </varlistentry>
@@ -48,18 +57,17 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un puntero al fichero idéntico al devuelto por
-   <function>fopen</function>, excepto que es uni-direccional (sólo
-   se puede usar para lectura o escritura) y debe ser cerrado con
-   <function>pclose</function>. Este puntero se puede usar con
-   <function>fgets</function>, <function>fgetss</function>, y
-   <function>fwrite</function>. Cuando el modo es 'r', el puntero al
-   fichero devuelto iguala al STDOUT del comando, cuando el modo
-   es 'w', el puntero al fichero devuelto iguala al STDIN del
-   comando.
+   Devuelve un puntero de archivo idéntico al devuelto por
+   <function>fopen</function>, excepto que será
+   unidireccional (solo lectura, o solo escritura), y debe ser
+   cerrado mediante <function>pclose</function>. Este puntero puede ser
+   utilizado con <function>fgets</function>, <function>fgetss</function>
+   y <function>fwrite</function>. Cuando el modo es 'r', el puntero de archivo
+   devuelto equivale al STDOUT de la orden, y cuando el modo es 'w', el
+   puntero de archivo devuelto equivale al STDIN de la orden.
   </para>
   <para>
-   Si se produjo un error, devuelve &false;.
+   Si ocurre un error, la función devolverá &false;.
   </para>
  </refsect1>
 
@@ -67,33 +75,34 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>popen</function></title>
+    <title>Ejemplo con <function>popen</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$gestor = popen("/bin/ls", "r");
+$handle = popen("/bin/ls", "r");
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
   <para>
-   Si el comando a ejecutar no puede ser encontrado, se
-   devuelve un recurso válido. Esto puede parecer extraño, pero tiene sentido;
-   permite el acceso a cualquier mensaje de error devuelto por el intérprete de comandos:
+   Si la orden a ejecutar no ha podido ser encontrada, se devolverá
+   un recurso válido. Esto puede parecer extraño, pero es práctico.
+   Esto permite acceder a los mensajes de error que han sido
+   devueltos por el Shell:
    <example>
-    <title>Ejemplo de <function>popen</function></title>
+    <title>Ejemplo con <function>popen</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 error_reporting(E_ALL);
 
-/* Añade redirección, por lo que podemos obtener stderr. */
-$gestor = popen('/ruta/al/ejecutable 2>&1', 'r');
-echo "'$gestor'; " . gettype($gestor) . "\n";
-$leer = fread($gestor, 2096);
-echo $leer;
-pclose($gestor);
+/* Añade una redirección para que pueda leer stderr. */
+$handle = popen('/path/to/executable 2>&1', 'r');
+echo "'$handle'; " . gettype($handle) . "\n";
+$read = fread($handle, 2096);
+echo $read;
+pclose($handle);
 ?>
 ]]>
     </programlisting>
@@ -105,8 +114,8 @@ pclose($gestor);
   &reftitle.notes;
   <note>
    <para>
-    Si está buscando un soporte bi-direccional (dos-vías), use
-    <function>proc_open</function>.
+    Si se desea un soporte bidireccional (two-way), utilice
+    la función <function>proc_open</function>.
    </para>
   </note>
  </refsect1>
@@ -123,7 +132,6 @@ pclose($gestor);
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 552b2b938cc6f2e33001916ec6391931a663936f Maintainer: tatai Status: ready -->
-
+<!-- EN-Revision: 22583751fbfdaa3eaa41aeb6470d1343f5cb2c78 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="gearmanclient.addtaskstatus" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>GearmanClient::addTaskStatus</refname>
@@ -10,15 +9,14 @@
 
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>GearmanTask</type><methodname>GearmanClient::addTaskStatus</methodname>
+  <methodsynopsis role="GearmanClient">
+   <modifier>public</modifier> <type class="union"><type>GearmanTask</type><type>false</type></type><methodname>GearmanClient::addTaskStatus</methodname>
    <methodparam><type>string</type><parameter>job_handle</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter role="reference">context</parameter></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Usado para pedir información de estado del servidor Gearman que llamará a la
-   función de retorno especificada (usando el método
-   <methodname>GearmanClient::setStatusCallback</methodname>).
+   Utilizado para solicitar el estado al servidor Gearman, que llamará al retorno de estado
+   especificado (mediante <methodname>GearmanClient::setStatusCallback</methodname>).
   </para>
  </refsect1>
 
@@ -30,7 +28,7 @@
      <term><parameter>job_handle</parameter></term>
      <listitem>
       <para>
-       Manejador de la tarea a obtener el estado
+       El descriptor para la tarea cuyo estado se desea obtener
       </para>
      </listitem>
     </varlistentry>
@@ -38,8 +36,7 @@
      <term><parameter>context</parameter></term>
      <listitem>
       <para>
-       Datos a pasar en la llamada a la función de retorno para el estado,
-       generalmente una referencia a un array u objeto.
+       Los datos a pasar al retorno de estado, generalmente una referencia a un array o a un objeto
       </para>
      </listitem>
     </varlistentry>
@@ -50,7 +47,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un objeto <classname>GearmanTask</classname>.
+   Un objeto <classname>GearmanTask</classname> o &false; en caso de error.
   </para>
  </refsect1>
 
@@ -58,46 +55,43 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>
-     Monitor para el estado de finalización de múltiples tareas en segundo plano
-    </title>
+    <title>Supervisar la finalización de múltiples tareas en segundo plano</title>
     <para>
-     Se introduce un retardo artificial en el trabajador del ejemplo para simular
-     un proceso de larga duración. Únicamente se ejecuta un trabajador para este
-     ejemplo.
+     Un retraso artificial se introduce en el agente de este ejemplo para simular un
+     proceso largo. Solo se lanza un agente en este ejemplo.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* Creamos el objeto */
+/* crea nuestro objeto */
 $gmclient= new GearmanClient();
 
-/* Añadimos el servidor por defecto */
+/* añade el servidor por omisión */
 $gmclient->addServer();
 
-/* Iniciamos varios trabajos en segundo plano y grabamos los manejadores */
+/* lanza una tarea en segundo plano y guarda los descriptores */
 $handles = array();
-$handles[0] = $gmclient->doBackground("reverse", "Hello World!");
-$handles[1] = $gmclient->doBackground("reverse", "!dlroW olleH");
+$handles[0] = $gmclient->doBackground("inverse", "¡Hola mundo!");
+$handles[1] = $gmclient->doBackground("inverse", "!ednom el ruojnoB");
 
-$gmclient->setStatusCallback("reverse_status");
+$gmclient->setStatusCallback("inverse_estado");
 
-/* Preguntamos constantemente al servidor para ver cuándo terminan los trabajos.
-/* mejor método sería usar llamadas de retorno en los eventos */
+/* Consulta al servidor para ver cuándo las tareas en segundo plano terminan; */
+/* un método mejor consiste en llamar a los retornos de evento */
 do
 {
-   /* Usar la variable en contexto para seguir cuántas tareas han finalizado */
+   /* Utiliza la variable de contexto para saber cuántas tareas se han completado */
    $done = 0;
-   $gmclient->addTaskStatus($handles[0], &$done);
-   $gmclient->addTaskStatus($handles[1], &$done);
+   $gmclient->addTaskStatus($handles[0], $done);
+   $gmclient->addTaskStatus($handles[1], $done);
    $gmclient->runTasks();
-   echo "Done: $done\n";
+   echo "Completado: $done\n";
    sleep(1);
 }
 while ($done != 2);
 
-function reverse_status($task, $done)
+function inverse_estado($task, $done)
 {
    if (!$task->isKnown())
       $done++;
@@ -109,31 +103,31 @@ function reverse_status($task, $done)
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 0
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 1
-Done: 2
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 0
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 1
+Completado: 2
 ]]>
     </screen>
    </example>
@@ -150,7 +144,6 @@ Done: 2
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

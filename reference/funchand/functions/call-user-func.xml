@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9e0f03ac354d797d1d16c0fcc1663e5e170f2727 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 2eb43ad4f41a8c62516abd804721786e50717af6 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.call-user-func" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>call_user_func</refname>
-  <refpurpose>Llamar a una llamada de retorno dada por el primer parámetro</refpurpose>
+  <refpurpose>Llama a una función de retorno proporcionada por el primer argumento</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,12 +14,12 @@
   <methodsynopsis>
    <type>mixed</type><methodname>call_user_func</methodname>
    <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>parameter</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>...</parameter></methodparam>
+   <methodparam rep="repeat"><type>mixed</type><parameter>args</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Llama a la llamada de retorno dada por el primer parámetro <parameter>callback</parameter> y pasa
-   los parámetros restantes como argumentos.
+   Llama a una función de retorno <parameter>callback</parameter>
+   proporcionada por el parámetro <parameter>callback</parameter>
+   donde los otros argumentos serán pasados como argumentos.
   </para>
  </refsect1>
 
@@ -30,37 +31,40 @@
      <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       La función llamable (<type>callable</type>) a llamar.
+       La función de retorno a llamar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>parameter</parameter></term>
+     <term><parameter>args</parameter></term>
      <listitem>
       <para>
-       Cero o más parámetros a pasar a la llamda de retorno.
+       &zero; o más argumentos a pasar a la función de retorno.
       </para>
       <note>
        <para>
-        Observe que los parámetros para <function>call_user_func</function> no
-        son pasados por referencia.
+        Tenga en cuenta que los argumentos para <function>call_user_func</function> no son pasados por referencia.
         <example>
-         <title>Ejemplo de <function>call_user_func</function> y referencias</title>
+         <title>Ejemplo con <function>call_user_func</function> por referencia</title>
          <programlisting role="php">
 <![CDATA[
 <?php
-error_reporting(E_ALL);
-function incrementar(&$var)
+function increment(&$var)
 {
     $var++;
 }
 
 $a = 0;
-call_user_func('incrementar', $a);
+call_user_func('increment', $a);
 echo $a."\n";
 
-// En su lugar se puede usar esto
-call_user_func_array('incrementar', array(&$a));
+// es posible utilizar esto en su lugar
+call_user_func_array('increment', array(&$a));
+echo $a."\n";
+
+// también es posible utilizar funciones variables
+$increment = 'increment';
+$increment($a);
 echo $a."\n";
 ?>
 ]]>
@@ -68,8 +72,10 @@ echo $a."\n";
          &example.outputs;
          <screen>
 <![CDATA[
+Warning: Parameter 1 to increment() expected to be a reference, value given in …
 0
 1
+2
 ]]>
          </screen>
         </example>
@@ -84,34 +90,7 @@ echo $a."\n";
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor devuelto por la llamada de retorno, o &false; en caso de error.
-  </para>
- </refsect1>
-
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        La interpretación de palabras clave orientadas a objetos como <literal>parent</literal>
-        y <literal>self</literal> ha cambiado. Anteriormente al llamarlas usando la
-        sintaxis de dobles dos puntos emitiría una advertencia <constant>E_STRICT</constant> porque
-        eran interpretadas como estáticas.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
+   Retorna el valor retornado por la función de retorno.
   </para>
  </refsect1>
 
@@ -119,29 +98,29 @@ echo $a."\n";
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>call_user_func</function></title>
+    <title>Ejemplo con <function>call_user_func</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-function barbero($tipo)
+function barber($type)
 {
-    echo "Usted quiere un corte de pelo al estilo $tipo, sin problemas\n";
+    echo "Usted quiere un corte $type, ningún problema";
 }
-call_user_func('barbero', "seta");
-call_user_func('barbero', "rapado");
+call_user_func('barber', "al tazón");
+call_user_func('barber', "con navaja");
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Usted quiere un corte de pelo al estilo seta, sin problemas
-Usted quiere un corte de pelo al estilo rapado, sin problemas
+Usted quiere un corte al tazón, ningún problema
+Usted quiere un corte con navaja, ningún problema
 ]]>
     </screen>
    </example>
    <example>
-    <title><function>call_user_func</function> usando un nombre de espacios de nombres</title>
+    <title>Ejemplo con <function>call_user_func</function> utilizando un espacio de nombres</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -149,14 +128,13 @@ Usted quiere un corte de pelo al estilo rapado, sin problemas
 namespace Foobar;
 
 class Foo {
-    static public function prueba() {
+    static public function test() {
         print "¡Hola mundo!\n";
     }
 }
 
-call_user_func(__NAMESPACE__ .'\Foo::prueba'); // A partir de PHP 5.3.0
-call_user_func(array(__NAMESPACE__ .'\Foo', 'prueba')); // A partir de PHP 5.3.0
-
+call_user_func(__NAMESPACE__ .'\Foo::test');
+call_user_func(array(__NAMESPACE__ .'\Foo', 'test'));
 ?>
 ]]>
     </programlisting>
@@ -169,26 +147,26 @@ call_user_func(array(__NAMESPACE__ .'\Foo', 'prueba')); // A partir de PHP 5.3.0
     </screen>
    </example>
    <example>
-    <title>Usar un método de clase con <function>call_user_func</function></title>
+    <title>Uso de un método de clase con <function>call_user_func</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-class miclase {
-    static function saludar()
+class maclasse {
+    static function dit_bonjour()
     {
         echo "¡Hola!\n";
     }
 }
 
-$nombreclase = "miclase";
+$classname = "maclasse";
 
-call_user_func(array($nombreclase, 'saludar'));
-call_user_func($nombreclase .'::saludar'); // A partir de 5.2.3
+call_user_func(array($classname, 'dit_bonjour'));
+call_user_func($classname .'::dit_bonjour');
 
-$miobjeto = new miclase();
+$monobjet = new maclasse();
 
-call_user_func(array($miobjeto, 'saludar'));
+call_user_func(array($monobjet, 'dit_bonjour'));
 
 ?>
 ]]>
@@ -203,18 +181,18 @@ call_user_func(array($miobjeto, 'saludar'));
     </screen>
    </example>
    <example>
-    <title>Usar una función lambda con <function>call_user_func</function></title>
+    <title>Uso de una función lambda con <function>call_user_func</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-call_user_func(function($arg) { print "[$arg]\n"; }, 'prueba'); /* A partir de PHP 5.3.0 */
+call_user_func(function($arg) { print "[$arg]\n"; }, 'test');
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-[prueba]
+[test]
 ]]>
     </screen>
    </example>
@@ -232,6 +210,7 @@ call_user_func(function($arg) { print "[$arg]\n"; }, 'prueba'); /* A partir de P
    <simplelist>
     <member><function>call_user_func_array</function></member>
     <member><function>is_callable</function></member>
+    <member><link linkend="functions.variable-functions">Funciones variables</link></member>
     <member><methodname>ReflectionFunction::invoke</methodname></member>
     <member><methodname>ReflectionMethod::invoke</methodname></member>
    </simplelist>

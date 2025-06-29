@@ -1,28 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e6679b54244f0f7028de377387708b2674b85516 Maintainer: tatai Status: ready -->
+<!-- EN-Revision: 3c0b61c45a5dabe46865510311e57b77ea3dddb7 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
 <refentry xml:id="gearmanclient.addtaskbackground" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>GearmanClient::addTaskBackground</refname>
-  <refpurpose>Ejecuta una tarea en segundo plano para ser ejecutada en paralelo</refpurpose>
+  <refpurpose>Añade una tarea de fondo para su ejecución en paralelo</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>GearmanTask</type><methodname>GearmanClient::addTaskBackground</methodname>
+  <methodsynopsis role="GearmanClient">
+   <modifier>public</modifier> <type class="union"><type>GearmanTask</type><type>false</type></type><methodname>GearmanClient::addTaskBackground</methodname>
    <methodparam><type>string</type><parameter>function_name</parameter></methodparam>
-   <methodparam><type>string</type><parameter>workload</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter role="reference">context</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>unique</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type></type><parameter>workload</parameter></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>context</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>unique_key</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Añade una tarea en segundo plano para ser ejecutada en paralelo junto con
-   otras tareas. Este método debe llamarse para todas las tareas que deben
-   ejecutarse en paralelo y entonces llamar a
-   <methodname>GearmanClient::runTasks</methodname> para realizar el trabajo.
+   Añade una tarea de fondo para su ejecución en paralelo con otras tareas.
+   Llámese a este método para todas las tareas que deban ejecutarse en paralelo, y
+   luego, llámese al método <methodname>GearmanClient::runTasks</methodname> para realizar las tareas.
   </para>
  </refsect1>
 
@@ -55,7 +52,7 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>unique</parameter></term>
+     <term><parameter>unique_key</parameter></term>
      <listitem>
       <para>
        &gearman.parameter.unique;
@@ -69,7 +66,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un objeto <classname>GearmanTask</classname> o &false; si la tarea no pudo ser añadida.
+   Un objeto <classname>GearmanTask</classname> o &false; si la tarea
+   no pudo ser añadida.
   </para>
  </refsect1>
 
@@ -77,17 +75,16 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Dos tareas, una en segundo plano y la otra no</title>
+    <title>2 tareas, una de ellas en segundo plano</title>
     <para>
-     Este ejemplo ilustra la diferencia entre ejecutar una tarea en segundo plano
-     y una tarea normal. El cliente añade dos tareas para que ejecuten la misma
-     función, pero una se añade con <methodname>addTaskBackground</methodname>.
-     Se establece una llamada de retorno de modo que se puede hacer seguimiento
-     del progreso del trabajo. Un trajabador muy simple con un retardo artificial
-     informa sobre el progreso del trabajo y el cliente obtiene esta información
-     a través de la llamada de retorno. En este ejemplo se ejecutan dos
-     trabajadores. Notar que la tarea en segundo plano no se muestra en la
-     información de salida del cliente.
+     Este ejemplo muestra la diferencia entre la ejecución en segundo plano
+     y una ejecución normal. El cliente añade 2 tareas que deben ejecutar
+     la misma función, pero una ha sido añadida con el método
+     <methodname>addTaskBackground</methodname>. Se define una función de retorno
+     para monitorear el progreso del trabajo. Un agente simple con un retraso
+     artificial reporta el progreso y el cliente lo procesa mediante la función de retorno.
+     Se ejecutan 2 agentes en este ejemplo. Obsérvese que la tarea en segundo plano
+     no es mostrada por el cliente.
     </para>
     <programlisting role="php">
 <![CDATA[
@@ -95,20 +92,20 @@
 
 # El script del cliente
 
-# Creamos el cliente gearman
+# Crea un cliente Gearman
 $gmc= new GearmanClient();
 
-# Añade el servidor de trabajos por defecto
+# Añade un servidor de trabajos por omisión
 $gmc->addServer();
 
-# Establece un par de llamadas de retorno de modo que pueda seguirse el progreso
+# Define 2 funciones de retorno para monitorear el progreso
 $gmc->setCompleteCallback("reverse_complete");
 $gmc->setStatusCallback("reverse_status");
 
 # Añade una tarea para la función "reverse"
 $task= $gmc->addTask("reverse", "Hello World!", null, "1");
 
-# Añade otra tarea, pero esta se ejecuta en segundo plano
+# Añade otra tarea, pero esta vez, en segundo plano
 $task= $gmc->addTaskBackground("reverse", "!dlroW olleH", null, "2");
 
 if (! $gmc->runTasks())
@@ -117,17 +114,17 @@ if (! $gmc->runTasks())
     exit;
 }
 
-echo "DONE\n";
+echo "HECHO\n";
 
 function reverse_status($task)
 {
-    echo "STATUS: " . $task->unique() . ", " . $task->jobHandle() . " - " . $task->taskNumerator() . 
+    echo "ESTADO : " . $task->unique() . ", " . $task->jobHandle() . " - " . $task->taskNumerator() . 
          "/" . $task->taskDenominator() . "\n";
 }
 
 function reverse_complete($task)
 {
-    echo "COMPLETE: " . $task->unique() . ", " . $task->data() . "\n";
+    echo "TERMINADO : " . $task->unique() . ", " . $task->data() . "\n";
 }
 
 ?>
@@ -137,20 +134,20 @@ function reverse_complete($task)
 <![CDATA[
 <?php
 
-# El script del trabajador
+# El script del agente
 
-echo "Starting\n";
+echo "Inicio\n";
 
-# Creamos el objeto trabajador
+# Crea un agente.
 $gmworker= new GearmanWorker();
 
-# Añade el servidor por defecto (localhost)
+# Añade un servidor por omisión (localhost).
 $gmworker->addServer();
 
-# Registra la función "reverse" en el servidor
+# Registra la función "reverse" en este servidor.
 $gmworker->addFunction("reverse", "reverse_fn");
 
-print "Waiting for job...\n";
+print "Esperando trabajo...\n";
 while($gmworker->work())
 {
   if ($gmworker->returnCode() != GEARMAN_SUCCESS)
@@ -162,26 +159,26 @@ while($gmworker->work())
 
 function reverse_fn($job)
 {
-  echo "Received job: " . $job->handle() . "\n";
+  echo "Trabajo recibido : " . $job->handle() . "\n";
 
   $workload = $job->workload();
   $workload_size = $job->workloadSize();
 
-  echo "Workload: $workload ($workload_size)\n";
+  echo "Carga del agente : $workload ($workload_size)\n";
 
-  # Este bucle de estado no es neceasario, únicamente muestra cómo funciona
+  # Este ciclo no es necesario, pero ayuda a entender el funcionamiento
   for ($x= 0; $x < $workload_size; $x++)
   {
-    echo "Sending status: " . $x + 1 . "/$workload_size complete\n";
+    echo "Enviando estado : " . ($x + 1) . "/$workload_size complete\n";
     $job->sendStatus($x+1, $workload_size);
     $job->sendData(substr($workload, $x, 1));
     sleep(1);
   }
 
   $result= strrev($workload);
-  echo "Result: $result\n";
+  echo "Resultado : $result\n";
 
-  # Retorna lo que se quiere enviar al cliente
+  # Se devuelve al cliente lo que se desee.
   return $result;
 }
 
@@ -189,61 +186,61 @@ function reverse_fn($job)
 ]]>
     </programlisting>
     <para>
-     Salida del trabajador para dos trabajadores en funcionamiento:
+     El agente muestra, para los 2 trabajos :
     </para>
     <screen>
 <![CDATA[
-Received job: H:foo.local:65
-Workload: !dlroW olleH (12)
+Trabajo recibido : H:foo.local:65
+Carga del agente : !dlroW olleH (12)
 1/12 complete
-Received job: H:foo.local:66
-Workload: Hello World! (12)
-Sending status: 1/12 complete
-Sending status: 2/12 complete
-Sending status: 2/12 complete
-Sending status: 3/12 complete
-Sending status: 3/12 complete
-Sending status: 4/12 complete
-Sending status: 4/12 complete
-Sending status: 5/12 complete
-Sending status: 5/12 complete
-Sending status: 6/12 complete
-Sending status: 6/12 complete
-Sending status: 7/12 complete
-Sending status: 7/12 complete
-Sending status: 8/12 complete
-Sending status: 8/12 complete
-Sending status: 9/12 complete
-Sending status: 9/12 complete
-Sending status: 10/12 complete
-Sending status: 10/12 complete
-Sending status: 11/12 complete
-Sending status: 11/12 complete
-Sending status: 12/12 complete
-Sending status: 12/12 complete
-Result: !dlroW olleH
-Result: Hello World!
+Trabajo recibido : H:foo.local:66
+Carga del agente : Hello World! (12)
+Enviando estado : 1/12 complete
+Enviando estado : 2/12 complete
+Enviando estado : 2/12 complete
+Enviando estado : 3/12 complete
+Enviando estado : 3/12 complete
+Enviando estado : 4/12 complete
+Enviando estado : 4/12 complete
+Enviando estado : 5/12 complete
+Enviando estado : 5/12 complete
+Enviando estado : 6/12 complete
+Enviando estado : 6/12 complete
+Enviando estado : 7/12 complete
+Enviando estado : 7/12 complete
+Enviando estado : 8/12 complete
+Enviando estado : 8/12 complete
+Enviando estado : 9/12 complete
+Enviando estado : 9/12 complete
+Enviando estado : 10/12 complete
+Enviando estado : 10/12 complete
+Enviando estado : 11/12 complete
+Enviando estado : 11/12 complete
+Enviando estado : 12/12 complete
+Enviando estado : 12/12 complete
+Resultado : !dlroW olleH
+Resultado : Hello World!
 ]]>
     </screen>
     <para>
-     Salida del cliente:
+     Salida del cliente :
     </para>
     <screen>
 <![CDATA[
-STATUS: 1, H:foo.local:66 - 1/12
-STATUS: 1, H:foo.local:66 - 2/12
-STATUS: 1, H:foo.local:66 - 3/12
-STATUS: 1, H:foo.local:66 - 4/12
-STATUS: 1, H:foo.local:66 - 5/12
-STATUS: 1, H:foo.local:66 - 6/12
-STATUS: 1, H:foo.local:66 - 7/12
-STATUS: 1, H:foo.local:66 - 8/12
-STATUS: 1, H:foo.local:66 - 9/12
-STATUS: 1, H:foo.local:66 - 10/12
-STATUS: 1, H:foo.local:66 - 11/12
-STATUS: 1, H:foo.local:66 - 12/12
-COMPLETE: 1, !dlroW olleH
-DONE
+ESTADO : 1, H:foo.local:66 - 1/12
+ESTADO : 1, H:foo.local:66 - 2/12
+ESTADO : 1, H:foo.local:66 - 3/12
+ESTADO : 1, H:foo.local:66 - 4/12
+ESTADO : 1, H:foo.local:66 - 5/12
+ESTADO : 1, H:foo.local:66 - 6/12
+ESTADO : 1, H:foo.local:66 - 7/12
+ESTADO : 1, H:foo.local:66 - 8/12
+ESTADO : 1, H:foo.local:66 - 9/12
+ESTADO : 1, H:foo.local:66 - 10/12
+ESTADO : 1, H:foo.local:66 - 11/12
+ESTADO : 1, H:foo.local:66 - 12/12
+TERMINADO : 1, !dlroW olleH
+HECHO
 ]]>
     </screen>
    </example>
@@ -265,7 +262,6 @@ DONE
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

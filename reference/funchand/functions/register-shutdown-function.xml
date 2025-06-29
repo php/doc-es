@@ -1,34 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: aeoris Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: b412bbd26214f7281ac7dd858710e09952a275f2 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.register-shutdown-function" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>register_shutdown_function</refname>
-  <refpurpose>Registrar una función para que sea ejecutada al cierre</refpurpose>
+  <refpurpose>Registra una función de retrollamada para ejecución al cierre</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>void</type><methodname>register_shutdown_function</methodname>
    <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>parameter</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>...</parameter></methodparam>
+   <methodparam rep="repeat"><type>mixed</type><parameter>args</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Registra una llamada de retorno dada por <parameter>callback</parameter> para ser ejecutada después
-   de que finalice la ejecución del script o se llame a <function>exit</function>.
+   Registra una función de retrollamada <parameter>callback</parameter>
+   para ejecución al cierre o cuando
+   <function>exit</function> es llamado.
   </para>
   <para>
-   Se pueden hacer múltiples llamadas a <function>register_shutdown_function</function>,
-   y cada una será llamada en el mismo orden en el que fueron registradas.
-   Si se llama a <function>exit</function> dentro de una función de cierre
-   registrada, el procesamiento se detendrá completamente y no se llamarán a otras
-   funciones de cierre registradas.
+   Varios llamados a <function>register_shutdown_function</function> son
+   posibles en el mismo script, y las funciones serán llamadas en el
+   mismo orden en que son registradas. Si se llama
+   <function>exit</function>
+   durante una de las funciones de cierre, el proceso será definitivamente
+   detenido, sin que las otras funciones sean llamadas.
+  </para>
+  <para>
+   Las funciones de cierre pueden también llamar a la función
+   <function>register_shutdown_function</function> ellas mismas para añadir una
+   función de cierre al final de la cola.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -37,104 +44,101 @@
      <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       La llamada de retorno de cierre a registrar.
+       La función de retrollamada a registrar.
       </para>
       <para>
-       Las llamadas de retorno de cierre se ejecutan como parte de una petición, por lo que
-       es posible enviar salidas desde ellas y acceder a los buffers de salida.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>parameter</parameter></term>
-     <listitem>
-      <para>
-       Es posible pasar parámetros a la función de cierre pasando
-       parámetros adicionales.
+       La función de retrollamada es ejecutada como parte de la
+       petición, por lo tanto, es posible enviar algo a la salida
+       desde esta última, así como acceder a los buffers de salida.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>...</parameter></term>
+     <term><parameter>args</parameter></term>
      <listitem>
       <para>
+       Es posible pasar argumentos a las funciones de cierre configurando estos argumentos adicionales.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.void;
   </para>
  </refsect1>
- 
- <refsect1 role="errors">
-  &reftitle.errors;
-  <para>
-   Se generará un error de nivel <constant>E_WARNING</constant> si no es posible llamar a
-   la llamada de retorno.
-  </para>
- </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>register_shutdown_function</function></title>
+    <title>Ejemplo con <function>register_shutdown_function</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-function cierre()
+function shutdown()
 {
-    // Esta es nuestra función de cierre,
-    // aquí podemos hacer las últimas operaciones
-    // antes de que el script sea completado.
+    // Aquí está nuestra función shutdown
+    // en la cual podemos realizar
+    // todas las últimas operaciones
+    // antes del fin del script.
 
     echo 'Script ejecutado con éxito', PHP_EOL;
 }
 
-register_shutdown_function('cierre');
+register_shutdown_function('shutdown');
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    El directorio de trabajo del script se puede cambiar dentro de la función de cierre
-    bajo algunos servidores web, p.ej. Apache.
+    El directorio de trabajo del script puede cambiar en la función de cierre
+    bajo algunos servidores web, por ejemplo Apache.
    </para>
   </note>
   <note>
    <para>
-    Las funciones de cierre no serán ejecutadas si el proceso es terminado por señales SIGTERM
-    o SIGKILL. Pese a que no es posible interceptar una señal SIGKILL, es posible utilizar <function>pcntl_signal</function>
-    para registrar un manejador para SIGTERM que utilice <function>exit</function> para
-    terminar limpiamente.
+    Las funciones de cierre no serán ejecutadas si el proceso es terminado
+    con un señal SIGTERM o SIGKILL. Aunque no se puede interceptar
+    un SIGKILL, se puede usar la función <function>pcntl_signal</function>
+    para instalar un manejador para un SIGTERM que utilice la función
+    <function>exit</function> para terminar correctamente.
+   </para>
+  </note>
+  <note>
+   <para>
+    Las funciones de cierre se ejecutan por separado del tiempo seguido por
+    <link linkend="ini.max-execution-time">max_execution_time</link>. Esto significa
+    que incluso si un proceso es terminado por haber funcionado demasiado tiempo, las
+    funciones de cierre serán siempre llamadas. Además, si el
+    <literal>max_execution_time</literal> alcanza su límite mientras una función
+    de cierre está en ejecución, no será interrumpida.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><link linkend="ini.auto-append-file">auto_append_file</link></member>
     <member><function>exit</function></member>
-    <member>La sección sobre <link
-     linkend="features.connection-handling">manejo de conexiones</link></member>
+    <member><function>fastcgi_finish_request</function></member>
+    <member>La sección sobre la <link linkend="features.connection-handling">gestión de conexiones</link></member>
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file
