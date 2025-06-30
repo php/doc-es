@@ -1,27 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: ac78bae531756815da86f105c9a70f66cd48f417 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 539a9823a805ac29cab7fa4baf3ae3a28116a2f5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
-<refentry xml:id="function.hash-pbkdf2" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+<refentry xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>hash_pbkdf2</refname>
-  <refpurpose>Genera una derivación de clave PBKDF2 de una contraseña proporcionada</refpurpose>
+  <refpurpose>Genera una clave PBKDF2 derivada de la contraseña proporcionada</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis role="procedural">
+  <methodsynopsis>
    <type>string</type><methodname>hash_pbkdf2</methodname>
    <methodparam><type>string</type><parameter>algo</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>password</parameter></methodparam>
    <methodparam><type>string</type><parameter>salt</parameter></methodparam>
    <methodparam><type>int</type><parameter>iterations</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>length</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>raw_output</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>binary</parameter><initializer>&false;</initializer></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>[]</initializer></methodparam>
   </methodsynopsis>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -30,9 +29,13 @@
      <term><parameter>algo</parameter></term>
      <listitem>
       <para>
-       El nombre del algoritmo hash seleccionado (esto es, <literal>"md5"</literal>,
-       <literal>"sha256"</literal>, <literal>"haval160,4"</literal>, etc.). Véase
-       <function>hash_algos</function> para una lista de los algoritmos admitidos.
+       Nombre del algoritmo de hash seleccionado (por ejemplo: <literal>"sha256"</literal>).
+       Para una lista de los algoritmos soportados ver <function>hash_hmac_algos</function>.
+       <note>
+        <para>
+         Las funciones de hash no criptográficas no están permitidas.
+        </para>
+       </note>
       </para>
      </listitem>
     </varlistentry>
@@ -40,7 +43,7 @@
      <term><parameter>password</parameter></term>
      <listitem>
       <para>
-       La contraseña a usar para la derivación.
+       La contraseña a utilizar para la derivación.
       </para>
      </listitem>
     </varlistentry>
@@ -48,7 +51,8 @@
      <term><parameter>salt</parameter></term>
      <listitem>
       <para>
-       La sal a usar para la derivación. Este valor debería ser generado aleatoriamente.
+       El salt a utilizar para la derivación. Este valor debe
+       ser generado aleatoriamente.
       </para>
      </listitem>
     </varlistentry>
@@ -56,7 +60,8 @@
      <term><parameter>iterations</parameter></term>
      <listitem>
       <para>
-       El número de iteraciones internas para realizar la derivación.
+       El número de iteraciones internas para efectuar la
+       derivación.
       </para>
      </listitem>
     </varlistentry>
@@ -64,110 +69,159 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud del string de salida. Si <parameter>raw_output</parameter>
-       es &true;, se corresponde con la longitud en bytes de la clave derivada; si
-       <parameter>raw_output</parameter> es &false;, se corresponde con dos veces la
-       longitud en bytes de la clave derivada (ya que cada byte de la clave es devuelto
-       como dos dígitos hexadecimales).
+       La longitud de la cadena de salida. Si el parámetro
+       <parameter>binary</parameter> vale &true;, este parámetro
+       corresponderá a la longitud, en bytes, de la clave derivada; si
+       el parámetro <parameter>binary</parameter> vale &false;,
+       corresponderá al doble de la longitud, en bytes, de la clave
+       derivada (ya que cada byte de la clave es devuelto sobre
+       dos hexits).
       </para>
       <para>
-       Si se pasa <literal>0</literal>, se usará la salida completa
-       del algoritmo proporcionado.
+       Si <literal>0</literal> es pasado, la salida completa del algoritmo
+       elegido será utilizada.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>raw_output</parameter></term>
+     <term><parameter>binary</parameter></term>
      <listitem>
       <para>
-       Cuando se establece a &true;, genera datos binarios puros.
-       &false; genera dígitos hexadecimales en minúsculas.
+       Cuando está definido a &true;, la función mostrará los datos
+       binarios brutos. Si vale &false;, la visualización se hará
+       en minúsculas.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>options</parameter></term>
+     <listitem>
+      <para>
+       Un array de opciones para los diferentes algoritmos de hash.
+       Actualmente, solo la clave <literal>"seed"</literal> es
+       soportada por las variantes MurmurHash.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues"><!-- {{{ -->
   &reftitle.returnvalues;
   <para>
-   Devuelve un string que contiene la clave derivada como dígitos hexadecimales en minúsculas,
-   a menos que <parameter>raw_output</parameter> sea establecido a &true;, en cuyo caso
-   devuelve la represetación binaria pura de la clave derivada.
+   Devuelve una cadena que contiene la clave derivada en minúsculas,
+   a menos que el parámetro <parameter>binary</parameter> esté
+   posicionado a &true; en cuyo caso, la representación binaria bruta
+   de la clave derivada será devuelta.
   </para>
  </refsect1><!-- }}} -->
- 
+
  <refsect1 role="errors"><!-- {{{ -->
   &reftitle.errors;
   <para>
-   Se emitirá un <constant>E_WARNING</constant> si el algoritmo es
-   desconocido, el parámetro <parameter>iterations</parameter> es menor o
-   igual a <literal>0</literal>, el parámetro <parameter>length</parameter> es menor
-   que <literal>0</literal> o el parámetro <parameter>salt</parameter> es demasiado grande
+   Una excepción <classname>ValueError</classname> si
+   el algoritmo no es conocido, si el parámetro <parameter>iterations</parameter>
+   es inferior o igual a <literal>0</literal>, si la longitud
+   <parameter>length</parameter> es inferior o igual a <literal>0</literal>
+   o si el <parameter>salt</parameter> es demasiado largo
    (mayor que <constant>INT_MAX</constant><literal> - 4</literal>).
   </para>
  </refsect1><!-- }}} -->
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        El uso de funciones de hash no criptográficas (adler32,
+        crc32, crc32b, fnv132, fnv1a32, fnv164, fnv1a64, joaat) ha sido desactivado.
+       </entry>
+      </row>
+      <row>
+      <entry>8.0.0</entry>
+       <entry>
+        Levanta una excepción <classname>ValueError</classname> ahora en
+        caso de error.
+        Anteriormente, &false; era devuelto y un mensaje
+        <constant>E_WARNING</constant> era emitido.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de uso básico de <function>hash_pbkdf2</function></title>
+    <title>Ejemplo con <function>hash_pbkdf2</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$contraseña = "password";
-$iteraciones = 1000;
+$password = "password";
+$iterations = 600000;
 
-// Generar una IV aleatoria usando mcrypt_create_iv(),
-// openssl_random_pseudo_bytes() u otra fuente disponible de aleatoriedad
-$sal = mcrypt_create_iv(16, MCRYPT_DEV_URANDOM);
+// Genera un salt criptográficamente seguro aleatorio usando la función random_bytes(),
+$salt = random_bytes(16);
 
-$hash = hash_pbkdf2("sha256", $contraseña, $sal, $iteraciones, 20);
-echo $hash;
+$hash = hash_pbkdf2("sha256", $password, $salt, $iterations, 20);
+var_dump($hash);
+
+// Para binario bruto, $length debe ser dividido por dos para resultados equivalentes
+$hash = hash_pbkdf2("sha256", $password, $salt, $iterations, 10, true);
+var_dump(bin2hex($hash));
 ?>
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-120fb6cffcf8b32c43e7
+string(20) "120fb6cffcf8b32c43e7"
+string(20) "120fb6cffcf8b32c43e7"
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <caution>
    <para>
-    El método PBKDF2 se puede usar para el almacenamiento de contraseñas de hash. Sin embargo,
-    se debería observar que <function>password_hash</function> o
-    <function>crypt</function> con <constant>CRYPT_BLOWFISH</constant> son
-    más adecuados para el almacenamiento de contraseñas.
+    El método PBKDF2 puede ser utilizado para hashear contraseñas
+    para el almacenamiento. Sin embargo, debe tenerse en cuenta que
+    la función <function>password_hash</function> o la función
+    <function>crypt</function> con la constante <constant>CRYPT_BLOWFISH</constant>
+    es mejor para este uso.
    </para>
   </caution>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>crypt</function></member>
     <member><function>password_hash</function></member>
-    <member><function>hash</function></member>
-    <member><function>hash_algos</function></member>
-    <member><function>hash_init</function></member>
-    <member><function>hash_hmac</function></member>
-    <member><function>hash_hmac_file</function></member>
+    <member><function>hash_hkdf</function></member>
+    <member><function>sodium_crypto_pwhash</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
  Local variables:
  mode: sgml

@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: carlos Status: ready -->
+<!-- EN-Revision: 539a9823a805ac29cab7fa4baf3ae3a28116a2f5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.hash-hmac-file" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>hash_hmac_file</refname>
-  <refpurpose>Genera un valor cifrado mediante una clave especificada usando el método HMAC y el contenido de un fichero dado</refpurpose>
+  <refpurpose>Genera un valor de clave de hash utilizando el método HMAC y el contenido de un fichero dado</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>hash_hmac_file</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>hash_hmac_file</methodname>
    <methodparam><type>string</type><parameter>algo</parameter></methodparam>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam><type>string</type><parameter>key</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>raw_output</parameter><initializer>false</initializer></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>key</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>binary</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
 
  </refsect1>
@@ -25,7 +25,13 @@
      <term><parameter>algo</parameter></term>
      <listitem>
       <para>
-Nombre del algoritmo para cifrar seleccionado (es decir "md5", "sha256", "haval160,4", etc..). Ver <function>hash_algos</function> para saber la lista de algoritmos soportados.
+       Nombre del algoritmo de hash seleccionado (por ejemplo: <literal>"sha256"</literal>).
+       Para una lista de los algoritmos soportados ver <function>hash_hmac_algos</function>.
+       <note>
+        <para>
+         Las funciones de hash no criptográficas no están autorizadas.
+        </para>
+       </note>
       </para>
      </listitem>
     </varlistentry>
@@ -33,7 +39,8 @@ Nombre del algoritmo para cifrar seleccionado (es decir "md5", "sha256", "haval1
      <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-URL que describe la localización del fichero cuyo contenido vamos a cifrar; Soporta fopen wrappers.
+       URL que indica la ubicación del fichero que será hasheado;
+       Soporta las envolturas <function>fopen</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -41,16 +48,18 @@ URL que describe la localización del fichero cuyo contenido vamos a cifrar; Sop
      <term><parameter>key</parameter></term>
      <listitem>
       <para>
-       Clave secreta compartida que se usará para generar el mensaje cifrado de la variante HMAC.
+       Clave secreta compartida utilizada para generar la varianza HMAC de
+       la huella digital.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>raw_output</parameter></term>
+     <term><parameter>binary</parameter></term>
      <listitem>
       <para>
-       Cuando se establece en &true; la salida serán datos binarios sin formato,
-       &false; la salida serán dígitos hexadecimales en minúsculas.
+       Cuando vale &true;, la salida será datos brutos binarios.
+       Cuando vale &false;, la salida serán dígitos hexadecimales en
+       minúscula.
       </para>
      </listitem>
     </varlistentry>
@@ -61,8 +70,54 @@ URL que describe la localización del fichero cuyo contenido vamos a cifrar; Sop
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-Devuelve un string que contiene el mensaje cifrado como dígitos hexadecimales en minúsculas, a menos que  <parameter>raw_output</parameter> sea establecido en true, en cuyo caso la salida devuelta será el mensaje cifrado como datos binarios sin formato.
+   Devuelve una cadena de caracteres que contiene la huella digital calculada
+   en dígitos hexadecimales en minúscula a menos que
+   <parameter>binary</parameter> esté fijado a &true;. En este caso, se
+   devuelve la representación bruta binaria de la huella digital.
+   Devuelve &false; si el fichero <parameter>filename</parameter> no puede ser leído.
+  </para>
+ </refsect1>
 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Levanta una excepción <classname>ValueError</classname> si
+   el parámetro <parameter>algo</parameter> es desconocido o no es
+   una función de hash criptográfica.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        El uso de funciones de hash no criptográficas (adler32,
+        crc32, crc32b, fnv132, fnv1a32, fnv164, fnv1a64, joaat) ha sido desactivado.
+       </entry>
+      </row>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        Levanta una excepción <classname>ValueError</classname> a partir de ahora si
+        el parámetro <parameter>algo</parameter> es desconocido o no es
+        una función de hash criptográfica; previamente, &false;
+        era devuelto en su lugar.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
 
@@ -70,21 +125,21 @@ Devuelve un string que contiene el mensaje cifrado como dígitos hexadecimales e
   &reftitle.examples;
   <para>
    <example>
-    <title><function>Ejemplo de hash_hmac_file</function></title>
+    <title>Ejemplo con <function>hash_hmac_file</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Creamos un fichero para calcular su resultante valor cifrado */
+/* Crea un fichero para calcular su huella digital */
 file_put_contents('example.txt', 'The quick brown fox jumped over the lazy dog.');
 
-echo hash_hmac_file('md5', 'example.txt', 'secret');
+echo hash_hmac_file('sha256', 'example.txt', 'secret');
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-7eb2b5c37443418fc77c136dd20e859c
+9c5c42422b03f0ee32949920649445e417b2c634050833c5165704b825c2a53b
 ]]>
     </screen>
    </example>
@@ -95,15 +150,15 @@ echo hash_hmac_file('md5', 'example.txt', 'secret');
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>hash_algos</function></member>
     <member><function>hash_hmac</function></member>
-    <member><function>hash_file</function></member>
+    <member><function>hash_hmac_algos</function></member>
+    <member><function>hash_init</function></member>
+    <member><function>hash_equals</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
