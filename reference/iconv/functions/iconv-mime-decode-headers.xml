@@ -1,22 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 16a1bdfd1c36108534b5af08dc4b751c7ac0fdaf Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xml:id="function.iconv-mime-decode-headers" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>iconv_mime_decode_headers</refname>
-  <refpurpose>Decodifica varios campos de cabeceras <literal>MIME</literal> en la misma llamada</refpurpose>
+  <refpurpose>Decodifica múltiples encabezados <literal>MIME</literal></refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>iconv_mime_decode_headers</methodname>
-   <methodparam><type>string</type><parameter>encoded_headers</parameter></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>iconv_mime_decode_headers</methodname>
+   <methodparam><type>string</type><parameter>headers</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>charset</parameter><initializer>ini_get("iconv.internal_encoding")</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>encoding</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Decodifica varios campos de cabeceras <literal>MIME</literal> en la misma llamada.
+   <function>iconv_mime_decode_headers</function> decodifica
+   múltiples encabezados <literal>MIME</literal>.
   </para>
  </refsect1>
 
@@ -25,10 +28,10 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>encoded_headers</parameter></term>
+     <term><parameter>headers</parameter></term>
      <listitem>
       <para>
-       La cabeceras a decodificar, indicarlas como string.
+       Los encabezados codificados, en forma de &string;.
       </para>
      </listitem>
     </varlistentry>
@@ -36,12 +39,11 @@
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       <parameter>mode</parameter> determina el comportamiento cuando el
-       evento <function>iconv_mime_decode_headers</function> encuentra un
-       campo de cabecera <literal>MIME</literal> mal formado. Puede indicarse
-       una combinación de las siguientes máscaras.
+       <parameter>mode</parameter> determina el comportamiento de la función,
+       si <function>iconv_mime_decode_headers</function> encuentra un
+       encabezado <literal>MIME</literal> malformado.
        <table>
-        <title>Máscaras de bits aceptadas por <function>iconv_mime_decode_headers</function></title>
+        <title>Mascara aceptada por la función <function>iconv_mime_decode_headers</function></title>
         <tgroup cols="3">
          <thead>
           <row>
@@ -55,21 +57,20 @@
            <entry>1</entry>
            <entry>ICONV_MIME_DECODE_STRICT</entry>
            <entry>
-            Si se indica, la cabecera dada se decodifica de acuerdo a los
-            estándares definidos en <link
-            xlink:href="&url.rfc;2047">RFC2047</link>. Esta opción se
-            deshabilita por defecto porque hay muchos agentes de correo
-            incorrectos que no siguen esta espeficicación y no producen
-            cabeceras <literal>MIME</literal> correctas.
+            Si se utiliza, los encabezados son decodificados respetando estrictamente
+            el estándar de la <link xlink:href="&url.rfc;2047">RFC2047</link>.
+            Esta opción está desactivada por omisión, ya que existen numerosos clientes
+            de correo que no siguen estas especificaciones y que no producen
+            encabezados <literal>MIME</literal> correctos.
            </entry>
           </row>
           <row>
            <entry>2</entry>
            <entry>ICONV_MIME_DECODE_CONTINUE_ON_ERROR</entry>
            <entry>
-            Si se indica, <function>iconv_mime_decode_headers</function>
-            intenta ignorar errores gramaticales y continúa con el proceso en
-            la cabecera.
+            Si esta opción está activada, <function>iconv_mime_decode_headers</function>
+            intenta ignorar los errores de sintaxis y continúa procesando el encabezado
+            dado.
            </entry>
           </row>
          </tbody>
@@ -79,13 +80,13 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>charset</parameter></term>
+     <term><parameter>encoding</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>charset</parameter> especifica el set
-       de caracteres con el que representar el resultado. Si se omite, se
-       usará <link
-       linkend="iconv.configuration">iconv.internal_encoding</link>.
+       El parámetro opcional <parameter>encoding</parameter> especifica el
+       juego de caracteres utilizado para representar el resultado.
+       Si se omite, se utiliza el juego definido en el archivo &php.ini;
+       <link linkend="iconv.configuration">iconv.internal_encoding</link>.
       </para>
      </listitem>
     </varlistentry>
@@ -96,29 +97,52 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Retorna un array asociativo que contiene el set completo de cabeceras
-   <literal>MIME</literal> especificadas por
-   <parameter>encoded_headers</parameter> en caso de éxito, o &false; si
-   ocurre un error durante la decodificación.
+   Devuelve un array asociativo que contiene los encabezados
+   <literal>MIME</literal> especificados por el parámetro
+   <parameter>headers</parameter>, o bien &false;
+   si ocurre un error durante el decodificado.
   </para>
   <para>
-   Cada clave del array retornado representa un nombre de campo independiente
-   y su correspondiente elemento representa el valor del campo. Si hay
-   presente más de un campo del mismo nombre,
-   <function>iconv_mime_decode_headers</function> automáticamente los
-   incorpora en un array indexado por enteros según orden de aparición.
+   Cada clave del array devuelto contiene un nombre de encabezado distinto,
+   y su valor correspondiente. Si varios campos tienen el mismo nombre,
+   <function>iconv_mime_decode_headers</function> convierte ese campo en
+   un array indexado, con los valores en su orden de aparición.
+   Cabe señalar que los nombres de los encabezados no son
+   <emphasis>insensibles a mayúsculas/minúsculas</emphasis>.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>encoding</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>iconv_mime_decode_headers</function></title>
+    <title>Ejemplo con <function>iconv_mime_decode_headers</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$string_cabeceras = <<<EOF
+$headers_string = <<<EOF
 Subject: =?UTF-8?B?UHLDvGZ1bmcgUHLDvGZ1bmc=?=
 To: example@example.com
 Date: Thu, 1 Jan 1970 00:00:00 +0000
@@ -131,8 +155,8 @@ Received: (qmail 0 invoked by uid 65534); 1 Thu 2003 00:00:00 +0000
 
 EOF;
 
-$cabeceras = iconv_mime_decode_headers($string_cabeceras, 0, "ISO-8859-1");
-print_r($cabeceras);
+$headers =  iconv_mime_decode_headers($headers_string, 0, "ISO-8859-1");
+print_r($headers);
 ?>
 ]]>
      </programlisting>
@@ -172,7 +196,6 @@ Array
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
