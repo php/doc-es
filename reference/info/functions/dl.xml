@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8373b869c3a0726f809cf4ba0b011ea547221033 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: a89c6d71c7b65e3de84f26230fbf72c9b8948adf Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.dl" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>dl</refname>
-  <refpurpose>Carga una extensión de PHP durante la ejecución</refpurpose>
+  <refpurpose>Carga una extensión PHP dinámicamente</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>dl</methodname>
-   <methodparam><type>string</type><parameter>library</parameter></methodparam>
+   <methodparam><type>string</type><parameter>extension_filename</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Carga la extensión PHP dada por el parámetro
-   <parameter>library</parameter>.
+   Carga la extensión PHP <parameter>extension_filename</parameter>
+   dinámicamente.
   </para>
   <para>
-   Utilice la función <function>extension_loaded</function> para comprobar si la extensión
-   ya está cargada o no. Funciona tanto para extensiones ya integradas en PHP o
-   para extensiones que se han cargado dinámicamente (ya sea a través de &php.ini; o
-   <function>dl</function>).
+   Utilice la función <function>extension_loaded</function> para verificar
+   si una extensión está cargada o no. Esta función funciona tanto con
+   extensiones nativas como con extensiones cargadas dinámicamente
+   (vía el &php.ini; o <function>dl</function>).
   </para>
   <warning>
    <simpara>
-    Esta función ha sido eliminada de la mayoría de las SAPI en PHP 5.3.0, y
-    de PHP-FPM en PHP 7.0.0.
+    Esta función solo está disponible para los <acronym>SAPI</acronym> <acronym>CLI</acronym> e integrados,
+    y el <acronym>SAPI</acronym> <acronym>CGI</acronym> cuando se ejecuta desde la línea de comandos.
    </simpara>
   </warning>
  </refsect1>
@@ -37,52 +37,51 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>library</parameter></term>
+     <term><parameter>extension_filename</parameter></term>
      <listitem>
       <para>
-       Este parámetro es <emphasis>solamente</emphasis> el fichero de la
-       extensión a cargar el cual depende del sistema operativo. Por ejemplo,
-       la extensión <link linkend="ref.sockets">sockets</link> (si se compila
-       como librería, no como parte de PHP) Se llamará
-       <filename>sockets.so</filename> en sistemas Unix mientras que en Windows
-       se llamará <filename>php_sockets.dll</filename>.
+       Este parámetro es <emphasis>solo</emphasis> el nombre de archivo
+       de la extensión, que depende de la plataforma. Por ejemplo la extensión
+       <link linkend="ref.sockets">sockets</link> (si compilada como módulo compartido,
+       y no por defecto), se llamará <filename>sockets.so</filename>
+       bajo Unix, y <filename>php_sockets.dll</filename> bajo Windows.
       </para>
       <para>
-       El directorio desde donde la extensión será cargada también depende
-       del sistema operativo:
+       La carpeta desde la cual se cargan las extensiones depende de la
+       plataforma:
       </para>
       <para>
-       En Windows - a no ser que se defina explicitamente en &php.ini;, la extensión
-       será cargada por defecto desde <filename>C:\php4\extensions\</filename> (PHP4) o
-       <filename>C:\php5\</filename> en (PHP 5).
+       Windows - Si no se indica explícitamente en el archivo &php.ini;,
+       la extensión se carga desde <filename>C:\php5\</filename> por defecto.
       </para>
       <para>
-       Unix - a no ser que se defina en &php.ini;, el directorio de extensiones por defecto
-       depende de
+       Unix - Si no se indica explícitamente en el archivo &php.ini;,
+       la carpeta de extensiones depende de
        <itemizedlist>
         <listitem>
          <simpara>
-          Si PHP fué compilado con la opción <literal>--enable-debug</literal>
+          Si PHP fue compilado con la opción <literal>--enable-debug</literal>
           o no
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          Si PHP fué comiplado con soporte (experimental) ZTS (Zend Thread Safety)
-          o no
+          Si PHP fue compilado con soporte para ZTS
+          (<literal>Zend Thread Safety</literal>) o no
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          El módulo interno actual <literal>ZEND_MODULE_API_NO</literal> (Número
-          interno del API Zend, que es básicamente la fecha en que se produjo
-          un cambio de versión, p.ej. <literal>20010901</literal>)
+          de la constante interna <literal>ZEND_MODULE_API_NO</literal>
+          (versión interna de API de módulo Zend, que en realidad es la fecha
+          en que se realizó una modificación importante de la API, por ejemplo
+          <literal>20010901</literal>)
          </simpara>
         </listitem>
        </itemizedlist>
-       Teniendo esto en cuenta el directorio por defecto será
+       Considerando estos parámetros, la carpeta de extensiones será entonces
        <literal>&lt;install-dir&gt;/lib/php/extensions/ &lt;debug-or-not&gt;-&lt;zts-or-not&gt;-ZEND_MODULE_API_NO</literal>,
-       p.ej.
+       por ejemplo
        <filename>/usr/local/php/lib/php/extensions/debug-non-zts-20010901</filename>
        o
        <filename>/usr/local/php/lib/php/extensions/no-debug-zts-20010901</filename>.
@@ -96,13 +95,14 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success; Si la funcionalidad de cargar módulos no está disponible
-   o ha sido deshabilitada (ya sea activando
-   <link linkend="ini.enable-dl">enable_dl</link> off
-   en &php.ini;) Se producirá un <constant>E_ERROR</constant>
-   y se parará la ejecucción de PHP. Si <function>dl</function> falló porque la
-   librería especificacda no pudo cargarse a demás de &false; se
-   producirá un mensaje <constant>E_WARNING</constant>.
+   &return.success; Si la funcionalidad de carga de módulos no está
+   disponible, o ha sido desactivada (desactivando la directiva
+   <link linkend="ini.enable-dl">enable_dl</link>
+   en el &php.ini;) se emitirá un <constant>E_ERROR</constant> y
+   la ejecución del script será detenida. Si la función
+   <function>dl</function> falla porque la biblioteca no pudo ser encontrada,
+   <function>dl</function> retornará &false; y emitirá un mensaje de advertencia
+   <constant>E_WARNING</constant>.
   </para>
  </refsect1>
 
@@ -110,11 +110,11 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplos de <function>dl</function></title>
+    <title>Ejemplos con <function>dl</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// En este ejemplo se carga una extensión u otra dependiendo del sistema operativo
+// Carga para todas las plataformas
 if (!extension_loaded('sqlite')) {
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
         dl('php_sqlite.dll');
@@ -123,7 +123,7 @@ if (!extension_loaded('sqlite')) {
     }
 }
 
-// O si la constante PHP_SHLIB_SUFFIX está disponible desde PHP 4.3.0
+// O usar la constante PHP_SHLIB_SUFFIX
 if (!extension_loaded('sqlite')) {
     $prefix = (PHP_SHLIB_SUFFIX === 'dll') ? 'php_' : '';
     dl($prefix . 'sqlite.' . PHP_SHLIB_SUFFIX);
@@ -135,59 +135,11 @@ if (!extension_loaded('sqlite')) {
   </para>
  </refsect1>
 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>7.0.0</entry>
-       <entry>
-        <function>dl</function> está deshabilitado en PHP-FPM.
-       </entry>
-      </row>
-      <row>
-       <entry>5.3.9</entry>
-       <entry>
-        <function>dl</function> está deshabilitado en PHP-FPM, aunque se desaconseja.
-       </entry>
-      </row>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        <function>dl</function> está desactivado en algunos módulos SAPI por problemas
-        de estabilidad. Los únicos modulos SAPI que
-        permiten <function>dl</function> son: CLI, CGI and Embed. En su lugar usar
-        las directivas <link linkend="ini.extension">Directivas de carga
-        de extensiones</link>
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
-
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    <function>dl</function> <emphasis>no</emphasis> se soporta cuando
-    PHP es compilado con soporte ZTS. Use
-    en su lugar <link linkend="ini.extension">Directivas de carga
-    de extensiones</link> instead.
-   </para>
-  </note>
-  <note>
-   <para>
-    <function>dl</function> es sensible a mayúsculas en sistemas Unix.
+    <function>dl</function> es sensible a mayúsculas/minúsculas en plataformas Unix.
    </para>
   </note>
  </refsect1>
@@ -196,14 +148,13 @@ if (!extension_loaded('sqlite')) {
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link linkend="ini.extension">Directivas de cargas de extensiones</link></member>
+    <member><link linkend="ini.extension">Directivas de carga de extensiones</link></member>
     <member><function>extension_loaded</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

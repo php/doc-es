@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 7cf7e11a25f45bacd17ef5bb4deff02a00222063 Maintainer: andresdzphp Status: ready -->
+<!-- EN-Revision: 30509282589c6fdee1bce55f3271caf464b5cd75 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.phpversion" xmlns="http://docbook.org/ns/docbook">
- <refnamediv> 
+ <refnamediv>
   <refname>phpversion</refname>
-  <refpurpose>Obtiene la versión de PHP</refpurpose>
+  <refpurpose>Devuelve el número de la versión actual de PHP</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>phpversion</methodname>
-   <methodparam choice="opt"><type>string</type><parameter>extension</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>phpversion</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>extension</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve una cadena que contiene la versión del analizador de PHP en ejecución 
-   o extensión.
+   Devuelve el número de la versión actual de PHP.
   </para>
  </refsect1>
 
@@ -27,7 +26,7 @@
      <term><parameter>extension</parameter></term>
      <listitem>
       <para>
-       Un nombre de extensión opcional.
+       Un nombre de extensión, opcional.
       </para>
      </listitem>
     </varlistentry>
@@ -38,25 +37,49 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si el parámetro opcional <parameter>extension</parameter> ha sido 
-   especificado, <function>phpversion</function> devuelve la versión de la
-   extensión, o &false; si no hay información de versión asociada o la extensión 
-   no está habilitada.
+   Devuelve la versión actual de PHP como un <type>string</type>.
+   Si se proporciona un argumento <type>string</type> al parámetro
+   <parameter>extension</parameter>, <function>phpversion</function>
+   devuelve la versión de esta extensión, o &false; si no hay
+   información de versión asociada o esta extensión no está activada.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>extension</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title><function>phpversion</function> Ejemplo básico</title>
+    <title>Ejemplo con <function>phpversion</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Imprime ejemplo 'Versión actual de PHP: 5.3.8'
+
+// muestra el número de versión actual de PHP.
 echo 'Versión actual de PHP: ' . phpversion();
 
-// Imprime ejemplo '2.0' o nada si la extensión no está habilitada
+// muestra por ejemplo '1.22.3' o nada si esta extensión no está activa
 echo phpversion('tidy');
 ?>
 ]]>
@@ -65,38 +88,36 @@ echo phpversion('tidy');
   </para>
   <para>
    <example>
-    <title><constant>PHP_VERSION_ID</constant> Ejemplo y uso</title>
+    <title>Ejemplo con <constant>PHP_VERSION_ID</constant></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// PHP_VERSION_ID está disponible a partir de PHP 5.2.7, si nuestra 
-// versión es inferior a eso, entonces emular
-if (!defined('PHP_VERSION_ID')) {
-    $version = explode('.', PHP_VERSION);
 
-    define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2]));
-}
-
-// PHP_VERSION_ID se define como un número, donde el mayor número, 
-// es la versión más reciente de PHP usada. Se define tal como se utiliza la
-// expresión anterior.
-//
-// $version_id = $major_version * 10000 + $minor_version * 100 + $release_version;
-//
-// Ahora, con PHP_VERSION_ID podemos comprobar las características que la versión de 
-// PHP pueda tener, esto no requiere el uso version_compare () cada vez que compruebe si la 
-// versión de PHP no es compatible con una característica.
-//
-// Por ejemplo, aquí podemos definir las constantes PHP_VERSION_ * que 
-// no están disponibles en las versiones anteriores a 5.2.7
+/**
+ * PHP_VERSION_ID se define como un número, donde a mayor número,
+ * más reciente es la versión de PHP utilizada. Se define como en
+ * la expresión anterior:
+ *
+ * $version_id = $major_version * 10000 + $minor_version * 100 + $release_version;
+ *
+ * Ahora, con PHP_VERSION_ID, se pueden verificar las funcionalidades
+ * que esta versión de PHP puede tener, lo que evita usar version_compare()
+ * cada vez que se verifica si la versión actual de PHP puede no
+ * soportar una funcionalidad.
+ *
+ * Por ejemplo, aquí se pueden definir las constantes PHP_*_VERSION que no
+ * están disponibles en versiones a partir de 5.2.7.
+ */
 
 if (PHP_VERSION_ID < 50207) {
     define('PHP_MAJOR_VERSION',   $version[0]);
     define('PHP_MINOR_VERSION',   $version[1]);
     define('PHP_RELEASE_VERSION', $version[2]);
 
-    // Y así sucesivamente, ...
+    // etc.
+
 }
+
 ?>
 ]]>
     </programlisting>
@@ -108,9 +129,15 @@ if (PHP_VERSION_ID < 50207) {
   &reftitle.notes;
   <note>
    <para>
-    Esta información también está disponible en la constante predefinida 
-    <constant>PHP_VERSION</constant>. Más información de versión 
-    está disponible utilizando las constantes <constant>PHP_VERSION_*</constant> 
+    Esta información también está disponible a través de la constante
+    predefinida <constant>PHP_VERSION</constant>. Más información
+    sobre versiones, con las constantes <constant>PHP_VERSION_<replaceable>*</replaceable></constant>.
+   </para>
+  </note>
+  <note>
+   <para>
+    Algunas extensiones pueden definir su propio número de versión.
+    Sin embargo, la mayoría de las extensiones incluidas utilizarán la versión de PHP como número de versión.
    </para>
   </note>
  </refsect1>
@@ -119,18 +146,16 @@ if (PHP_VERSION_ID < 50207) {
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link linkend="reserved.constants.core">constantes predefinidas</link></member>
+    <member><link linkend="reserved.constants.core">las constantes PHP_VERSION</link></member>
     <member><function>version_compare</function></member>
     <member><function>phpinfo</function></member>
     <member><function>phpcredits</function></member>
-    <member><function>php_logo_guid</function></member>
     <member><function>zend_version</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

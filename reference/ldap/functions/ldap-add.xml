@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 204bc2974d707bed4017414b13242171d719cb7c Maintainer: edwincartagenah Status: ready -->
+<!-- EN-Revision: d72d71b65c453780d25a87b03d35c4a66ead181a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ldap-add" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_add</refname>
-  <refpurpose>Agregar entradas al directorio de LDAP</refpurpose>
+  <refpurpose>Añade una entrada en un directorio LDAP</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>ldap_add</methodname>
-   <methodparam><type>resource</type><parameter>link_identifier</parameter></methodparam>
+   <methodparam><type>LDAP\Connection</type><parameter>ldap</parameter></methodparam>
    <methodparam><type>string</type><parameter>dn</parameter></methodparam>
    <methodparam><type>array</type><parameter>entry</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>controls</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Agregar entradas en el directorio de LDAP. 
+   Añade una entrada en un directorio LDAP.
   </para>
  </refsect1>
 
@@ -25,10 +26,10 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>link_identifier</parameter></term>
+     <term><parameter>ldap</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de LDAP, devuelto por <function>ldap_connect</function>.
+       &ldap.parameter.ldap;
       </para>
      </listitem>
     </varlistentry>
@@ -36,7 +37,7 @@
      <term><parameter>dn</parameter></term>
      <listitem>
       <para>
-       El nombre distinguido de una entidad de LDAP.
+       El nombre DN de la entrada LDAP.
       </para>
      </listitem>
     </varlistentry>
@@ -44,21 +45,29 @@
      <term><parameter>entry</parameter></term>
      <listitem>
       <para>
-       Un array que especifica la información acerca de la entrada. Los valores en
-       las entradas están indexados por atributos individuales.
-       En el caso de valores múltiples para un atributo, estos se indexan utilizando
-       números enteros comenzando desde 0.
+       Un array con la información sobre la nueva entrada.
+       Estos valores están indexados individualmente. En
+       caso de valores múltiples para un atributo, están indexados
+       numéricamente, comenzando desde 0.
        <informalexample>
         <programlisting role="php">
-     <![CDATA[
+<![CDATA[
 <?php
-$entry["attribute1"] = "valor";
-$entry["attribute2"][0] = "valor1";
-$entry["attribute2"][1] = "valor2";
+$entry["attribute1"] = "value";
+$entry["attribute2"][0] = "value1";
+$entry["attribute2"][1] = "value2";
 ?>
      ]]>
         </programlisting>
        </informalexample>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>controls</parameter></term>
+     <listitem>
+      <para>
+       Array de <link linkend="ldap.controls">Controles LDAP</link> para enviar con la petición.
       </para>
      </listitem>
     </varlistentry>
@@ -73,31 +82,57 @@ $entry["attribute2"][1] = "valor2";
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      &ldap.changelog.ldap-object;
+      &ldap.changelog.controls-nullable;
+      <row>
+       <entry>7.3.0</entry>
+       <entry>
+        Se añadió soporte para <parameter>controls</parameter>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo completo con enlace autenticado</title>
+    <title>Ejemplo completo con identificación LDAP</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$ds = ldap_connect("localhost");  // Asumiendo que el servidor de LDAP está en el mismo host
+$ds = ldap_connect("localhost");  // se asume que el servidor LDAP está en el servidor local
 
 if ($ds) {
-    // Asociar con el dn apropiado para dar acceso de actualización
+    // Conexión con una identidad que permite modificaciones
     $r = ldap_bind($ds, "cn=root, o=My Company, c=US", "secret");
 
-    // Preparar los datos
+    // Prepara los datos
     $info["cn"] = "John Jones";
     $info["sn"] = "Jones";
     $info["objectclass"] = "person";
 
-    // Agregar datos al directorio
+    // Añade los datos al directorio
     $r = ldap_add($ds, "cn=John Jones, o=My Company, c=US", $info);
 
     ldap_close($ds);
 } else {
-    echo "No se pudo conectar al servidor LDAP";
+    echo "No es posible conectarse al servidor LDAP";
 }
 ?>
 ]]>
@@ -115,13 +150,13 @@ if ($ds) {
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>ldap_add_ext</function></member>
     <member><function>ldap_delete</function></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

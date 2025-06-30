@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: cbac1ecf71d754707d69bdc344c4031c157eaa54 Maintainer: bng5 Status: ready -->
+<!-- EN-Revision: 37da852aa1f9b754fed577897efa509ef4d578e5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xml:id="function.inotify-init" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>inotify_init</refname>
@@ -10,11 +12,11 @@
  <refsect1 role="description"><!-- {{{ -->
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>inotify_init</methodname>
+   <type class="union"><type>resource</type><type>false</type></type><methodname>inotify_init</methodname>
    <void />
   </methodsynopsis>
   <para>
-   Inicializar una instancia inotify para usar con
+   Inicializa una instancia inotify para ser utilizada con la función
    <function>inotify_add_watch</function>
   </para>
  </refsect1><!-- }}} -->
@@ -27,7 +29,7 @@
  <refsect1 role="returnvalues"><!-- {{{ -->
   &reftitle.returnvalues;
   <para>
-   Un recurso de secuencia o &false; en caso de error.
+   Un flujo o &false; en caso de error.
   </para>
  </refsect1><!-- }}} -->
 
@@ -35,44 +37,43 @@
   &reftitle.examples;
   <para>
    <example xml:id="inotify-init.example.basic"><!-- {{{ -->
-    <title>Ejemplo de uso de inotify</title>
+    <title>Ejemplo de utilización de inotify</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Abrir una instancia inotify
+// Crea una instancia inotify
 $fd = inotify_init();
 
-// Observar __FILE__ por cambios en los metadatos (por ejemplo: mtime)
+// Vigila las modificaciones de los metadatos del fichero __FILE__ (e.g. mtime)
 $watch_descriptor = inotify_add_watch($fd, __FILE__, IN_ATTRIB);
 
-// genera un evento
+// Genera un evento
 touch(__FILE__);
 
-// Leer eventos
-$eventos = inotify_read($fd);
-print_r($eventos);
+// Lee los eventos
+$events = inotify_read($fd);
+print_r($events);
 
-// Los siguientes métodos permiten utilizar funciones inotify sin bloqueo en inotify_read():
+// Los métodos siguientes permiten utilizar las funciones inotify sin bloquear sobre inotify_read():
 
-// - Usando stream_select() en $fd:
+// - Utilizar stream_select() sobre $fd:
 $read = array($fd);
 $write = null;
 $except = null;
 stream_select($read,$write,$except,0);
 
-// - Usando stream_set_blocking() en $fd
+// - Utilizar stream_set_blocking() sobre $fd
 stream_set_blocking($fd, 0);
-inotify_read($fd); // No hace ningún bloqueo, y devuelve false si no hay eventos pendientes
+inotify_read($fd); // No bloquea, y devuelve false si no hay eventos pendientes
 
-// - Usando inotify_queue_len() para comprobar si la lista de eventos no está vacía
+// - Utilizar inotify_queue_len() para verificar el tamaño de la cola
 $queue_len = inotify_queue_len($fd); // Si > 0, inotify_read() no bloqueará
 
-// Dejar de observar __FILE__ por cambios en los metadatos
+// Detener la vigilancia de __FILE__
 inotify_rm_watch($fd, $watch_descriptor);
 
-// Cierra la instancia inotify
-// This may have closed all watches if this was not already done
-// Esto puede haber cerrado todos los seguimientos, si no se hizo ya
+// Destrucción de la instancia inotify
+// Esto habría detenido todas las vigilancias si no se hubiera hecho ya
 fclose($fd);
 
 ?>
@@ -83,12 +84,11 @@ fclose($fd);
 <![CDATA[
 array(
   array(
-    'wd' => 1,     // Equivale a $ watch_descriptor
-    'mask' => 4,   // bit IN_ATTRIB establecido
-    'cookie' => 0, // id único para conectar los eventos relacionados (por ejemplo:
-                   // eventos IN_MOVE_FROM IN_MOVE_TO)
-    'name' => '',  // el nombre de un fichero (por ejemplo: si se monitorean los
-                   // cambios en un directorio)
+    'wd' => 1,     // Igual al $watch_descriptor
+    'mask' => 4,   // El bit IN_ATTRIB está activado
+    'cookie' => 0, // Identificador único para vincular eventos (e.g.
+                   // IN_MOVE_FROM y IN_MOVE_TO)
+    'name' => '',  // El nombre del fichero (e.g. si un directorio estaba bajo vigilancia)
   ),
 );
 ]]>
@@ -132,4 +132,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

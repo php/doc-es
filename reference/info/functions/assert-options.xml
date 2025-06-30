@@ -1,23 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: yago Status: ready -->
+<!-- EN-Revision: ada1d79de35239334b68d0120b011530e31244ff Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xml:id="function.assert-options" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>assert_options</refname>
-  <refpurpose>Establecer/obtener valores de las directivas relacionadas con las aserciones</refpurpose>
+  <refpurpose>Define/recupere diferentes opciones de aserciones</refpurpose>
  </refnamediv>
- 
+
+ <refsynopsisdiv>
+  &warn.deprecated.function-8-3-0;
+ </refsynopsisdiv>
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>mixed</type><methodname>assert_options</methodname>
-   <methodparam><type>int</type><parameter>what</parameter></methodparam>
+   <methodparam><type>int</type><parameter>option</parameter></methodparam>
    <methodparam choice="opt"><type>mixed</type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Se utiliza para establecer el valor de las diferentes opciones de la función <function>assert</function>
-   o consultar su valor actual.
+   <function>assert_options</function> permite modificar las diversas
+   opciones de la función <function>assert</function>, o simplemente
+   conocer la configuración actual.
   </para>
+  <note>
+   <simpara>
+    El uso de <function>assert_options</function> no se recomienda
+    en favor de definir y recuperar las directivas &php.ini;
+    <link linkend="ini.zend.assertions">zend.assertions</link> y
+    <link linkend="ini.assert.exception">assert.exception</link> con
+    <function>ini_set</function> y <function>ini_get</function>, respectivamente.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -25,18 +41,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>what</parameter></term>
+     <term><parameter>option</parameter></term>
      <listitem>
       <para>
        <table>
-        <title>Assert Options</title>
+        <title>Opciones de aserciones</title>
         <tgroup cols="4">
          <thead>
           <row>
            <entry>Opción</entry>
-           <entry>Configuración inicial</entry>
-           <entry>Valor predeterminado</entry>
-           <entry>Descripción </entry>
+           <entry>Directiva</entry>
+           <entry>Valor por omisión</entry>
+           <entry>Descripción</entry>
           </row>
          </thead>
          <tbody>
@@ -44,33 +60,43 @@
            <entry>ASSERT_ACTIVE</entry>
            <entry>assert.active</entry>
            <entry>1</entry>
-           <entry>Activa la función <function>assert</function></entry>
+           <entry>
+            Activa la evaluación de la función <function>assert</function>
+           </entry>
+          </row>
+          <row>
+           <entry>ASSERT_EXCEPTION</entry>
+           <entry>assert.exception</entry>
+           <entry>1</entry>
+           <entry>Lanza una <classname>AssertionError</classname> para cada aserción fallida</entry>
           </row>
           <row>
            <entry>ASSERT_WARNING</entry>
            <entry>assert.warning</entry>
            <entry>1</entry>
-           <entry>Cada vez que una aserción falla se genera una advertencia</entry>
+           <entry>Genera una alerta PHP para cada aserción falsa</entry>
           </row>
           <row>
            <entry>ASSERT_BAIL</entry>
            <entry>assert.bail</entry>
            <entry>0</entry>
-           <entry>Termina la ejecución cuando falla una aserción</entry>
+           <entry>Termina la ejecución en caso de aserción falsa</entry>
           </row>
           <row>
            <entry>ASSERT_QUIET_EVAL</entry>
            <entry>assert.quiet_eval</entry>
            <entry>0</entry>
            <entry>
-            Desactiva la directiva error_reporting durante la evaluación de la aserción
-            </entry>
+            Desactiva el informe de error durante la evaluación de una aserción. Eliminada a partir de PHP 8.0.0
+           </entry>
           </row>
           <row>
            <entry>ASSERT_CALLBACK</entry>
            <entry>assert.callback</entry>
            <entry>(&null;)</entry>
-           <entry>Función que se encargará de gestionar las aserciones cuando fallen</entry>
+           <entry>
+            Función de devolución de llamada del usuario, para el tratamiento de aserciones falsas
+           </entry>
           </row>
          </tbody>
         </tgroup>
@@ -82,7 +108,56 @@
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       Nuevo valor para la directiva.
+       Un nuevo valor, opcional, para la opción.
+      </para>
+      <para>
+       La función de devolución de llamada definida mediante <constant>ASSERT_CALLBACK</constant> o
+       <link linkend="ini.assert.callback">assert.callback</link>
+       debería tener la siguiente firma:
+       <methodsynopsis role="procedural">
+        <type>void</type><methodname>assert_callback</methodname>
+        <methodparam><type>string</type><parameter>file</parameter></methodparam>
+        <methodparam><type>int</type><parameter>line</parameter></methodparam>
+        <methodparam><type class="union"><type>string</type><type>null</type></type><parameter>assertion</parameter></methodparam>
+        <methodparam choice="opt"><type>string</type><parameter>description</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>file</parameter></term>
+         <listitem>
+          <simpara>
+           El fichero donde <function>assert</function> fue llamado.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>line</parameter></term>
+         <listitem>
+          <simpara>
+           La línea donde <function>assert</function> fue llamado.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>assertion</parameter></term>
+         <listitem>
+          <simpara>
+           Antes de PHP 8.0.0, el primer parámetro de la función <function>assert</function> era la aserción pasada,
+           pero solo cuando la aserción se proporcionaba como string.
+           (Si la aserción era una condición booleana, este parámetro era una cadena vacía.)
+           A partir de PHP 8.0.0, este parámetro es siempre &null;.
+          </simpara>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>description</parameter></term>
+         <listitem>
+          <simpara>
+           La descripción que se proporcionó a <function>assert</function>.
+          </simpara>
+         </listitem>
+        </varlistentry>
+       </variablelist>
       </para>
      </listitem>
     </varlistentry>
@@ -93,7 +168,47 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor original de cualquiera de las opciones o &false; en caso de error. 
+   Devuelve el valor original de la opción.
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Si <parameter>option</parameter> no es una opción válida, se lanza
+   una <classname>ValueError</classname>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.3.0</entry>
+       <entry>
+        <function>assert_option</function> ahora está obsoleto.
+       </entry>
+      </row>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        Si <parameter>option</parameter> no es una opción válida,
+        se lanza una <classname>ValueError</classname>.
+        Anteriormente, se devolvía &false;.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
 
@@ -101,39 +216,35 @@
   &reftitle.examples;
   <para>
    <example>
-   <title>Ejemplo de <function>assert_options</function></title>
+   <title>Ejemplo con <function>assert_options</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-// Esta es nuestra función manejadora 
-// de los fallos en un aserción
-function assert_failure()
+// Esta es nuestra función para manejar
+// los errores de aserción
+function assert_failure($file, $line, $assertion, $message)
 {
-    echo 'Assert failed';
+    echo "La aserción $assertion en $file en la línea $line ha fallado: $message";
 }
 
-// Esta es nuestra función de test
+// Esta es nuestra función de prueba
 function test_assert($parameter)
 {
     assert(is_bool($parameter));
 }
 
-// Establecemos nuestras propias opciones para gestionar las aserciones
-// Activamos las aserciones
+// Define nuestras opciones de aserción
 assert_options(ASSERT_ACTIVE,   true);
-// Si una aserción falla se detiene la ejecución
 assert_options(ASSERT_BAIL,     true);
-// Si una aserción falla NO se genera una advertencia
 assert_options(ASSERT_WARNING,  false);
-// Establecemos la función 'assert_failure' como manejadora (callback) de las aserciones 
 assert_options(ASSERT_CALLBACK, 'assert_failure');
 
-// Creamos una aserción la cual queremos que falle
+// Una aserción que debe fallar
 test_assert(1);
 
-// Este código nunca se ejecuta porque ASSERT_BAIL 
-// está a TRUE
-echo 'Never reached';
+// Esto nunca se alcanza, ya que ASSERT_BAIL
+// es true
+echo 'Nunca alcanzado';
 ?>
 ]]>
     </programlisting>

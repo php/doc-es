@@ -1,86 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e53aefe60550462cbc35fdbb451c42db8d24bf5c Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: 4c016ab334b90a98258b98e04752af7dc74954cd Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.ini-get" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ini_get</refname>
-  <refpurpose>Devuelve el valor de una directiva de configuración</refpurpose>
+  <refpurpose>Lee el valor de una opción de configuración</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>ini_get</methodname>
-   <methodparam><type>string</type><parameter>varname</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>ini_get</methodname>
+   <methodparam><type>string</type><parameter>option</parameter></methodparam>
   </methodsynopsis>
   <para>
-   En caso de éxito devuelve el valor de una directiva de configuración.
+   Devuelve el valor de la opción de configuración
+   <parameter>varname</parameter> en caso de éxito.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>varname</parameter></term>
+     <term><parameter>option</parameter></term>
      <listitem>
       <para>
-       Nombre de la directiva de configuración.
+       El nombre de la opción de configuración.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor de la opción de configuración como cadena en caso de éxito, o
-   una cadena vacía para valores <literal>null</literal>. Devuelve &false; si la
-   opción de configuración no existe.
+   Devuelve el valor de la opción de configuración
+   <parameter>varname</parameter> en caso de éxito, o un
+   &string; vacío para los valores &null;. Devuelve &false;
+   si la opción de configuración no existe.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Unos cuantos ejemplos de la función <function>ini_get</function></title>
+    <title>Ejemplos con <function>ini_get</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
+
 /*
-Dentro del php.ini tenemos las siguientes directivas junto con sus valores iniciales:
+Nuestro archivo php.ini contiene las siguientes directivas:
 
 display_errors = On
-register_globals = Off
+opcache.enable_cli = Off
 post_max_size = 8M
 */
 
 echo 'display_errors = ' . ini_get('display_errors') . "\n";
-echo 'register_globals = ' . ini_get('register_globals') . "\n";
+echo 'opcache.enable_cli = ' . (int) ini_get('opcache.enable_cli') . "\n";
 echo 'post_max_size = ' . ini_get('post_max_size') . "\n";
-echo 'post_max_size+1 = ' . (ini_get('post_max_size')+1) . "\n";
-echo 'post_max_size in bytes = ' . return_bytes(ini_get('post_max_size'));
-
-function return_bytes($val) {
-    $val = trim($val);
-    $last = strtolower($val[strlen($val)-1]);
-    switch($last) {
-        // El modificador 'G' está disponble desde PHP 5.1.0
-        case 'g':
-            $val *= 1024;
-        case 'm':
-            $val *= 1024;
-        case 'k':
-            $val *= 1024;
-    }
-
-    return $val;
-}
+echo 'post_max_size + 1 = ' . (rtrim(ini_get('post_max_size'), 'KMG') + 1) . "\n";
+echo 'post_max_size in bytes = ' . ini_parse_quantity(ini_get('post_max_size'));
 
 ?>
 ]]>
@@ -90,7 +78,7 @@ function return_bytes($val) {
 <![CDATA[
 
 display_errors = 1
-register_globals = 0
+opcache.enable_cli = 0
 post_max_size = 8M
 post_max_size+1 = 9
 post_max_size in bytes = 8388608
@@ -100,78 +88,54 @@ post_max_size in bytes = 8388608
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
-   <title>Cuando se consultan valores booleanos</title>
-   <para>    
-    El valor booleano <literal>off</literal> será devuelto como una
-    cadena vacía o "0", mientras que el valor booleano <literal>on</literal> será devuelto
-    será devuelto como "1".
-    Esta función también puede devolver valores iniciales como cadenas. 
+   <title>Lectura de valores booleanos</title>
+   <para>
+    Una directiva de configuración con el valor <literal>off</literal>
+    será devuelta en forma de cadena vacía o "0" mientras que
+    el valor <literal>on</literal> devolverá "<literal>1</literal>".
+    Esta función también puede devolver el valor literal
+    del archivo INI.
    </para>
   </note>
   <note>
-   <title>Cuando se consultan valores de tamaños de memoria</title>
-   <para>    
-    Muchos valores iniciales de tamaños de memoria, tales como
-    <link linkend="ini.upload-max-filesize">upload_max_filesize</link>, están
-    almacenados en el fichero &php.ini; en notación abreviada.
-    <function>ini_get</function> devolverá la cadena exacta almacenada en el
-    fichero &php.ini; y <emphasis>NO</emphasis> su valor de tipo <type>integer</type>
-    equivalente. Utilizar estos valores en funciones aritméticas puede
-    provocar resultados inesperados. El ejemplo anterior muestra una manera
-    de convertir la notación abreviada a bytes, muy similar a cómo lo hace el
-    código fuente de PHP. 
+   <title>Al leer los tamaños de memoria</title>
+   <para>
+    Varias directivas que tratan sobre tamaño de memoria, como
+    <link linkend="ini.upload-max-filesize">upload_max_filesize</link>, están almacenadas
+    en el archivo &php.ini; con una notación corta. <function>ini_get</function>
+    devuelve la cadena exacta almacenada en el archivo &php.ini; y
+    <emphasis>NO</emphasis> su equivalente &integer;. Aplicar operaciones
+    aritméticas clásicas sobre estos valores no conducirá a nada bueno. La función
+    <function>ini_parse_quantity</function> puede ser utilizada para convertir
+    la notación abreviada en bytes.
    </para>
   </note>
   <note>
    <para>
-    <function>ini_get</function> no puede leer las opciones ini "array" como
-    pdo.dsn.*, devolviendo &false; en este caso.
+    <function>ini_get</function> no puede leer las opciones ini de tipo
+    "array" como <literal>pdo.dsn.<replaceable>*</replaceable></literal>, y devuelve &false; en este caso.
    </para>
   </note>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>Anteriormente, se devolvía un string si la opción de configuración
-        no existía. Ahora en su lugar se devuelve &false;.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>get_cfg_var</function></member>
     <member><function>ini_get_all</function></member>
+    <member><function>ini_parse_quantity</function></member>
     <member><function>ini_restore</function></member>
     <member><function>ini_set</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

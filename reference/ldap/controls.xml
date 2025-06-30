@@ -1,149 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: b37727abaf0e731a05c516fd85b44e86f4bf5c75 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <chapter xml:id="ldap.controls" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Controles de  LDAP</title>
+ <title>Control LDAP</title>
  <para>
-  Los controles son objetos especiales que podrían ser enviados junto a una
-  petición de LDAP para alterar el comportamiento del servidor LDAP mientras se lleva a cabo
-  dicha petición. Tambíen podría haber controles enviados por el servidor
-  junto a la respuesta para proveer de más información, normalmente
-  para responder a un objeto control desde la petición.
+   Los controles son objetos especiales que pueden ser enviados
+   con una petición LDAP para modificar el comportamiento del servidor LDAP
+   durante la ejecución de la petición. También pueden existir
+   controles enviados por el servidor con la respuesta para proporcionar
+   más información, generalmente para responder a un objeto de control
+   de la petición.
   <note>
    <para>
-    No todos los controles se admiten en todos los servidores LDAP. Para saber qué controles
-    están admitidos en un servidor, es necesario consultar el DSE raíz leyendo un
-    dn vacío con el filtro (objectClass=*).
+    No todos los controles son soportados por todos los servidores LDAP. Para saber
+    qué controles son soportados por un servidor, debe interrogarse el DSE
+    raíz leyendo un dn vacío con el filtro (objectClass=*).
    </para>
    <example>
-    <title>Testing support for paged result control</title>
+    <title>Prueba de soporte para el control de resultados paginados</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-
-// $ds is a valid link identifier for a directory server
-
+// $ds es un identificador de enlace válido para un servidor de directorio
 $result = ldap_read($ds, '', '(objectClass=*)', ['supportedControl']);
 if (!in_array(LDAP_CONTROL_PAGEDRESULTS, ldap_get_entries($ds, $result)[0]['supportedcontrol'])) {
-  die("This server does not support paged result control");
+  die("Este servidor no soporta el control de resultados paginados");
 }
-
 ?>
 ]]>
     </programlisting>
    </example>
   </note>
  </para>
- 
+
  <para>
-  As of PHP 7.3, you can send controls with your request in all
-  request functions using the serverctrls parameter. When a ext
-  version of a function exists, you should use it if you want to
-  get access to the full response object and be able to parse
-  response controls from it using <function>ldap_parse_result</function>.
+   Desde PHP 7.3, puede enviarse controles con la petición en todas
+   las funciones de petición utilizando el parámetro <parameter>controls</parameter>. Cuando existe
+   una versión extendida de una función, debe utilizarse si se desea
+   acceder al objeto de respuesta completo y ser capaz de analizar
+   los controles de respuesta a partir de este utilizando <function>ldap_parse_result</function>.
  </para>
- 
+
  <para>
-  serverctrls must be an array containing an array for each control to send,
-  containing the following keys:
-  <variablelist>
-   <varlistentry>
-    <term>
-     oid
-     (<type>string</type>)
-    </term>
-    <listitem>
-     <simpara>
-      The OID of the control. You should use constants starting with
-      LDAP_CONTROL_ for this. See <link linkend="ldap.constants">LDAP Constants</link>.
-     </simpara>
-    </listitem>
-   </varlistentry>
-   <varlistentry>
-    <term>
-     iscritical
-     (<type>boolean</type>)
-    </term>
-    <listitem>
-     <simpara>
-      If a control is noted as critical, the request will fail if the
-      control is not supported by the server, or if it fails to be
-      applied. Note that some controls should always be marked as critical
-      as noted in the RFC introducing them. Defaults to &false;.
-     </simpara>
-    </listitem>
-   </varlistentry>
-   <varlistentry>
-    <term>
-     value
-     (<type>mixed</type>)
-    </term>
-    <listitem>
-     <simpara>
-      If applicable, the value of the control. Read below for more information.
-     </simpara>
-    </listitem>
-   </varlistentry>
-  </variablelist>
-  
+   <parameter>controls</parameter> debe ser un array que contenga un array para cada control a enviar,
+   conteniendo las siguientes claves :
+   <variablelist>
+    <varlistentry>
+     <term>
+      oid
+      (<type>string</type>)
+     </term>
+     <listitem>
+      <simpara>
+       El OID del control. Deben utilizarse las constantes que comienzan por
+       LDAP_CONTROL_ para esto. Ver <link linkend="ldap.constants">constantes de LDAP</link>.
+      </simpara>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>
+      iscritical
+      (<type>bool</type>)
+     </term>
+     <listitem>
+      <simpara>
+       Si un control está marcado como crítico, la petición fallará si el
+       control no es soportado por el servidor, o si falla al ser
+       aplicado. Tenga en cuenta que algunos controles deben siempre estar marcados
+       como críticos como se indica en el RFC que los introduce. Por omisión a &false;.
+      </simpara>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term>
+      value
+      (<type>mixed</type>)
+     </term>
+     <listitem>
+      <simpara>
+       Si es aplicable, el valor del control. Lea a continuación para más información.
+      </simpara>
+     </listitem>
+    </varlistentry>
+   </variablelist>
+
  </para>
- 
+
  <para>
-  Most control values are sent to the server BER-encoded.
-  You may either BER-encode the value yourself, or you can instead
-  pass an array with the correct keys so that the encoding is done
-  for you.
-  Supported controls to be passed as an array are:
+   La mayoría de los valores de control son enviados al servidor en BER-encodados.
+   Puede BER-encodar el valor usted mismo, o puede pasar un array con las claves correctas
+   para que el encodado sea realizado por usted.
+   Los controles soportados para pasar como array son :
   <itemizedlist>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_PAGEDRESULTS</constant>
-     Expected keys are [size] and [cookie]
+     Las claves esperadas son [size] y [cookie]
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_ASSERT</constant>
-     Expected key is filter
+     La clave esperada es [assertion]
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_VALUESRETURNFILTER</constant>
-     Expected key is filter
+     La clave esperada es filter
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_PRE_READ</constant>
-     Expected key is attrs
+     La clave esperada es attrs
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_POST_READ</constant>
-     Expected key is attrs
+     La clave esperada es attrs
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_SORTREQUEST</constant>
-     Expects an array of arrays with keys attr, [oid], [reverse].
+     Espera un array de arrays con las claves attr, [oid], [reverse].
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_VLVREQUEST</constant>
-     Expected keys are before, after, attrvalue|(offset, count), [context]
+     Las claves esperadas son before, after, attrvalue|(offset, count), [context]
     </para>
    </listitem>
   </itemizedlist>
  </para>
- 
+
  <para>
-  The following controls do not need any value:
+   Los siguientes controles no requieren valor :
   <itemizedlist>
    <listitem>
     <para>
@@ -162,52 +157,52 @@ if (!in_array(LDAP_CONTROL_PAGEDRESULTS, ldap_get_entries($ds, $result)[0]['supp
    </listitem>
   </itemizedlist>
  </para>
- 
+
  <para>
-  The control <constant>LDAP_CONTROL_PROXY_AUTHZ</constant> is a special case
-  as its value is not expected to be BER-encoded, so you can directly
-  use a string for its value.
+   El control <constant>LDAP_CONTROL_PROXY_AUTHZ</constant> es un caso especial
+   ya que su valor no se espera que esté BER-encodado, por lo que puede
+   utilizarse directamente una cadena para su valor.
  </para>
- 
+
  <para>
-  When controls are parsed by <function>ldap_parse_result</function>, values are
-  turned into an array if supported.
-  This is supported for:
+   Cuando los controles son analizados por <function>ldap_parse_result</function>, los valores son
+   transformados en array si son soportados.
+   Esto es soportado para :
   <itemizedlist>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_PASSWORDPOLICYRESPONSE</constant>
-     Keys are expire, grace, [error]
+     Las claves son expire, grace, [error]
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_PAGEDRESULTS</constant>
-     Keys are size, cookie
+     Las claves son size, cookie
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_PRE_READ</constant>
-     Keys are dn and LDAP attributes names
+     Las claves son dn y los nombres de atributos LDAP
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_POST_READ</constant>
-     Keys are dn and LDAP attributes names
+     Las claves son dn y los nombres de atributos LDAP
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_SORTRESPONSE</constant>
-     Keys are errcode, [attribute]
+     Las claves son errcode, [attribute]
     </para>
    </listitem>
    <listitem>
     <para>
      <constant>LDAP_CONTROL_VLVRESPONSE</constant>
-     Keys are target, count, errcode, context
+     Las claves son target, count, errcode, context
     </para>
    </listitem>
   </itemizedlist>

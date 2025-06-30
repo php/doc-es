@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 2b587ab01f833234c6520e5f46e6a87919d23135 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 5bc68add3da3cd18c40f851e944b15095d3a26aa Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ldap-bind" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_bind</refname>
-  <refpurpose>Realiza la autenticación con un servidor LDAP</refpurpose>
+  <refpurpose>Autenticación en el servidor LDAP</refpurpose>
  </refnamediv>
- 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>ldap_bind</methodname>
-   <methodparam><type>resource</type><parameter>link_identifier</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>bind_rdn</parameter><initializer>&null;</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>bind_password</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam><type>LDAP\Connection</type><parameter>ldap</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>dn</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><modifier role="attribute">#[\SensitiveParameter]</modifier><type class="union"><type>string</type><type>null</type></type><parameter>password</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Autentica contra un servidor LDAP tomando un RDN y contraseña especificados.
+   Autenticación en el servidor LDAP con el RDN y la contraseña especificados.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>link_identifier</parameter></term>
+     <term><parameter>ldap</parameter></term>
      <listitem>
       <para>
-       El identificador de enlace LDAP, devuelto por la función <function>ldap_connect</function>.
+       &ldap.parameter.ldap;
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>bind_rdn</parameter></term>
+     <term><parameter>dn</parameter></term>
      <listitem>
       <para>
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>bind_password</parameter></term>
+     <term><parameter>password</parameter></term>
      <listitem>
       <para>
       </para>
@@ -48,45 +48,64 @@
    </variablelist>
   </para>
   <para>
-   Si los parámetros <parameter>bind_rdn</parameter> y <parameter>bind_password</parameter>
-   no son especificados, se intentará autenticar en forma anónima.
+   Si <parameter>password</parameter>
+   no está especificado o está vacío, se intenta una autenticación anónima.
+   <parameter>dn</parameter> también puede dejarse vacío para una conexión
+   anónima. Esto está definido en https://tools.ietf.org/html/rfc2251#section-4.2.2
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ldap.changelog.ldap-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de autenticación</title>
+    <title>Autenticación con LDAP</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// ejemplo de autenticación
-$ldaprdn  = 'uname';     // ldap rdn or dn
-$ldappass = 'password';  // associated password
+// Elementos de autenticación LDAP
+$ldaprdn  = 'uname';     // DN o RDN LDAP
+$ldappass = 'password';  // Contraseña asociada
 
-// conexión al servidor LDAP
-$ldapconn = ldap_connect("ldap.example.com")
-    or die("Could not connect to LDAP server.");
+// Conexión al servidor LDAP
+$ldapconn = ldap_connect("ldap://ldap.example.com")
+    or die("No es posible conectarse al servidor LDAP.");
 
 if ($ldapconn) {
 
-    // realizando la autenticación
+    // Conexión al servidor LDAP
     $ldapbind = ldap_bind($ldapconn, $ldaprdn, $ldappass);
 
-    // verificación del enlace
+    // Verificación de la autenticación
     if ($ldapbind) {
-        echo "LDAP bind successful...";
+        echo "Conexión LDAP exitosa...";
     } else {
-        echo "LDAP bind failed...";
+        echo "Conexión LDAP fallida...";
     }
 
 }
@@ -96,26 +115,26 @@ if ($ldapconn) {
     </programlisting>
    </example>
    <example>
-    <title>Ejemplo de autenticación anónima</title>
+    <title>Conexión anónima a un servidor LDAP</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Ejemplo de autenticación anónima
+// Conexión anónima a un servidor LDAP
 
-// conexión al servidor LDAP
-$ldapconn = ldap_connect("ldap.example.com")
-    or die("Could not connect to LDAP server.");
+// Conexión al servidor LDAP
+$ldapconn = ldap_connect("ldap://ldap.example.com")
+    or die("No es posible conectarse al servidor LDAP.");
 
 if ($ldapconn) {
 
-    // autenticación anónima
+    // Autenticación anónima
     $ldapbind = ldap_bind($ldapconn);
 
     if ($ldapbind) {
-        echo "LDAP bind anonymous successful...";
+        echo "Conexión LDAP anónima exitosa...";
     } else {
-        echo "LDAP bind anonymous failed...";
+        echo "Conexión LDAP anónima fallida...";
     }
 
 }
@@ -126,18 +145,18 @@ if ($ldapconn) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>ldap_bind_ext</function></member>
     <member><function>ldap_unbind</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
