@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: f2049e4661c2459f631534e1bb1d5acce65d416f Maintainer: chuso Status: ready -->
+<!-- EN-Revision: 1299a9808782769bba9f6a48bf52cb1c68182e78 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.getenv" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>getenv</refname>
-  <refpurpose>Obtiene el valor de una variable de entorno</refpurpose>
+  <refpurpose>Retorna el valor de una o todas las variables de entorno</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>getenv</methodname>
-   <methodparam><type>string</type><parameter>varname</parameter></methodparam>
+   <type class="union"><type>string</type><type>array</type><type>false</type></type><methodname>getenv</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>name</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>local_only</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene el valor de una variable de entorno.
+   Retorna el valor de una o todas las variables de entorno.
   </para>
   <para>
-   Se puede ver una lista de todas las variables de entorno usando
-   <function>phpinfo</function>. Muchas de estas variables están listadas bajo la especificación
-   <link xlink:href="&url.rfc;3875">RFC 3875</link>, específicamente
-   la sección 4.1, "Request Meta-Variables".
+   Puede verse una lista completa de las variables de entorno
+   utilizando la función <function>phpinfo</function>. Puede encontrarse
+   el significado de cada una de ellas consultando la
+   <link xlink:href="&url.rfc;3875">RFC 3875</link>, en particular la sección
+   4.1 "Request Meta-Variables".
   </para>
  </refsect1>
 
@@ -29,10 +33,19 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>varname</parameter></term>
+     <term><parameter>name</parameter></term>
      <listitem>
       <para>
-       El nombre de variable.
+       El nombre de la variable como &string; o &null;.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>local_only</parameter></term>
+     <listitem>
+      <para>
+       Cuando se establece en &true;, solo se retornan las variables de entorno locales, definidas por el sistema operativo o putenv. Esto solo tiene efecto
+       cuando <parameter>name</parameter> es un &string;.
       </para>
      </listitem>
     </varlistentry>
@@ -43,30 +56,85 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor de la variable de entorno
-   <parameter>varname</parameter>, o &false; si la variable 
-   entorno <parameter>varname</parameter> no existe.
+   Retorna el valor de la variable de entorno
+   <parameter>name</parameter>, o &false; si la variable
+   de entorno <parameter>name</parameter> no existe.
+   Si <parameter>name</parameter> es omitido, todas las variables
+   de entorno son retornadas como un &array; asociativo.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       El <parameter>name</parameter> ahora es nullable.
+      </entry>
+     </row>
+     <row>
+      <entry>7.1.0</entry>
+      <entry>
+       <parameter>name</parameter> ahora puede ser omitido para recuperar
+       un &array; asociativo de todas las variables de entorno.
+      </entry>
+     </row>
+     <row>
+      <entry>7.0.9</entry>
+      <entry>
+       Se ha añadido el parámetro <parameter>local_only</parameter>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>getenv</function></title>
+    <title>Ejemplo con <function>getenv</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 // Ejemplo de uso de getenv()
 $ip = getenv('REMOTE_ADDR');
 
-// O simplemente use una Superglobal ($_SERVER o $_ENV)
+// O simplemente usar una Superglobal ($_SERVER o $_ENV)
 $ip = $_SERVER['REMOTE_ADDR'];
+
+// Obtener de forma segura el valor de una variable de entorno,
+// ignorando si ha sido definida por un SAPI o modificada con putenv
+$ip = getenv('REMOTE_ADDR', true) ?: getenv('REMOTE_ADDR')
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <warning>
+   <para>
+    Si PHP se ejecuta en un SAPI como Fast CGI, esta función retornará
+    siempre el valor de una variable de entorno definida por el SAPI,
+    incluso si <function>putenv</function> ha sido utilizado para definir una variable
+    de entorno local con el mismo nombre. El parámetro
+    <parameter>local_only</parameter> debe ser utilizado para retornar los
+    valores de variables de entorno definidas localmente.
+   </para>
+  </warning>
  </refsect1>
 
  <refsect1 role="seealso">

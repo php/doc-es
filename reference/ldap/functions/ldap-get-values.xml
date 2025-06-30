@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: edwincartagenah Status: ready -->
+<!-- EN-Revision: e50e79746736dbdfbabe9bd3566793b3ddf38f58 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.ldap-get-values" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_get_values</refname>
-  <refpurpose>Obtener todos los valores de una entrada de resultados</refpurpose>
+  <refpurpose>Lee todos los valores de una entrada LDAP</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>ldap_get_values</methodname>
-   <methodparam><type>resource</type><parameter>link_identifier</parameter></methodparam>
-   <methodparam><type>resource</type><parameter>result_entry_identifier</parameter></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>ldap_get_values</methodname>
+   <methodparam><type>LDAP\Connection</type><parameter>ldap</parameter></methodparam>
+   <methodparam><type>LDAP\ResultEntry</type><parameter>entry</parameter></methodparam>
    <methodparam><type>string</type><parameter>attribute</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Lee todos los valores del atributo en la entrada en el resultado.
+   Lee todos los valores del atributo de una entrada en un resultado.
   </para>
   <para>
-   Esta llamada necesita un <parameter>result_entry_identifier</parameter>,
-   tal que sea precedido por una de las llamadas de búsqueda de ldap y una
-   de las llamadas para obtener una entrada individual.
+   La llamada a esta función requiere una <parameter>entry</parameter>
+   y debe ser precedida por una búsqueda LDAP,
+   y una de las funciones que permiten acceder a una entrada.
   </para>
   <para>
-   Su solicitud será fuertemente codificada para buscar ciertos
-   atributos (tales como "apellido" o "correo"), o tendrá que utilizar
-   la llamada <function>ldap_get_attributes</function> para resolver
-   qué atributos existen para una entrada dada.
+   La aplicación debe contener información que permita
+   leer ciertos atributos (como "nombre" o "mail"), o bien
+   deberá utilizarse la función <function>ldap_get_attributes</function>
+   para saber cuáles son los atributos que existen para una entrada dada.
   </para>
  </refsect1>
 
@@ -36,17 +36,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>link_identifier</parameter></term>
+     <term><parameter>ldap</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de LDAP, devuelto por <function>ldap_connect</function>.
+       &ldap.parameter.ldap;
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>result_entry_identifier</parameter></term>
+     <term><parameter>entry</parameter></term>
      <listitem>
       <para>
+       &ldap.parameter.entry;
       </para>
      </listitem>
     </varlistentry>
@@ -64,43 +65,59 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un arreglo de valores para el atributo en caso de éxito y &false; en
-   caso de error. El número de valores puede ser hallado indexando "count" en el
-   arreglo resultante. Los valores individuales son accedidos por un índice entero en el
-   arreglo. El índice primero es 0.
+   Devuelve un array de valores para el atributo, o &false; en caso de error.
+   El número de valores devueltos está disponible en el índice 'count' del array
+   devuelto. Los valores son accesibles individualmente, con los índices
+   numéricos del array. La indexación comienza en &zero;.
   </para>
   <para>
-   LDAP permite más de una entrada para un atributo, así que puede, por ejemplo,
-   almacenar un número de direcciones para la entrada de directorio de una persona
-   etiquetado con el atributo "correo"
+   LDAP permite más de una entrada por atributo, lo que permite almacenar varias
+   direcciones de correo electrónico por persona, utilizando solo una etiqueta "mail":
    <informalexample>
     <literallayout>
-    return_value["count"] = Número de valores para el atributo
-    return_value[0] = Primer valor del atributo
+    return_value["count"] = número de valores del atributo
+    return_value[0] = primer valor del atributo
     return_value[i] = i-ésimo valor del atributo
     </literallayout>
    </informalexample>
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &ldap.changelog.ldap-object;
+     &ldap.changelog.entry-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Listar todos los valores del atributo "correo" para una
-     entrada de directorio </title>
+    <title>Lista todas las valores del atributo "mail" de una entrada</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// $ds es un identificador de enlace válido para un servidor de directorio
+// $ds debe ser una instancia de conexión LDAP\Connection válida
 
-// $sr es un resultado de búsqueda válido de una llamada previa a
-//     una de las llamadas de búsqueda de directorio ldap
+// $sr debe ser un recurso de resultado válido, obtenido con una de las funciones de
+//     búsqueda LDAP.
 
-// $entry es un identificador de entrada válido de una llavada previa a
-//        una de las llamadas que devuelve una entrada de directorio
+// $entry es una entrada LDAP válida, obtenida con una de las funciones
+//        LDAP que devuelve una entrada
 
-$values = ldap_get_values($ds, $entry, "correo");
+$values = ldap_get_values($ds, $entry,"mail");
 
 echo $values["count"] . " direcciones de correo para esta entrada.<br />";
 
@@ -124,7 +141,6 @@ for ($i=0; $i < $values["count"]; $i++) {
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

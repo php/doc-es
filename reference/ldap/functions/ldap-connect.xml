@@ -1,24 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: afc3f34c682418a582b0f9199db0bac4a087821f Maintainer: yago Status: ready -->
+<!-- EN-Revision: 57c38af2b053068ad0f1dfdead8128b957ccf4f0 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.ldap-connect" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_connect</refname>
-  <refpurpose>Abre una conexión a un servidor LDAP</refpurpose>
+  <refpurpose>Conexión a un servidor LDAP</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>ldap_connect</methodname>
-   <methodparam choice="opt"><type>string</type><parameter>hostname</parameter><initializer>&null;</initializer></methodparam>
+   <type class="union"><type>LDAP\Connection</type><type>false</type></type><methodname>ldap_connect</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>uri</parameter><initializer>&null;</initializer></methodparam>
+  </methodsynopsis>
+  <warning>
+   <simpara>
+    A partir de PHP 8.3.0, la firma <emphasis>siguiente</emphasis> está obsoleta.
+   </simpara>
+  </warning>
+  <methodsynopsis>
+   <type class="union"><type>LDAP\Connection</type><type>false</type></type><methodname>ldap_connect</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>host</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>port</parameter><initializer>389</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Establece una conexión con un servidor LDAP en un determinado 
-   <parameter>hostname</parameter> and <parameter>port</parameter>.
+   Crea una instancia <classname>LDAP\Connection</classname> y verifica si
+   el <parameter>uri</parameter> proporcionado es plausible.
   </para>
+  <note>
+   <simpara>
+    Esta función no abre <emphasis>ninguna</emphasis> conexión. Verifica si
+    los parámetros dados son plausibles y pueden ser utilizados para abrir una
+    conexión cuando sea necesario.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -26,13 +41,25 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>hostname</parameter></term>
+     <term><parameter>uri</parameter></term>
      <listitem>
       <para>
-       Si se está usando OpenLDAP 2.x.x se puede especificar una URL en lugar
-       del host. Para usar LDAP con SSL, se debe compilar OpenLDAP 2.x.x 
-       con soporte para SSL, configurar PHP con SSL y colocar este parámetro como
-       <literal>ldaps://hostname/</literal>.
+       Un URI LDAP completo de la forma <literal>LDAP://hostname:port</literal>
+       o <literal>LDAPS://hostname:port</literal> para el cifrado SSL.
+      </para>
+      <para>
+       También puede proporcionarse varios URI LDAP separados por un espacio como una cadena
+      </para>
+      <para>
+       Tenga en cuenta que <literal>hostname:port</literal> no es un URI LDAP soportado ya que falta el esquema.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>host</parameter></term>
+     <listitem>
+      <para>
+       El nombre de host al que conectarse.
       </para>
      </listitem>
     </varlistentry>
@@ -40,7 +67,7 @@
      <term><parameter>port</parameter></term>
      <listitem>
       <para>
-       El puerto al cual debe conectarse. No se usa cuando se está usando URLs.
+       El puerto utilizado para la conexión.
       </para>
      </listitem>
     </varlistentry>
@@ -51,53 +78,87 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un identificador de enlace al LDAP en caso de éxito o &false; en 
-   caso de error. 
-   Cuando se está usando OpenLDAP 2.x.x, <function>ldap_connect</function> 
-   devolverá siempre un <type>resource</type> que no es la conexión en sí sino
-   solo inicialización de los parámetros de conexión. La conexión real se realizará
-   en la siguiente llamada a las funciones ldap_*, por lo general <function>ldap_bind</function>.
+   Devuelve una instancia de <classname>LDAP\Connection</classname> cuando
+   el URI LDAP parece plausible. Se trata de un control sintáctico de los parámetros proporcionados,
+   pero el servidor(s) no será contactado.
+   Si la verificación sintáctica falla, devuelve &false;.
+   <function>ldap_connect</function> devolverá entonces una instancia de
+   <classname>LDAP\Connection</classname> ya que no se conectará pero
+   solo inicializará los parámetros de conexión.
+   Actualmente, la conexión se realiza con la siguiente llamada a las funciones
+   <literal>ldap_*</literal>, habitualmente con la función
+   <function>ldap_bind</function>.
   </para>
   <para>
-   Si no se especificaron parámetros, será retornado el identificador de enlace 
-   de la conexión activa.
+   Sin argumentos, entonces se devolverá la instancia <classname>LDAP\Connection</classname>
+   de la última conexión ya abierta.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Llamar a <function>ldap_connect</function> con
+       <parameter>hostname</parameter> y <parameter>port</parameter>
+       separados está ahora obsoleto.
+      </entry>
+     </row>
+     <row>
+      <entry>8.1.0</entry>
+      <entry>
+       Ahora devuelve una instancia de <classname>LDAP\Connection</classname> ;
+       anteriormente, se esperaba una &resource;.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de conexión a un servidor LDAP.</title>
+    <title>Ejemplo de conexión a un servidor LDAP</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Variables del servidor LDAP
-$ldaphost = "ldap.example.com";  // servidor LDAP
-$ldapport = 389;                 // puerto del servidor LDAP
+// Variables LDAP
+$ldapuri = "ldap://ldap.example.com:389";  // su ldap-uri
 
-// Conexión al servidor LDAP
+// Conexión LDAP
 $ldapconn = ldap_connect($ldaphost, $ldapport)
-          or die("Could not connect to $ldaphost");
+          or die("Esta LDAP-URI no ha sido analizable");
 
 ?>
 ]]>
     </programlisting>
    </example>
    <example>
-    <title>Ejemplo de conexión segura a un servidor LDAP.</title>
+    <title>Ejemplo de conexión a un servidor LDAP SSL</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Asegúrese de que el host sea el que fue publicado
-// con su certificado
+// Asegúrese de que el host es correcto
+// y que tiene un certificado válido
 $ldaphost = "ldaps://ldap.example.com/";
 
-// Conexión al servidor LDAP
+// Conexión LDAP
 $ldapconn = ldap_connect($ldaphost)
-          or die("Could not connect to {$ldaphost}");
+          or die("Esta LDAP-URI no ha sido analizable");
 
 ?>
 ]]>
@@ -116,7 +177,6 @@ $ldapconn = ldap_connect($ldaphost)
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

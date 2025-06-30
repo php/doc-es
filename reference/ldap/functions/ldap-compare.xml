@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: edwincartagenah Status: ready -->
+<!-- EN-Revision: b7cbd468cb4c46d55d43a44cade0eb4590d25dea Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ldap-compare" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_compare</refname>
-  <refpurpose>Comparar el valor del atributo encontrado en la entrada que se especificó con un DN</refpurpose>
+  <refpurpose>Comparar una entrada con valores de atributos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>ldap_compare</methodname>
-   <methodparam><type>resource</type><parameter>link_identifier</parameter></methodparam>
+   <type class="union"><type>bool</type><type>int</type></type><methodname>ldap_compare</methodname>
+   <methodparam><type>LDAP\Connection</type><parameter>ldap</parameter></methodparam>
    <methodparam><type>string</type><parameter>dn</parameter></methodparam>
    <methodparam><type>string</type><parameter>attribute</parameter></methodparam>
    <methodparam><type>string</type><parameter>value</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>controls</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Comparar el <parameter>value</parameter> del <parameter>attribute</parameter>
-   con el valor del mismo atributo en una entrada del directorio de LDAP.
+   Permite comparar el valor <parameter>value</parameter> del atributo
+   <parameter>attribute</parameter> con el valor del mismo atributo de la entrada
+   <parameter>dn</parameter>.
   </para>
  </refsect1>
 
@@ -27,10 +29,10 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>link_identifier</parameter></term>
+     <term><parameter>ldap</parameter></term>
      <listitem>
       <para>
-       Un enlace identificador de LDAP, devuelto por <function>ldap_connect</function>.
+       &ldap.parameter.ldap;
       </para>
      </listitem>
     </varlistentry>
@@ -38,7 +40,7 @@
      <term><parameter>dn</parameter></term>
      <listitem>
       <para>
-       El nombre distinguido de una entidad de LDAP.
+       El DN de la entrada LDAP.
       </para>
      </listitem>
     </varlistentry>
@@ -54,7 +56,15 @@
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       El valor comparado.
+       El valor a comparar.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>controls</parameter></term>
+     <listitem>
+      <para>
+       Array de <link linkend="ldap.controls">Controles LDAP</link> a enviar con la petición.
       </para>
      </listitem>
     </varlistentry>
@@ -65,37 +75,63 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si <parameter>value</parameter> es similar de otra forma devuelve
-   &false;. Devuelve -1 en caso de error.
+   Devuelve &true; si el valor <parameter>value</parameter> coincide, de lo contrario,
+   devuelve &false;. Devuelve -1 si ocurre un error.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      &ldap.changelog.ldap-object;
+      &ldap.changelog.controls-nullable;
+      <row>
+       <entry>7.3.0</entry>
+       <entry>
+        Se añadió soporte para <parameter>controls</parameter>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
   </para>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   El siguiente ejemplo demuestra como revisar si una contraseña proporcionada es igual o no
-   a la que está definida en una entrada DN específica.
+   El siguiente ejemplo muestra cómo verificar que dos contraseñas coinciden,
+   siendo una de ellas la de una entrada del servidor LDAP.
   </para>
   <para>
    <example>
-    <title>Ejemplo completo de revisión de contraseña</title>
+    <title>Ejemplo completo de verificación de contraseña con LDAP</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-$ds=ldap_connect("localhost");  // Asumiendo que el servidor de LDAP está en este mismo ordenador
+$ds=ldap_connect("localhost");  // debe ser un servidor LDAP válido!
 
 if ($ds) {
 
-    // enlazar
+    // Autenticación
     if (ldap_bind($ds)) {
 
-        // preparar los datos
-        $dn = "cn=Matti Meikku, ou=Mi Departamento, o=Mi Compañía, c=FI";
-        $value = "contraseñasecreta";
-        $attr = "contraseña";
+        // Preparación de datos
+        $dn = "cn=Matti Meikku, ou=My Unit, o=My Company, c=FI";
+        $value = "secretpassword";
+        $attr = "password";
 
-        // comparar el valor
+        // Comparación de valores
         $r=ldap_compare($ds, $dn, $attr, $value);
 
         if ($r === -1) {
@@ -103,17 +139,17 @@ if ($ds) {
         } elseif ($r === true) {
             echo "Contraseña correcta.";
         } elseif ($r === false) {
-            echo "Supongo que falló! Contraseña incorrecta.";
+            echo "¡Mal elegido! ¡Contraseña incorrecta!";
         }
 
     } else {
-        echo "No se puede enlazar al servidor de LDAP.";
+        echo "No se pudo conectar al servidor LDAP.";
     }
 
     ldap_close($ds);
 
 } else {
-    echo "No se puede conectar al servidor de LDAP.";
+    echo "No se pudo conectar al servidor LDAP.";
 }
 ?>
 
@@ -127,13 +163,13 @@ if ($ds) {
   &reftitle.notes;
   <warning>
    <para>
-    <function>ldap_compare</function> NO puede ser utilizado para comparar valores BINARIOS!
+    <function>ldap_compare</function> NO puede ser utilizado para comparar
+    valores binarios.
    </para>
   </warning>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

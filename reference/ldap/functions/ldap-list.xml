@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: afc3f34c682418a582b0f9199db0bac4a087821f Maintainer: edwincartagenah Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: b7cbd468cb4c46d55d43a44cade0eb4590d25dea Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.ldap-list" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ldap_list</refname>
-  <refpurpose>Búsqueda de un solo nivel</refpurpose>
+  <refpurpose>Búsqueda en un nivel</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>ldap_list</methodname>
-   <methodparam><type>resource</type><parameter>link_identifier</parameter></methodparam>
-   <methodparam><type>string</type><parameter>base_dn</parameter></methodparam>
-   <methodparam><type>string</type><parameter>filter</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>attributes</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>attrsonly</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>sizelimit</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>timelimit</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>deref</parameter></methodparam>
+   <type class="union"><type>LDAP\Result</type><type>array</type><type>false</type></type><methodname>ldap_list</methodname>
+   <methodparam><type class="union"><type>LDAP\Connection</type><type>array</type></type><parameter>ldap</parameter></methodparam>
+   <methodparam><type class="union"><type>array</type><type>string</type></type><parameter>base</parameter></methodparam>
+   <methodparam><type class="union"><type>array</type><type>string</type></type><parameter>filter</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>attributes</parameter><initializer>[]</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>attributes_only</parameter><initializer>0</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>sizelimit</parameter><initializer>-1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>timelimit</parameter><initializer>-1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>deref</parameter><initializer><constant>LDAP_DEREF_NEVER</constant></initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>controls</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Realiza la búsqueda de un <parameter>filter</parameter> especificado en el
-   directorio con el alcance de <constant>LDAP_SCOPE_ONELEVEL</constant>.
+   Realiza una búsqueda con el filtro <parameter>filter</parameter>
+   en el directorio <parameter>base_dn</parameter> con la opción
+   <constant>LDAP_SCOPE_ONELEVEL</constant>.
   </para>
   <para>
-   <constant>LDAP_SCOPE_ONELEVEL</constant> quiere decir que la búsqueda solamente debería
-   devolver información que está en el nivel inmediatamente abajo de el
-   <parameter>base_dn</parameter> proporcionado en la llamada.
-   (Equivalente a digitar "<command>ls</command>" y obtener una lista de los ficheros y carpetas en el
-   actual directorio de trabajo.)
+   <constant>LDAP_SCOPE_ONELEVEL</constant> indica que la búsqueda
+   solo puede devolver entradas en el nivel inmediatamente
+   inferior al nivel <parameter>base</parameter> (equivalente al comando <command>ls</command>,
+   para obtener la lista de archivos y directorios del directorio actual).
   </para>
+  &ldap.return-result-array-info;
  </refsect1>
 
  <refsect1 role="parameters">
@@ -39,18 +40,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>link_identifier</parameter></term>
+     <term><parameter>ldap</parameter></term>
      <listitem>
       <para>
-       Un identificador de enlace de LDAP, devuelto por <function>ldap_connect</function>.
+       &ldap.parameter.ldap;
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>base_dn</parameter></term>
+     <term><parameter>base</parameter></term>
      <listitem>
       <para>
-       El DN base para el directorio.
+       El DN base del directorio.
       </para>
      </listitem>
     </varlistentry>
@@ -65,25 +66,24 @@
      <term><parameter>attributes</parameter></term>
      <listitem>
       <para>
-       Un array de atributos requeridos, por ejemplo array("correo", "sn", "cn").
-       Tenga en cuenta que "dn" siempre es devuelto independientemente de qué tipos de atributos
-       lo soliciten.
+       Un array de atributos requeridos, por ejemplo array("mail", "sn", "cn").
+       Tenga en cuenta que el "dn" siempre se devuelve, independientemente del tipo de atributo
+       solicitado.
       </para>
       <para>
-       Utilizando este parámetro es mucho más eficiente que la acción predeterminada
-       (la cual es devolver todos los atributos y sus valores asociados). 
-       Por lo tanto, el uso de este parámetro debería ser considerado una buena
-       práctica.
+       El uso de este argumento es más eficiente que el comportamiento por defecto
+       (que es devolver todos los atributos junto con sus valores asociados).
+       Por esta razón, el uso de este argumento debe considerarse una buena práctica.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>attrsonly</parameter></term>
+     <term><parameter>attributes_only</parameter></term>
      <listitem>
       <para>
-       Debería ser establecido a 1 solamente si los tipos de atributo son solicitados. Si se establece a 0
-       se devuelven los tipos de atributos y los valores de los atributos lo cual es el comportamiento
-       predeterminado.
+       Debe establecerse en &one; si solo se solicitan los tipos de atributos.
+       Si se establece en &zero;, se recuperan los tipos y los valores de los atributos,
+       lo que corresponde al comportamiento por defecto.
       </para>
      </listitem>
     </varlistentry>
@@ -91,19 +91,18 @@
      <term><parameter>sizelimit</parameter></term>
      <listitem>
       <para>
-       Te permite limitar el conteo de entradas a devolver. Al establecer esto a 0
-       significa que no hay límite.
+       Permite limitar el número de entradas a recuperar. Establecer este argumento a &zero;
+       significa que no habrá límite.
       </para>
       <note>
        <para>
-        Este parámetro NO puede prevalecer sobre el sizelimit preestablecido en el lado del servidor. Puede aún
-        establecerlo a uno más bajo.
+        Este argumento no puede sobrescribir la configuración del lado del servidor. Sin embargo,
+        puede establecerse un valor inferior.
        </para>
        <para>
-        Algunos equipos de servidor de directorio serán configurados para devolver no mas que
-        un número preestablecido de entradas. Si esto ocurre, el servidor indicará
-        que sólo ha devuelto un conjunto de resultados parciales. Esto también ocurre si
-        utiliza este parámetro para limitar el conteo de entradas devueltas.
+        Algunos servidores pueden estar configurados para devolver solo un número determinado de entradas.
+        Si ocurre este comportamiento, el servidor indica que solo se ha devuelto un conjunto de resultados parcial.
+        Este comportamiento también ocurre si se utiliza este argumento para limitar el número de entradas recuperadas.
        </para>
       </note>
      </listitem>
@@ -112,13 +111,12 @@
      <term><parameter>timelimit</parameter></term>
      <listitem>
       <para>
-       Establece el número de segundos de cuánto tiempo pasa en la búsqueda. Poniendo
-       esto a 0 siginifica que no hay límite.
+       Define el número máximo de segundos permitidos para la búsqueda.
+       Establecer este argumento a &zero; significa que no hay límite.
       </para>
       <note>
        <para>
-        Este parámetro NO puede prevalecer sobre el timelimit preestablecido en el lado del servidor. Puede aún
-        establecerlo a uno más bajo.
+        Este argumento no puede sobrescribir la configuración del lado del servidor pero puede utilizarse para ser más restrictivo.
        </para>
       </note>
      </listitem>
@@ -127,34 +125,40 @@
      <term><parameter>deref</parameter></term>
      <listitem>
       <para>
-       Especifica cuántos alias deberían ser manejados durante la búsqueda. Este puede ser
-       uno de los siguientes:
+       Especifica el número de alias que deben gestionarse durante la búsqueda.
+       Puede ser uno de los siguientes:
        <itemizedlist>
         <listitem>
          <simpara>
-          <constant>LDAP_DEREF_NEVER</constant> - (predeterminado) Los alias nunca son
-          dereferenciados.
+          <constant>LDAP_DEREF_NEVER</constant> - (por defecto) los alias nunca se desreferencian.
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>LDAP_DEREF_SEARCHING</constant> - Los alias deberían ser
-          dereferenciados durante la búsqueda pero no cuando se está ubicando el objeto base
-          de la búsqueda.
+          <constant>LDAP_DEREF_SEARCHING</constant> - los alias deben desreferenciarse
+          durante la búsqueda pero no al localizar el objeto base de la búsqueda.
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>LDAP_DEREF_FINDING</constant> - Los alias deberían ser
-          dereferenciados cuando se está ubicando el objeto base pero no durante la búsqueda.
+          <constant>LDAP_DEREF_FINDING</constant> - los alias deben desreferenciarse
+          al localizar el objeto base pero no durante la búsqueda.
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>LDAP_DEREF_ALWAYS</constant> - Los alias siempre deberían ser dereferenciados.
+          <constant>LDAP_DEREF_ALWAYS</constant> - los alias siempre deben desreferenciarse.
          </simpara>
         </listitem>
        </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>controls</parameter></term>
+     <listitem>
+      <para>
+       Array de <link linkend="ldap.controls">Controles LDAP</link> a enviar con la consulta.
       </para>
      </listitem>
     </varlistentry>
@@ -165,7 +169,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un identificador de resultado de búsqueda, o &false; en caso de error.
+   &ldap.return-result-array;
   </para>
  </refsect1>
 
@@ -181,11 +185,13 @@
       </row>
      </thead>
      <tbody>
+      &ldap.changelog.ldap-object;
+      &ldap.changelog.return-result-object;
+      &ldap.changelog.controls-nullable;
       <row>
-       <entry>4.0.5</entry>
+       <entry>7.3.0</entry>
        <entry>
-        Ha sido agregado el soporte de búsquedas en paralelo. Vea 
-        <function>ldap_search</function> para más detalles.
+        Se añadió soporte para <parameter>controls</parameter>.
        </entry>
       </row>
      </tbody>
@@ -198,13 +204,13 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Producir una lista de todas las unidades organizacionales de una organización</title>
+    <title>Produce una lista de todos los servicios de una empresa</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// $ds es un identificador de enlace válido para un servidor de directorio
+// $ds debe ser una instancia válida de LDAP\Connection
 
-$basedn = "o=Mi Compañía, c=US";
+$basedn = "o=My Company, c=US";
 $justthese = array("ou");
 
 $sr = ldap_list($ds, $basedn, "ou=*", $justthese);
@@ -231,7 +237,6 @@ for ($i=0; $i < $info["count"]; $i++) {
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
