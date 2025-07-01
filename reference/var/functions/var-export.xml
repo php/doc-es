@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: a953cad1bb2fa27c67e079123df7ce2a44fab39e Maintainer: yago Status: ready -->
-<!-- Reviewed: yes Maintainer: yago -->
-<!-- splitted from ./en/functions/var.xml, last change in rev 1.6 -->
+<!-- EN-Revision: d816a0fad6c458d9515f697cc89e26ca9d8069f5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xml:id="function.var-export" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>var_export</refname>
-  <refpurpose>Imprime o devuelve una representación string de una variable analizable</refpurpose>
+  <refpurpose>Devuelve el código PHP utilizado para generar una variable</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>var_export</methodname>
-   <methodparam><type>mixed</type><parameter>expression</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>return</parameter><initializer>false</initializer></methodparam>
+   <type class="union"><type>string</type><type>null</type></type><methodname>var_export</methodname>
+   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>return</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <simpara>
-   <function>var_export</function> obtiene información estructurada sobre la 
-   variable dada. Es similar a la función <function>var_dump</function>
-   con una excepción: la representación devuelta es código PHP válido.
+   <function>var_export</function> devuelve datos estructurados
+   sobre la variable dada. Es el mismo principio que
+   <function>var_dump</function> pero con una excepción:
+   el resultado devuelto es código PHP válido.
   </simpara>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>expression</parameter></term>
+     <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       La variable que desea exportar.
+       La variable que se desea exportar.
       </para>
      </listitem>
     </varlistentry>
@@ -39,29 +39,24 @@
      <term><parameter>return</parameter></term>
      <listitem>
       <para>
-       Si es usada y se define como &true;, <function>var_export</function> devolverá
-       la representación de la variable en lugar de imprimirla.
+       Si se utiliza y se establece a &true;, <function>var_export</function> devolverá
+       la representación de la variable en lugar de mostrarla.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la representación de la variable cuando el parámetro <parameter>return</parameter> 
-   es utilizado y evaluado como &true;. En caso contrario, esta función
-   devolverá &null;.
+   Devuelve la representación de la variable cuando el parámetro
+   <parameter>return</parameter> se utiliza y se evalúa a &true;. De lo contrario,
+   esta función devolverá &null;.
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  &note.uses-ob;
- </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -75,10 +70,22 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.1.0</entry>
+       <entry>8.2.0</entry>
        <entry>
-        Posibilidad de exportar las clases y los arrays que contienen las clases utilizando el 
-        método mágico <link linkend="object.set-state">__set_state</link>.
+        Los nombres de clase exportados son ahora completamente calificados.
+        Anteriormente, la barra invertida inicial era omitida.
+       </entry>
+      </row>
+      <row>
+       <entry>7.3.0</entry>
+       <entry>
+        Exporta ahora los objetos <classname>stdClass</classname> como
+        un &array; convertido a un objeto (<code>(object) array( ... )</code>),
+        en lugar de utilizar el método no existente
+        <methodname>stdClass::__set_state</methodname>.
+        El efecto práctico es que ahora <classname>stdClass</classname> es
+        exportable, y que el código resultante funcionará incluso en versiones
+        anteriores de PHP.
        </entry>
       </row>
      </tbody>
@@ -86,17 +93,19 @@
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplos de <function>var_export</function></title>
+    <title>Ejemplo con <function>var_export</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
+
 $a = array (1, 2, array ("a", "b", "c"));
 var_export($a);
+
 ?>
 ]]>
     </programlisting>
@@ -106,7 +115,7 @@ var_export($a);
 array (
   0 => 1,
   1 => 2,
-  2 => 
+  2 =>
   array (
     0 => 'a',
     1 => 'b',
@@ -121,7 +130,7 @@ array (
 
 $b = 3.1;
 $v = var_export($b, true);
-echo $v;
+echo $v; // 3.1
 
 ?>
 ]]>
@@ -136,7 +145,31 @@ echo $v;
   </para>
   <para>
    <example>
-    <title>Exportación de clases a partir de PHP 5.1.0</title>
+    <title>Exportar stdClass (a partir de PHP 7.3.0)</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$person = new stdClass;
+$person->name = 'ElePHPant ElePHPantsdotter';
+$person->website = 'https://php.net/elephpant.php';
+
+var_export($person);
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+(object) array(
+   'name' => 'ElePHPant ElePHPantsdotter',
+   'website' => 'https://php.net/elephpant.php',
+)
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Exportar clases</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -150,7 +183,7 @@ var_export($a);
     &example.outputs;
     <screen>
 <![CDATA[
-A::__set_state(array(
+\A::__set_state(array(
    'var' => 5,
 ))
 ]]>
@@ -159,7 +192,7 @@ A::__set_state(array(
   </para>
   <para>
    <example>
-    <title>Uso de <link linkend="object.set-state">__set_state</link> (a partir de PHP 5.1.0)</title>
+    <title>Uso de <link linkend="object.set-state">__set_state</link></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -168,11 +201,11 @@ class A
     public $var1;
     public $var2;
 
-    public static function __set_state($una_matriz)
+    public static function __set_state($an_array)
     {
         $obj = new A;
-        $obj->var1 = $una_matriz['var1'];
-        $obj->var2 = $una_matriz['var2'];
+        $obj->var1 = $an_array['var1'];
+        $obj->var2 = $an_array['var2'];
         return $obj;
     }
 }
@@ -182,9 +215,9 @@ $a->var1 = 5;
 $a->var2 = 'foo';
 
 eval('$b = ' . var_export($a, true) . ';'); // $b = A::__set_state(array(
-                                            //    'var1' => 5,
-                                            //    'var2' => 'foo',
-                                            // ));
+                                     //    'var1' => 5,
+                                     //    'var2' => 'foo',
+                                     // ));
 var_dump($b);
 ?>
 ]]>
@@ -193,40 +226,51 @@ var_dump($b);
     <screen>
 <![CDATA[
 object(A)#2 (2) {
-  ["var1"]=>
-  int(5)
-  ["var2"]=>
-  string(3) "foo"
+    ["var1"]=>
+    int(5)
+    ["var2"]=>
+    string(3) "foo"
 }
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Las variables de tipo <type>resource</type> no pueden ser exportadas por esta
+    Las variables de tipo &resource; no pueden ser exportadas por esta
     función.
    </para>
   </note>
   <note>
    <para>
-    <function>var_export</function> no maneja referencias circulares ya que
-    sería prácticamente imposible generar código PHP interpretable en tal caso.
-    Si desea trabajar con la representación completa de una matriz u
-    objeto, use <function>serialize</function>.
+    <function>var_export</function> no maneja referencias circulares ya que sería
+    imposible generar código PHP analizable para este tipo de datos.
+    Si se desea hacer algo con la representación completa de un array
+    o un objeto, se debe utilizar la función <function>serialize</function>.
    </para>
   </note>
   <warning>
    <para>
-    Cuando <function>var_export</function> exporta objectos, la barra diagonal no se incluye en el nombre de clases que pertencen a un namespace para mantener compatibilidad.
+    Anterior a PHP 8.2.0, cuando <function>var_export</function> exportaba objetos,
+    la barra invertida inicial no era incluida en el espacio de nombres de la clase
+    y esto, para un máximo de compatibilidad.
    </para>
-  </warning>  
+  </warning>
+  <note>
+   <para>
+    Para poder evaluar el PHP generado por <function>var_export</function>,
+    todos los objetos analizados deben implementar el método mágico <link
+    linkend="object.set-state">__set_state</link>. La única excepción es
+    <classname>stdClass</classname>; que es exportada utilizando un cast de un
+    &array; a un objeto.
+   </para>
+  </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -235,10 +279,9 @@ object(A)#2 (2) {
     <member><function>serialize</function></member>
     <member><function>var_dump</function></member>
    </simplelist>
-  </para>  
+  </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

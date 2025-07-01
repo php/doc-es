@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: f0d05b38c3dd79b8a2368ec4ec03716c24766d90 Maintainer: jesusruiz Status: ready -->
+<!-- EN-Revision: 2a5223230bf6177c225003ca30c63f48ef266cc0 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.debug-zval-dump" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>debug_zval_dump</refname>
-  <refpurpose>Vuelca a la salida una cadena con la representación de un valor interno de zend</refpurpose>
+  <refpurpose>Extrae una representación en forma de string de la estructura interna de una zval para su visualización</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>void</type><methodname>debug_zval_dump</methodname>
-   <methodparam><type>mixed</type><parameter>variable</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>...</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+   <methodparam rep="repeat"><type>mixed</type><parameter>values</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Volcar a la salida una cadena con la representación de un valor interno de zend.
+   Extrae una representación en forma de string de una estructura interna de una zval (Zend value) para su visualización. Esto es generalmente útil para comprender o depurar los detalles de implementación del motor Zend o de extensiones PHP.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -23,10 +23,18 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>variable</parameter></term>
+     <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       La variable a ser evaluada
+       La variable o valor a extraer.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>values</parameter></term>
+     <listitem>
+      <para>
+       Variables o valores adicionales a extraer.
       </para>
      </listitem>
     </varlistentry>
@@ -43,80 +51,58 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo <function>debug_zval_dump</function></title>
+    <title>Ejemplo con <function>debug_zval_dump</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$var1 = 'Hola Mundo';
-$var2 = '';
+$var1 = 'Hello';
+$var1 .= ' World';
+$var2 = $var1;
 
-$var2 =& $var1;
-
-debug_zval_dump(&$var1);
+debug_zval_dump($var1);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-&string(11) "Hola Mundo" refcount(3)
+string(11) "Hello World" refcount(3)
 ]]>
     </screen>
    </example>
   </para>
   <note>
-   <title>Cuidado con <literal>refcount</literal></title>
+   <title>Comprender el <literal>refcount</literal></title>
    <para>
-    El valor <literal>refcount</literal> devuelto por esta función no es
-    evidente en determinadas circunstancias. Por ejemplo, un desarrollador puede
-    esperar que el ejemplo anterior indique un <literal>refcount</literal> de
-    <literal>2</literal>. La tercera referencia se crea cuando se realiza la
-    llamada a <function>debug_zval_dump</function>.
+    El valor <literal>refcount</literal> mostrado por esta función puede resultar sorprendente sin una comprensión detallada de la implementación del motor.
    </para>
    <para>
-    Este comportamiento se agrava aún más cuando una variable no se pasa a
-    <function>debug_zval_dump</function> por referencia. Para ilustrar esto, considere
-    una versión ligeramente modificada del ejemplo anterior:
+    El motor Zend utiliza el conteo de referencias por dos razones diferentes:
    </para>
    <para>
-    <example>
-     <title/>
+    <simplelist>
+     <member>
+      Optimizar el uso de memoria utilizando una técnica llamada "copy on write", donde múltiples variables que contienen el mismo valor apuntan a la misma copia en memoria. Cuando una de estas variables es modificada, apunta a una nueva copia en memoria, y el conteo de referencias del original se reduce en 1.
+     </member>
+     <member>
+      El seguimiento de variables que han sido asignadas o pasadas por referencia (ver <link linkend="language.references">Referencias explicadas</link>). Este refcount se almacena en una zval de referencia separada, apuntando a la zval para el valor actual. Esta zval adicional no se muestra actualmente por <function>debug_zval_dump</function>.
+     </member>
+    </simplelist>
+   </para>
+   <para>
+    Como <function>debug_zval_dump</function> toma su entrada como un parámetro normal, pasado por valor, la técnica de copy on write será utilizada para el paso: en lugar de copiar los datos, el refcount será incrementado en 1 durante la vida del llamado a la función. Si la función modifica el parámetro después de haberlo recibido, entonces se realizará una copia; como no lo hace, mostrará un refcount 1 más alto que en el ámbito de llamada.
+   </para>
+   <para>
+    El paso de parámetros también impide que <function>debug_zval_dump</function> muestre variables que han sido asignadas por referencia. Para ilustrar esto, considere una versión ligeramente modificada del ejemplo anterior:
+    <informalexample>
      <programlisting role="php">
 <![CDATA[
 <?php
-$var1 = 'Hola Mundo';
-$var2 = '';
-
+$var1 = 'Hello';
+$var1 .= ' World';
+// Apunta tres variables como referencia al mismo valor
 $var2 =& $var1;
-
-debug_zval_dump($var1); // esta vez, no pasada por referencia
-?>
-]]>
-     </programlisting>
-     &example.outputs;
-     <screen>
-<![CDATA[
-string(11) "Hola Mundo" refcount(1)
-]]>
-     </screen>
-    </example>
-   </para>
-   <para>
-    Por qué <literal>refcount(1)</literal>? Porque una copia de <literal>$var1</literal> es
-    realizada, cuando se llama a la función.
-   </para>
-   <para>
-    Esta función se hace aún <emphasis>más</emphasis> confusa cuando una
-    variable con un <literal>refcount</literal> de <literal>1</literal> es
-    pasada (por copia/valor):
-   </para>
-   <para>
-    <example>
-     <title/>
-     <programlisting role="php">
-<![CDATA[
-<?php
-$var1 = 'Hola Mundo';
+$var3 =& $var1;
 
 debug_zval_dump($var1);
 ?>
@@ -125,30 +111,16 @@ debug_zval_dump($var1);
      &example.outputs;
      <screen>
 <![CDATA[
-string(11) "Hola Mundo" refcount(2)
+string(11) "Hello World" refcount(2)
 ]]>
      </screen>
-    </example>
+    </informalexample>
    </para>
    <para>
-    Un <literal>refcount</literal> de <literal>2</literal>, aquí, no es extremedamente
-    evidente. Especialmente teniendo en cuenta los ejemplos anteriores. ¿Qué ha ocurrido?
+    Aunque <varname>$var1</varname>, <varname>$var2</varname> y <varname>$var3</varname> están vinculadas como referencia, solo el <emphasis>valor</emphasis> es pasado a <function>debug_zval_dump</function>. Este valor es utilizado una sola vez por el conjunto de referencias, y una vez dentro de <function>debug_zval_dump</function>, por lo que muestra un refcount de 2.
    </para>
    <para>
-    Cuando una variable tiene una sola referencia (como ocurría con <literal>$var1</literal>
-    antes de que fuera utilizada como un argumento para <function>debug_zval_dump</function>),
-    el motor de PHP optimiza la manera en que se pasa a una función.
-    Internamente, PHP trata <literal>$var1</literal> como una referencia (en esa
-    <literal>refcount</literal> se incrementa para el ámbito de esa
-    función), con la salvedad de que <emphasis>si</emphasis> la referencia pasa a ser 
-    aprobada por escrito y, una copia es realizada, pero sólo en el momento de
-    la escritura. Esto se conoce como "copiar al escribir."
-   </para>
-   <para>
-    Así que, si <function>debug_zval_dump</function> pasa a escribir en su único
-    parámetro (y no lo hace), es entonces cuando se haría una copia. Hasta entonces, el
-    parámetro sigue siendo una referencia, haciendo que <literal>refcount</literal> sea
-    incrementado a <literal>2</literal> en el ámbito de la función llamada.
+    Complicaciones adicionales emergen debido a las optimizaciones realizadas por el motor para diferentes tipos de datos. Algunos tipos como los enteros no utilizan "copy on write", y por lo tanto no muestran ningún refcount. En otros casos, el refcount muestra otras copias utilizadas internamente, como cuando una cadena literal o un array es almacenado como parte de una instrucción de código.
    </para>
   </note>
  </refsect1>
@@ -158,13 +130,12 @@ string(11) "Hola Mundo" refcount(2)
    <simplelist>
     <member><function>var_dump</function></member>
     <member><function>debug_backtrace</function></member>
-    <member><link linkend="language.references">Explicación de las Referencias</link></member>
-    <member><link xlink:href="&url.derick.references;">Explicación de las Referencias (por Derick Rethans)</link></member>
+    <member><link linkend="language.references">Explicaciones sobre referencias</link></member>
+    <member><link xlink:href="&url.derick.references;">Explicaciones sobre referencias (por Derick Rethans)</link></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

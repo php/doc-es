@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b8758b0605e80c4e3610137b7502a6abeea5c69b Maintainer: edwincartagenah Status: ready -->
-<!-- Reviewed: yes Maintainer: edwincartagenah -->
-
+<!-- EN-Revision: 32c55286c8739fd20de9c8624473b2f3268de68e Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.is-callable" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>is_callable</refname>
   <refpurpose>
-   Verificar que los contenidos de una variable puedan ser llamados como una
-   función
+   Determina si un valor puede ser llamado como una función
+   en el ámbito actual
   </refpurpose>
  </refnamediv>
 
@@ -16,14 +15,14 @@
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>is_callable</methodname>
-   <methodparam><type>mixed</type><parameter>var</parameter></methodparam>
+   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
    <methodparam choice="opt"><type>bool</type><parameter>syntax_only</parameter><initializer>&false;</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter role="reference">callable_name</parameter></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter role="reference">callable_name</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Verifica que los contenidos de una variable puedan ser llamados como una función.
-   Esto permite revisar que los contenidos de una variable contengan el nombre de una 
-   función válida, o que un array contenga un objeto adecuadamente codificado y un nombre de función.
+   Verifica que <parameter>value</parameter> es un <type>callable</type>,
+   o que puede ser llamado utilizando la función
+   <function>call_user_func</function>.
   </para>
  </refsect1>
 
@@ -32,22 +31,25 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>var</parameter></term>
+     <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       El valor a revisar
+       El valor a verificar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>solo_sintaxis</parameter></term>
+     <term><parameter>syntax_only</parameter></term>
      <listitem>
       <para>
-       Si es &true; la función solo verifica que
-       <parameter>nombre</parameter> pueda ser una función o un método. Solo rechazará 
-    variables simples que no sean cadenas, o un array que no tenga una estructura 
-    válida para ser usado como llamada de retorno. Se espera que las matrices válidas 
-    tengan solo 2 entradas, la primera de las cuales es un objeto o una cadena, y la segunda una cadena.
+       Si el argumento <parameter>syntax_only</parameter> vale &true;, la
+       función solo verificará si <parameter>value</parameter> puede ser
+       una función o un método. Rechazará todos los valores
+       que no sean objetos <link linkend="object.invoke">invocables</link>,
+       <classname>Closure</classname>, &string;s, o &array;s que no tengan
+       una estructura válida para ser utilizados como un callback. Un array invocable válido
+       contiene 2 entradas: la primera debe ser un objeto
+       o un string, y la segunda un string.
       </para>
      </listitem>
     </varlistentry>
@@ -55,10 +57,10 @@
      <term><parameter>callable_name</parameter></term>
      <listitem>
       <para>
-       Recibe el "nombre que puede ser llamado". En el ejemplo siguiente
-       aquél es "algunaClase:algunMetodo". Tenga en cuenta, sin embargo, que a pesar de
-       la implicación de que algunaClase::algunMetodo() es un método
-       estático que puede ser llamado, este no es el caso.
+       Recibe el "nombre de la función invocable", por ejemplo
+       <literal>"SomeClass::someMethod"</literal>. Tenga en cuenta, sin embargo, que,
+       a pesar de la implicación de que <literal>SomeClass::someMethod()</literal>
+       es un método estático invocable, no es el caso.
       </para>
      </listitem>
     </varlistentry>
@@ -69,8 +71,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si <parameter>var</parameter> puede ser llamado, &false; 
-   de lo contrario.
+   Retorna &true; si <parameter>value</parameter> puede ser llamado como
+   una función, &false; en caso contrario.
   </para>
  </refsect1>
 
@@ -78,60 +80,68 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>is_callable</function></title>
+    <title>Verificación si un string puede ser llamado como una función</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-//  Cómo chequear una variable para ver si puede ser llamada
-//  como una función.
 
-//
-//  Variable simple que contiene una función
-//
+function someFunction() {}
 
-function algunaFuncion() 
-{
-}
+$functionVariable = 'someFunction';
 
-$variableFuncion = 'algunaFuncion';
+var_dump(is_callable($functionVariable, false, $callable_name));
 
-var_dump(is_callable($variableFuncion, false, $nombre_a_llamar));  // bool(true)
-
-echo $nombre_a_llamar, "\n";  // algunaFuncion
-
-//
-//  Array que contiene un método
-//
-
-class algunaClase {
-
-  function algunMetodo() 
-  {
-  }
-
-}
-
-
-$unObjeto = new algunaClase();
-
-$variableMetodo = array($unObjeto, 'algunMetodo');
-
-var_dump(is_callable($variableMetodo, true, $nombre_a_llamar));  //  bool(true)
-
-echo $nombre_a_llamar, "\n";  //  algunaClase::algunMetodo
+var_dump($callable_name);
 
 ?>
 ]]>
     </programlisting>
-   </example>   
+    &example.outputs;
+    <screen>
+<![CDATA[
+bool(true)
+string(12) "someFunction"
+]]>
+    </screen>
+   </example>
    <example>
-    <title>Función <function>is_callable</function> y constructores</title>
+    <title>Verificación si un array puede ser llamado como una función</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+class someClass
+{
+    public function someMethod() {}
+}
+
+$anObject = new SomeClass();
+
+$methodVariable = [$anObject, 'someMethod'];
+
+var_dump(is_callable($methodVariable, true, $callable_name));
+
+var_dump($callable_name);
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+bool(true)
+string(21) "SomeClass::someMethod"
+]]>
+    </screen>
+   </example>
+   <example>
+    <title><function>is_callable</function> y los constructores</title>
     <simpara>
-     A partir de PHP 5.3.0 la función <function>is_callable</function> reporta constructores como
-     que no se pueden llamar. Esto afecta el estilo de los constructores de PHP 5
-     (<literal>__construct</literal>) así también el estilo de los constructors de PHP 4 (por ejemplo
-     metodos con el mismo nombre de la clase). Anteriormente, ambos casos han sido
-     considerados como llamables.
+     A pesar de que los constructores son los métodos que se llaman cuando un objeto es creado,
+     no son métodos estáticos y
+     <function>is_callable</function> retornará &false; para ellos. No es
+     posible utilizar <function>is_callable</function> para verificar si una clase puede
+     ser instanciada desde el ámbito actual.
     </simpara>
     <programlisting role="php">
 <![CDATA[
@@ -140,13 +150,19 @@ echo $nombre_a_llamar, "\n";  //  algunaClase::algunMetodo
 class Foo
 {
     public function __construct() {}
+
     public function foo() {}
 }
 
 var_dump(
-    is_callable(array('Foo', '__construct')),
-    is_callable(array('Foo', 'foo'))
+    is_callable(['Foo', '__construct']),
+    is_callable(['Foo', 'foo'])
 );
+
+$foo = new Foo();
+var_dump(is_callable([$foo, '__construct']));
+
+?>
 ]]>
     </programlisting>
     &example.outputs;
@@ -154,16 +170,41 @@ var_dump(
 <![CDATA[
 bool(false)
 bool(false)
+bool(true)
 ]]>
     </screen>
    </example>
-  </para>   
+  </para>
+ </refsect1>
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <simplelist>
+   <member>
+    Un objeto es siempre invocable si implementa
+    <link linkend="object.invoke">__invoke()</link>, y que el método es visible
+    en el ámbito actual.
+   </member>
+   <member>Un nombre de clase es invocable si implementa
+    <link linkend="object.callstatic">__callStatic()</link>
+   </member>
+   <member>
+    Si un objeto implementa <link linkend="object.call">__call()</link>, entonces esta función
+    retornará &true; para cualquier método en ese objeto, incluso si
+    el método no está definido.
+   </member>
+   <member>
+    Esta función puede desencadenar el autoload si es llamada con el nombre
+    de una clase.
+   </member>
+  </simplelist>
  </refsect1>
 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><function>call_user_func</function></member>
     <member><function>function_exists</function></member>
     <member><function>method_exists</function></member>
    </simplelist>
@@ -171,7 +212,6 @@ bool(false)
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

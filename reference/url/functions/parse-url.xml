@@ -1,32 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: c63e914a4348e8ec984ed98cb46954aefbeecdf6 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 4266e03897e77751a6cf7d15f9556c92124d8df3 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.parse-url" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>parse_url</refname>
-  <refpurpose>Analiza un URL y devuelve sus componentes</refpurpose>
+  <refpurpose>Analiza una URL y devuelve sus componentes</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>parse_url</methodname>
+   <type class="union"><type>int</type><type>string</type><type>array</type><type>null</type><type>false</type></type><methodname>parse_url</methodname>
    <methodparam><type>string</type><parameter>url</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>component</parameter><initializer>-1</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Esta función analiza una URL y devuelve un array asociativo que
-   contiene aquellos componentes presentes en la URL.
+   Esta función analiza una URL y devuelve un array asociativo que contiene
+   todos los elementos presentes en la misma.
+   Los valores de los elementos del array <emphasis>NO ESTÁN</emphasis> decodificados de la URL.
   </para>
   <para>
-   El propósito de esta función <emphasis role="strong">no</emphasis> es validar
-   la URL dada, tan solo la separa en las partes listadas anteriormente. Las URLs parciales
-   son aceptadas también, <function>parse_url</function> hace lo mejor que puede para procesarlas
-   correctamente.
+   Esta función <emphasis role="strong">no está</emphasis>
+   diseñada para validar la URL proporcionada, solo la divide en las partes enumeradas
+   a continuación. Las URL parciales e inválidas también son aceptadas, la función
+   <function>parse_url</function> hará todo lo posible para analizarlas correctamente.
   </para>
+  <caution>
+   <para>
+    Esta función puede no proporcionar resultados correctos para URL relativas o inválidas y los resultados pueden no coincidir con
+    el comportamiento estándar de los clientes HTTP.
+    Si se deben analizar URL provenientes de la entrada del usuario,
+    se requieren verificaciones adicionales, por ejemplo utilizando
+    <function>filter_var</function> con el filtro
+    <constant>FILTER_VALIDATE_URL</constant>.
+   </para>
+  </caution>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,8 +45,7 @@
      <term><parameter>url</parameter></term>
      <listitem>
       <para>
-       La URL a analizar. Caracteres inválidos son reemplazados por
-       <literal>_</literal>.
+       La URL a analizar.
       </para>
      </listitem>
     </varlistentry>
@@ -46,35 +55,35 @@
      <term><parameter>component</parameter></term>
      <listitem>
       <para>
-       Especifique uno de <constant>PHP_URL_SCHEME</constant>,
+       Puede ser una de las constantes entre <constant>PHP_URL_SCHEME</constant>,
        <constant>PHP_URL_HOST</constant>, <constant>PHP_URL_PORT</constant>,
        <constant>PHP_URL_USER</constant>, <constant>PHP_URL_PASS</constant>,
        <constant>PHP_URL_PATH</constant>, <constant>PHP_URL_QUERY</constant>
-       o <constant>PHP_URL_FRAGMENT</constant> para recibir solo un
-       componente URL específico como un valor tipo <type>string</type> (excepto cuando
-       se da <constant>PHP_URL_PORT</constant>, en cuyo caso el valor de
-       retorno será un <type>integer</type>).
+       o <constant>PHP_URL_FRAGMENT</constant> para recuperar únicamente
+       una parte de la URL como string (excepto cuando
+       se proporciona <constant>PHP_URL_PORT</constant>; en este caso, el valor devuelto
+       será un &integer;).
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Sobre URLs seriamente malformadas, <function>parse_url</function> puede devolver
+   Para URL realmente mal formadas, <function>parse_url</function> puede devolver
    &false;.
   </para>
   <para>
-   Si se omite el parámetro <parameter>component</parameter>, un
-   <type>array</type> asociativo es devuelto. Al menos un elemento estará
-   presente en el array. Claves potenciales en este array son:
+   Si el parámetro <parameter>component</parameter> se omite, se devuelve un <type>array</type>
+   asociativo. Al menos un elemento estará presente en el array. Estas
+   son las claves potenciales de este array:
    <itemizedlist>
     <listitem>
      <simpara>
-      <varname remap="structfield">scheme</varname> - p.ej. http
+      <varname remap="structfield">scheme</varname> - por ejemplo <literal>http</literal>
      </simpara>
     </listitem>
     <listitem>
@@ -104,66 +113,74 @@
     </listitem>
     <listitem>
      <simpara>
-      <varname remap="structfield">query</varname> - después del signo <literal>?</literal>
+      <varname remap="structfield">query</varname> - después del signo de interrogación "<literal>?</literal>"
      </simpara>
     </listitem>
     <listitem>
      <simpara>
-      <varname remap="structfield">fragment</varname> - después del signo <literal>#</literal>
+      <varname remap="structfield">fragment</varname> - después del símbolo de almohadilla "<literal>#</literal>"
      </simpara>
     </listitem>
    </itemizedlist>
   </para>
   <para>
-   Si se especifica el parámetro <parameter>componente</parameter>,
-   <function>parse_url</function> devolverá un <type>string</type> (o un
-   <type>integer</type>, para el caso de <constant>PHP_URL_PORT</constant>)
-   en lugar de un <type>array</type>. Si el componente solicitado no existe en la
-   URL dada, será devuelto &null;.
+   Si el parámetro <parameter>component</parameter> está especificado, <function>parse_url</function>
+   devuelve un <type>string</type> (o un &integer; en el caso de uso de la
+   constante <constant>PHP_URL_PORT</constant>) en lugar de un <type>array</type>. Si el componente
+   solicitado no existe en la URL, &null; será devuelto.
+   A partir de PHP 8.0.0, <function>parse_url</function> distingue entre los
+   fragmentos y consultas ausentes y vacíos:
+  </para>
+  <para>
+   <informalexample>
+    <screen>
+<![CDATA[
+http://example.com/foo → query = null, fragment = null
+http://example.com/foo? → query = "",   fragment = null
+http://example.com/foo# → query = null, fragment = ""
+http://example.com/foo?# → query = "",   fragment = ""
+]]>
+    </screen>
+   </informalexample>
+  </para>
+  <para>
+   Anteriormente todos los casos resultaban en la consulta y el fragmento siendo &null;.
+  </para>
+  <para>
+   Cabe señalar que los caracteres de control (ver <function>ctype_cntrl</function>)
+   en los componentes son reemplazados por un guion bajo
+   (<literal>_</literal>).
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.4.7</entry>
-       <entry>
-        Arreglado el reconocimiento de <emphasis>host</emphasis> cuando <emphasis>scheme</emphasis>
-        es omitido y está presente un separador de componentes que lo encabeza.
-       </entry>
-      </row>
-      <row>
-       <entry>5.3.3</entry>
-       <entry>
-        Eliminado el <constant>E_WARNING</constant> que era producido cuando fallaba el análisis de la
-        URL.
-       </entry>
-      </row>      
-      <row>
-       <entry>5.1.2</entry>
-       <entry>Se agregó el parámetro <parameter>component.</parameter></entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <function>parse_url</function> distingue ahora entre los fragmentos
+       y consultas ausentes y vacíos.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo de <function>parse_url</function></title>
+    <title>Ejemplo con <function>parse_url</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -216,13 +233,13 @@ string(6) "anchor"
   </para>
   <para>
    <example>
-    <title>Un ejemplo de <function>parse_url</function> con el esquema ausente</title>
+    <title>Ejemplo con la función <function>parse_url</function> sin esquema</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $url = '//www.example.com/path?googleguy=googley';
 
-// Antes de 5.4.7, esto mostraría la ruta como "//www.example.com/path"
+// Antes de PHP 5.4.7, la ruta sería "//www.example.com/path"
 var_dump(parse_url($url));
 ?>
 ]]>
@@ -243,24 +260,19 @@ array(3) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Esta función no funciona con URLs relativas.
-   </para>
-  </note>
-  <note>
-   <para>
-    Esta función tiene el propósito específico de procesar URLs, y no URIs.
-    Sin embargo, para cumplir con los requerimientos de retrocompatibilidad
-    de PHP, hace una excepción para el esquema file:// en donde se permiten tres
-    barras (file:///...). Para cualquier otro esquema, lo anterior es inválido.
+    <function>parse_url</function> fue creada específicamente para analizar URL
+    y no URI. Sin embargo, por razones de compatibilidad adyacente, PHP
+    hace una excepción para el esquema <literal>file://</literal> donde los triples slashs
+    (<literal>file:///</literal>...) están permitidos. Todos los demás esquemas son inválidos.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
