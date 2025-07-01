@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 31619124fa27e49899ac64e55046f402b79eb268 Maintainer: seros Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.msg-send">
+<!-- EN-Revision: f7e33278a909d7f7bf491f77cb10c93581091736 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.msg-send" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>msg_send</refname>
-  <refpurpose>Eviar un mensaje a una cola de mensajes</refpurpose>
+  <refpurpose>Envía un mensaje a una cola</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>msg_send</methodname>
-   <methodparam><type>resource</type><parameter>queue</parameter></methodparam>
-   <methodparam><type>int</type><parameter>msgtype</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>message</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>serialize</parameter><initializer>true</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>blocking</parameter><initializer>true</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter role="reference">errorcode</parameter></methodparam>
+   <methodparam><type>SysvMessageQueue</type><parameter>queue</parameter></methodparam>
+   <methodparam><type>int</type><parameter>message_type</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>float</type><type>bool</type></type><parameter>message</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>serialize</parameter><initializer>&true;</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>blocking</parameter><initializer>&true;</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter role="reference">error_code</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>msg_send</function> envía un <parameter>message</parameter> del tipo
-   <parameter>msgtype</parameter> (DEBE ser mayor que 0) a
-   la cola de mensajes especificada por <parameter>queue</parameter>.
+   <function>msg_send</function> envía el mensaje <parameter>message</parameter>
+   de tipo <parameter>message_type</parameter> (que DEBE ser mayor que 0)
+   a la cola de mensajes identificada por <parameter>queue</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -33,13 +34,15 @@
      <term><parameter>queue</parameter></term>
      <listitem>
       <para>
+       La cola de mensajes
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>msgtype</parameter></term>
+     <term><parameter>message_type</parameter></term>
      <listitem>
       <para>
+       El tipo del mensaje (DEBE ser mayor que 0)
       </para>
      </listitem>
     </varlistentry>
@@ -47,20 +50,27 @@
      <term><parameter>message</parameter></term>
      <listitem>
       <para>
+       El cuerpo del mensaje
       </para>
+      <note>
+       <para>
+        Si <parameter>serialize</parameter> está definido como &false;, DEBE ser del tipo: &string;, &integer;, &float; o &boolean;.
+        En otros casos se emitirá un aviso.
+       </para>
+      </note>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>serialize</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>serialize</parameter> controla el modo de
-       enviar el mensaje dado por <parameter>message</parameter>. <parameter>serialize</parameter>
-       es por defecto &true; lo que significa que <parameter>message</parameter> es
-       serializado usando el mismo mecanismo que el módulo de sesión antes de ser
-       enviado a la cola. Esto permite matrices y objetos complejos para ser enviados a
-       otros scripts de PHP, o si se está usando el serializador WDDX, para cualquier
-       cliente compatible con WDDX.
+       El parámetro opcional <parameter>serialize</parameter> controla el
+       método de envío del mensaje <parameter>message</parameter>. <parameter>serialize</parameter>
+       tiene por omisión el valor &true; lo que significa que el mensaje <parameter>message</parameter>
+       será serializado utilizando el mismo mecanismo que el utilizado
+       por las sesiones, antes de ser enviado a la cola de mensajes. Esto permite
+       enviar arrays y objetos complejos a otros scripts PHP, o bien, si se utiliza
+       la extensión WDDX, intercambiar mensajes con clientes compatibles WDDX.
       </para>
      </listitem>
     </varlistentry>
@@ -68,43 +78,70 @@
      <term><parameter>blocking</parameter></term>
      <listitem>
       <para>
-       Si el mensaje es demasiado largo para caber en la cola el script esperará
-       hasta que otro proceso lea los mensajes de la cola y libere sufieciente
-       espacio para el mensaje que se va a enviar.
-       Esto se llama bloqueo; se puede prevenir el bloqueo estableciendo el
-       parámetro <parameter>blocking</parameter> a &false;, en cuyo
-       caso <function>msg_send</function> devolverá inmediatamente &false; si el
-       mensaje es demasiado grande para la cola, y establecerá el parámetro opcional
-       <parameter>errorcode</parameter> a <constant>MSG_EAGAIN</constant>,
-       indicando que se debería intentar enviar el mensaje de nuevo un poco
-       más tarde.
+       Si el mensaje es demasiado grande para ser almacenado por la cola, su
+       script esperará hasta que otro proceso lea de la
+       cola un mensaje, y libere suficiente espacio para su mensaje. Este es
+       el modo bloqueante: puede evitar este modo utilizando el
+       parámetro <parameter>blocking</parameter> con el valor &false;:
+       en este caso, <function>msg_send</function> retornará inmediatamente
+       &false; si el mensaje es demasiado grande para la cola. Asignará entonces
+       al parámetro <parameter>error_code</parameter> el valor de
+       <constant>MSG_EAGAIN</constant>,
+       indicando que debería intentar enviar su mensaje de nuevo, un poco más tarde.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>errorcode</parameter></term>
+     <term><parameter>error_code</parameter></term>
      <listitem>
       <para>
+       Si la función falla, el código de error opcional será definido con el valor de
+       la variable del sistema errno.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
   <para>
-   Al finalizar con éxito, la estructura de datos de la cola de mensajes se actualiza como
-   sigue: <parameter>msg_lspid</parameter> se establece al ID del proceso de
-   llamada, <parameter>msg_qnum</parameter> se incrementa en 1 y
-   <parameter>msg_stime</parameter> se establece al momento actual.
+   Al enviar con éxito un mensaje, la cola se actualiza
+   de la siguiente manera: <literal>msg_lrpid</literal> toma el valor del identificador
+   de proceso del proceso llamante, <literal>msg_qnum</literal> se incrementa en
+   1 y <literal>msg_rtime</literal> toma la fecha y hora actual.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        <parameter>queue</parameter> ahora espera una <classname>SysvMessageQueue</classname>;
+        anteriormente, se esperaba un <type>resource</type>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -115,10 +152,9 @@
     <member><function>msg_set_queue</function></member>
    </simplelist>
   </para>
- </refsect1>  
- 
-</refentry>
+ </refsect1>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

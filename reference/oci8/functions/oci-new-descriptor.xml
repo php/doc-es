@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5e41012cfdf8f2eff5fa56de446c7656afac536c Maintainer: yannick Status: ready -->
+<!-- Reviewed: yes Maintainer: mikaelkael -->
 <refentry xml:id="function.oci-new-descriptor" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>oci_new_descriptor</refname>
-  <refpurpose>Inicializa un nuevo descriptor LOB o FILE vacío</refpurpose>
+  <refpurpose>Inicializa un nuevo puntero vacío de LOB/FILE de Oracle</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>OCI-Lob</type><methodname>oci_new_descriptor</methodname>
+   <type class="union"><type>OCILob</type><type>null</type></type><methodname>oci_new_descriptor</methodname>
    <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer>OCI_DTYPE_LOB</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer><constant>OCI_DTYPE_LOB</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Asigna recursos para almacenar un descriptor o un localizador LOB.
+   Inicializa un nuevo puntero vacío de LOB/FILE de Oracle.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -28,8 +28,9 @@
      <term><parameter>connection</parameter></term>
      <listitem>
       <para>
-       Un identificador de conexión de Oracle devuelto por 
-       <function>oci_connect</function> o <function>oci_pconnect</function>.
+       Un identificador de conexión Oracle, devuelto por la función
+       <function>oci_connect</function> o la función
+       <function>oci_pconnect</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -37,36 +38,37 @@
      <term><parameter>type</parameter></term>
      <listitem>
       <para>
-       Los valores válidos para <parameter>type</parameter> son: 
-       <constant>OCI_DTYPE_FILE</constant>, <constant>OCI_DTYPE_LOB</constant> y
-       <constant>OCI_DTYPE_ROWID</constant>.
+       Los valores admitidos para <parameter>type</parameter> son :
+       <constant>OCI_D_FILE</constant>,
+       <constant>OCI_D_LOB</constant> y <constant>OCI_D_ROWID</constant>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un nuevo descriptor de LOB o FILE en caso de éxito, &false; en caso de error.
+   Devuelve un nuevo recurso LOB o FILE en caso de éxito,
+   o &null; en caso de fallo.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>oci_new_descriptor</function></title>
+    <title>Ejemplo con <function>oci_new_descriptor</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Este script está diseñado para ser invocado desde un formulario HTML.
- * Se le ha de proporcionar $user, $password, $table, $where, y $commitsize
- * desde el formulario. Entonces, el script elimina
- * las filas seleccionadas usando el ROWID y consigna después de cada
- * conjunto de filas $commitsize. (Úselo con cuidado, no hay reversión)
+/* Este script está diseñado para ser llamado desde un formulario HTML
+ * Espera las variables $user, $password, $table, $where, y $commitsize
+ * El script elimina entonces las filas seleccionadas con ROWID y valida
+ * la eliminación después de cada grupo de $commitsize filas.
+ * (Utilícelo con precaución, ya que no hay posibilidad de deshacer).
  */
 $conn = oci_connect($user, $password);
 $stmt = oci_parse($conn, "select rowid from $table $where");
@@ -84,7 +86,7 @@ while (oci_fetch($stmt)) {
     }
 }
 $nrows = oci_num_rows($stmt);
-echo "$nrows eliminada...\n";
+echo "$nrows deleted...\n";
 oci_free_statement($stmt);
 oci_close($conn);
 ?>
@@ -93,12 +95,12 @@ oci_close($conn);
     <programlisting role="php">
 <![CDATA[
 <?php
-    /* Este script demuestra la subida de ficheros a columnas LOB.
-     * El campo de formulario usado para este ejemplo es como este:
-     * <form action="upload.php" method="post" enctype="multipart/form-data">
-     * <input type="file" name="lob_upload" />
-     * ...
-     */
+/* Este script ilustra la carga de columnas de tipo LOB
+ * El formulario utilizado en este ejemplo se parece a esto:
+ * <form action="upload.php" method="post" enctype="multipart/form-data">
+ * <input type="file" name="lob_upload" />
+ * ...
+ */
   if (!isset($lob_upload) || $lob_upload == 'none'){
 ?>
 <form action="upload.php" method="post" enctype="multipart/form-data">
@@ -108,10 +110,10 @@ Upload file: <input type="file" name="lob_upload" /><br />
 <?php
   } else {
 
-     // $lob_upload contiene el nombre temporal del fichero subido
+     // $lob_upload contiene el fichero temporal
 
-     // véase también la sección de características sobre la subida de ficheros,
-     // si le gustaría usar subidas seguras
+     // Consulte la sección sobre la subida de ficheros
+     // para asegurar sus subidas
 
      $conn = oci_connect($user, $password);
      $lob = oci_new_descriptor($conn, OCI_D_LOB);
@@ -121,9 +123,9 @@ Upload file: <input type="file" name="lob_upload" /><br />
      oci_execute($stmt, OCI_DEFAULT);
      if ($lob->savefile($lob_upload)){
         oci_commit($conn);
-        echo "Blob successfully uploaded\n";
+        echo "BLOB cargado !\n";
      }else{
-        echo "Couldn't upload Blob\n";
+        echo "Imposible cargar el BLOB\n";
      }
      $lob->free();
      oci_free_statement($stmt);
@@ -134,13 +136,13 @@ Upload file: <input type="file" name="lob_upload" /><br />
     </programlisting>
    </example>
    <example>
-    <title>Ejemplo de <function>oci_new_descriptor</function></title>
+    <title>Ejemplo con <function>oci_new_descriptor</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Llamar a procedimientos almacenados de PL/SQL que contienen CLOBs como parámetros
- * de entrada.
- * Ejemplo de firma de procedimiento almacenado de PL/SQL:
+/* Llamada a un procedimiento PL/SQL almacenado que toma un clob
+ * como entrada.
+ * Ejemplo de firma de procedimiento almacenado PL/SQL:
  *
  * PROCEDURE save_data
  *   Argument Name                  Type                    In/Out Default?
@@ -166,19 +168,7 @@ oci_free_statement($stmt);
    </example>
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    En versiones de PHP anteriores a la 5.0.0 se debe usar <function>ocinewdescriptor</function>
-    en su lugar. Este nombre aún puede usarse; se dejó como alias de
-    <function>oci_new_descriptor</function> por razones de retrocompatibilidad.
-    Sin embargo, este nombre es obsoleto y no se recomienda.
-   </para>
-  </note>
- </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -187,10 +177,8 @@ oci_free_statement($stmt);
    </simplelist>
   </para>
  </refsect1>
- 
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

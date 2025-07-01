@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 3906c681cda6cf21e5b7034be54515ba431cb7a7 Maintainer: jesusruiz Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-
+<!-- EN-Revision: f1446c725b05024034664159db4d5f34b56421d0 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.shmop-open" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>shmop_open</refname>
-  <refpurpose>Crea o abre un segmento de memoria compartida</refpurpose>
+  <refpurpose>Crea o abre un bloque de memoria compartida</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>shmop_open</methodname>
+   <type class="union"><type>Shmop</type><type>false</type></type><methodname>shmop_open</methodname>
    <methodparam><type>int</type><parameter>key</parameter></methodparam>
-   <methodparam><type>string</type><parameter>flags</parameter></methodparam>
-   <methodparam><type>int</type><parameter>mode</parameter></methodparam>
+   <methodparam><type>string</type><parameter>mode</parameter></methodparam>
+   <methodparam><type>int</type><parameter>permissions</parameter></methodparam>
    <methodparam><type>int</type><parameter>size</parameter></methodparam>
   </methodsynopsis>
   <para>
-   <function>shmop_open</function> puede crear o abrir un segmento de memoria compartida.
+   <function>shmop_open</function> puede crear o abrir un bloque
+   de memoria compartida.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -29,48 +29,9 @@
      <term><parameter>key</parameter></term>
      <listitem>
       <para>
-       Identificador que el sistema utilizará para ese segmento de memoria compartida.
-       Puede ser indicado tanto en formato decimal como hexadecimal.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>flags</parameter></term>
-     <listitem>
-      <para>
-       Los indicadores que puede usar son:
-       <itemizedlist>
-        <listitem>
-         <simpara>
-          "a" para acceder (establece SHM_RDONLY para shmat)
-          utilice este indicador cuando necesite abrir un segmento de memoria compartida 
-          de sólo lectura
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          "c" para crear (establece IPC_CREATE)
-          utilice este indicador cuando necesite crear un nuevo segmento de memoria compartida
-          o para intentar abrir en modo de lectura y escritura un segmento que ya existe
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          "w" para acceder en modo de lectura y escritura
-          utilice este indicador cuando necesite leer un segmento de memoria compartida y además
-          poder escribir en él, se trata de la opción más habitual en la mayoría de los casos.
-         </simpara>
-        </listitem>
-        <listitem>
-         <simpara>
-          "n" crea un nuevo segmento de memoria compartida (establece IPC_CREATE|IPC_EXCL)
-          utilice este indicador cuando necesite crear un nuevo segmento de memoria compartida, 
-          pero si existe otro segmento de memoria compartida con la misma clave, fallará. Esta opción 
-          es útil para propósitos de seguridad que evitan  por ejemplo los exploit conocidos como 
-          "condiciones de carrera" (en inglés "race conditions"). 
-         </simpara>
-        </listitem>
-       </itemizedlist>
+       Identificador del sistema para el bloque de memoria compartida.
+       Este argumento puede ser pasado como un decimal o
+       un hexadecimal.
       </para>
      </listitem>
     </varlistentry>
@@ -78,9 +39,51 @@
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       Permisos que se van a asignar al segmento de memoria compartida, estos
-       son similares a los que se asignan a los archivos. Los permisos deben pasarse
-       en formato octal, como por ejemplo <literal>0644</literal>
+       Se pueden utilizar:
+       <itemizedlist>
+        <listitem>
+         <simpara>
+          <literal>"a"</literal> para acceso (utiliza <literal>SHM_RDONLY</literal> para shmat)
+          utilice esta opción para abrir un bloque ya existente en modo solo lectura.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>"c"</literal> para creación (utiliza <literal>IPC_CREATE</literal>)
+          utilice esta opción para crear un nuevo bloque, o, si un
+          segmento con el mismo identificador existe, intentar acceder a él en
+          modo lectura y escritura.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>"w"</literal> para acceso en lectura y escritura. Utilice
+          esta opción cuando se deba acceder en lectura y
+          escritura a un segmento de memoria compartida.
+          Este es el caso más común.
+         </simpara>
+        </listitem>
+        <listitem>
+         <simpara>
+          <literal>"n"</literal> crea un nuevo segmento de memoria compartida
+          (utiliza <literal>IPC_CREATE|IPC_EXCL</literal>). Utilice esta opción
+          cuando se quiera crear un nuevo segmento de memoria
+          compartida a menos que ya exista uno corrupto con la
+          misma opción. Esto es muy útil por razones de seguridad, para evitar
+          agujeros de seguridad que exploten la carrera por los recursos.
+         </simpara>
+        </listitem>
+       </itemizedlist>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>permissions</parameter></term>
+     <listitem>
+      <para>
+       Los permisos que se otorgan a este bloque. Son
+       los mismos que para los archivos. Estos permisos deben
+       ser pasados en formato octal (i.e. 0644).
       </para>
      </listitem>
     </varlistentry>
@@ -88,15 +91,14 @@
      <term><parameter>size</parameter></term>
      <listitem>
       <para>
-       El tamaño en bytes del segmento de memoria compartida que quiere crear
+       El tamaño del bloque de memoria compartida que se quiere crear, en bytes
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
    <note>
     <para>
-     Nota: El tercer y cuarto parámetro deberán ser igual a 0 (cero) 
-     si está abriendo un segmento de memoria compartida existente.
+     Nota: Los tercer y cuarto argumentos deben ser pasados a 0 si se quiere abrir un bloque de memoria compartida ya existente.
     </para>
    </note>
   </para>
@@ -104,13 +106,22 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   En caso de éxito <function>shmop_open</function> devolverá un recurso que puede
-   utilizar para acceder al segmento de memoria compartida que ha creado. &false; es
-   devuelto en caso de fallo.
+   En caso de éxito, <function>shmop_open</function> devuelve una
+   instancia de <classname>Shmop</classname> que puede ser utilizada para acceder a la memoria que
+   se acaba de crear. &false; será devuelto en caso de fallo.
   </para>
  </refsect1>
- 
-  <refsect1 role="changelog">
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Si <parameter>mode</parameter> es inválido, o si <parameter>size</parameter> es inferior o igual a cero,
+   se lanza una <classname>ValueError</classname>.
+   En otros casos de fallo, se emite un <constant>E_WARNING</constant>.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
   &reftitle.changelog;
   <informaltable>
    <tgroup cols="2">
@@ -122,22 +133,30 @@
     </thead>
     <tbody>
      <row>
-      <entry>7.0.0</entry>
+      <entry>8.0.0</entry>
       <entry>
-       El tipo devuelto de <function>shmop_open</function> ha sido cambiado de
-       <type>int</type> a <type>resource</type>.
+       <parameter>shmop</parameter> ahora espera una instancia de <classname>Shmop</classname>
+       anteriormente se esperaba un <type>resource</type>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       Si <parameter>mode</parameter> es inválido, o si <parameter>size</parameter> es inferior o igual a cero,
+       se lanza una <classname>ValueError</classname>; anteriormente, se emitía un <constant>E_WARNING</constant> en su lugar,
+       y la función devolvía &false;.
       </entry>
      </row>
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Crear un nuevo segmento de memoria compartida</title>
+    <title>Crear un nuevo bloque de memoria compartida Shmop</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -149,8 +168,8 @@ $shm_id = shmop_open($shm_key, "c", 0644, 100);
    </example>
   </para>
   <para>
-   En este ejemplo se abre un segmento de memoria compartida con un identificador de sistema devuelto por
-   <function>ftok</function>.
+   Este ejemplo abre un nuevo bloque de memoria compartida,
+   cuyo identificador es devuelto por <function>ftok</function>.
   </para>
  </refsect1>
  <refsect1 role="seealso">
@@ -163,7 +182,6 @@ $shm_id = shmop_open($shm_key, "c", 0644, 100);
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

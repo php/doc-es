@@ -1,44 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: dd07341fae2c414adc1f700be0890ff32e8daab4 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.2 -->
+<!-- EN-Revision: 469e5fa809cef61c0707d7447a2ab72cd66f65fd Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.pg-prepare" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_prepare</refname>
-  <refpurpose> Envía una solicitud para crear una sentencia preparada con los parámetros
-    dados, y espera que se complete</refpurpose>
+  <refpurpose>
+   Envía una solicitud al servidor para crear una sentencia preparada con los parámetros
+   dados y espera la ejecución
+  </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>pg_prepare</methodname>
-   <methodparam choice="opt"><type>resource</type><parameter>connection</parameter></methodparam>
+   <type class="union"><type>PgSql\Result</type><type>false</type></type><methodname>pg_prepare</methodname>
+   <methodparam choice="opt"><type>PgSql\Connection</type><parameter>connection</parameter></methodparam>
    <methodparam><type>string</type><parameter>stmtname</parameter></methodparam>
    <methodparam><type>string</type><parameter>query</parameter></methodparam>
   </methodsynopsis>
   <para>
-    <function>pg_prepare</function> crea una sentencia preparada para la ejecución posterior con 
-    <function>pg_execute</function> o <function>pg_send_execute</function>. 
-    Esta característica permite que los comandos que se utilizarán repetidamente se 
-    analicen y se planifiquen sólo una vez, en lugar de cada vez que se ejecuten. 
-    <function>pg_prepare</function> Está soportado sólo para conexiones de PostgreSQL 7.4 o
-    superior; fallará al usar versiones anteriores.
+   <function>pg_prepare</function> crea una consulta preparada para una
+   ejecución posterior con <function>pg_execute</function> o
+   <function>pg_send_execute</function>.
+   Esta característica permite que las órdenes que serán utilizadas
+   repetidamente sean analizadas y planificadas una sola vez,
+   en lugar de ser ejecutadas cada vez.
+   <function>pg_prepare</function> es soportada solo con las versiones
+   PostgreSQL 7.4 o más recientes; la orden fallará si se utiliza
+   con versiones anteriores.
   </para>
   <para>
-    La función crea una sentencia preparada denominada <parameter>stmtname</parameter> desde la cadena 
-    <parameter>query</parameter>, que debe contener un único comando SQL. <parameter>stmtname</parameter> puede 
-    ser "" para crear una sentencia sin nombre, en cuyo caso se sustituye automáticamente cualquier sentencia 
-    sin nombre preexistente; de lo contrario, es un error si el nombre de la sentencia ya está definido 
-    en la sesión actual. Si se utilizan parámetros, se refieren al <parameter>query</parameter> como $1, $2, etc. 
+   La función crea una consulta preparada llamada
+   <parameter>stmtname</parameter> a partir de la cadena
+   <parameter>query</parameter>, la cual debe contener una sola orden
+   SQL. <parameter>stmtname</parameter> puede ser <literal>""</literal> para crear una
+   consulta sin nombre. En este caso, las consultas que existían y
+   que no tenían nombres son automáticamente sobrescritas; de lo contrario, habrá un error si el nombre de la consulta ya está definido en la sesión actual. Si se utilizan parámetros, estos son referenciados como <literal>$1</literal>,
+   <literal>$2</literal>, etc.
+   en <parameter>query</parameter>.
   </para>
   <para>
-    Las sentencias preparadas para su uso con <function>pg_prepare</function> también se pueden crear 
-    ejecutando sentencias SQL <literal>PREPARE</literal>. (Pero <function>pg_prepare</function> es más flexible, ya que no 
-    requiere preespecificar los tipos de parámetros.) Además, aunque no existe ninguna 
-    función PHP para borrar una sentencia preparada, la sentencia SQL <literal>DEALLOCATE</literal>
-    puede utilizarse para ese propósito.
+   Las consultas preparadas para ser utilizadas con <function>pg_prepare</function>
+   también pueden ser creadas ejecutando la orden SQL
+   <literal>PREPARE</literal>. (Sin embargo, <function>pg_prepare</function>
+   es más flexible ya que no requiere que los tipos de los parámetros
+   sean preespecificados.) Además, aunque no existe una función PHP para
+   eliminar una consulta preparada, la orden SQL
+   <literal>DEALLOCATE</literal> puede ser utilizada para este propósito.
   </para>
  </refsect1>
 
@@ -49,21 +57,16 @@
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conexión a una base de datos de PostgreSQL. Cuando 
-       <parameter>connection</parameter> no está presente, se utilizará la conexión 
-       predeterminada. Esta es la última conexión realizada por 
-       <function>pg_connect</function> o <function>pg_pconnect</function>.
-      </para>
+      &pgsql.parameter.connection-with-unspecified-default;
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>stmtname</parameter></term>
      <listitem>
       <para>
-       El nombre para dar la declaración preparada. Debe ser una conexión única. Si
-       se especifica como "",  entonces se crea una declaración sin nombre, sobrescribiendo cualquier
-       declaración sin nombre previamente definida.
+       El nombre a dar a la consulta preparada. Debe ser único para cada
+       sesión. Si se especifica una cadena vacía <literal>""</literal> entonces se crea una consulta sin
+       nombre, sobrescribiendo las consultas sin nombres previamente definidas.
       </para>
      </listitem>
     </varlistentry>
@@ -71,9 +74,10 @@
      <term><parameter>query</parameter></term>
      <listitem>
       <para>
-       La declaración SQL parametrizada. Debe contener una sola declaración.
-       (No se permiten las declaraciones múltiples separadas por punto y coma). Si se utiliza algún 
-       parámetro, se denominan $1, $2, etc.
+       La consulta SQL con sus parámetros. Debe contener solo una sola
+       consulta. Varios comandos separados por punto y coma no son
+       permitidos. Si se utilizan parámetros, estos son referenciados como
+       <literal>$1</literal>, <literal>$2</literal>, etc.
       </para>
      </listitem>
     </varlistentry>
@@ -84,30 +88,49 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un recurso de consulta en caso de éxito&return.falseforfailure;.
+   Una instancia <classname>PgSql\Result</classname> en caso de éxito, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &pgsql.changelog.return-result-object;
+     &pgsql.changelog.connection-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Usando <function>pg_prepare</function></title>
+    <title>Ejemplo con <function>pg_prepare</function></title>
     <programlisting role="php">
 <![CDATA[
+
 <?php
-// Conéctese a una base de datos llamada "mary"
-$dbconn = pg_connect("dbname=mary");
+// Conexión a una base de datos llamada "marie"
+$dbconn = pg_connect("dbname=marie");
 
-// Preparar una consulta para la ejecución
-$result = pg_prepare($dbconn, "my_query", 'SELECT * FROM shops WHERE name = $1');
+// Prepara una consulta para la ejecución
+$result = pg_prepare($dbconn, "my_query", 'SELECT * FROM magasins WHERE nom = $1');
 
-// Ejecute la consulta preparada. Tenga en cuenta que no es necesario escapar
-// el string "Joe's Widgets" de cualquier manera
+// Ejecuta la consulta preparada. Note que no es necesario escapar
+// la cadena "Joe's Widgets"
 $result = pg_execute($dbconn, "my_query", array("Joe's Widgets"));
 
-// Ejecutar la misma consulta preparada, esta vez con un parámetro diferente
-$result = pg_execute($dbconn, "my_query", array("Clothes Clothes Clothes"));
+// Ejecuta la misma consulta preparada, esta vez con un parámetro diferente
+$result = pg_execute($dbconn, "my_query", array("Vêtements Vêtements Vêtements"));
 
 ?>
 ]]>
@@ -115,7 +138,7 @@ $result = pg_execute($dbconn, "my_query", array("Clothes Clothes Clothes"));
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>

@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: d640c0f5e153f5d43a71eec4fff29111e539bfa3 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-
+<!-- EN-Revision: c1aba02c4753e56b4ab5053a0ab5be8584cbf8bc Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="reflectionproperty.construct" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>ReflectionProperty::__construct</refname>
-  <refpurpose>Construir un objeto ReflectionProperty</refpurpose>
+  <refpurpose>Construye un nuevo objeto ReflectionProperty</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <constructorsynopsis role="ReflectionProperty">
    <modifier>public</modifier> <methodname>ReflectionProperty::__construct</methodname>
    <methodparam><type class="union"><type>object</type><type>string</type></type><parameter>class</parameter></methodparam>
-   <methodparam><type>string</type><parameter>name</parameter></methodparam>
-  </methodsynopsis>
+   <methodparam><type>string</type><parameter>property</parameter></methodparam>
+  </constructorsynopsis>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -26,15 +24,16 @@
      <term><parameter>class</parameter></term>
      <listitem>
       <para>
-       El nombre de la clase que contiene la propiedad, o un objeto.
+       Puede ser un string que contenga el nombre de la clase a introspeccionar,
+       o un objeto.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>name</parameter></term>
+     <term><parameter>property</parameter></term>
      <listitem>
       <para>
-       El nombre de la propiedad a reflexionar.
+       El nombre de la propiedad a reflejar.
       </para>
      </listitem>
     </varlistentry>
@@ -42,18 +41,11 @@
   </para>
  </refsect1>
 
- <refsect1 role="returnvalues">
-  &reftitle.returnvalues;
-  <para>
-   &return.void;
-  </para>
- </refsect1>
-
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Si se tratara de consultar o modificar propiedades privadas o protegidas
-   de la clase, se lanzará una excepción.
+   Intentar recuperar o definir el valor de una propiedad
+   privada o protegida de una clase emitirá una excepción.
   </para>
  </refsect1>
 
@@ -61,21 +53,22 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <methodname>ReflectionProperty::__construct</methodname></title>
+    <title>Ejemplo con <methodname>ReflectionProperty::__construct</methodname></title>
     <programlisting role="php">
 <![CDATA[
 <?php
+
 class Str
 {
-    public $longitud = 5;
+    public $length  = 5;
 }
 
-// Crear una instancia de la clase ReflectionProperty
-$prop = new ReflectionProperty('Str', 'longitud');
+// Creación de una instancia de la clase ReflectionProperty
+$prop = new ReflectionProperty('Str', 'length');
 
-// Mostrar información básica
+// Mostrar algunas informaciones
 printf(
-    "===> La propiedad %s%s%s%s '%s' (que está %s)\n" .
+    "===> La%s%s%s%s propiedad '%s' (que fue %s)\n" .
     "     con los modificadores %s\n",
         $prop->isPublic() ? ' pública' : '',
         $prop->isPrivate() ? ' privada' : '',
@@ -83,49 +76,51 @@ printf(
         $prop->isStatic() ? ' estática' : '',
         $prop->getName(),
         $prop->isDefault() ? 'declarada en tiempo de compilación' : 'creada en tiempo de ejecución',
-        var_export(Reflection::getModifierNames($prop->getModifiers()), 1)
+        var_export(Reflection::getModifierNames($prop->getModifiers()), true)
 );
 
-// Crear una instancia de Str
-$obj= new Texto();
+// Creación de una instancia de Str
+$obj= new Str();
 
-// Obtener el valor actual
-printf("---> Valor: ");
+// Obtiene el valor actual
+printf("---> Value is: ");
 var_dump($prop->getValue($obj));
 
-// Cambiar valor
+// Modifica el valor
 $prop->setValue($obj, 10);
-printf("---> Al establecer como valor 10, su nuevo valor es: ");
+printf("---> Setting value to 10, new value is: ");
 var_dump($prop->getValue($obj));
 
-// Volcar objeto
+// Muestra el objeto
 var_dump($obj);
+
 ?>
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-===> La propiedad  pública 'longitud' (que está declarada en tiempo de compilación)
+===> La pública propiedad 'length' (que fue declarada en tiempo de compilación)
      con los modificadores array (
   0 => 'public',
 )
----> Valor: int(5)
----> Al establecer como valor 10, su nuevo valor es: int(10)
+---> Value is: int(5)
+---> Setting value to 10, new value is: int(10)
 object(Str)#2 (1) {
-  ["longitud"]=>
+  ["length"]=>
   int(10)
 }
 ]]>
     </screen>
    </example>
    <example>
-    <title>Obtener el valor de propiedades privadas y protegidas con <classname>ReflectionProperty</classname></title>
+    <title>Obtención de un valor desde una propiedad privada o protegida utilizando la clase <classname>ReflectionProperty</classname></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-class Foo {
+class Foo
+{
     public $x = 1;
     protected $y = 2;
     private $z = 3;
@@ -134,11 +129,11 @@ class Foo {
 $obj = new Foo;
 
 $prop = new ReflectionProperty('Foo', 'y');
-$prop->setAccessible(true); /* Desde PHP 5.3.0 */
+$prop->setAccessible(true);
 var_dump($prop->getValue($obj)); // int(2)
 
 $prop = new ReflectionProperty('Foo', 'z');
-$prop->setAccessible(true); /* Desde PHP 5.3.0 */
+$prop->setAccessible(true);
 var_dump($prop->getValue($obj)); // int(2)
 
 ?>
@@ -160,13 +155,12 @@ int(3)
   <para>
    <simplelist>
     <member><methodname>ReflectionProperty::getName</methodname></member>
-    <member><link linkend="language.oop5.decon.constructor">Constructores</link></member>
+    <member><link linkend="language.oop5.decon.constructor">Los constructores</link></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

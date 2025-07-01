@@ -1,40 +1,38 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 656d1610af1a960d87c8b7056e54d0d4c75fb123 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<?xml version='1.0' encoding='utf-8'?>
+<!-- EN-Revision: 5beaad9885973652023784f1a4656a5e497779fb Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="phar.webphar" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Phar::webPhar</refname>
-  <refpurpose>mapPhar para archivos phar basados en web. Controlador principal para aplicaciones web</refpurpose>
+  <refpurpose>Redirige una solicitud desde un navegador web a un fichero interno en el archivo phar</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="Phar">
    <modifier>final</modifier> <modifier>public</modifier> <modifier>static</modifier> <type>void</type><methodname>Phar::webPhar</methodname>
-   <methodparam choice="opt"><type>string</type><parameter>alias</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>index</parameter><initializer>"index.php"</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>f404</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>mimetypes</parameter></methodparam>
-   <methodparam choice="opt"><type>callable</type><parameter>rewrites</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>alias</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>index</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>fileNotFoundScript</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>mimeTypes</parameter><initializer>[]</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>callable</type><type>null</type></type><parameter>rewrite</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>Phar::mapPhar</function> para archivos phar basados en web. Este método procesa
-   <varname>$_SERVER['REQUEST_URI']</varname> y direcciona una petición de un navegador
-   web a un fichero interno dentro de un archivo phar. En esencia, simula
-   un servidor web, direccionando las peticiones al fichero correcto, enviando las cabeceras correctas
-   y procesando ficheros PHP según sea necesario. Este poderoso método es parte de lo que hace sencillo
-   convertir una apliación PHP existene en un archivo phar. Combinado con
-   <function>Phar::mungServer</function> y <function>Phar::interceptFileFuncs</function>,
-   cualquier aplicación web se puede utilizar sin modificaciones desde un archivo phar.
+   <function>Phar::webPhar</function> actúa como <function>Phar::mapPhar</function> para los phars orientados a web. Este método analiza
+   <varname>$_SERVER['REQUEST_URI']</varname> y enruta las solicitudes de un navegador hacia un fichero
+   interno del archivo.
+   Esto simula un servidor web, enrutando solicitudes al fichero correcto,
+   enviando los encabezados adecuados y analizando el fichero PHP como corresponde.
+   Combinado con <function>Phar::mungServer</function> y <function>Phar::interceptFileFuncs</function>,
+   cualquier aplicación web puede ser utilizada sin cambios a partir del archivo phar.
   </para>
   <para>
-   <function>Phar::webPhar</function> debería llamarse
-   solamente desde la rutina de interoperabilidad (stub) de un archivo phar (<link linkend="phar.fileformat.stub">aquí</link>
-   hay más información de lo que es una rutina de interorperabilidad).
+   <function>Phar::webPhar</function> debe ser llamado únicamente desde el contenedor de carga
+   de un archivo phar (consultar <link linkend="phar.fileformat.stub">esto</link>
+   para obtener más información sobre los contenedores).
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -43,8 +41,9 @@
      <term><parameter>alias</parameter></term>
      <listitem>
       <para>
-       El alias que puede usarse en las URL <literal>phar://</literal> para
-       referirse a este archivo, en vez de su ruta completa.
+       El alias que puede ser utilizado en la URL
+       <literal>phar://</literal> para referirse
+       al archivo, en lugar de su ruta completa.
       </para>
      </listitem>
     </varlistentry>
@@ -52,31 +51,31 @@
      <term><parameter>index</parameter></term>
      <listitem>
       <para>
-       La ubicación dentro del phar del índice de directorios.
+       La ubicación dentro del archivo del índice de directorio.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>f404</parameter></term>
+     <term><parameter>fileNotFoundScript</parameter></term>
      <listitem>
       <para>
-       La ubicación del script a ejecutar cuando no se encuentra el fichero. Este
-       script debería mostrar las cabeceras HTTP 404 apropiadas.
+       La ubicación del script a ejecutar cuando un fichero no es encontrado. Este
+       script debe enviar los encabezados HTTP 404 correctos.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>mimetypes</parameter></term>
+     <term><parameter>mimeTypes</parameter></term>
      <listitem>
       <para>
-       Un array que mapea extensiones de fichero adicionales a tipos de MIME.
-       Si el mapeo predeterminado es suficiente, se ha de pasar un array vacío.
-       Por omisión, estas extensiones son mapeadas a estos tipos de MIME:
+       Un array que hace corresponder extensiones de fichero adicionales a tipos MIME.
+       Si las correspondencias por defecto son suficientes, se debe pasar un array vacío.
+       Por defecto, estas correspondencias son las siguientes:
        <programlisting role="php">
-<![CDATA[
+        <![CDATA[
 <?php
 $mimes = array(
-    'phps' => Phar::PHPS, // pasa a highlight_file()
+    'phps' => Phar::PHPS, // paso a highlight_file()
     'c' => 'text/plain',
     'cc' => 'text/plain',
     'cpp' => 'text/plain',
@@ -87,8 +86,8 @@ $mimes = array(
     'rng' => 'text/plain',
     'txt' => 'text/plain',
     'xsd' => 'text/plain',
-    'php' => Phar::PHP, // procesado como PHP
-    'inc' => Phar::PHP, // procesado como PHP
+    'php' => Phar::PHP, // analizar como PHP
+    'inc' => Phar::PHP, // analizar como PHP
     'avi' => 'video/avi',
     'bmp' => 'image/bmp',
     'css' => 'text/css',
@@ -124,25 +123,26 @@ $mimes = array(
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>rewrites</parameter></term>
+     <term><parameter>rewrite</parameter></term>
      <listitem>
       <para>
-       A la función rewrites se le proporciona un string como único parámetro y debe devolver un <type>string</type> o &false;.
+       La función de reescritura que se pasa toma como único argumento un string
+       y debe devolver un string o false.
       </para>
       <para>
-       Si se está utilizando fast-cgi o cgi, el parámetro pasado a la función es el valor de la
-       variable <varname>$_SERVER['PATH_INFO']</varname>. De otro modo, el parámetro pasado a la función es el valor
-       de la variable <varname>$_SERVER['REQUEST_URI']</varname>.
+       Si se utiliza fast-cgi o cgi, el argumento pasado a la función es el valor de la
+       variable <varname>$_SERVER['PATH_INFO']</varname>. De lo contrario, el argumento pasado a la función
+       es el valor de la variable <varname>$_SERVER['REQUEST_URI']</varname>.
       </para>
       <para>
-       Si se devuelve un string, este se usa como la ruta de fichero interno. Si se devuelve &false;, webPhar()
-       enviará un código de rechazo HTTP 403.
+       Si se devuelve un string, será utilizado en la ruta interna del fichero.
+       Si se devuelve false, entonces webPhar() enviará un código HTTP 403.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
-  
+
  </refsect1>
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
@@ -150,42 +150,64 @@ $mimes = array(
    &return.void;
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Lanza una excepción de tipo <classname>PharException</classname> cuando no se puede abrir el fichero
-   interno para salida, o si se llama desde un lugar que no sea
-   una rutina de interoperabilidad. Si se pasa un array no válido a
-   <parameter>mimetypes</parameter> o se proporciona una llamada de retorno no válida a <parameter>rewrites</parameter>,
-   se lanza una excepción de tipo <classname>UnexpectedValueException</classname>.
+   Levanta una excepción <classname>PharException</classname> cuando el fichero interno no puede ser
+   abierto o si la llamada se realiza fuera de un contenedor. Si se pasa un valor de array no válido en
+   <parameter>mimeTypes</parameter> o si se pasa una función de devolución de llamada inválida al parámetro
+   <parameter>rewrite</parameter>, entonces se levanta una excepción <classname>UnexpectedValueException</classname>.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>fileNotFoundScript</parameter> y <parameter>rewrite</parameter>
+       ahora son nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo de <function>Phar::webPhar</function></title>
+    <title>Ejemplo con <function>Phar::webPhar</function></title>
     <para>
-     Con el ejemplo siguiente, el phar creado mostrará <literal>Hola Mundo</literal>
-     si uno explora <literal>/miphar.phar/index.php</literal> o
-     <literal>/miphar.phar</literal>, y mostrará la fuente de
-     <literal>index.phps</literal> si uno explora <literal>/miphar.phar/index.phps</literal>.
+     En el ejemplo siguiente, el phar creado mostrará <literal>Hola mundo</literal>
+     si alguien llama a <literal>/monphar.phar/index.php</literal> o
+     <literal>/monphar.phar</literal>, y mostrará la fuente de
+     <literal>index.phps</literal> si <literal>/monphar.phar/index.phps</literal> es llamado.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-// creating the phar archive:
+// el archivo phar es creado:
 try {
-    $phar = new Phar('miphar.phar');
-    $phar['index.php'] = '<?php echo "Hola Mundo"; ?>';
-    $phar['index.phps'] = '<?php echo "Hola Mundo"; ?>';
+    $phar = new Phar('monphar.phar');
+    $phar['index.php'] = '<?php echo "Hola mundo"; ?>';
+    $phar['index.phps'] = '<?php echo "Hola mundo"; ?>';
     $phar->setStub('<?php
 Phar::webPhar();
 __HALT_COMPILER(); ?>');
 } catch (Exception $e) {
-    // manejar errores
+    // se manejan los errores aquí
 }
 ?>
 ]]>
@@ -193,7 +215,7 @@ __HALT_COMPILER(); ?>');
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -203,9 +225,8 @@ __HALT_COMPILER(); ?>');
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

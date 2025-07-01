@@ -1,34 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: dd07341fae2c414adc1f700be0890ff32e8daab4 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
-
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.2 -->
+<!-- EN-Revision: c2eca73ef79ebe78cebb34053e41b565af504c4f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.pg-send-prepare" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_send_prepare</refname>
-  <refpurpose>Envía una solicitud para crear una instrucción preparada con los parámetros dados, sin esperar la finalización</refpurpose>
+  <refpurpose>
+   Envía una solicitud para crear una consulta preparada con los argumentos
+   dados, sin esperar el final de su ejecución
+  </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>bool</type><methodname>pg_send_prepare</methodname>
-   <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
-   <methodparam><type>string</type><parameter>stmtname</parameter></methodparam>
+   <type class="union"><type>int</type><type>bool</type></type><methodname>pg_send_prepare</methodname>
+   <methodparam><type>PgSql\Connection</type><parameter>connection</parameter></methodparam>
+   <methodparam><type>string</type><parameter>statement_name</parameter></methodparam>
    <methodparam><type>string</type><parameter>query</parameter></methodparam>
   </methodsynopsis>
   <para>
-    Envía una solicitud para crear una instrucción preparada con los parámetros dados,
-    sin esperar la finalización.
+   Envía una solicitud para crear una consulta preparada con los argumentos
+   dados, sin esperar el final de su ejecución.
   </para>
   <para>
-    Esta es una versión asincrónica de <function>pg_prepare</function>: devuelve &true; si fue capaz de 
-    enviar la solicitud, y &false; si no. Después de una llamada exitosa, llame al 
-    <function>pg_get_result</function> Para determinar si el servidor creó correctamente la 
-    instrucción preparada. Los parámetros de la función se manejan de forma idéntica a 
-    <function>pg_prepare</function>. Al igual que <function>pg_prepare</function>, no funcionará 
-    en versiones anteriores a 7.4 en PostgreSQL.
+   Esta función es la versión asíncrona de <function>pg_prepare</function>
+   : devuelve &true; si ha sido capaz de distribuir la consulta y
+   &false; si no ha sido capaz. Tras una llamada exitosa, llame
+   a <function>pg_get_result</function> para determinar si el servidor ha creado
+   correctamente la consulta preparada.
+   Los argumentos de la función son gestionados de la misma manera que
+   <function>pg_execute</function>. Al igual que <function>pg_execute</function>, la
+   función no funcionará en versiones anteriores a PostgreSQL 7.4.
   </para>
  </refsect1>
 
@@ -39,21 +41,14 @@
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conexión a la base de datos PostgreSQL. Cuando no está 
-       presente <parameter>connection</parameter>, se utiliza la conexión  
-       predeterminada. La conexión predeterminada es la última conexión realizada por 
-       <function>pg_connect</function> o <function>pg_pconnect</function>.
-      </para>
+      &pgsql.parameter.connection;
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>stmtname</parameter></term>
+     <term><parameter>statement_name</parameter></term>
      <listitem>
       <para>
-       El nombre para dar la declaración preparada.  Debe ser único por conexión.  Si se
-       especifica "",  se crea una sentencia sin nombre, sobrescribiendo cualquier 
-       sentencia anónima previamente definida.
+       El nombre a dar a la consulta preparada. Debe ser único en cada sesión. Si se especifica una cadena vacía ("") entonces se crea una consulta sin nombre, sobrescribiendo las consultas sin nombre previamente definidas.
       </para>
      </listitem>
     </varlistentry>
@@ -61,58 +56,76 @@
      <term><parameter>query</parameter></term>
      <listitem>
       <para>
-       La sentencia SQL parametrizada. Debe contener sólo una sola sentencia. 
-       (No se permiten declaraciones múltiples separadas por punto y coma.)  Si se
-       utilizan parámetros, se les conoce como $1, $2, etc.
+       La consulta SQL con sus argumentos. Debe contener solo una consulta. No se permiten múltiples consultas separadas por punto y coma. Si se utilizan argumentos, se refieren a $1, $2, etc.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>Devuelve &true; en caso de éxito, &false; en caso de error.  Utilice <function>pg_get_result</function>
-  para determinar el resultado de la consulta.</para>
+  <para>
+   Devuelve &true; en caso de éxito, &false; o <literal>0</literal> en caso de error.
+   Utilice <function>pg_get_result</function> para determinar el resultado
+   de la consulta.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &pgsql.changelog.connection-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Utilizando <function>pg_send_prepare</function></title>
+    <title>Ejemplo <function>pg_send_prepare</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-  $dbconn = pg_connect("dbname=publisher") or die("Could not connect");
+  $dbconn = pg_connect("dbname=publisher") or die("Conexión imposible");
 
-  // Preparar una consulta para su ejecución
+  // Prepara una consulta para la ejecución
   if (!pg_connection_busy($dbconn)) {
-    pg_send_prepare($dbconn, "my_query", 'SELECT * FROM shops WHERE name = $1');
+    pg_send_prepare($dbconn, "my_query", 'SELECT * FROM magasins WHERE nom = $1');
     $res1 = pg_get_result($dbconn);
   }
 
-  // Ejecute la consulta preparada. Tenga en cuenta que no es necesario 
-  // escapar la cadena "Joe's Widgets" de ninguna manera
+  // Ejecuta la consulta preparada. Note que no es necesario escapar
+  // la cadena "Joe's Widgets"
   if (!pg_connection_busy($dbconn)) {
     pg_send_execute($dbconn, "my_query", array("Joe's Widgets"));
     $res2 = pg_get_result($dbconn);
   }
-  
-  // Ejecute la misma consulta preparada, esta vez con un parámetro diferente
+
+  // Ejecuta la misma consulta preparada, esta vez con un argumento diferente
   if (!pg_connection_busy($dbconn)) {
-    pg_send_execute($dbconn, "my_query", array("Clothes Clothes Clothes"));
+    pg_send_execute($dbconn, "my_query", array("Vêtements Vêtements Vêtements"));
     $res3 = pg_get_result($dbconn);
   }
-  
+
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -126,7 +139,6 @@
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

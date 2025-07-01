@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 051cfaf6defb4df7fc8f01dd3ed8818c0e78c944 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 7a016103e0d568448f5985dfd945092d69d5d59c Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
 <refentry xml:id="function.openssl-encrypt" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>openssl_encrypt</refname>
-  <refpurpose>Cifra datos</refpurpose>
+  <refpurpose>Cifra los datos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>openssl_encrypt</methodname>
-   <methodparam><type>string</type><parameter>data</parameter></methodparam>
-   <methodparam><type>string</type><parameter>method</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>openssl_encrypt</methodname>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>data</parameter></methodparam>
+   <methodparam><type>string</type><parameter>cipher_algo</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>passphrase</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>options</parameter><initializer>0</initializer></methodparam>
    <methodparam choice="opt"><type>string</type><parameter>iv</parameter><initializer>""</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter role="reference">tag</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>aad</parameter><initializer>""</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>tag_length</parameter><initializer>16</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Cifra la información dada con el método y la clave dados, y devuelve una cadena
-   codificada en bruto o mediante base64.
+   Cifra los datos pasados con el método y la frase de contraseña especificados. Devuelve un
+   &string; bruto o codificado en base64.
   </para>
-  
-  &warn.undocumented.func;
-  
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -36,33 +34,43 @@
      <term><parameter>data</parameter></term>
      <listitem>
       <para>
-       Los datos.
+       Los datos del mensaje en texto bruto a cifrar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>method</parameter></term>
+     <term><parameter>cipher_algo</parameter></term>
      <listitem>
       <para>
-       El método de cifrado. Para una lista de los métodos de cifrado disponible, use <function>openssl_get_cipher_methods</function>.
+       El método de cifrado. Para una lista de los métodos de cifrado disponibles,
+       utilizar <function>openssl_get_cipher_methods</function>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>password</parameter></term>
+     <term><parameter>passphrase</parameter></term>
      <listitem>
       <para>
-       La contraseña.
+       La frase de contraseña. Si la frase de contraseña es más corta de lo esperado, se rellena silenciosamente
+       con caracteres <literal>NUL</literal>; si la frase de contraseña es más larga de lo esperado, se trunca silenciosamente.
       </para>
+      <caution>
+       <simpara>
+        No se utiliza ninguna función de derivación de clave para el parámetro <parameter>passphrase</parameter>
+        como su nombre podría sugerir. La única operación utilizada es el relleno con caracteres
+        <literal>NUL</literal> o la truncación si la longitud es diferente de la esperada.
+       </simpara>
+      </caution>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>options</parameter></term>
      <listitem>
       <para>
-       <parameter>options</parameter> puede ser una de las constantes
-       <constant>OPENSSL_RAW_DATA</constant>,
-       <constant>OPENSSL_ZERO_PADDING</constant>.
+       <parameter>options</parameter> es una disyunción a nivel de bits de los flags
+       <constant>OPENSSL_RAW_DATA</constant> y
+       <constant>OPENSSL_ZERO_PADDING</constant>
+       o <constant>OPENSSL_DONT_ZERO_PAD_KEY</constant>.
       </para>
      </listitem>
     </varlistentry>
@@ -70,33 +78,61 @@
      <term><parameter>iv</parameter></term>
      <listitem>
       <para>
-       Un Vector de Inicialización no NULL.
+       Un vector de inicialización no-&null;. Si el IV es más corto de lo esperado, se completa con
+       caracteres <literal>NUL</literal> y se emite un aviso; si la frase de contraseña es más larga
+       de lo esperado, se trunca y se emite un aviso.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>tag</parameter></term>
+     <listitem>
+      <para>
+       La etiqueta de autenticación pasada por referencia al utilizar el modo
+       de cifrado AEAD (GCM o CCM).
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>aad</parameter></term>
+     <listitem>
+      <para>
+       Datos adicionales autenticados.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>tag_length</parameter></term>
+     <listitem>
+      <para>
+       La longitud de la <parameter>tag</parameter> de autenticación.
+       Su valor puede estar entre 4 y 16 para el modo GCM.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la cadena cifrada si se tuvo éxito &return.falseforfailure;.
+   Devuelve la cadena cifrada en caso de éxito &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
    Emite un error de nivel <constant>E_WARNING</constant> si se pasa un algoritmo de cifrado
-   desconocido mediante el parámetro <parameter>method</parameter>.
+   desconocido como parámetro <parameter>cipher_algo</parameter>.
   </para>
   <para>
-   Emite un error de nivel <constant>E_WARNING</constant> si se le pasa un valor vacío
-   mediante el parámetro <parameter>iv</parameter>.
+   Emite un error de nivel <constant>E_WARNING</constant> si se pasa un valor
+   vacío como parámetro <parameter>iv</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <informaltable>
@@ -109,22 +145,72 @@
     </thead>
     <tbody>
      <row>
-      <entry>5.3.3</entry>
-      <entry>
-       Se añadió el parámetro <parameter>iv</parameter>.
-      </entry>
-     </row>
-     <row>
-      <entry>5.4.0</entry>
-      <entry>
-       <parameter>raw_output</parameter> se cambió a <parameter>options</parameter>.
-      </entry>
+      <entry>7.1.0</entry>
+      <entry>Se añadieron los parámetros <parameter>tag</parameter>, <parameter>aad</parameter> y <parameter>tag_length</parameter>.</entry>
      </row>
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
- 
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo de cifrado autenticado AES en modo GCM para PHP 7.1+</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+//$key debería ser generado previamente de manera criptográfica, tal como openssl_random_pseudo_bytes
+$plaintext = "message to be encrypted";
+$cipher = "aes-128-gcm";
+if (in_array($cipher, openssl_get_cipher_methods()))
+{
+    $ivlen = openssl_cipher_iv_length($cipher);
+    $iv = openssl_random_pseudo_bytes($ivlen);
+    $ciphertext = openssl_encrypt($plaintext, $cipher, $key, $options=0, $iv, $tag);
+    //guardar $cipher, $iv, y $tag para el descifrado posterior
+    $original_plaintext = openssl_decrypt($ciphertext, $cipher, $key, $options=0, $iv, $tag);
+    echo $original_plaintext."\n";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+
+   <example>
+    <title>Ejemplo de cifrado autenticado AES en modo GCM anterior a PHP 7.1</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+//$key debería ser generado previamente de manera criptográfica, tal como openssl_random_pseudo_bytes
+$plaintext = "message to be encrypted";
+$ivlen = openssl_cipher_iv_length($cipher="AES-128-CBC");
+$iv = openssl_random_pseudo_bytes($ivlen);
+$ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+$hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+$ciphertext = base64_encode( $iv.$hmac.$ciphertext_raw );
+
+// descifrar más tarde ...
+$c = base64_decode($ciphertext);
+$ivlen = openssl_cipher_iv_length($cipher="AES-128-CBC");
+$iv = substr($c, 0, $ivlen);
+$hmac = substr($c, $ivlen, $sha2len=32);
+$ciphertext_raw = substr($c, $ivlen+$sha2len);
+$original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+$calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+if (hash_equals($hmac, $calcmac))// comparación segura contra ataques de tiempo
+{
+    echo $original_plaintext."\n";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+
+  </para>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -133,9 +219,8 @@
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

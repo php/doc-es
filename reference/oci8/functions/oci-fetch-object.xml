@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 46854b1593fc9bf77d14db6fddcbfb73a20cbf86 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: ed6de1ae20ce16c0c7be0b3fef282b6065bebfac Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.oci-fetch-object" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>oci_fetch_object</refname>
-  <refpurpose>Devuelve la siguiente fila de una consulta como un objeto</refpurpose>
+  <refpurpose>Lee una línea de un resultado en forma de objeto</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>object</type><methodname>oci_fetch_object</methodname>
+   <type class="union"><type>stdClass</type><type>false</type></type><methodname>oci_fetch_object</methodname>
    <methodparam><type>resource</type><parameter>statement</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer>OCI_ASSOC | OCI_RETURN_NULLS</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve un objeto que contiene la siguiente fila del conjunto de resultados de una consulta.
-   Cada atributo del objeto corresponde a una columna de la fila.
-   Esta función normalmente es invocada en un bucle hasta que devuelve
-   &false;, indicando que no existen más filas.
+   Devuelve un objeto que contiene la siguiente línea de resultado de una
+   consulta. Cada atributo de este objeto corresponde a una columna
+   de la línea. Esta función se utiliza típicamente en un ciclo
+   mientras no devuelva &false;, lo que indica que no hay más líneas disponibles.
   </para>
   &oci.datatypes;
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -36,48 +37,47 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un objeto. Cada atributo del mismo corresponde a una
-   columna de la fila. Si no existen más filas en el parámetro
-   <parameter>statement</parameter>, entonces devuelve &false;.
+   Devuelve un objeto. Cada atributo de este objeto corresponde a una columna de la línea.
+   Si no hay más líneas disponibles en la consulta <parameter>statement</parameter>
+   entonces se devuelve &false;.
   </para>
   <para>
-   Cualquier columna <literal>LOB</literal> es devuelta como un descriptor de LOB.
+    Todas las columnas <literal>LOB</literal> son devueltas en forma de
+    descriptores LOB.
   </para>
   <para>
-   Las columnas <literal>DATE</literal> son devueltas como string con
-   el formato de fecha actual. El formato predeterminado se puede cambiar con
-   las variables de entorno de Oracle, como <literal>NLS_LANG</literal>, o
-   ejecutando previamente un comando <literal>ALTER SESSION SET
-   NLS_DATE_FORMAT</literal>.
+   Las columnas <literal>DATE</literal> son devueltas en forma de strings formateados
+   con el formato de fecha actual. El formato por omisión puede ser cambiado mediante las variables
+   de entorno Oracle, como <literal>NLS_LANG</literal> o ejecutando el comando
+   <literal>ALTER SESSION SET NLS_DATE_FORMAT</literal>.
   </para>
   <para>
-   Los nombres de columna predeterminados de Oracle que insensibles al uso de mayúsculas/minúsculas 
-   tendrán nombres de atributos en mayúsculas. Los nombres de columnas sensibles al uso de
-   mayúsculas/minúsculas tendrán nombres de atributos que usan el nombre exacto de la columna.
-   Use <function>var_dump</function> en el array resultante para verificar el uso apropiado
-   de mayúsculas/minúsculas en cada acceso al atributo.
+   Los nombres de columnas que no son sensibles a la casse (por omisión en Oracle),
+   tendrán nombres de atributos en mayúsculas. Los nombres de columnas que son sensibles a la
+   casse, tendrán nombres de atributos utilizando exactamente la misma casse de la columna.
+   Utilice la función <function>var_dump</function> sobre el objeto de resultado para verificar
+   la casse apropiada para el acceso a los atributos.
   </para>
   <para>
-   Los valores de los atributos serán &null; para cualquier campo de datos
-   <literal>NULL</literal>.
+   Los valores de atributo serán &null; para cada campo de datos <literal>NULL</literal>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>oci_fetch_object</function></title>
+    <title>Ejemplo con <function>oci_fetch_object</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 /*
-  Antes de ejecutarlo, cree la tabla:
+  Antes de la ejecución, cree la tabla:
     CREATE TABLE mytab (id NUMBER, description VARCHAR2(30));
     INSERT INTO mytab (id, description) values (1, 'Fish and Chips');
     COMMIT;
@@ -93,12 +93,12 @@ $stid = oci_parse($conn, 'SELECT id, description FROM mytab');
 oci_execute($stid);
 
 while (($row = oci_fetch_object($stid)) != false) {
-    // Use nombres de atributo en mayúsculas para cada columna estándar de Oracle
+    // Utilice nombres de atributos sensibles a la casse para cada columna estándar de Oracle
     echo $row->ID . "<br>\n";
-    echo $row->DESCRIPTION . "<br>\n"; 
+    echo $row->DESCRIPTION . "<br>\n";
 }
 
-// La salida es:
+// Muestra:
 //    1
 //    Fish and Chips
 
@@ -112,13 +112,13 @@ oci_close($conn);
   </para>
   <para>
    <example>
-    <title><function>oci_fetch_object</function> con nombres de columnas sensibles al uso de mayúsculas/minúsculas</title>
+    <title>Ejemplo con <function>oci_fetch_object</function> con nombres de columna sensibles a la casse</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 /*
-  Antes de ejecutarlo, cree la tablas con un nombre de columna sensible al uso de mayúsculas/minúsculas:
+  Antes de la ejecución, cree la tabla con una columna cuyo nombre es sensible a la casse:
     CREATE TABLE mytab (id NUMBER, "MyDescription" VARCHAR2(30));
     INSERT INTO mytab (id, "MyDescription") values (1, 'Iced Coffee');
     COMMIT;
@@ -134,13 +134,13 @@ $stid = oci_parse($conn, 'SELECT id, "MyDescription" FROM mytab');
 oci_execute($stid);
 
 while (($row = oci_fetch_object($stid)) != false) {
-    // Use nombres de atributo en mayúsculas para cada columna estándar de Oracle
+    // Utilice nombres de atributos en mayúsculas para cada columna estándar de Oracle
     echo $row->ID . "<br>\n";
-    // Use el nombre exacto para nombres de columnas sensibles al uso de mayúsculas/minúsculas
-    echo $row->MyDescription . "<br>\n";   
+    // Utilice la casse exacta para los nombres de columnas sensibles a la casse
+    echo $row->MyDescription . "<br>\n";
 }
 
-// La salida es:
+// Muestra:
 //    1
 //    Iced Coffee
 
@@ -154,15 +154,15 @@ oci_close($conn);
   </para>
   <para>
    <example>
-    <title><function>oci_fetch_object</function> con LOBs</title>
+    <title>Ejemplo con <function>oci_fetch_object</function> con LOBs</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 /*
-  Antes de ejecutarlo, cree la tabla:
+  Antes de la ejecución, cree la tabla:
     CREATE TABLE mytab (id NUMBER, description CLOB);
-    INSERT INTO mytab (id, description) values (1, 'Un string muy largo');
+    INSERT INTO mytab (id, description) values (1, 'A very long string');
     COMMIT;
 */
 
@@ -177,13 +177,13 @@ oci_execute($stid);
 
 while (($row = oci_fetch_object($stid)) != false) {
     echo $row->ID . "<br>\n";
-    // Lo siguiente imprimirá los primeros 11 bytes de DESCRIPTION
-    echo $row->DESCRIPTION->read(11) . "<br>\n"; 
+    // Lo siguiente mostrará los 11 primeros bytes desde DESCRIPTION
+    echo $row->DESCRIPTION->read(11) . "<br>\n";
 }
 
-// La salida es:
+// Muestra:
 //    1
-//    Un string m
+//    A very long
 
 oci_free_statement($stid);
 oci_close($conn);
@@ -194,7 +194,7 @@ oci_close($conn);
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -207,9 +207,8 @@ oci_close($conn);
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
@@ -230,4 +229,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

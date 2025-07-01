@@ -1,33 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 93edd6c0cc2861808afb845e5744e0c3321609a8 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-name">
+<!-- EN-Revision: d7a77b5f850d5077f75d0c8c0d22cd60f099965d Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.session-name" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>session_name</refname>
-  <refpurpose>Obtener y/o establecer el nombre de la sesión actual</refpurpose>
+  <refpurpose>Lee y/o modifica el nombre de la sesión</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>session_name</methodname>
-   <methodparam choice="opt"><type>string</type><parameter>name</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>session_name</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>name</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
    <function>session_name</function> devuelve el nombre de la sesión
-   actual. Si se da el nombre <parameter>name</parameter>,
-   <function>session_name</function> actualizará el nombre de la sesión y devolverá
-   el nombre <emphasis>antiguo</emphasis> de la sesión.
+   actual. Si se proporciona el argumento <parameter>name</parameter>,
+   <function>session_name</function> modificará el nombre de la sesión
+   y devolverá el <emphasis>anterior</emphasis> nombre de la sesión.
   </para>
   <para>
-   El nombre de la sesión se reinicia al valor predeterminado almacenado en
-   <literal>session.name</literal> en el momento de iniciar una petición. Por lo tanto, se necesita
-   llamar a <function>session_name</function> por cada petición (y antes de llamar a
-   <function>session_start</function> o <function>session_register</function>).
+   Si se proporciona un nuevo nombre de sesión <parameter>name</parameter>,
+   <function>session_name</function> modifica la cookie HTTP
+   (y el contenido de salida cuando <link linkend="ini.session.use-trans-sid">session.transid</link> está
+   activado). Una vez enviada la cookie HTTP,
+   llamar a <function>session_name</function> desencadena un <constant>E_WARNING</constant>.
+   <function>session_name</function> debe ser llamado
+   antes de <function>session_start</function> para que la sesión funcione
+   correctamente.
+  </para>
+  <para>
+   El nombre de la sesión se reinicia al valor por defecto, almacenado en
+   <literal>session.name</literal> al inicio. Por lo tanto, debe
+   llamarse a <function>session_name</function> para cada petición (y antes de que
+   <function>session_start</function> sea llamado).
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -36,18 +46,17 @@
      <term><parameter>name</parameter></term>
      <listitem>
       <para>
-       El nombre de la sesión hace referencia al nombre de la sesión  
-       usado cookies y URLs (p.ej. <literal>PHPSESSID</literal>). Debería
-       contener sólo caracteres alfanuméricos; debería ser corto y
-       descriptivo (esto es, para usuarios con las advertencias de cookies habilitadas).
-       Si se especifica <parameter>name</parameter>, el nombre de la sesión
-       actual se cambia por su valor.
+       El nombre de sesión se utiliza como nombre para las cookies y las URLs
+       (es decir, <literal>PHPSESSID</literal>). Solo debe contener caracteres alfanuméricos;
+       debe ser corto y descriptivo (especialmente para los usuarios
+       que tienen activada la alerta de cookies). Si <parameter>name</parameter> se proporciona y no es &null;,
+       el nombre de la sesión actual será reemplazado por este valor.
       </para>
       <para>
        <warning>
         <para>
-         El nombre de la sesión no puede consistir en dígitos solamente, debe de estar presente
-         al menos una letra. De otro modo se genera un nuevo id de sesión cada vez.
+         Los nombres de sesión no pueden contener solo números, al menos una letra
+         debe estar presente. De lo contrario, se generará un identificador de sesión cada vez.
         </para>
        </warning>
       </para>
@@ -56,37 +65,72 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el nombre de la sesión actual. Si se proporciona <parameter>name</parameter>
-   y una función actualiza el nombre de la sesión, se devolverá el nombre
-   <emphasis>antiguo</emphasis> de la sesión.
+   Devuelve el nombre de la sesión actual. Si se proporciona el argumento <parameter>name</parameter>
+   y la función actualiza el nombre de la sesión, entonces
+   el <emphasis>anterior</emphasis> nombre de sesión será devuelto, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        <parameter>name</parameter> ahora es nullable.
+       </entry>
+      </row>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        <function>session_name</function> verifica el estado de la sesión,
+        anteriormente solo verificaba el estado de la cookie. Por lo tanto,
+        las versiones anteriores de <function>session_name</function> permiten
+        la llamada a <function>session_name</function>
+        después de <function>session_start</function> lo que puede causar el fallo de PHP
+        y puede dar lugar a comportamientos extraños.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>session_name</function></title>
+    <title>Ejemplo con <function>session_name</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* establecer el nombre de la sesión a WebsiteID */
+/* elige el nombre de sesión: WebsiteID */
 
-$nombre_anterior = session_name("WebsiteID");
+$previous_name = session_name("WebsiteID");
 
-echo "El nombre anterior de la sesión era $nombre_anterior<br />";
+echo "El nombre anterior de la sesión era $previous_name<br />";
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -97,9 +141,8 @@ echo "El nombre anterior de la sesión era $nombre_anterior<br />";
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

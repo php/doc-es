@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: jvenegasperu Status: ready -->
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.2 -->
+<!-- EN-Revision: c2eca73ef79ebe78cebb34053e41b565af504c4f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.pg-connect" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_connect</refname>
-  <refpurpose>Abre una conexión a PostgreSQL</refpurpose>
+  <refpurpose>
+   Establece una conexión PostgreSQL
+  </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>pg_connect</methodname>
+   <type class="union"><type>PgSql\Connection</type><type>false</type></type><methodname>pg_connect</methodname>
    <methodparam><type>string</type><parameter>connection_string</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>connect_type</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_connect</function> abre una conexión con una
-    base de datos PostgreSQL especificada por el
+   <function>pg_connect</function> abre una conexión a una base de datos
+   PostgreSQL mediante la cadena de conexión
    <parameter>connection_string</parameter>.
   </para>
   <para>
-   Si una segunda llamada se hace a <function>pg_connect</function> con
-   la misma <parameter>connection_string</parameter> existiendo la conexión,
-   la conexión existente será devuelta a menos que pase la constante
-   <constant>PGSQL_CONNECT_FORCE_NEW </constant> como
-   parámetro <parameter>connect_type</parameter>.
+   Si se realiza una segunda llamada a <function>pg_connect</function> con
+   los mismos argumentos, no se establecerá una nueva conexión a menos que se
+   pase <constant>PGSQL_CONNECT_FORCE_NEW</constant> a <parameter>flags</parameter>,
+   pero se devolverá la conexión anterior.
   </para>
   <para>
-   La sintaxis antigua con múltiples parámetros
-   <command>$conn = pg_connect("host", "port", "options", "tty", "dbname")
-   </command> ha quedado obsoleta.
+   La antigua sintaxis
+   <command>$conn = pg_connect("host", "port", "options", "tty", "dbname")</command>
+   está obsoleta.
   </para>
  </refsect1>
 
@@ -42,45 +42,52 @@
      <term><parameter>connection_string</parameter></term>
      <listitem>
       <para>
-       El <parameter>connection_string</parameter> puede estar vacío para usar todos los parámetros por
-       defecto o este puede contener uno o más parámetros separados por espacios en blanco.
-       Cada parámetro debe asignarse de esta forma <literal>keyword = value</literal>.
-       Los espacios alrededor del signo igual son opcionales. Para escribir un valor vacío
-       o un valor conteniendo espacios utilice las comillas simples, por ejemplo. <literal>keyword =
-       'a value'</literal>. Las comillas simples y barras invertidas en el valor se pueden agregar
-       con una barra invertida es decir \' y \\.
+       La cadena <parameter>connection_string</parameter> puede estar vacía para
+       utilizar todos los parámetros por omisión o puede contener uno o
+       varios parámetros de configuración separados por espacios.
+       Cada parámetro de configuración tiene la forma <literal>code =
+       valor</literal>. Los espacios alrededor del signo igual son opcionales.
+       Para escribir un valor vacío o un valor que contenga espacios,
+       rodee este valor con comillas simples, por ejemplo: <literal>code =
+       'un valor'</literal>. Las comillas simples y las barras invertidas dentro
+       del valor deben escapar con una barra invertida, es decir
+       \' y \\.
       </para>
       <para>
-       Las palabras clave de parámetros que están reconocidos son:
-       <parameter>host</parameter>, <parameter>hostaddr</parameter>, <parameter>port</parameter>,
-       <parameter>dbname</parameter> (por defecto el valor de <parameter>user</parameter>),
+       Las palabras clave actualmente reconocidas son :
+       <parameter>host</parameter>, <parameter>hostaddr</parameter>,
+       <parameter>port</parameter>,
+       <parameter>dbname</parameter> (valor por omisión: <parameter>user</parameter>),
        <parameter>user</parameter>,
-       <parameter>password</parameter>, <parameter>connect_timeout</parameter>,
-       <parameter>options</parameter>, <parameter>tty</parameter> (ignorado), <parameter>sslmode</parameter>,
-       <parameter>requiressl</parameter> (en desuso en favor de <parameter>sslmode</parameter>), y
-       <parameter>service</parameter>.  Cuál de estos argumentos existen depende
-        de su versión de PostgreSQL.
+       <parameter>password</parameter>,
+       <parameter>connect_timeout</parameter>,
+       <parameter>options</parameter>, <parameter>tty</parameter> (ignorado),
+       <parameter>sslmode</parameter>,
+       <parameter>requiressl</parameter> (obsoleto, utilice
+       <parameter>sslmode</parameter>) y
+       <parameter>service</parameter>. La lista de estos argumentos depende de
+       la versión del servidor PostgreSQL.
       </para>
       <para>
-       El parámetro <parameter>options</parameter> se puede utilizar para establecer los
-       parámetros de la línea de comandos para ser invocado por el servidor.
+       El parámetro <parameter>options</parameter> puede utilizarse para pasar parámetros
+       para la línea de comandos que invoca al servidor.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>connect_type</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Si <constant>PGSQL_CONNECT_FORCE_NEW</constant> es pasado, entonces una nueva conexión
-       se crea, incluso si el parámetro<parameter>connection_string</parameter> es idéntico a
-       la conexión existente.
+       Si <constant>PGSQL_CONNECT_FORCE_NEW</constant> se pasa como argumento,
+       entonces se creará una nueva conexión, incluso si la cadena
+       <parameter>connection_string</parameter> es idéntica a la de la conexión existente.
       </para>
       <para>
-       Si <constant>PGSQL_CONNECT_ASYNC</constant> es dado, entonces la conexión
-       es establecida asincrónicamente. El estado de la conexión 
-       puede comprobarse a través de <function>pg_connect_poll</function> o
-       <function>pg_connection_status</function>.
-      </para>      
+       Si <constant>PGSQL_CONNECT_ASYNC</constant> se proporciona, la conexión
+       se establecerá de forma asíncrona. El estado de la conexión puede verificarse
+       mediante la función <function>pg_connect_poll</function> o mediante la
+       función <function>pg_connection_status</function>.
+      </para>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -89,59 +96,60 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>   
-   El recurso de conexión PostgreSQL en caso de éxito, &false; en caso de fallo.
+  <para>
+   Devuelve una instancia de <classname>PgSql\Connection</classname> en caso de éxito, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.6.0</entry>
-       <entry>
-        El soporte para la constante <constant>PGSQL_CONNECT_ASYNC</constant>
-        se ha añadido con el parametro <parameter>connect_type</parameter>.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.1.0</entry>
+      <entry>
+       Ahora devuelve una instancia de <classname>PgSql\Connection</classname> ;
+       anteriormente, se devolvía un &resource;.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Usando <function>pg_connect</function></title>
+    <title>Ejemplo con <function>pg_connect</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$dbconn = pg_connect("dbname=mary");
-//conectarse a una base de datos llamada "mary"
+$dbconn = pg_connect("dbname=marie");
+// conexión a una base de datos llamada "marie"
 
-$dbconn2 = pg_connect("host=localhost port=5432 dbname=mary");
-// conectarse a una base de datos llamada "mary" en "localhost" por el puerto "5432"
+$dbconn2 = pg_connect("host=localhost port=5432 dbname=marie");
+// conexión a una base de datos llamada "marie" en el host "localhost" en el puerto "5432"
 
-$dbconn3 = pg_connect("host=sheep port=5432 dbname=mary user=lamb password=foo");
-//conectarse a una base de datos llamada "mary" en el host "sheep" con el nombre de usuario y password
+$dbconn3 = pg_connect("host=mouton port=5432 dbname=marie user=agneau password=foo");
+// conexión a una base de datos llamada "marie" en el host "mouton" con un
+// nombre de usuario y una contraseña
 
-$conn_string = "host=sheep port=5432 dbname=test user=lamb password=bar";
+$conn_string = "host=mouton port=5432 dbname=test user=agneau password=bar";
 $dbconn4 = pg_connect($conn_string);
-//conectarse por el puerto 5432 a una base de datos llamada "test" en el host "sheep" con el nombre de usuario y password
+// conexión a una base de datos llamada "test" en el host "mouton" con un
+// nombre de usuario y una contraseña
 
 $dbconn5 = pg_connect("host=localhost options='--client_encoding=UTF8'");
-//conectarse a una base de datos en "localhost" y establece el parámetro de línea de comandos que indica la codificación en UTF8
+//conexión a la base en "localhost" y paso de un parámetro de la línea de
+// comandos relacionado con la codificación UTF-8
 ?>
 ]]>
     </programlisting>
@@ -164,7 +172,6 @@ $dbconn5 = pg_connect("host=localhost options='--client_encoding=UTF8'");
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
