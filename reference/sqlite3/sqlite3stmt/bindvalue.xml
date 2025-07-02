@@ -1,37 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: cd2eae76e7c53be3f9a3ed6427f38ea452d2560f Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: 855bfee2f3db70d7dbb4c60c7c4a4efa567f1c60 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="sqlite3stmt.bindvalue" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>SQLite3Stmt::bindValue</refname>
-  <refpurpose>Vincular el valor de un parámetro a una variable de sentencia</refpurpose>
+  <refpurpose>Asocia el valor de un parámetro a una variable de declaración</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="SQLite3Stmt">
    <modifier>public</modifier> <type>bool</type><methodname>SQLite3Stmt::bindValue</methodname>
-   <methodparam><type>mixed</type><parameter>sql_param</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type></type><parameter>param</parameter></methodparam>
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>type</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer><constant>SQLITE3_TEXT</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Vincula el valor de un parámetro a una variable de sentencia.
+   Asocia el valor de un parámetro a una variable de declaración.
   </para>
+  <caution>
+   <para>
+    Antes de PHP 7.2.14 y 7.3.0, respectivamente,
+    una vez que la declaración ha sido ejecutada
+    <methodname>SQLite3Stmt::reset</methodname>
+    debe ser llamado para poder cambiar el valor de los parámetros asociados.
+   </para>
+  </caution>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>sql_param</parameter></term>
+     <term><parameter>param</parameter></term>
      <listitem>
       <para>
-       Un <type>string</type> o un <type>int</type> que identifica la variable de sentencia que debe
-       ser vinculada al parámetro.
+       Puede ser un &string; (para parámetros nombrados) o un &integer;
+       (para parámetros posicionales) que identifica la variable de declaración
+       a la cual el valor debe ser asociado.
+       Si un parámetro nombrado no comienza con un carácter "dos puntos"
+       (<literal>:</literal>) o un arroba (<literal>@</literal>), "dos puntos"
+       (<literal>:</literal>) serán automáticamente prefijados.
+       Los parámetros posicionales comienzan con <literal>1</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -39,7 +50,7 @@
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       El valor a vincular a la variable de sentencia.
+       El valor a asociar a la variable de declaración.
       </para>
      </listitem>
     </varlistentry>
@@ -47,83 +58,137 @@
      <term><parameter>type</parameter></term>
      <listitem>
       <para>
-       El tipo de dato de la variable a vincular.
+       El tipo de datos del valor a asociar.
        <itemizedlist>
         <listitem>
          <para>
-          <literal>SQLITE3_INTEGER</literal>: El valor es un entero con signo,
-          almacenado en 1, 2, 3, 4, 6, u 8 bytes, dependiendo de la magnitud del
-          valor.
+          <constant>SQLITE3_INTEGER</constant> : El valor es un entero firmado,
+          almacenado en 1, 2, 3, 4, 6, o 8 bytes, según la magnitud del valor.
          </para>
         </listitem>
         <listitem>
          <para>
-          <literal>SQLITE3_FLOAT</literal>: El valor es de tipo coma
-          flotante, almacenado como un número de coma flotante IEEE de 8 bytes.
+          <constant>SQLITE3_FLOAT</constant> : El valor es un número de punto
+          flotante, almacenado en 8 bytes.
          </para>
         </listitem>
         <listitem>
          <para>
-          <literal>SQLITE3_TEXT</literal>: El valor es una cadena de texto, almacenado
-          usando la codificación de la base de datos (UTF-8, UTF-16BE o UTF-16-LE).
+          <constant>SQLITE3_TEXT</constant> : El valor es texto, almacenado
+          utilizando la codificación de la base de datos
+          (UTF-8, UTF-16BE o UTF-16-LE).
          </para>
         </listitem>
         <listitem>
          <para>
-          <literal>SQLITE3_BLOB</literal>: El valor es de tipo blob, almacenado
-          exactamente a como fue insertado.
+          <constant>SQLITE3_BLOB</constant> : El valor es un BLOB, almacenado
+          exactamente de la forma en que fue proporcionado.
          </para>
         </listitem>
         <listitem>
          <para>
-          <literal>SQLITE3_NULL</literal>: El valor es NULL.
+          <constant>SQLITE3_NULL</constant> : El valor es la valor NULL.
          </para>
         </listitem>
        </itemizedlist>
       </para>
+      <para>
+       A partir de PHP 7.0.7, si <parameter>type</parameter> es omitido, es
+       automáticamente detectado desde el tipo de <parameter>value</parameter> :
+       &boolean; y &integer; son tratados como <constant>SQLITE3_INTEGER</constant>,
+       &float; como <constant>SQLITE3_FLOAT</constant>,
+       &null; como <constant>SQLITE3_NULL</constant>
+       y todos los demás como <constant>SQLITE3_TEXT</constant>.
+       Anteriormente, si <parameter>type</parameter> era omitido, era por omisión
+       <constant>SQLITE3_TEXT</constant>.
+      </para>
+      <note>
+       <para>
+        Si <parameter>value</parameter> es &null;, siempre fue tratado como
+        <constant>SQLITE3_NULL</constant>, independientemente del
+        <parameter>type</parameter> proporcionado.
+       </para>
+      </note>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
-  
+
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si el valor es vinculado a la variable de sentencia, &false;
-   en case de error.
+   Retorna &true; si el valor fue asociado a la variable de declaración, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>7.4.0</entry>
+      <entry>
+       <parameter>param</parameter> ahora soporta la notación
+       <literal>@param</literal>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>SQLite3Stmt::bindValue</function></title>
+    <title>Ejemplo con <function>SQLite3Stmt::bindValue</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-unlink('mibdsqlite.db');
-$bd = new SQLite3('mibdsqlite.db');
+$db = new SQLite3(':memory:');
 
-$bd->exec('CREATE TABLE foo (id INTEGER, bar STRING)');
-$bd->exec("INSERT INTO foo (id, bar) VALUES (1, 'Esto es una prueba')");
+$db->exec('CREATE TABLE foo (id INTEGER, bar STRING)');
+$db->exec("INSERT INTO foo (id, bar) VALUES (1, 'Ceci est un test')");
 
-$sentencia = $bd->prepare('SELECT bar FROM foo WHERE id=:id');
-$sentencia->bindValue(':id', 1, SQLITE3_INTEGER);
+$stmt = $db->prepare('SELECT bar FROM foo WHERE id=:id');
+$stmt->bindValue(':id', 1, SQLITE3_INTEGER);
 
-$resultado = $sentencia->execute();
-var_dump($resultado->fetchArray());
+$result = $stmt->execute();
+var_dump($result->fetchArray(SQLITE3_ASSOC));
 ?>
 ]]>
     </programlisting>
+    &example.outputs;
+    <screen role="php">
+<![CDATA[
+array(1) {
+  ["bar"]=>
+  string(16) "Ceci est un test"
+}
+]]>
+    </screen>
    </example>
   </para>
  </refsect1>
- 
-</refentry>
 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>SQLite3Stmt::bindParam</methodname></member>
+   <member><methodname>SQLite3::prepare</methodname></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

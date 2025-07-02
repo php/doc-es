@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 48e5dd1b7e9920436dd3b40e192d27c670e9679a Maintainer: seros Status: ready -->
+<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.stream-filter-register" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>stream_filter_register</refname>
-  <refpurpose>Registrar un filtro de flujo definido por el usuario</refpurpose>
+  <refpurpose>Registra un filtro de flujo</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>stream_filter_register</methodname>
-   <methodparam><type>string</type><parameter>filtername</parameter></methodparam>
-   <methodparam><type>string</type><parameter>classname</parameter></methodparam>
+   <methodparam><type>string</type><parameter>filter_name</parameter></methodparam>
+   <methodparam><type>string</type><parameter>class</parameter></methodparam>
   </methodsynopsis>
   <para>
    <function>stream_filter_register</function> permite implementar
-   un filtro propio sobre cualquier flujo registrado usado con las demás funciones
-   de sistema de archivos (como <function>fopen</function>,
-   <function>fread</function> etc.).
+   un filtro de flujo personalizado, para ser utilizado con las funciones de acceso
+   a datos externos (como <function>fopen</function>,
+   <function>fread</function>, etc.).
   </para>
  </refsect1>
 
@@ -26,25 +27,26 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>filtername</parameter></term>
+     <term><parameter>filter_name</parameter></term>
      <listitem>
       <para>
-       El nombre del filtro que va a ser registrado.
+       El nombre del filtro a registrar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>classname</parameter></term>
+     <term><parameter>class</parameter></term>
      <listitem>
       <para>
-       Para implementar un filtro se necesita definir una clase como una extensión de
-       <classname>php_user_filter</classname> con un número de funciones
-       miembro. Cuando se lleva a cabo operaciones de lectura/escritura en el flujo
-       al cuál el filtro está enlazado, PHP pasará la información a través de este
-       filtro (y cualquier otro filtro enlazado a ese flujo) por lo que la
-       información puede ser modificada como se desee. Se deben implementar los métodos
-       exactamente como se describe en <classname>php_user_filter</classname> - hacerlo
-       de otro modo conducirá a un comportamiento indefinido.
+       Para crear una clase de filtro, se debe definir una clase que
+       extienda la clase <classname>php_user_filter</classname>.
+       Al realizar operaciones
+       de lectura y escritura en el flujo al que esté adjunto el filtro,
+       PHP pasará los datos a través del filtro (y de todos los otros
+       filtros adjuntos), de manera que los datos sean modificados
+       según lo deseado. Se deben implementar los métodos tal como
+       se describe en <classname>php_user_filter</classname>, de lo contrario
+       se producirán comportamientos indefinidos.
       </para>
      </listitem>
     </varlistentry>
@@ -58,8 +60,8 @@
    &return.success;
   </para>
   <para>
-   <function>stream_filter_register</function> devolverá &false; si
-   <parameter>filtername</parameter> ya está definido.
+   <function>stream_filter_register</function> debe devolver siempre &false; si
+   el parámetro <parameter>filter_name</parameter> ya está definido.
   </para>
  </refsect1>
 
@@ -67,46 +69,45 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Filtro para poner en mayúsculas caracteres en el flujo <filename>foo-bar.txt</filename></title>
+    <title>Filtro de letras mayúsculas en el flujo <filename>foo-bar.txt</filename></title>
     <para>
-     El ejemplo de abajo implementa un filtro llamado <literal>strtoupper</literal>
-     en el flujo <filename>foo-bar.txt</filename> que pondrá en mayúsculas
-     todos los caracteres de letras escritos en/leídos desde este flujo.
+     El ejemplo siguiente implementa un filtro llamado
+     <literal>strtoupper</literal>, en el flujo <filename>foo-bar.txt</filename>,
+     que convierte a mayúsculas todas las letras escritas/leídas desde este flujo.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* Definir nuestra clase de filtro */
+/* Definición de la clase */
 class strtoupper_filter extends php_user_filter {
-  function filter($entrada, $salida, &$consumido, $cerrar)
+  function filter($in, $out, &$consumed, $closing)
   {
-    while ($recipiente = stream_bucket_make_writeable($entrada)) {
-      $recipiente->data = strtoupper($recipiente->data);
-      $consumido += $recipiente->datalen;
-      stream_bucket_append($salida, $recipiente);
+    while ($bucket = stream_bucket_make_writeable($in)) {
+      $bucket->data = strtoupper($bucket->data);
+      $consumed += $bucket->datalen;
+      stream_bucket_append($out, $bucket);
     }
     return PSFS_PASS_ON;
   }
 }
 
-/* Registrar nuestro filtro con PHP */
+/* Registro de nuestro filtro con PHP */
 stream_filter_register("strtoupper", "strtoupper_filter")
-    or die("Fallo al registrar el filtro");
+    or die("Error al registrar el filtro");
 
 $fp = fopen("foo-bar.txt", "w");
 
-/* Enlazar el filtro al flujo recién abierto */
+/* Adjuntar el filtro registrado al flujo que acabamos de abrir */
 stream_filter_append($fp, "strtoupper");
 
-fwrite($fp, "Fila1\n");
+fwrite($fp, "Línea1\n");
 fwrite($fp, "Palabra - 2\n");
-fwrite($fp, "Tan Sencillo Como 123\n");
+fwrite($fp, "Fácil como 123\n");
 
 fclose($fp);
 
-/* Leer el contenido desde atrás
- */
+/* Lectura del contenido */
 readfile("foo-bar.txt");
 
 ?>
@@ -115,35 +116,36 @@ readfile("foo-bar.txt");
     &example.outputs;
     <screen>
 <![CDATA[
-FILA1
+LÍNEA1
 PALABRA - 2
-TAN SENCILLO COMO 123
+FÁCIL COMO 123
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>Registrar una clase de filtro genérica para comparar múltiples nombres de filtro.</title>
+    <title>Registro de una clase de filtro genérica para coincidir
+     con múltiples nombres de filtros</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* Definir nuestra clase de filtro */
+/* Definición de la clase */
 class string_filter extends php_user_filter {
-  var $modo;
+  var $mode;
 
-  function filter($entrada, $salida, &$consumido, $cerrar)
+  function filter($in, $out, &$consumed, $closing)
   {
-    while ($recipiente = stream_bucket_make_writeable($entrada)) {
+    while ($bucket = stream_bucket_make_writeable($in)) {
       if ($this->mode == 1) {
-        $recipiente->data = strtoupper($recipiente->data);
+        $bucket->data = strtoupper($bucket->data);
       } elseif ($this->mode == 0) {
-        $recipiente->data = strtolower($recipiente->data);
+        $bucket->data = strtolower($bucket->data);
       }
 
-      $consumido += $recipiente->datalen;
-      stream_bucket_append($salida, $recipiente);
+      $consumed += $bucket->datalen;
+      stream_bucket_append($out, $bucket);
     }
     return PSFS_PASS_ON;
   }
@@ -155,8 +157,7 @@ class string_filter extends php_user_filter {
     } elseif ($this->filtername == 'str.tolower') {
       $this->mode = 0;
     } else {
-      /* Se preguntó por otro filtro str.*,
-         informar del fallo, por lo que PHP seguirá mirando */
+      /* Se solicitan algunos otros filtros str.*, manejo del error con PHP */
       return false;
     }
 
@@ -164,24 +165,23 @@ class string_filter extends php_user_filter {
   }
 }
 
-/* Registrar nuestro filtro con PHP */
+/* Registro de nuestro filtro con PHP */
 stream_filter_register("str.*", "string_filter")
-    or die("Fallo al registrar el filtro");
+    or die("Error al registrar el filtro");
 
 $fp = fopen("foo-bar.txt", "w");
 
-/* Enlazar el filtro al flujo recién abierto
-   Alternativamente podríamos enlazar a str.tolower aquí */
+/* Adjuntar el filtro registrado al flujo que acabamos de abrir
+    Podemos alternativamente pasar a str.tolower aquí */
 stream_filter_append($fp, "str.toupper");
 
-fwrite($fp, "Fila1\n");
+fwrite($fp, "Línea1\n");
 fwrite($fp, "Palabra - 2\n");
-fwrite($fp, "Tan Sencillo Como 123\n");
+fwrite($fp, "Fácil como 123\n");
 
 fclose($fp);
 
-/* Leer el contenido desde atrás
- */
+/* Lectura del contenido */
 readfile("foo-bar.txt");
 
 ?>
@@ -190,9 +190,9 @@ readfile("foo-bar.txt");
     &example.outputs;
     <screen>
 <![CDATA[
-FILA1
+LÍNEA1
 PALABRA - 2
-TAN SENCILLO COMO 123
+FÁCIL COMO 123
 ]]>
     </screen>
    </example>
@@ -209,9 +209,8 @@ TAN SENCILLO COMO 123
    </simplelist>
   </para>
  </refsect1>
+
 </refentry>
-
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

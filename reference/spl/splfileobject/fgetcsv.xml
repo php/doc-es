@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: andresdzphp Status: ready -->
+<!-- $Revision$ -->
+<!-- EN-Revision: f1eb91d07d2df082384b3f83c9d2a0dc1e439d32 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xml:id="splfileobject.fgetcsv" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+<refentry xml:id="splfileobject.fgetcsv" xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude">
  <refnamediv>
   <refname>SplFileObject::fgetcsv</refname>
-  <refpurpose>Obtiene la línea del archivo y analiza como campos CSV</refpurpose>
+  <refpurpose>Recupera una línea del archivo y la analiza como datos CSV</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -16,15 +17,12 @@
    <methodparam choice="opt"><type>string</type><parameter>escape</parameter><initializer>"\\"</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene una línea del archivo que está en formato <acronym>CSV</acronym> y devuelve un array que contiene los campos leídos.
+   Recupera una línea del archivo y la analiza como datos <acronym>CSV</acronym>
+   y devuelve un array que contiene todos los campos leídos.
   </para>
-  <note>
-   <para>
-    Esta función tiene en cuenta los ajustes de localización. Si
-    <literal>LC_CTYPE</literal> es p.e. <literal>en_US.UTF-8</literal>, los archivos
-    en codificaciones de un byte pueden ser leídos erróneamente por esta función.
-   </para>
-  </note>
+  <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('function.fgetcsv')/db:refsect1[@role='description']//db:note/.)">
+   <xi:fallback/>
+  </xi:include>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -32,10 +30,12 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>delimiter</parameter></term>
+     <term><parameter>separator</parameter></term>
      <listitem>
       <para>
-       El delimitador de campo (un solo carácter). El valor por defecto es una coma o el valor establecido usando <methodname>SplFileObject::setCsvControl</methodname>.
+       El delimitador de campo (un solo carácter de un byte).
+       Por omisión, <literal>,</literal> o el valor definido por una llamada previa a
+       <methodname>SplFileObject::setCsvControl</methodname>.
       </para>
      </listitem>
     </varlistentry>
@@ -43,7 +43,9 @@
      <term><parameter>enclosure</parameter></term>
      <listitem>
       <para>
-       El carácter circundante de cada campo (sólo un carácter). Por omisión, son comillas dobles o el valor establecido por <methodname>SplFileObject::setCsvControl</methodname>.
+       El carácter utilizado para encerrar el valor de un campo (un carácter de un solo byte).
+       Por omisión, será una comilla doble o bien el valor definido utilizando
+       el método <methodname>SplFileObject::setCsvControl</methodname>.
       </para>
      </listitem>
     </varlistentry>
@@ -51,40 +53,58 @@
      <term><parameter>escape</parameter></term>
      <listitem>
       <para>
-       El carácter de escape (a lo sumo un carácter). Por defecto es una barra invertida (<literal>\</literal>) o el valor establecido usando <methodname>SplFileObject::setCsvControl</methodname>.
-       Un string vacío (<literal>""</literal>) desactiva el mecanismo de escape propio.
+       El carácter de escape de campo (un solo carácter de un byte).
+       Por omisión, <literal>"</literal> o el valor definido por una llamada previa a
+       <methodname>SplFileObject::setCsvControl</methodname>.
+       Un &string; vacío (<literal>""</literal>) desactiva el mecanismo de escape propietario.
       </para>
       <note>
        <simpara>
-        Normalmente un carácter <parameter>enclosure</parameter> se escapa dentro
-        de un campo duplicándolo; sin embargo, el carácter <parameter>escape</parameter>
-        puede ser usado como una alternativa. Así que para los valores de parámetros
-        por defecto <literal>""</literal> y <literal>\"</literal> tienen el mismo
-        significado. Aparte de permitir espacar el carácter
-        <parameter>enclosure</parameter> el carácter
-        <parameter>escape</parameter> no tiene un significado especial; ni siquiera está
-        destinado a escapar de sí mismo.
+        Normalmente, un carácter <parameter>enclosure</parameter> se escapa
+        dentro de un campo duplicándolo; Sin embargo, el carácter
+        <parameter>escape</parameter> puede ser utilizado como alternativa.
+        Así, para los valores de parámetro por omisión <literal>""</literal> y
+        <literal>\"</literal> tienen el mismo significado. Además de permitir
+        escapar el carácter <parameter>enclosure</parameter> el carácter
+        <parameter>escape</parameter> no tiene un significado particular; ni siquiera
+        está destinado a escapar.
        </simpara>
       </note>
+      <warning>
+       <simpara>
+        A partir de PHP 8.4.0, depender del valor por omisión de
+        <parameter>escape</parameter> está deprecado.
+        Debe ser proporcionado explícitamente ya sea por posición, ya sea mediante
+        el uso de los <link linkend="functions.named-arguments">argumentos nombrados</link>,
+        o mediante una llamada a <methodname>SplFileObject::setCsvControl</methodname>.
+       </simpara>
+      </warning>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
+  &warning.csv.escape-parameter;
  </refsect1>
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array indexado que contiene los campos que se leen, o &false; en caso de error.
+   Devuelve un array indexado que contiene todos los campos leídos, o &false;
+   si ocurre un error.
   </para>
   <note>
    <para>
-    Una línea en blanco en un archivo CSV será devuelto como un array que
-    comprende un único &null; a menos que se utilice <constant>SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE</constant>,
-    en cuyo caso se saltan las líneas vacías.
+    Una línea vacía de un archivo CSV será devuelta en forma de un array
+    contenido un solo campo &null; a menos que se utilice
+    <constant>SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE</constant>,
+    en cuyo caso, las líneas vacías serán ignoradas.
    </para>
   </note>
  </refsect1>
+
+ <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('function.fgetcsv')/db:refsect1[@role='errors']/.)">
+  <xi:fallback/>
+ </xi:include>
 
  <refsect1 role="changelog">
   &reftitle.changelog;
@@ -98,11 +118,14 @@
       </row>
      </thead>
      <tbody>
+      <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('function.fgetcsv')/db:refsect1[@role='changelog']//db:row[db:entry[text()='8.4.0']]/.)">
+       <xi:fallback/>
+      </xi:include>
       <row>
        <entry>7.4.0</entry>
        <entry>
-        El parámetro <parameter>escape</parameter> ahora también acepta un
-        string vacío para desactivar el mecanismo de escape propio.
+        El parámetro <parameter>escape</parameter> ahora acepta una cadena de
+        caracteres vacía para desactivar el mecanismo de escape propietario.
        </entry>
       </row>
      </tbody>
@@ -115,7 +138,7 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <methodname>SplFileObject::fgetcsv</methodname></title>
+    <title>Ejemplo con <methodname>SplFileObject::fgetcsv</methodname></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -130,7 +153,7 @@ while (!$file->eof()) {
   </para>
   <para>
    <example>
-    <title>Ejemplo de <constant>SplFileObject::READ_CSV</constant></title>
+    <title>Ejemplo con <constant>SplFileObject::READ_CSV</constant></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -138,29 +161,29 @@ $file = new SplFileObject("animals.csv");
 $file->setFlags(SplFileObject::READ_CSV);
 foreach ($file as $row) {
     list($animal, $class, $legs) = $row;
-    printf("A %s is a %s with %d legs\n", $animal, $class, $legs);
+    printf("Un %s es un %s con %d patas\n", $animal, $class, $legs);
 }
 ?>
 ]]>
     </programlisting>
-    <para>El contenido de animals.csv</para>
+    <para>Contenido de animals.csv</para>
     <programlisting role="txt">
 <![CDATA[
 crocodile,reptile,4
-dolphin,mammal,0
-duck,bird,2
-koala,mammal,4
-salmon,fish,0
+dauphin,mammifère,0
+canard,oiseau,2
+koala,mammifère,4
+saumon,poisson,0
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-A crocodile is a reptile with 4 legs
-A dolphin is a mammal with 0 legs
-A duck is a bird with 2 legs
-A koala is a mammal with 4 legs
-A salmon is a fish with 0 legs
+Un crocodile es un reptile con 4 patas
+Un dauphin es un mammifère con 0 patas
+Un canard es un oiseau con 2 patas
+Un koala es un mammifère con 4 patas
+Un saumon es un poisson con 0 patas
 ]]>
     </screen>
    </example>
@@ -169,14 +192,17 @@ A salmon is a fish with 0 legs
 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><methodname>SplFileObject::setCsvControl</methodname></member>
-    <member><methodname>SplFileObject::setFlags</methodname></member>
-    <member><link linkend="splfileobject.constants.read-csv">SplFileObject::READ_CSV</link></member>
-    <member><methodname>SplFileObject::current</methodname></member>
-   </simplelist>
-  </para>
+  <simplelist>
+   <member><methodname>SplFileObject::fputcsv</methodname></member>
+   <member><methodname>SplFileObject::setCsvControl</methodname></member>
+   <member><methodname>SplFileObject::getCsvControl</methodname></member>
+   <member><methodname>SplFileObject::setFlags</methodname></member>
+   <member><constant>SplFileObject::READ_CSV</constant></member>
+   <member><methodname>SplFileObject::current</methodname></member>
+   <member><function>fputcsv</function></member>
+   <member><function>fgetcsv</function></member>
+   <member><function>str_getcsv</function></member>
+  </simplelist>
  </refsect1>
 
 </refentry>
