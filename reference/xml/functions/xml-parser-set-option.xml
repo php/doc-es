@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 3db49ee0a331a657dd97b539a749f53d3965b593 Maintainer: carlos Status: ready -->
+<!-- EN-Revision: 9acfa18973f304f8f2d531f28dd12b12c2b84f8b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.xml-parser-set-option" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>xml_parser_set_option</refname>
-  <refpurpose>Configura las opciones en un intérprete XML</refpurpose>
+  <refpurpose>Establece las opciones de un analizador XML</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,10 +14,11 @@
    <type>bool</type><methodname>xml_parser_set_option</methodname>
    <methodparam><type>XMLParser</type><parameter>parser</parameter></methodparam>
    <methodparam><type>int</type><parameter>option</parameter></methodparam>
-   <methodparam><type class="union"><type>string</type><type>int</type></type><parameter>value</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type><type>bool</type></type>
+<parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-Configura una opción en un intérprete XML.
+   Establece las opciones de un analizador XML.
   </para>
  </refsect1>
 
@@ -28,7 +30,7 @@ Configura una opción en un intérprete XML.
      <term><parameter>parser</parameter></term>
      <listitem>
       <para>
-Identificador del recurso del intérprete XML sobre el que se va a configurar el valor de la opción.
+       Una referencia a un analizador XML.
       </para>
      </listitem>
     </varlistentry>
@@ -36,48 +38,63 @@ Identificador del recurso del intérprete XML sobre el que se va a configurar el
      <term><parameter>option</parameter></term>
      <listitem>
       <para>
-Cual es la opción para configurar. Véase más abajo.
+       La opción a modificar. Ver más abajo.
       </para>
       <para>
-Estan disponibles las siguientes opciones:
+       Las siguientes opciones están disponibles:
        <table>
-        <title>Opciones del intérprete XML</title>
+        <title>Opciones del analizador XML</title>
         <tgroup cols="3">
          <thead>
           <row>
-           <entry>Option constant</entry>
-           <entry>Data type</entry>
-           <entry>Description</entry>
+           <entry>Opción</entry>
+           <entry>Tipo de datos</entry>
+           <entry>Descripción</entry>
           </row>
          </thead>
          <tbody>
           <row>
            <entry><constant>XML_OPTION_CASE_FOLDING</constant></entry>
-           <entry>integer</entry>
+           <entry>bool</entry>
            <entry>
-Controla si  <link linkend="xml.case-folding">case-folding</link> está activada para este intérprete XML. Por defecto activado.
-
+            Controla el manejo de la <link linkend="xml.case-folding">caja</link>
+            de las etiquetas de este analizador XML. Por omisión, está activado.
+           </entry>
+          </row>
+          <row>
+           <entry><constant>XML_OPTION_PARSE_HUGE</constant></entry>
+           <entry>bool</entry>
+           <entry>
+            Permite analizar documentos de más de 10 MB.
+            Esta opción solo debe activarse si el tamaño del documento está
+            limitado, ya que de lo contrario podría conducir a un ataque de denegación de servicio (DoS).
+            Esta opción solo está disponible al usar libxml2.
            </entry>
           </row>
           <row>
            <entry><constant>XML_OPTION_SKIP_TAGSTART</constant></entry>
-           <entry>integer</entry>
+           <entry>bool</entry>
            <entry>
-Especifica el número de caracteres que seran omitidos al principio del nombre de una etiqueta.
+            Especifica cuántos caracteres deben omitirse al inicio del nombre de la etiqueta.
            </entry>
           </row>
           <row>
            <entry><constant>XML_OPTION_SKIP_WHITE</constant></entry>
-           <entry>integer</entry>
+           <entry>&integer;</entry>
            <entry>
-Especifica si hay que omitir los valores que consistan en espacios en blanco.
+            Omite o no los valores que contienen caracteres en blanco.
            </entry>
           </row>
           <row>
            <entry><constant>XML_OPTION_TARGET_ENCODING</constant></entry>
            <entry>string</entry>
            <entry>
-Configura cual será el <link linkend="xml.encoding">target encoding</link> (codificación de caracteres de salida) para usar en este intérprete XML. Por defecto se establece la misma codificación de la fuente fuente usada por <function>xml_parser_create</function>. Las codificaciones de destino soportadas son <literal>ISO-8859-1</literal>, <literal>US-ASCII</literal> y <literal>UTF-8</literal>.
+            Modifica la <link linkend="xml.encoding">codificación de destino</link>
+            utilizada por este analizador XML. Por omisión, es la que
+            se especificó al llamar a
+            <function>xml_parser_create</function>. Las codificaciones soportadas
+            son <literal>ISO-8859-1</literal>, <literal>US-ASCII</literal>
+            y <literal>UTF-8</literal>.
            </entry>
           </row>
          </tbody>
@@ -90,7 +107,7 @@ Configura cual será el <link linkend="xml.encoding">target encoding</link> (cod
      <term><parameter>value</parameter></term>
      <listitem>
       <para>
-El nuevo valor para la opción.
+       El nuevo valor de la opción.
       </para>
      </listitem>
     </varlistentry>
@@ -101,7 +118,20 @@ El nuevo valor para la opción.
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-Devuelve &true; si se ha establecido el nuevo valor para la opción. Puede devolver &false; si: <parameter>parser</parameter> no se refiere a un intérprete válido, o si la opción no se ha podido configurar.
+   Devuelve &true; en caso de éxito o &false; en caso de fallo.
+  </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Lanza una <classname>ValueError</classname> cuando se pasa un valor inválido
+   a <parameter>option</parameter>.
+  </para>
+  <para>
+   Antes de PHP 8.0.0, pasar un valor inválido a <parameter>option</parameter>
+   generaba una advertencia <constant>E_WARNING</constant>
+   y hacía que la función devolviera el valor &false;.
   </para>
  </refsect1>
 
@@ -116,14 +146,34 @@ Devuelve &true; si se ha establecido el nuevo valor para la opción. Puede devol
      </row>
     </thead>
     <tbody>
+     <row>
+      <entry>8.4.0</entry>
+      <entry>
+       Se añadió la opción <constant>XML_OPTION_PARSE_HUGE</constant>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       El parámetro <parameter>value</parameter> ahora también acepta valores booleanos.
+       Las opciones <constant>XML_OPTION_CASE_FOLDING</constant> y <constant>XML_OPTION_SKIP_WHITE</constant>
+       ahora son opciones booleanas.
+      </entry>
+     </row>
       &xml.changelog.parser-param;
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       Ahora se lanza una excepción <classname>ValueError</classname> si
+       la <parameter>option</parameter> es inválida.
+      </entry>
+     </row>
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

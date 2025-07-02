@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: e50e79746736dbdfbabe9bd3566793b3ddf38f58 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.stream-socket-recvfrom" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>stream_socket_recvfrom</refname>
-  <refpurpose>Recibir información de un socket, conectado o no </refpurpose>
+  <refpurpose>Lee datos desde un socket, conectado o no</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>stream_socket_recvfrom</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>stream_socket_recvfrom</methodname>
    <methodparam><type>resource</type><parameter>socket</parameter></methodparam>
    <methodparam><type>int</type><parameter>length</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter role="reference">address</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter role="reference">address</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
-  <para>
-   <function>stream_socket_recvfrom</function> acepta
-   información desde un socket remoto hasta <parameter>length</parameter> bytes.
-  </para>
- </refsect1>
+   <para>
+    <function>stream_socket_recvfrom</function> acepta datos
+    desde un socket remoto, hasta un total de <parameter>length</parameter>
+    bytes.
+   </para>
+  </refsect1>
 
  <refsect1 role="parameters">
   &reftitle.parameters;
@@ -37,7 +39,7 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       El número de bytes a recibir desde el <parameter>socket</parameter>.
+       El número de bytes a recibir de <parameter>socket</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -45,8 +47,8 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       El valor de <parameter>flags</parameter> puede ser una combinación
-       de los siguientes valores:
+       El valor de <parameter>flags</parameter> puede ser la combinación
+       de las constantes siguientes:
        <table>
         <title>Valores posibles para <parameter>flags</parameter></title>
         <tgroup cols="2">
@@ -54,16 +56,16 @@
           <row>
            <entry><constant>STREAM_OOB</constant></entry>
            <entry>
-            Procesar información OOB (<literal>out-of-band</literal>, fuera de banda).
+            Procesa los datos en modo OOB (<literal>out-of-band</literal>).
            </entry>
           </row>
           <row>
            <entry><constant>STREAM_PEEK</constant></entry>
            <entry>
-            Recuperar información del socket, pero sin consumir el buffer.
-            Las llamadas subsiguientes a <function>fread</function> o
-            <function>stream_socket_recvfrom</function> verán
-            la misma información.
+            Lee datos desde el socket, pero no utiliza el buffer.
+            Las próximas llamadas a <function>fread</function> o
+            <function>stream_socket_recvfrom</function> leerán los mismos
+            datos.
            </entry>
           </row>
          </tbody>
@@ -76,8 +78,8 @@
      <term><parameter>address</parameter></term>
      <listitem>
       <para>
-       Si se proporciona <parameter>address</parameter>, será rellenado con
-       la dirección de socket remoto.
+       Si el argumento <parameter>address</parameter> es proporcionado, recibirá
+       la dirección del socket remoto.
       </para>
      </listitem>
     </varlistentry>
@@ -88,7 +90,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la información leída, como cadena
+   Devuelve los datos leídos, como &string;, &return.falseforfailure;.
   </para>
  </refsect1>
 
@@ -96,26 +98,26 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>stream_socket_recvfrom</function></title>
-    <programlisting role="php">
+     <title>Ejemplo con <function>stream_socket_recvfrom</function></title>
+     <programlisting role="php">
 <![CDATA[
 <?php
-/* Abrir un socket de servidor al puerto 1234 en localhost */
+/* Abre un socket en el puerto 1234 de localhost */
 $server = stream_socket_server('tcp://127.0.0.1:1234');
 
-/* Aceptar una conexión */
+/* Acepta una conexión */
 $socket = stream_socket_accept($server);
 
-/* Tomar un paquete (1500 es un tamaño de MTU típico) de información OOB */
-echo "Recibido Fuera de Banda: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
+/* Lee un paquete (1500 es el tamaño clásico MTU) de datos OOB */
+echo "Recibido Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
 
-/* Echar un vistazo a la información en banda normal, pero sin comsumirla. */
-echo "Información: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
+/* Lee los datos normales in-band, pero no modifica nada */
+echo "Datos: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
 
-/* Obtener el mismo paquete exactamente otra vez, pero eliminándolo del buffer esta vez. */
-echo "Información: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
+/* Vuelve a leer el mismo paquete, pero vacía el buffer. */
+echo "Datos: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
 
-/* Cerrarlo */
+/* Finalización */
 fclose($socket);
 fclose($server);
 ?>
@@ -127,22 +129,23 @@ fclose($server);
 
  <refsect1 role="notes">
   &reftitle.notes;
-  <note>
-   <para>
-    Si un mensaje recibido es mayor que el parámetro <parameter>length</parameter>,
-    los bytes en exceso se pueden desechar dependiendo del tipo de socket
-    desde el que se recbió el mensaje (como UDP).
-   </para>
-  </note>
-  <note>
-   <para>
-    Las llamadas a <function>stream_socket_recvfrom</function> sobre flujos basados
-    en sockets, después de las llamadas a funciones de flujos basados en buffer (como
-    <function>fread</function> o <function>stream_get_line</function>), leen
-    información directamente desde el socket y evitan el buffer del flujo.
-    </para>
-  </note>
- </refsect1>
+    <note>
+     <para>
+      Si el mensaje recibido es más grande que <parameter>length</parameter>,
+      los datos adicionales pueden ser destruidos, dependiendo del tipo
+      de socket utilizado (por ejemplo UDP).
+     </para>
+    </note>
+    <note>
+     <para>
+      La llamada a <function>stream_socket_recvfrom</function> en flujos
+      basados en socket, después de la llamada a funciones de flujo basadas en
+      buffer (como <function>fread</function> o
+      <function>stream_get_line</function>) lee directamente los datos desde
+      el socket y evita el uso del buffer con el flujo.
+     </para>
+    </note>
+   </refsect1>
 
  <refsect1 role="seealso">
   &reftitle.seealso;
@@ -154,7 +157,6 @@ fclose($server);
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

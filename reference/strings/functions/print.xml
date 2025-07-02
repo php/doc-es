@@ -1,25 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 84b8fca68fc762fefe85acde180a38b2e77a28b9 Maintainer: yago Status: ready -->
+<!-- EN-Revision: 45042fef652f1b4e904e809fcbfcf31f6c60670b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://docbook.org/ns/docbook" xml:id="function.print">
  <refnamediv>
   <refname>print</refname>
-  <refpurpose>Mostrar una cadena</refpurpose>
+  <refpurpose>Muestra un string</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>int</type><methodname>print</methodname>
-   <methodparam><type>string</type><parameter>arg</parameter></methodparam>
+   <methodparam><type>string</type><parameter>expression</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Muestra el parámetro <parameter>arg</parameter>.
+   Muestra <parameter>expression</parameter>.
   </para>
   <para>
-   <literal>print</literal> no es realmente una función (es un constructor de lenguaje) 
-   por lo tanto no es necesario usar paréntesis
-   para indicar su lista de argumentos.
+   <literal>print</literal> no es una función sino una construcción del lenguaje.
+   Su argumento es la expresión que sigue a la palabra clave <literal>print</literal>,
+   y no está delimitado por paréntesis.
+  </para>
+  <para>
+   La diferencia principal con <literal>echo</literal> es que
+   <literal>print</literal> solo acepta un argumento y siempre devuelve 1.
   </para>
  </refsect1>
 
@@ -28,10 +33,12 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>arg</parameter></term>
+     <term><parameter>expression</parameter></term>
      <listitem>
       <para>
-       Los datos de entrada.
+       La expresión a mostrar. Los valores que no son strings serán convertidos a string,
+       incluso si la <link linkend="language.types.declarations.strict">directiva
+       <literal>strict_types</literal></link> está activada.
       </para>
      </listitem>
     </varlistentry>
@@ -42,7 +49,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Siempre devuelve <literal>1</literal>.
+   Devuelve <literal>1</literal>, siempre.
   </para>
  </refsect1>
 
@@ -50,45 +57,49 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplos de <literal>print</literal></title>
+    <title>Ejemplo con <literal>print</literal></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-print("Hola mundo");
+print "print no requiere paréntesis.";
+print PHP_EOL;
 
-print "print() también funciona sin paréntesis.";
+// No se añade salto de línea ni espacio; lo siguiente se muestra como "helloworld" en una sola línea
+print "hello";
+print "world";
+print PHP_EOL;
 
-print "Esto separa
+print "Este string abarca
 múltiples líneas. Los saltos de línea también
 se mostrarán";
+print PHP_EOL;
 
-print "Esto separa\nmúltiples líneas. Los salos de línea también\nse mostrarán.";
+print "Este string abarca\nmúltiples líneas. Los saltos de línea\nse mostrarán también.";
+print PHP_EOL;
 
-print "para escapar caracteres se \"hace así\".";
+// El argumento puede ser cualquier expresión que produzca un string
+$foo = "example";
+print "foo es $foo"; // foo es example
+print PHP_EOL;
 
-// También se puede usar variables usando print
-$foo = "foobar";
-$bar = "barbaz";
+$fruits = ["lemon", "orange", "banana"];
+print implode(" y ", $fruits); // lemon y orange y banana
+print PHP_EOL;
 
-print "foo es $foo"; // foo es foobar
+// Las expresiones no-string son convertidas a string, incluso si se usa declare(strict_types=1)
+print 6 * 7; // 42
+print PHP_EOL;
 
-// También se pueden usar arrays
-$bar = array("value" => "foo");
+// Como print tiene un valor de retorno, puede ser usado en expresiones
+// Lo siguiente muestra "hello world"
+if ( print "hello" ) {
+    echo " world";
+}
+print PHP_EOL;
 
-print "Esto es {$bar['value']} !"; // Esto es foo !
-
-// Al usar comillas simples se mostrará el nombre de la variable, no su valor
-print 'foo is $foo'; // foo is $foo
-
-// Si no se necesita mostrar otros caracteres, se puede simplemente mostrar variables
-print $foo;          // foobar
-
-print <<<END
-Este párrafo utiliza la sintaxis "here document" para mostrar
-múltiples líneas con la interpolación de $variable. Nótese
-que el terminador de here document debe aparecer al final
-de la línea con punto y coma y ¡ningún espacio en blanco extra!
-END;
+// Lo siguiente muestra "true"
+( 1 === 1 ) ? print 'true' : print 'false';
+print PHP_EOL;
 ?>
 ]]>
     </programlisting>
@@ -98,6 +109,79 @@ END;
 
  <refsect1 role="notes">
   &reftitle.notes;
+
+  <note>
+   <title>Uso con paréntesis</title>
+   <para>
+    Rodear el argumento de <literal>print</literal> con paréntesis
+    no generará un error de sintaxis, y produce una sintaxis similar a una
+    llamada normal de función. No obstante, esto puede ser engañoso, ya que los
+    paréntesis forman en realidad parte de la expresión que se está
+    mostrando, y no parte de la sintaxis de <literal>print</literal>
+    en sí mismo.
+    <informalexample>
+     <programlisting role="php">
+<![CDATA[
+<?php
+print "hello";
+// muestra "hello"
+
+print("hello");
+// también muestra "hello", porque ("hello") es una expresión válida
+
+print(1 + 2) * 3;
+// muestra "9"; los paréntesis hacen que 1+2 se evalúe primero, luego 3*3
+// la sentencia print ve toda la expresión como un argumento
+
+if ( print("hello") && false ) {
+    print " - dentro de if";
+}
+else {
+    print " - dentro de else";
+}
+// muestra " - dentro de if"
+// la expresión ("hello") && false se evalúa primero, dando false
+// esto se convierte al string vacío "" y se muestra
+// la construcción print luego devuelve 1, por lo que se ejecuta el código en el bloque if
+?>
+]]>
+     </programlisting>
+    </informalexample>
+   </para>
+
+   <para>
+    Cuando <literal>print</literal> se usa en una expresión más grande,
+    colocar tanto la palabra clave como su argumento entre paréntesis puede ser
+    necesario para obtener el resultado esperado:
+   <informalexample>
+     <programlisting role="php">
+<![CDATA[
+<?php
+if ( (print "hello") && false ) {
+    print " - dentro de if";
+}
+else {
+    print " - dentro de else";
+}
+// muestra "hello - dentro de else"
+// a diferencia del ejemplo anterior, la expresión (print "hello") se evalúa primero
+// después de mostrar "hello", print devuelve 1
+// como 1 && false es false, se ejecuta el código en el bloque else
+
+print "hello " && print "world";
+// muestra "world1"; print "world" se evalúa primero,
+// luego la expresión "hello " && 1 se pasa al print de la izquierda
+
+(print "hello ") && (print "world");
+// muestra "hello world"; los paréntesis fuerzan a que las expresiones print
+// se evalúen antes del &&
+?>
+]]>
+     </programlisting>
+    </informalexample>
+   </para>
+  </note>
+
   &note.language-construct;
  </refsect1>
 
@@ -108,7 +192,7 @@ END;
     <member><function>echo</function></member>
     <member><function>printf</function></member>
     <member><function>flush</function></member>
-    <member><link linkend="language.types.string.syntax.heredoc">Sintaxis de Heredoc</link></member>
+    <member><link linkend="language.types.string">Forma de especificar strings literales</link></member>
    </simplelist>
   </para>
  </refsect1>

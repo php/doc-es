@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 0a58f121e638b8c8606053cb9586b356bb414238 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.socket-set-option">
+<!-- EN-Revision: 93105c67e470df72333493cc2e534635dd16422d Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.socket-set-option" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>socket_set_option</refname>
-  <refpurpose>Establece las opciones de socket para el socket</refpurpose>
+  <refpurpose>Modifica las opciones de socket</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>socket_set_option</methodname>
-   <methodparam><type>resource</type><parameter>socket</parameter></methodparam>
+   <methodparam><type>Socket</type><parameter>socket</parameter></methodparam>
    <methodparam><type>int</type><parameter>level</parameter></methodparam>
-   <methodparam><type>int</type><parameter>optname</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>optval</parameter></methodparam>
+   <methodparam><type>int</type><parameter>option</parameter></methodparam>
+   <methodparam><type class="union"><type>array</type><type>string</type><type>int</type></type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-   La función <function>socket_set_option</function> establece la opción
-   especificada por el parámetro <parameter>optname</parameter>, al nivel
-   (<parameter>level</parameter>) del protocolo especificado, al valor apuntado por
-   el parámetro <parameter>optval</parameter> para el
+   <function>socket_set_option</function> configura la opción especificada por
+   <parameter>option</parameter>, al nivel de protocolo
+   <parameter>level</parameter> al valor apuntado por
+   <parameter>value</parameter> para el socket especificado por
    <parameter>socket</parameter>.
   </para>
  </refsect1>
@@ -34,8 +34,8 @@
      <term><parameter>socket</parameter></term>
      <listitem>
       <para>
-       Un recurso socket válido creado con <function>socket_create</function>
-       o <function>socket_accept</function>.
+       Una instancia de <classname>Socket</classname> creada por
+       <function>socket_create</function> o <function>socket_accept</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -43,30 +43,29 @@
      <term><parameter>level</parameter></term>
      <listitem>
       <para>
-       El parámetro <parameter>level</parameter> especifica el nivel de
-       protocolo en el que reside la opción. Por ejemplo, para recuperar opciones a
-       nivel de socket, se debería usar un parámetro
-       <parameter>level</parameter> de <constant>SOL_SOCKET</constant>. Otros niveles, como
-       TCP, se pueden usar para especificar el número de protocolo de ese nivel. 
-       Los números de protocolo se pueden encontrar usando la
-       función <function>getprotobyname</function>.
+       El parámetro <parameter>level</parameter> especifica la capa del
+       protocolo de la opción. Por ejemplo, para modificar una opción de
+       la capa socket, se utiliza un nivel igual a <constant>SOL_SOCKET</constant>.
+       Otros niveles, como TCP, pueden ser utilizados especificando un número de protocolo para este nivel.
+       Los números de protocolos pueden ser utilizados utilizando la función
+       <function>getprotobyname</function>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>optname</parameter></term>
+     <term><parameter>option</parameter></term>
      <listitem>
       <para>
-       Las opciones de socket dispobibles son las mismas que las de la
-       función <function>socket_get_option</function>.
+       Las opciones disponibles son las mismas que para
+       la función <function>socket_get_option</function>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>optval</parameter></term>
+     <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       El valor opcional.
+       El valor de la opción.
       </para>
      </listitem>
     </varlistentry>
@@ -81,34 +80,51 @@
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &sockets.changelog.socket-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo de <function>socket_set_option</function></title>
+    <title>Ejemplo con <function>socket_set_option</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 
 if (!is_resource($socket)) {
-    echo 'No se pudo crear elsocket: '. socket_strerror(socket_last_error()) . PHP_EOL;
+    echo 'No es posible crear el socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
 }
 
 if (!socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1)) {
-    echo 'No se pudo establecer la opción del socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
+    echo 'No es posible definir la opción del socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
 }
 
 if (!socket_bind($socket, '127.0.0.1', 1223)) {
-    echo 'No se pudo vincular el socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
+    echo 'No es posible vincular el socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
 }
 
 $rval = socket_get_option($socket, SOL_SOCKET, SO_REUSEADDR);
 
 if ($rval === false) {
-    echo 'No se pudo obtener la opción del option: '. socket_strerror(socket_last_error()) . PHP_EOL;
+    echo 'No es posible recuperar la opción del socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
 } else if ($rval !== 0) {
-    echo 'SO_REUSEADDR está establecido en el socket !' . PHP_EOL;
+    echo 'SO_REUSEADDR está definido en el socket!' . PHP_EOL;
 }
 ?>
 ]]>
@@ -129,9 +145,8 @@ if ($rval === false) {
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

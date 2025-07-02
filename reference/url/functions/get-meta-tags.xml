@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: afc3f34c682418a582b0f9199db0bac4a087821f Maintainer: yago Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: 6ecb3d252204d4f7077eb5221209b4eab0216c18 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.get-meta-tags" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>get_meta_tags</refname>
-  <refpurpose>Extrae todo el contenido de atributos de etiquetas meta de un archivo y devuelve un array</refpurpose>
+  <refpurpose>Extrae todas las etiquetas meta de un fichero HTML</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>get_meta_tags</methodname>
+   <type class="union"><type>array</type><type>false</type></type><methodname>get_meta_tags</methodname>
    <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>use_include_path</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>use_include_path</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Abre <parameter>filename</parameter> y lo procesa línea por línea
-   en busca de etiquetas &lt;meta&gt; en el archivo.  El procesamiento se
-   detiene al encontrar <literal>&lt;/head&gt;</literal>.
+   <function>get_meta_tags</function> abre el fichero <parameter>filename</parameter>
+   y lo analiza línea por línea en busca de etiquetas
+   <literal>"meta"</literal>. El análisis cesa al encontrar la etiqueta
+   <literal>&lt;/head&gt;</literal>.
   </para>
  </refsect1>
 
@@ -30,24 +31,22 @@
      <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-       La ruta al archivo HTML, como una cadena. Éste puede ser un archivo
-       local o una <acronym>URL</acronym>.
+       La ruta de acceso a un fichero HTML, en forma de &string;. Puede ser
+       un fichero local o una <acronym>URL</acronym>.
       </para>
       <para>
        <example>
-        <title>Lo que procesa <function>get_meta_tags</function></title>
+        <title>Lo que analiza la función <function>get_meta_tags</function></title>
         <programlisting role="html">
 <![CDATA[
 <meta name="author" content="name">
 <meta name="keywords" content="php documentation">
 <meta name="DESCRIPTION" content="a php manual">
 <meta name="geo.position" content="49.33;-86.59">
-</head> <!-- el procesamiento se detiene aquí -->
+</head> <!-- cesa el análisis aquí -->
 ]]>
         </programlisting>
        </example>
-       (preste atención a los finales de línea, - PHP usa una función nativa
-       para procesar la entrada, así que un archivo Mac no funcionará en Unix).
       </para>
      </listitem>
     </varlistentry>
@@ -55,10 +54,11 @@
      <term><parameter>use_include_path</parameter></term>
      <listitem>
       <para>
-       Definir <parameter>use_include_path</parameter> como &true; producirá 
-       que PHP intente abrir el archivo a lo largo de la ruta de inclusión estándar, tal y como se define 
-       en la directiva <link linkend="ini.include-path">include_path</link>.
-       Éste parámetro es usado para archivos locales, no URLs.
+       Si el argumento opcional
+       <parameter>use_include_path</parameter> vale &true;,
+       <function>get_meta_tags</function> buscará también el fichero
+       en el <link linkend="ini.include-path">include_path</link>.
+       Este argumento se utiliza para ficheros locales, no para URLs.
       </para>
      </listitem>
     </varlistentry>
@@ -69,15 +69,19 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un array con todas las etiquetas meta procesadas.
+   Devuelve un array que contiene todas las etiquetas meta analizadas.
   </para>
   <para>
-   El valor de la propiedad 'name' se convierte en la clave, el valor del contenido
-   de la propiedad se convierte en el valor del array devuelto, de modo que es posible usar fácilmente
-   funciones estándar de arrays para recorrerlo o acceder a valores sencillos.
-   Los caracteres especiales en el valor de la propiedad name son sustituidos con
-   '_', el resto es convertido a minúsculas. Si dos etiquetas meta tienen el mismo
-   nombre, sólo se devuelve la última.
+   El valor de la propiedad se utilizará como clave del array,
+   y su valor como valor correspondiente de la clave. Así se podrá
+   recorrer fácilmente este array con las funciones
+   estándar de array. Los caracteres especiales presentes en
+   el valor serán reemplazados por un guion bajo (<literal>"_"</literal>),
+   y el resto se convertirá a minúsculas. Si dos etiquetas meta poseen
+   el mismo nombre, solo se devolverá la última.
+  </para>
+  <para>
+   Devuelve &false; en caso de error.
   </para>
  </refsect1>
 
@@ -85,15 +89,15 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Lo que devuelve <function>get_meta_tags</function></title>
+    <title>Lo que devuelve la función <function>get_meta_tags</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Asumiendo que las anteriores etiquetas se encuentran en www.example.com
+// Supongamos que las etiquetas anteriores están disponibles en example.com
 $tags = get_meta_tags('http://www.example.com/');
 
-// Note como las claves están ahora en minúsculas, y como . fue
-// reemplazado con _ en la clave.
+// Observe que las claves están en minúsculas, y
+// el . ha sido reemplazado por _ en la clave
 echo $tags['author'];       // name
 echo $tags['keywords'];     // php documentation
 echo $tags['description'];  // a php manual
@@ -104,16 +108,17 @@ echo $tags['geo_position']; // 49.33;-86.59
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Sólo meta tags que contienen el atributo name serán analizados.
+    Solo se analizarán las etiquetas meta con un atributo name.
+    Las comillas no son necesarias.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -125,7 +130,6 @@ echo $tags['geo_position']; // 49.33;-86.59
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
@@ -146,4 +150,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

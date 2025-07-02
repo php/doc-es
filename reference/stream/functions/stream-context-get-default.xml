@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: f3aca6e5fd6dee9473aa034a1e2214daaf2ad070 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 3abd17e61d5022d503604cc06894254e3281acf5 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.stream-context-get-default" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>stream_context_get_default</refname>
-  <refpurpose>Recuperar el contexto de flujo predeterminado</refpurpose>
+  <refpurpose>Lee el contexto por defecto de los flujos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>resource</type><methodname>stream_context_get_default</methodname>
-   <methodparam choice="opt"><type>array</type><parameter>options</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>options</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <simpara>
-   Devuelve el contexto de flujo predeterminado que es usado siempre que las operaciones con archivos
-   (<function>fopen</function>, <function>file_get_contents</function>, etc...)
-   son llamadas sin un parámetro de contexto. Las opciones para el contexto predeterminado
-   pueden ser especificadas opcionalmente con esta función usando la misma sintaxis que en
-   <function>stream_context_create</function>.
+   <function>stream_context_get_default</function> devuelve el contexto por
+   defecto que se utiliza con las funciones de ficheros como
+   <function>fopen</function>, <function>file_get_contents</function>, etc,
+   cuando se utilizan sin parámetro de contexto. Las opciones del contexto
+   por defecto pueden especificarse opcionalmente con la misma
+   sintaxis que para <function>stream_context_create</function>.
   </simpara>
  </refsect1>
 
@@ -30,16 +32,10 @@
      <term><parameter>options</parameter></term>
      <listitem>
       <simpara>
-       <parameter>options</parameter> debe ser una matriz
-       asociativa de matrices asociativas con el formato
-       <literal>$matriz['envoltura']['opción'] = $valor</literal>.
+       <parameter>options</parameter> debe ser un array asociativo
+       de arrays asociativos, en el formato
+       <literal>$arr['wrapper']['option'] = $value</literal> o &null;.
       </simpara>
-      <note>
-       <para>
-        A partir de PHP 5.3.0, la función <function>stream_context_set_default</function>
-        se puede usar para establecer el contexto predeterminado.
-       </para>
-      </note>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -53,45 +49,67 @@
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>options</parameter> es ahora nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example xml:id="stream-context-get-default.example.basic">
-    <title>Usar <function>stream_context_get_default</function></title>
+     <title>Ejemplo con <function>stream_context_get_default</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$opc_pred = array(
-  'http'=>array(
-    'método'=>"GET",
-    'cabecera'=>"Accept-language: en\r\n" .
-              "Cookie: foo=bar",
-    'proxy'=>"tcp://10.54.1.39:8000"
-  )
-);
+$default_opts = [
+  'http' => [
+    'method' => "GET",
+    'header' => "Accept-language: en\r\n" .
+                "Cookie: foo=bar",
+    'proxy' =>  "tcp://10.54.1.39:8000",
+  ]
+];
 
+$alternate_opts = [
+  'http' => [
+    'method'  => "POST",
+    'header'  => "Content-type: application/x-www-form-urlencoded\r\n" .
+                 "Content-length: " . strlen("baz=bomb"),
+    'content' => "baz=bomb",
+  ]
+];
 
-$opc_alt = array(
-  'http'=>array(
-    'método'=>"POST",
-    'cabecera'=>"Content-type: application/x-www-form-urlencoded\r\n" .
-              "Content-length: " . strlen("baz=bomb"),
-    'contenido'=>"baz=bomb"
-  )
-);
+$default = stream_context_get_default($default_opts);
+$alternate = stream_context_create($alternate_opts);
 
-$predeterminado = stream_context_get_default($opc_pred);
-$alternativo = stream_context_create($opc_alt);
-
-/* Envía una petición GET normal al servidor proxy en 10.54.1.39
- * Para www.example.com usar opciones de contexto especificadas en $opc_pred
+/* Envía una petición GET clásica a un servidor proxy 10.54.1.39
+ * hacia www.example.com, utilizando las opciones de contexto especificadas
+ * en $default_opts
  */
 readfile('http://www.example.com');
 
 /* Envía una petición POST directamente a www.example.com
- * Usar opciones de contexto especificadas en $opc_alt
+ * Utiliza las opciones de contexto de $alternate_opts
  */
-readfile('http://www.example.com', false, $alternativo);
+readfile('http://www.example.com', false, $alternate);
 
 ?>
 ]]>
@@ -105,11 +123,11 @@ readfile('http://www.example.com', false, $alternativo);
   <para>
    <simplelist>
     <member><function>stream_context_create</function></member>
-    <member>Listado de envolturas soportadas con opciones de contexto (<xref linkend="wrappers"/>).</member>
+    <member><function>stream_context_set_default</function></member>
+    <member>Lista de gestores soportados con las opciones de contexto (<xref linkend="wrappers"/>).</member>
    </simplelist>
   </para>
  </refsect1><!-- }}} -->
-
 </refentry>
 
 <!-- Keep this comment at the end of the file

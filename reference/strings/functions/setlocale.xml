@@ -1,31 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 95bdd6883b5dde9504701777ba81b3c5f15df52b Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 45042fef652f1b4e904e809fcbfcf31f6c60670b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://docbook.org/ns/docbook" xml:id="function.setlocale">
  <refnamediv>
   <refname>setlocale</refname>
-  <refpurpose>Establecer la información del localismo</refpurpose>
+  <refpurpose>Modifica la información de configuración local</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>setlocale</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>setlocale</methodname>
    <methodparam><type>int</type><parameter>category</parameter></methodparam>
-   <methodparam><type>string</type><parameter>locale</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>...</parameter></methodparam>
+   <methodparam><type>string</type><parameter>locales</parameter></methodparam>
+   <methodparam rep="repeat"><type>string</type><parameter>rest</parameter></methodparam>
   </methodsynopsis>
+  <simpara>Firma alternativa (no soportada con argumentos nombrados):</simpara>
   <methodsynopsis>
-   <type>string</type><methodname>setlocale</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>setlocale</methodname>
    <methodparam><type>int</type><parameter>category</parameter></methodparam>
-   <methodparam><type>array</type><parameter>locale</parameter></methodparam>
+   <methodparam><type>array</type><parameter>locale_array</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Establece la información del localismo.
+   Establece la información de configuración local.
   </para>
+  <warning>
+   <para>
+    La información local se mantiene por proceso, no por hilo. Si
+    se ejecuta PHP en un servidor multihilo,
+    se podrían obtener cambios repentinos de
+    las configuraciones locales mientras un script se ejecuta, incluso si este
+    nunca llama a la función <function>setlocale</function>.
+    Esto ocurre debido a otros scripts que se ejecutan en
+    hilos diferentes del mismo proceso. Estos scripts cambian las
+    configuraciones locales en todo el proceso utilizando la
+    función <function>setlocale</function>.
+    En Windows, la información local se mantiene por hilo a partir
+    de PHP 7.0.5.
+   </para>
+  </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -34,24 +49,25 @@
      <term><parameter>category</parameter></term>
      <listitem>
       <para>
-       <parameter>category</parameter> es una constante con nombre que especifica la
-       categoría de las funciones afectadas por el localismo:
+       <parameter>category</parameter> es una constante (o una cadena)
+       que especifica la categoría de funciones afectadas por la configuración
+       local:
        <itemizedlist>
         <listitem>
          <simpara>
-          <constant>LC_ALL</constant> para establecer todas las siguientes
+          <constant>LC_ALL</constant> para todas las constantes siguientes
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>LC_COLLATE</constant> para la comparación de cadenas; véase
+          <constant>LC_COLLATE</constant> para la comparación de strings. Ver
           <function>strcoll</function>
          </simpara>
         </listitem>
         <listitem>
          <simpara>
-          <constant>LC_CTYPE</constant> para la clasificación y conversión de caracteres, por
-          ejemplo <function>strtoupper</function>
+          <constant>LC_CTYPE</constant> para la clasificación y conversión de caracteres.
+          Ver <function>ctype_alpha</function>
          </simpara>
         </listitem>
         <listitem>
@@ -61,8 +77,8 @@
         </listitem>
         <listitem>
          <simpara>
-          <constant>LC_NUMERIC</constant> para el separador decimal (véase también
-          <function>localeconv</function>)
+          <constant>LC_NUMERIC</constant> para el separador decimal. Ver
+          <function>localeconv</function>
          </simpara>
         </listitem>
         <listitem>
@@ -73,8 +89,8 @@
         </listitem>
         <listitem>
          <simpara>
-          <constant>LC_MESSAGES</constant> para las respuestas del sistema (disponible si PHP fue compilado con
-          <literal>libintl</literal>)
+          <constant>LC_MESSAGES</constant> para las respuestas del sistema (disponible
+          si PHP ha sido compilado con <literal>libintl</literal>)
          </simpara>
         </listitem>
        </itemizedlist>
@@ -82,118 +98,101 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>locale</parameter></term>
+     <term><parameter>locales</parameter></term>
      <listitem>
       <para>
-       Si <parameter>locale</parameter> es &null; o el string vacío 
-       <literal>""</literal>, los nombres de los localismos se establecerán a partir de los
-       valores de las variables de entorno con los mismos nombres que las categorías
-       anteriores, o desde "LANG".
+       Si <parameter>locales</parameter> es la cadena vacía
+       (<literal>""</literal>), los nombres de locales se tomarán del entorno,
+       a partir de las variables con el mismo nombre que las categorías anteriores, o
+       desde "LANG".
       </para>
       <para>
-       Si <parameter>locale</parameter> es <literal>"0"</literal>,
-       el localismo no se ve afectado, solamente devuelve la configuración actual.
+       Si <parameter>locales</parameter> es <literal>"0"</literal>,
+       la configuración local no se modificará, y se devolverá la configuración
+       actual.
       </para>
       <para>
-       Si <parameter>locale</parameter> es un array o le siguen parámetros
-       adicionales, cada elemento del array o parámetro se intenta establecer como
-       nuevo localismo hasta que se tenga éxito. Esto es útil si un localismo se conoce
-       con diferentes nombres en diferentes sistemas, o para proporcionar un respaldo
-       para un localismo posiblemente no disponible. 
+       Si <parameter>locales</parameter> va seguido
+       por parámetros adicionales, entonces
+       cada parámetro intenta establecerse como nueva configuración local hasta que
+       uno tenga éxito. Esto es útil si la configuración local es conocida bajo
+       diferentes nombres en sistemas diferentes o para prever
+       otro valor en caso de no disponibilidad de la configuración local elegida.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>...</parameter></term>
+     <term><parameter>rest</parameter></term>
      <listitem>
       <para>
-       (String opcional o array de parámetros para probarlos como localismos
-       hasta que se tenga éxito.)
+       Parámetros opcionales de cadena para probar como parámetro de configuración local
+       hasta lograr éxito.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>locale_array</parameter></term>
+     <listitem>
+      <para>
+       Cada elemento del array se intenta establecer como la nueva
+       configuración local hasta lograr éxito. Esto es útil si una configuración local es conocida
+       bajo diferentes nombres en sistemas diferentes o para proporcionar una
+       solución alternativa para una configuración local potencialmente no disponible.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
    <note>
     <para>
-     En Windows, setlocale(LC_ALL, '') establece los nombres del localismo desde la
-     configuración regional o del lenguaje del sistema (accesible por medio del Panel de Control). 
+     En Windows, setlocale(LC_ALL, '') establece los nombres de la configuración local desde
+     la configuración de idioma/región del sistema operativo
+     (accesible desde el Panel de Control).
     </para>
    </note>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el nuevo localismo actual o &false; si la funcionalidad del localismo no
-   está implementada en la plataforma, el localismo especificado no existe, o
-   el nombre de la categoría no es válido.
+   Devuelve la nueva configuración local, o &false; si la configuración local
+   no está implementada en la plataforma, si la variable de configuración local
+   no existe, o si la categoría especificada no es válida.
   </para>
   <para>
-   Un nombre de categoría no válido también produce un mensaje de advertencia. Se pueden encontrar
-   los nombres de las categorías/localismos en la <link xlink:href="&url.rfc;1766">RFC 1766</link>
-   y en la <link xlink:href="&url.iso-639;">ISO 639</link>.
-   Diferentes sistemas tienen diferentes nomenclaturas para los localismos.
+   Un nombre de categoría no válido generará un mensaje
+   de alerta. La lista de nombres de configuraciones locales/categorías puede encontrarse
+   consultando la <link xlink:href="&url.rfc;1766">RFC 1766</link>
+   así como la <link xlink:href="&url.iso-639;">ISO 639</link>. Las diferentes
+   plataformas poseen diferentes convenciones de nomenclatura.
   </para>
   <note>
    <para>
-    El valor de retorno de <function>setlocale</function> depende del
-    sistema donde se está ejecutando PHP. Devuelve exactamente
-    lo que la función <literal>setlocale</literal> del sistema devuelve.
+    El valor devuelto por <function>setlocale</function> depende
+    del sistema en el que PHP está instalado. <function>setlocale</function>
+    devuelve exactamente lo que la función del sistema
+    <literal>setlocale</literal> devuelve.
    </para>
   </note>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>7.0.0</entry>
-       <entry>
-        Se ha eliminado el soporte para el parámetro <parameter>category</parameter> pasado
-        como string. En esta versión, solamente se pueden utilizar las constantes <literal>LC_*</literal>.
-       </entry>
-      </row>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        Está función ahora emite un aviso <constant>E_DEPRECATED</constant> si se pasa un string
-        al parámetro <parameter>category</parameter> en lugar de una de las
-        constantes <literal>LC_*</literal>.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplos de <function>setlocale</function></title>
-    <programlisting role="php">
+    <title>Ejemplo con <function>setlocale</function></title>
+    <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
-/* Establecer el localismo al holandés */
+/* Configura el script en holandés */
 setlocale(LC_ALL, 'nl_NL');
 
 /* Muestra: vrijdag 22 december 1978 */
 echo strftime("%A %e %B %Y", mktime(0, 0, 0, 12, 22, 1978));
 
-/* Probar diferentes nombres posibles de localismos para el alemán */
+/* Prueba diferentes valores posibles para el alemán */
 $loc_de = setlocale(LC_ALL, 'de_DE@euro', 'de_DE', 'de', 'ge');
-echo "El localismo preferido para el alemán en este sistema es '$loc_de'";
+echo "El identificador del alemán en este sistema es '$loc_de'";
 ?>
 ]]>
     </programlisting>
@@ -201,54 +200,43 @@ echo "El localismo preferido para el alemán en este sistema es '$loc_de'";
   </para>
   <para>
    <example>
-    <title>Ejemplos para Windows de <function>setlocale</function></title>
-    <programlisting role="php">
+    <title>Ejemplo con <function>setlocale</function> en Windows</title>
+    <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
-/* Establecer el localismo al holandés */
+/* Configura el script en holandés */
 setlocale(LC_ALL, 'nld_nld');
 
 /* Muestra: vrijdag 22 december 1978 */
 echo strftime("%A %d %B %Y", mktime(0, 0, 0, 12, 22, 1978));
 
-/* Probar diferentes nombres posibles de localismos para el alemán */
+/* Prueba diferentes valores posibles para el alemán */
 $loc_de = setlocale(LC_ALL, 'de_DE@euro', 'de_DE', 'deu_deu');
-echo "El localismo preferido para el alemán en este sistema es '$loc_de'";
+echo "El identificador del alemán en este sistema es '$loc_de'";
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
-  <warning>
-   <para>
-    La información del localismo se mantiene por proceso, no por hilo. Si se
-    está ejecutanto PHP en una API de servidor multihilo como IIS, HHVM o Apache sobre
-    Windows, se pueden experimentar cambios repentinos en la configuración local mientras
-    se esté ejecutando un script, aunque el propio script nunca llame a
-    <function>setlocale</function>. Esto ocurre debido a que otros scripts
-    ejecutándose en diferentes hilos de un mismo proceso, al mismo tiempo,
-    cambian el localismo de todo el proceso con <function>setlocale</function>.
-   </para>
-  </warning>
   <tip>
    <para>
-    Los usuarios de Windows encontrarán información útil sobre
-    string de <parameter>locale</parameter> en el sitio web 
-    <acronym>MSDN</acronym> de Microsoft. Los string de los idiomas soportados se pueden encontrar
-    en la
-    <link xlink:href="&url.setlocale.lang.win32;">documentación de string de idiomas</link>
-    y los string de paises/regiones en la
-    <link xlink:href="&url.setlocale.country.win32;">documentación de string de países/regiones</link>.
+    Los usuarios de Windows encontrarán información útil
+    sobre el parámetro <parameter>locales</parameter> en el sitio web
+    <acronym>MSDN</acronym> de Microsoft.
+    Las configuraciones locales soportadas pueden encontrarse
+    <link xlink:href="&url.setlocale.lang.win32;">en la página de la
+    documentación de las cadenas de idioma</link> y las cadenas de
+    país/región <link xlink:href="&url.setlocale.country.win32;">en la página
+    de la documentación de las cadenas de país/región</link>.
    </para>
   </tip>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

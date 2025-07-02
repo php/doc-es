@@ -1,29 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: 855bfee2f3db70d7dbb4c60c7c4a4efa567f1c60 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="sqlite3.createaggregate" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>SQLite3::createAggregate</refname>
-  <refpurpose>Registrar una función de PHP para usarla como una función totalizadora de SQL</refpurpose>
+  <refpurpose>Registra una función PHP para ser utilizada como función de agregación SQLite</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="SQLite3">
    <modifier>public</modifier> <type>bool</type><methodname>SQLite3::createAggregate</methodname>
    <methodparam><type>string</type><parameter>name</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>step_callback</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>final_callback</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>argument_count</parameter><initializer>-1</initializer></methodparam>
+   <methodparam><type>callable</type><parameter>stepCallback</parameter></methodparam>
+   <methodparam><type>callable</type><parameter>finalCallback</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>argCount</parameter><initializer>-1</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Registra una función de PHP o una definida por el usuario para usarla como una función
-   totalizadora de SQL para utilizarla dentro de sentencias SQL.
+   Registra una función PHP o una función definida por el usuario para ser
+   utilizada como función de agregación SQL, que será utilizada en las consultas
+   SQL.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -32,53 +31,223 @@
      <term><parameter>name</parameter></term>
      <listitem>
       <para>
-       El nombre de la función totalizadora de SQL a crear o redefinir.
+       Nombre de la función de agregación SQL a crear o redefinir.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>step_callback</parameter></term>
+     <term><parameter>stepCallback</parameter></term>
      <listitem>
       <para>
-       El nombre de una función de PHP o una definida por el usuario para aplicarla como una
-       llamada de retorno para cada elemento del total.
+       Función de retrollamada llamada para cada fila en el conjunto de resultados. Su
+       función PHP debería acumular el resultado y almacenar su contexto de agregación.
+      </para>
+      <para>
+       Esta función debe ser definida como:
+       <methodsynopsis>
+        <type>mixed</type><methodname><replaceable>step</replaceable></methodname>
+        <methodparam><type>mixed</type><parameter>context</parameter></methodparam>
+        <methodparam><type>int</type><parameter>rownumber</parameter></methodparam>
+        <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+        <methodparam rep="repeat"><type>mixed</type><parameter>values</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>context</parameter></term>
+         <listitem>
+          <para>
+           &null; para la primera fila; en las filas siguientes esto tendrá el valor
+           que previamente fue retornado por la función step; debería utilizarse
+           esto para mantener el estado de agregación.
+          </para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>rownumber</parameter></term>
+         <listitem>
+          <para>
+           El número de fila actual.
+          </para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>value</parameter></term>
+         <listitem>
+          <para>
+           El primer argumento a pasar al agregador.
+          </para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>values</parameter></term>
+         <listitem>
+          <para>
+           Argumentos adicionales a pasar al agregador.
+          </para>
+         </listitem>
+        </varlistentry>
+       </variablelist>
+       El valor retornado por esta función será utilizado como argumento
+       <parameter>context</parameter> durante la próxima llamada a una función
+       de paso o final.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>final_callback</parameter></term>
+     <term><parameter>finalCallback</parameter></term>
      <listitem>
       <para>
-       El nombre de una función de PHP o una definida por el usuario para aplicarla como una
-       llamada de retorno al final de la información del total.
+       Función de retrollamada para agregar los "pasos" de datos de cada fila.
+       Una vez que todas las filas han sido procesadas, la función será llamada,
+       tomará los datos del contexto de agregación y retornará el resultado.
+       La función de retrollamada debe retornar un tipo comprendido por SQLite
+       (i.e. un <link linkend="language.types.intro">tipo escalar</link>).
+      </para>
+      <para>
+       Esta función debe ser definida como:
+       <methodsynopsis>
+        <type>mixed</type><methodname><replaceable>fini</replaceable></methodname>
+        <methodparam><type>mixed</type><parameter>context</parameter></methodparam>
+        <methodparam><type>int</type><parameter>rownumber</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>context</parameter></term>
+         <listitem>
+          <para>
+           Contiene el valor de retorno de la última llamada a la función step.
+          </para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>rownumber</parameter></term>
+         <listitem>
+          <para>
+           Siempre <literal>0</literal>.
+          </para>
+         </listitem>
+        </varlistentry>
+       </variablelist>
+       El valor de retorno de esta función será utilizado como valor de retorno para
+       la agregación.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>argument_count</parameter></term>
+     <term><parameter>argCount</parameter></term>
      <listitem>
       <para>
-       El número de argumentos que toma la función de SQL. Si
-       este parámetro es negativo, la función de SQL puede tomar
-       cualquier número de argumentos.
+       El número de argumentos tomados por la función de agregación SQL.
+       Si este número es negativo, entonces la función de agregación SQL
+       podrá tomar un número no definido de argumentos.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
-  
+
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si la creación de la función totalizadora tuvo éxito, &false; en case de
-   error.
+   Retorna &true; si la creación del agregado ha tenido éxito, &return.falseforfailure;.
   </para>
  </refsect1>
- 
-</refentry>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo de una función de agregación con max_length</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$data = array(
+   'one',
+   'two',
+   'three',
+   'four',
+   'five',
+   'six',
+   'seven',
+   'eight',
+   'nine',
+   'ten',
+   );
+$db = new SQLite3(':memory:');
+$db->exec("CREATE TABLE strings(a)");
+$insert = $db->prepare('INSERT INTO strings VALUES (?)');
+foreach ($data as $str) {
+    $insert->bindValue(1, $str);
+    $insert->execute();
+}
+$insert = null;
+
+function max_len_step($context, $rownumber, $string)
+{
+    if (strlen($string) > $context) {
+        $context = strlen($string);
+    }
+    return $context;
+}
+
+function max_len_finalize($context, $rownumber)
+{
+    return $context === null ? 0 : $context;
+}
+
+$db->createAggregate('max_len', 'max_len_step', 'max_len_finalize');
+
+var_dump($db->querySingle('SELECT max_len(a) from strings'));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen role="php">
+<![CDATA[
+int(5)
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   En este ejemplo, se crea una función agregativa que calculará la
+   longitud de la cadena de caracteres más larga en una de las columnas de la
+   tabla. Para cada fila, la función <literal>max_len_step</literal> es
+   llamada y el parámetro <literal>$context</literal> es pasado. El
+   parámetro de contexto es como cualquier otra variable PHP y debe ser fijado para
+   contener un array o incluso, un objeto. En este ejemplo,
+   se utiliza para contener la longitud máxima que se ha visto hasta el momento; si el
+   parámetro <literal>$string</literal> tiene una longitud mayor que la actual, se
+   actualiza el contexto para contener esta nueva longitud máxima.
+  </para>
+  <para>
+   Una vez que todas las filas han sido procesadas, SQLite llama a la función
+   <literal>max_len_finalize</literal> para determinar el resultado agregativo.
+   Aquí, se podrían realizar cálculos basados en los datos encontrados
+   en <literal>$context</literal>. En nuestro ejemplo simple, hemos
+   calculado el resultado como si la consulta estuviera progresando, aunque simplemente
+   necesitamos retornar el valor de contexto.
+  </para>
+  <tip>
+   <para>
+    No se RECOMIENDA registrar una copia de los valores en el contexto
+    para finalmente procesarlos. En este caso, SQLite utilizaría mucha memoria
+    para procesar la consulta - imagine la cantidad de memoria necesaria
+    si un millón de filas fueran registradas en memoria, sabiendo que cada fila
+    contiene una cadena de caracteres (32 bytes por cadena).
+   </para>
+  </tip>
+  <tip>
+   <para>
+    Puede utilizarse <methodname>SQLite3::createAggregate</methodname> para sobrescribir las
+    funciones nativas de SQLite.
+   </para>
+  </tip>
+ </refsect1>
+
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

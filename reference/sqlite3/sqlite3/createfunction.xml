@@ -1,28 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: af4410a7e15898c3dbe83d6ea38246745ed9c6fb Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: f27cfeeefc13717f86a53d7fefa0ce54f7bfaaaf Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="sqlite3.createfunction" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>SQLite3::createFunction</refname>
-  <refpurpose>Registrar una función de PHP para usarla como una función escalar de SQL</refpurpose>
+  <refpurpose>Registra una función PHP para su uso como función escalar SQL</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="SQLite3">
    <modifier>public</modifier> <type>bool</type><methodname>SQLite3::createFunction</methodname>
    <methodparam><type>string</type><parameter>name</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>callback</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>argument_count</parameter><initializer>-1</initializer></methodparam>
+   <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>argCount</parameter><initializer>-1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Registra un función de PHP o una definida por el usuario para usarla como una función escalar de
-   SQL para utilizarla dentro de sentencias SQL.
+   Registra una función PHP o una función de usuario para su uso como
+   función escalar SQL, para su utilización en las consultas SQL.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -31,7 +30,7 @@
      <term><parameter>name</parameter></term>
      <listitem>
       <para>
-       El nombre de la función de SQL a crear o redefinir.
+       Nombre de la función SQL a crear o redefinir.
       </para>
      </listitem>
     </varlistentry>
@@ -39,64 +38,122 @@
      <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       El nombre de una función de PHP o una definida por el usuario para aplicarla como una
-       llamada de retorno, definiendo el comportamiento de la función de SQL.
+       El nombre de la función PHP o la función de usuario a aplicar
+       como callback, definiendo el comportamiento de la función SQL.
+      </para>
+      <para>
+       Esta función debe ser definida como:
+       <methodsynopsis>
+        <type>mixed</type><methodname><replaceable>callback</replaceable></methodname>
+        <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+        <methodparam rep="repeat"><type>mixed</type><parameter>values</parameter></methodparam>
+       </methodsynopsis>
+       <variablelist>
+        <varlistentry>
+         <term><parameter>value</parameter></term>
+         <listitem>
+          <para>
+           El primer argumento a pasar a la función SQL.
+          </para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
+         <term><parameter>values</parameter></term>
+         <listitem>
+          <para>
+           Argumentos adicionales a pasar a la función SQL.
+          </para>
+         </listitem>
+        </varlistentry>
+       </variablelist>
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>argument_count</parameter></term>
+     <term><parameter>argCount</parameter></term>
      <listitem>
       <para>
-       El número de argumentos que toma la función de SQL. Si
-       este parámetro es negativo, la función de SQL puede tomar
-       cualquier número de argumentos.
+       Número de argumentos que la función SQL acepta. Si este parámetro es
+       <literal>-1</literal>, la función SQL puede aceptar cualquier número
+       de argumentos.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>flags</parameter></term>
+     <listitem>
+      <para>
+       Una conjunción de operaciones a nivel de bits de indicadores. Actualmente, solo
+       <constant>SQLITE3_DETERMINISTIC</constant> es soportado, lo cual
+       especifica que la función devuelve siempre el mismo resultado dado
+       los mismos argumentos en una sola instrucción SQL.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
-  
+
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve &true; si la creación de la función tuvo éxito, &false; en case de error.
+   Devuelve &true; si la función fue creada con éxito, &false; si ocurre un error.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>7.1.4</entry>
+      <entry>
+       El parámetro <parameter>flags</parameter> fue añadido.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>SQLite3::createFunction</function></title>
+    <title>Ejemplo con <function>SQLite3::createFunction</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-function mi_fdu_md5($cadena) {
-    return md5($cadena);
+function my_udf_md5($string) {
+    return hash('md5', $string);
 }
 
-$bd = new SQLite3('mibdsqlite.db');
-$bd->createFunction('mi_fdu_md5', 'mi_fdu_md5');
+$db = new SQLite3('mysqlitedb.db');
+$db->createFunction('my_udf_md5', 'my_udf_md5');
 
-var_dump($db->querySingle('SELECT mi_fdu_md5("prueba")'));
+var_dump($db->querySingle('SELECT my_udf_md5("test")'));
 ?>
 ]]>
     </programlisting>
     &example.outputs.similar;
     <screen>
 <![CDATA[
-string(32) "c893bad68927b457dbed39460e6afd62"
+string(32) "098f6bcd4621d373cade4e832627b4f6"
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

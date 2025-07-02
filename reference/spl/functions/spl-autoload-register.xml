@@ -1,51 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b8758b0605e80c4e3610137b7502a6abeea5c69b Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: d4b762e22e53d959330b53674b73841cfff4dddf Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.spl-autoload-register" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>spl_autoload_register</refname>
-  <refpurpose>Registrar las funciones dadas como implementación de __autoload()</refpurpose>
+  <refpurpose>Registra una función como implementación de __autoload()</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>spl_autoload_register</methodname>
-   <methodparam choice="opt"><type>callable</type><parameter>autoload_function</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>callable</type><type>null</type></type><parameter>callback</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>bool</type><parameter>throw</parameter><initializer>&true;</initializer></methodparam>
    <methodparam choice="opt"><type>bool</type><parameter>prepend</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Registra una función con la cola de __autoload proporcionada por spl. Si la cola
-   aún no ha sido activa, será activada.
+   <function>spl_autoload_register</function> registra una función
+   en la pila <function>__autoload</function> proporcionada. Si la pila
+   no está activa, se activa.
   </para>
   <para>
-   Si el código contiene una función <function>__autoload</function> existente,
-   dicha función debe estar explícitamente registrada en la cola de __autoload. Esto
-   es debido a que <function>spl_autoload_register</function> de hecho reemplazará
-   la caché del motor para la función <function>__autoload</function>
-   mediante <function>spl_autoload</function> o
+   Si el código ya dispone de una función <function>__autoload</function>,
+   entonces esta función debe registrar explícitamente la pila __autoload.
+   Esto se debe a que <function>spl_autoload_register</function>
+   reemplaza la caché del motor para la función
+   <function>__autoload</function> por <function>spl_autoload</function> o
    <function>spl_autoload_call</function>.
   </para>
   <para>
-   Si deben haber varias funciones de autocarga, <function>spl_autoload_register</function> 
-   lo permite. De hecho, crea una cola de funciones de autocarga y
-   las recorre en el orden en que fueron definidas. Por el contrario,
-   <function>__autoload</function> sólo puede definirse una vez.
+   Si se deben utilizar múltiples funciones de autocarga,
+   la función <function>spl_autoload_register</function> está diseñada para ello.
+   Crea una cola de funciones de autocarga y las ejecuta
+   una tras otra, en el orden en que fueron definidas.
+   A diferencia, la función <function>__autoload</function> solo puede definirse una vez.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>autoload_function</parameter></term>
+     <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       La función de autocarga a registrar.
-       Si no se proporciona ningún parámetro, será registrada la implementación
-       predeterminada de <function>spl_autoload</function>.
+       La función de autoload a registrar.
+       Si es &null;, entonces se registrará la implementación
+       por defecto de la función <function>spl_autoload</function>.
+      </para>
+      <methodsynopsis>
+       <type>void</type><methodname><replaceable>callback</replaceable></methodname>
+       <methodparam><type>string</type><parameter>class</parameter></methodparam>
+      </methodsynopsis>
+      <para>
+       El <parameter>class</parameter> no contendrá el backslash inicial
+       de un identificador completamente cualificado.
       </para>
      </listitem>
     </varlistentry>
@@ -54,32 +64,41 @@
      <listitem>
       <para>
        Este parámetro especifica si
-       <function>spl_autoload_register</function> debería lanzar
-       excepciones cuando el parámetro <parameter>autoload_function</parameter>
-       no puede ser registrado.
+       <function>spl_autoload_register</function> debe lanzar
+       excepciones cuando el <parameter>callback</parameter>
+       no ha podido ser registrado.
       </para>
+      <warning>
+        <para>
+          Este parámetro es ignorado a partir de PHP 8.0.0, y se emitirá
+          un aviso si se define como &false;. <function>spl_autoload_register</function>
+          siempre lanzará una <classname>TypeError</classname> con argumentos
+          no válidos.
+        </para>
+      </warning>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>prepend</parameter></term>
      <listitem>
       <para>
-       Si es &true;, <function>spl_autoload_register</function> antepondrá
-       el autocargador en la pila de autocarga en vez de posponerlo.
+       Si este parámetro vale &true;, <function>spl_autoload_register</function>
+       añadirá la función al principio de la pila del autoloader
+       en lugar de añadirla al final de la pila.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -93,15 +112,9 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.3.0</entry>
+       <entry>8.0.0</entry>
        <entry>
-        Se introdujo el soporte para espacios de nombres.
-       </entry>
-      </row>
-      <row>
-       <entry>5.3.0</entry>
-       <entry>
-        Se añadio el parámetro <parameter>prepend</parameter>.
+        <parameter>callback</parameter> ahora es nullable.
        </entry>
       </row>
      </tbody>
@@ -109,29 +122,29 @@
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title><function>spl_autoload_register</function> como sustituto de una función <function>__autoload</function></title>
+    <title>Ejemplo con <function>spl_autoload_register</function> como reemplazo de una función <function>__autoload</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// function __autoload($clase) {
-//     include 'clases/' . $clase . '.clase.php';
+// function __autoload($class) {
+//     include 'classes/' . $class . '.class.php';
 // }
 
-function mi_autocargador($clase) {
-    include 'clases/' . $clase . '.clase.php';
+function my_autoloader($class) {
+    include 'classes/' . $class . '.class.php';
 }
 
-spl_autoload_register('mi_autocargador');
+spl_autoload_register('my_autoloader');
 
-// O, utilizar una función anónima, a partir de PHP 5.3.0
-spl_autoload_register(function ($clase) {
-    include 'clases/' . $clase . '.clase.php';
+// O, utilizando una función anónima
+spl_autoload_register(function ($class) {
+    include 'classes/' . $class . '.class.php';
 });
 
 ?>
@@ -139,7 +152,7 @@ spl_autoload_register(function ($clase) {
     </programlisting>
    </example>
    <example>
-    <title>Ejemplo de <function>spl_autoload_register</function> donde la clase no es cargada</title>
+    <title>Ejemplo con <function>spl_autoload_register</function> donde la clase no es cargada</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -147,14 +160,14 @@ spl_autoload_register(function ($clase) {
 namespace Foobar;
 
 class Foo {
-    static public function test($nombre) {
-        print '[['. $nombre .']]';
+    static public function test($class) {
+        print '[['. $class .']]';
     }
 }
 
-spl_autoload_register(__NAMESPACE__ .'\Foo::test'); // A partir de PHP 5.3.0
+spl_autoload_register(__NAMESPACE__ .'\Foo::test');
 
-new ClaseInexistente;
+new InexistentClass;
 
 ?>
 ]]>
@@ -162,14 +175,42 @@ new ClaseInexistente;
     &example.outputs.similar;
     <screen>
 <![CDATA[
-[[Foobar\ClaseInexistente]]
-Fatal error: Class 'Foobar\ClaseInexistente' not found in ...
+[[Foobar\InexistentClass]]
+Fatal error: Class 'Foobar\InexistentClass' not found in ...
+]]>
+    </screen>
+   </example>
+   <example>
+    <title>El identificador será proporcionado sin el backslash inicial.</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+spl_autoload_register(static function ($class) {
+    var_dump($class);
+});
+
+class_exists('RelativeName');
+class_exists('RelativeName\\WithNamespace');
+class_exists('\\AbsoluteName');
+class_exists('\\AbsoluteName\\WithNamespace');
+
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(12) "RelativeName"
+string(26) "RelativeName\WithNamespace"
+string(12) "AbsoluteName"
+string(26) "AbsoluteName\WithNamespace"
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -178,9 +219,7 @@ Fatal error: Class 'Foobar\ClaseInexistente' not found in ...
    </simplelist>
   </para>
  </refsect1>
- 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

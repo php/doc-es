@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.socket-getpeername">
+<!-- EN-Revision: 5eaa3458d57434d0ce08207726a7d25df2994c6d Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.socket-getpeername" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>socket_getpeername</refname>
-  <refpurpose>Pregunta a la parte remota del socket dado que puede resultar en un host/puerto o en una ruta de sistema de archivos Unix, dependiendo de su tipo</refpurpose>
+  <refpurpose>Interroga el otro extremo de la comunicación</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>socket_getpeername</methodname>
-   <methodparam><type>resource</type><parameter>socket</parameter></methodparam>
+   <methodparam><type>Socket</type><parameter>socket</parameter></methodparam>
    <methodparam><type>string</type><parameter role="reference">address</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter role="reference">port</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter role="reference">port</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Pregunta a la parte remota del socket dado que puede resultar en un host/puerto o
-   en una ruta de sistema de archivos Unix, dependiendo de su tipo.
+   Interroga el otro extremo de la comunicación.
   </para>
  </refsect1>
 
@@ -29,8 +29,8 @@
      <term><parameter>socket</parameter></term>
      <listitem>
       <para>
-       Un recurso socket válido creado con <function>socket_create</function>
-       o <function>socket_accept</function>.
+       Una instancia de <classname>Socket</classname> creada por
+       <function>socket_create</function> o <function>socket_accept</function>.
       </para>
      </listitem>
     </varlistentry>
@@ -38,18 +38,19 @@
      <term><parameter>address</parameter></term>
      <listitem>
       <para>
-       Si el socket dado es de tipo <constant>AF_INET</constant> o
-       <constant>AF_INET6</constant>, <function>socket_getpeername</function>
-       devolverá la <emphasis>dirección IP</emphasis> de los pares (remotos) en
-       la notación apropiada (p.ej. <literal>127.0.0.1</literal> o
-       <literal>fe80::1</literal>) en el parámetro <parameter>address</parameter>,
-       y si el parámetro opcional <parameter>port</parameter> está
-       presente, también el puerto asociado.
+       Si el socket <parameter>socket</parameter> es de tipo
+       <constant>AF_INET</constant> o <constant>AF_INET6</constant>,
+       <function>socket_getpeername</function> devolverá
+       <emphasis>la dirección IP</emphasis> del host, en notación numérica (por ejemplo,
+       <literal>127.0.0.1</literal> o <literal>fe80::1</literal>) en el
+       parámetro <parameter>address</parameter>, y si el parámetro opcional
+       <parameter>port</parameter> está presente, también devolverá el puerto
+       de la comunicación establecida.
       </para>
       <para>
-       Si el socket dado es de tipo <constant>AF_UNIX</constant>,
-       <function>socket_getpeername</function> devolverá la ruta del sistema de archivos
-       Unix (p.ej. <literal>/var/run/daemon.sock</literal>) en el
+       Si el socket <parameter>socket</parameter> es de tipo <constant>AF_UNIX</constant>,
+       <function>socket_getpeername</function> devolverá la ruta en el
+       sistema de archivos (por ejemplo, <literal>/var/run/daemon.sock</literal>) en el
        parámetro <parameter>address</parameter>.
       </para>
      </listitem>
@@ -58,8 +59,8 @@
      <term><parameter>port</parameter></term>
      <listitem>
       <para>
-       Si se da, contendrá el puerto asociado a
-       <parameter>address</parameter>.
+       Si se proporciona, este debe ser el puerto asociado a la dirección
+       del parámetro <parameter>address</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -70,29 +71,46 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success; <function>socket_getpeername</function> puede también devolver
-   &false; si el tipo de socket no es ni <constant>AF_INET</constant>,
-   <constant>AF_INET6</constant>, ni <constant>AF_UNIX</constant>, en cuyo
-   caso <emphasis>no</emphasis> se actualiza el último código de error de socket.
+   &return.success; <function>socket_getpeername</function> también puede
+   devolver &false; si el tipo del socket no es ni <constant>AF_INET</constant>,
+   <constant>AF_INET6</constant> ni <constant>AF_UNIX</constant>, en cuyo caso el
+   último código de error del socket <emphasis>no</emphasis> se modifica.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &sockets.changelog.socket-param;
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    <function>socket_getpeername</function> no debería usarse con
-    sockets <constant>AF_UNIX</constant> creados con <function>socket_accept</function>.
-    Sólo los sockets creados con <function>socket_connect</function> o un socket
-    principal de servidor seguido de una llamada a <function>socket_bind</function> devolverán
-    valores con sentido.
+    <function>socket_getsockname</function> no debe usarse con los sockets
+    <constant>AF_UNIX</constant> creados con <function>socket_accept</function>.
+    Solo los sockets creados con <function>socket_connect</function> o un socket
+    servidor primario tras una llamada a <function>socket_bind</function> devolverán
+    valores lógicos.
    </para>
   </note>
   <note>
    <para>
-    Para hacer que <function>socket_getpeername</function> devuelva un valor con sentido,
-    el socket sobre el que es aplicado debe ser, por supuesto, uno cuyo concepto de
-    "par" tenga sentido.
+    Para que la función <function>socket_getpeername</function> devuelva un
+    valor coherente, el socket sobre el que se llama a la función debe ser
+    evidentemente uno para el que el concepto de "peer" tiene sentido.
    </para>
   </note>
  </refsect1>
@@ -109,7 +127,6 @@
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
