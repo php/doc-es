@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: b27f1ae1bf9b77b4140b5b8d0c993f91835ef535 Maintainer: yago Status: ready -->
-<!-- Reviewed: no Maintainer: yago -->
-<refentry xml:id="memcache.addserver" xmlns="http://docbook.org/ns/docbook"> 
+<!-- EN-Revision: 1c3a0a021e0d97acce54fda55f6e941557056afe Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
+<refentry xml:id="memcache.addserver" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>Memcache::addServer</refname>
-  <refpurpose>Añadir servidor memcache al grupo de conexiones</refpurpose>
+  <refname>memcache_add_server</refname>
+  <refpurpose>Añade un servidor memcache a la lista de conexión</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -22,35 +23,49 @@
    <methodparam choice="opt"><type>callable</type><parameter>failure_callback</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>timeoutms</parameter></methodparam>
   </methodsynopsis>
-  
+  <methodsynopsis>
+   <type>bool</type><methodname>memcache_add_server</methodname>
+   <methodparam><type>Memcache</type><parameter>memcache</parameter></methodparam>
+   <methodparam><type>string</type><parameter>host</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>port</parameter><initializer>11211</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>persistent</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>weight</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>timeout</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>retry_interval</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>status</parameter></methodparam>
+   <methodparam choice="opt"><type>callable</type><parameter>failure_callback</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>timeoutms</parameter></methodparam>
+  </methodsynopsis>
+
   <para>
-   <function>Memcache::addServer</function> añade un servidor al grupo de conexiones.
-   También se puede usar la función <function>memcache_add_server</function>.
+   <function>Memcache::addServer</function> añade un servidor a la lista de
+   conexión.
   </para>
-  
+
   <para>
-   Cuando se usa este método (opuestamente a <function>Memcache::connect</function> y
-   <function>Memcache::pconnect</function>) la conexión no se establece hasta que es
-   necesaria. De esta forma no hay sobrecarga al añadir un gran número de servidores
-   en el grupo de conexiones, aunque no todos van a ser utilizados.
+   Al utilizar este método (a diferencia de los métodos
+   <function>Memcache::connect</function> y <function>Memcache::pconnect</function>),
+   la conexión a la red no se establece hasta que sea necesaria. Además,
+   no hay inconveniente en añadir muchos servidores a la lista, incluso si no
+   todos serán utilizados.
   </para>
-  
+
   <para>
-   La conexión puede caer en cualquier momento usando cualquiera de los métodos, mientras
-   otros servidores estén disponibles para hacer la petición el usuario no notará
-   nada. Cualquier tipo de errores de socket o servidor Memcached (excepto out-of-memory)
-   seguramente harán caer la conexión. Errores en el cliente como añadir una llave que
-   ya existe no provocará la caida de la conexión.
+   El fallo puede producirse en cualquier momento con cualquier
+   método siempre que otros servidores estén disponibles, la petición
+   no emitirá error. Cualquier interfaz de conexión o nivel de errores de servidor Memcache (a excepción de la falta de memoria) puede
+   lanzar el fallo. Errores normales de cliente como añadir una
+   clave existente no lanzará un fallo.
   </para>
-  
+
   <note>
    <para>
-    Esta función fué añadida en Memcache versión 2.0.0.
+    Esta función fue añadida en la versión 2.0.0 de Memcache.
    </para>
   </note>
-  
+
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -59,11 +74,8 @@
      <term><parameter>host</parameter></term>
      <listitem>
       <para>
-       Apunta al host donde memcached está esperando conexiones. Este parámetro
-       también se puede especificar con otros transportes como 
-       <literal>unix:///path/to/memcached.sock</literal> para usar domain UNIX sockets, 
-       en este caso <parameter>port</parameter> debe también
-       establecerse a <literal>0</literal>.
+       Apunta al host donde memcache escucha para conexiones. Este parámetro puede especificar también otros transportes como <literal>unix:///path/to/memcached.sock</literal>
+       para usar sockets Unix, y en este caso, <parameter>port</parameter> debe definirse también a <literal>0</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -71,14 +83,15 @@
      <term><parameter>port</parameter></term>
      <listitem>
       <para>
-       Apunta al puerto donde memcache está esperando para conexiones.
-       Establece este parámetro a <literal>0</literal> cuando se usan UNIX domain sockets.
+       Apunta al puerto donde memcache escucha para conexiones.
+       Defínase este parámetro a <literal>0</literal> al usar sockets Unix.
       </para>
       <para>
-       Por favor note: <parameter>port</parameter> será por defecto
+       Nota: Por omisión, el parámetro <parameter>port</parameter>
+       toma el valor de la opción de configuración
        <link linkend="ini.memcache.default-port">memcache.default_port</link>
-       en caso de no especificarse. Por esta razón, se recomienda especificar
-       el puerto explícitamente en la llamada a este método.
+       cuando no se especifica. Por esta razón, es recomendable
+       especificar explícitamente el puerto al llamar a este método.
       </para>
      </listitem>
     </varlistentry>
@@ -86,7 +99,8 @@
      <term><parameter>persistent</parameter></term>
      <listitem>
       <para>
-       Controla el uso de una conexión persistente. Por defecto &true;. 
+       Controla el uso de una conexión persistente. El valor por
+       omisión es &true;.
       </para>
      </listitem>
     </varlistentry>
@@ -94,9 +108,9 @@
      <term><parameter>weight</parameter></term>
      <listitem>
       <para>
-       Número de segmentos para crear de este servidor, que a su vez controlan la
-       probabilidad de que sea seleccionado. La probabilidad es relativa a la
-       de peso total de todos los servidores.
+       Número de entradas a crear para este servidor que a su vez controla su
+       probabilidad de ser elegido. La probabilidad es relativa al peso total
+       de todos los servidores.
       </para>
      </listitem>
     </varlistentry>
@@ -104,9 +118,9 @@
      <term><parameter>timeout</parameter></term>
      <listitem>
       <para>
-       Valor en segundos que se utilizará para conectar con el demonio. Piense
-       dos veces antes de cambiar el valor predeterminado de 1 segundo - se 
-       puede perder todas las ventajas de la caché si su conexión es demasiado lenta.
+       Valor en segundos que será utilizado para conectarse al demonio.
+       Piénsese dos veces antes de cambiar el valor por omisión de un segundo
+       - podría perderse todos los beneficios de usar la caché si la conexión es demasiado lenta.
       </para>
      </listitem>
     </varlistentry>
@@ -114,18 +128,20 @@
      <term><parameter>retry_interval</parameter></term>
      <listitem>
       <para>
-       Controla la frecuencia de reintentos cuando falla la conexión, el valor por defecto es 
-       15 segundos. Si establece este parámetro a -1 desactivará el reintento automático.
-       Ni esta opción ni el parámetro <parameter>persistent</parameter> tienen ningún efecto
-       cuando la extensión se carga dinámicamente a través de <function>dl</function>.
+       Controla cuántas veces se intentará un servidor que falla, el valor
+       por omisión es de 15 segundos. Si este parámetro vale -1, no se realizará
+       ningún nuevo intento. Ni este parámetro, ni el parámetro
+       <parameter>persistent</parameter> tienen efecto cuando esta extensión
+       se carga dinámicamente mediante la función <function>dl</function>.
       </para>
       <para>
-       Cada conexión struct fallida tiene su propio timeout y antes de que caduque,
-       el struct será omitido cuando se selecionen backends para servir una petición.Cuando
-       caduque la conexión se reconectará satisfactoriamente o se marcará como fallida
-       por otros <parameter>retry_interval</parameter> segundos. El típico efecto es
-       que cada servidor web hijo reintentará la conexión cada <parameter>retry_interval</parameter> 
-       cuando se sirven páginas.
+       Cada estructura de conexión fallida tiene su propio tiempo límite
+       y antes de que este expire, será saltada durante la selección del
+       proceso para servir una petición. Una vez expirado, la conexión será
+       correctamente reconectada o marcada como fallida por otro
+       intervalo de <parameter>retry_interval</parameter> segundos. El efecto
+       típico es que cada hijo de servidor web intentará la conexión
+       cada <parameter>retry_interval</parameter> segundos al servir una página.
       </para>
      </listitem>
     </varlistentry>
@@ -133,12 +149,14 @@
      <term><parameter>status</parameter></term>
      <listitem>
       <para>
-       Controla si el servidor debe ser marcado como online. Estableciendo este parámetro
-       a &false; y <parameter>retry_interval</parameter> a -1 permite a un servidor que falle
-       a ser mantenido en el grupo para no afectar el algoritmo de distribución de llaves.
-       Las peticiones a este servidor fallarán inmediatamente dependiendo en la opción
-       <parameter>memcache.allow_failover</parameter>. Por defecto to &true;, que significa
-       que el servidor se considera online.
+       Controla si el servidor debe ser indicado como en línea.
+       Cuando este parámetro vale &false; y el parámetro <parameter>retry_interval</parameter>
+       vale -1, permite mantener un servidor fallido en la lista
+       y no afectará al algoritmo de distribución de claves. Las peticiones
+       para este servidor fallarán inmediatamente según la configuración del
+       parámetro <parameter>memcache.allow_failover</parameter>.
+       Por omisión, este parámetro vale &true;, significando que el servidor debe ser
+       considerado como en línea.
       </para>
      </listitem>
     </varlistentry>
@@ -146,10 +164,8 @@
      <term><parameter>failure_callback</parameter></term>
      <listitem>
       <para>
-       Permite al usuario a especificar la llamada a una función de retorno a ejectuar cuando
-       se encuentre un error. La llamada de retorno se ejecuta antes de que se produzca la 
-       caída en la conexión. La función toma dos parámetros, el hostname y el puerto del puerto
-       que ha fallado.
+       Permite al usuario especificar una función de retorno para manejar un error. La función de retorno se ejecuta antes de alcanzar el límite de intentos. La función toma dos parámetros; el nombre del host y el puerto
+       del servidor que falló.
       </para>
      </listitem>
     </varlistentry>
@@ -157,51 +173,37 @@
      <term><parameter>timeoutms</parameter></term>
      <listitem>
       <para>
-       
+
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <warning>
-   <para>
-    Cuando no se especifica <parameter>port</parameter>, este método usará el valor
-    establecido en la directiva ini
-    <link linkend="ini.memcache.default-port">memcache.default_port</link> de PHP.
-    Si este valor se cambiara en cualquier lugar de la aplicación podría conducir
-    a resultados inesperados; por esta razón, es prudente especificar el puerto
-    explícitamente en la llamada a este método.
-   </para>
-  </warning>
- </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo <function>Memcache::addServer</function></title>
+    <title>Ejemplo con <function>Memcache::addServer</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* OO API */
+/* API orientada a objetos */
 
 $memcache = new Memcache;
 $memcache->addServer('memcache_host', 11211);
 $memcache->addServer('memcache_host2', 11211);
 
-/* procedural API */
+/* API procedimental */
 
 $memcache_obj = memcache_connect('memcache_host', 11211);
 memcache_add_server($memcache_obj, 'memcache_host2', 11211);
@@ -212,7 +214,21 @@ memcache_add_server($memcache_obj, 'memcache_host2', 11211);
    </example>
   </para>
  </refsect1>
- 
+
+ <refsect1 role="notes">
+  &reftitle.notes;
+  <warning>
+   <para>
+    Cuando el parámetro <parameter>port</parameter> no se especifica, este método
+    tomará el valor de la directiva de configuración INI
+    <link linkend="ini.memcache.default-port">memcache.default_port</link>.
+    Si este valor ha sido modificado en otro lugar de su aplicación,
+    esto puede llevar a resultados inesperados: por esta razón, es recomendable
+    siempre especificar el puerto explícitamente al llamar al método.
+   </para>
+  </warning>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -225,7 +241,7 @@ memcache_add_server($memcache_obj, 'memcache_host2', 11211);
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

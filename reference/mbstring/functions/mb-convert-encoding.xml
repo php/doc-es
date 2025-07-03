@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 4757bd1743a1a8347fb4761b98bd551fe99d7b99 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.mb-convert-encoding" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mb_convert_encoding</refname>
-  <refpurpose>Convierte una codificación de caracteres</refpurpose>
+  <refpurpose>Convertir una cadena de un codificación de caracteres a otra</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>mb_convert_encoding</methodname>
-   <methodparam><type>string</type><parameter>str</parameter></methodparam>
+   <type class="union"><type>array</type><type>string</type><type>false</type></type><methodname>mb_convert_encoding</methodname>
+   <methodparam><type class="union"><type>array</type><type>string</type></type><parameter>string</parameter></methodparam>
    <methodparam><type>string</type><parameter>to_encoding</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>from_encoding</parameter><initializer>mb_internal_encoding()</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>string</type><type>null</type></type><parameter>from_encoding</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Convierte la codificación de caracteres del <type>string</type> <parameter>str</parameter>
-   a la especificada por <parameter>to_encoding</parameter>,
-   indicando opcionalmente la codificación de caracteres inicial en <parameter>from_encoding</parameter>.
+   Convierte la <parameter>string</parameter> desde <parameter>from_encoding</parameter>,
+   o la codificación interna actual, a <parameter>to_encoding</parameter>.
+   Opcionalmente desde <parameter>from_encoding</parameter>.
+   Si <parameter>string</parameter> es un &array;, todos sus valores &string;
+   serán convertidos recursivamente.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>str</parameter></term>
+     <term><parameter>string</parameter></term>
      <listitem>
       <para>
-       El <type>string</type> a codificar.
+       La &string; o &array; a convertir.
       </para>
      </listitem>
     </varlistentry>
@@ -39,7 +40,7 @@
      <term><parameter>to_encoding</parameter></term>
      <listitem>
       <para>
-       El tipo de codificación a la que convertir <parameter>str</parameter>.
+       La codificación deseada del resultado.
       </para>
      </listitem>
     </varlistentry>
@@ -47,47 +48,119 @@
      <term><parameter>from_encoding</parameter></term>
      <listitem>
       <para>
-       Se especifica por los nombres de los códigos de caracteres previos a la conversión. Se trata de,
-       o bien un <type>array</type>, o bien de una lista separada por comas.
-       Si no se especificara ningún valor para <parameter>from_encoding</parameter>,
-       se utilizará la codificación interna.
-       <!-- link to internal encoding info -->
+       La codificación actual utilizada para interpretar la <parameter>string</parameter>.
+       Múltiples codificaciones pueden ser especificadas en forma de array (&array;) o lista separada por comas.
+       En este caso, la codificación correcta será adivinada utilizando el
+       mismo algoritmo que <function>mb_detect_encoding</function>.
       </para>
       <para>
-       Revise las <link linkend="mbstring.supported-encodings">codificaciones
-       admitidas</link>.
+       Si <parameter>from_encoding</parameter> es omitido o &null;, el
+       parámetro <link linkend="ini.mbstring.internal-encoding">mbstring.internal_encoding</link>
+       será utilizado si está definido, de lo contrario el parámetro <link linkend="ini.default-charset">default_charset</link> será utilizado.
+      </para>
+      <para>
+       Ver <link linkend="mbstring.supported-encodings">codificaciones soportadas</link>
+       para los valores válidos de <parameter>to_encoding</parameter>
+       y <parameter>from_encoding</parameter>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   El <type>string</type> codificado.
+   La &string; o &array; codificado en caso de éxito, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   A partir de PHP 8.0.0, una <classname>ValueError</classname> es lanzada si la
+   valor de <parameter>to_encoding</parameter> o
+   <parameter>from_encoding</parameter> es una codificación inválida.
+   Anterior a PHP 8.0.0, una <constant>E_WARNING</constant> era emitida en su lugar.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.2.0</entry>
+      <entry>
+       <function>mb_convert_encoding</function> ya no devolverá
+       las siguientes codificaciones no textuales:
+       <literal>"Base64"</literal>, <literal>"QPrint"</literal>,
+       <literal>"UUencode"</literal>, <literal>"HTML entities"</literal>,
+       <literal>"7 bit"</literal> y <literal>"8 bit"</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <function>mb_convert_encoding</function> lanzará ahora una
+       <classname>ValueError</classname> cuando
+       <parameter>to_encoding</parameter> es pasado una codificación inválida.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <function>mb_convert_encoding</function> lanzará ahora una
+       <classname>ValueError</classname> cuando
+       <parameter>from_encoding</parameter> es pasado una codificación inválida.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>from_encoding</parameter> ahora es nullable.
+      </entry>
+     </row>
+     <row>
+      <entry>7.2.0</entry>
+      <entry>
+       Esta función ahora acepta un &array; como
+       <parameter>string</parameter>.
+       Anteriormente, solo las &string; eran soportadas.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>mb_convert_encoding</function></title>
-    <programlisting role="php">
+    <title>Ejemplo con <function>mb_convert_encoding</function></title>
+    <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
-/* Convierte de la codificación interna a SJIS */
+/* Convierte la codificación interna a SJIS */
 $str = mb_convert_encoding($str, "SJIS");
 
 /* Convierte EUC-JP a UTF-7 */
 $str = mb_convert_encoding($str, "UTF-7", "EUC-JP");
 
-/* Autodetecta la codificación, desde JIS, eucjp-win o sjis-win, y después convierte str a UCS-2LE */
+/* Detecta automáticamente una codificación entre JIS, eucjp-win o sjis-win,
+   Luego convierte a UCS-2LE */
 $str = mb_convert_encoding($str, "UCS-2LE", "JIS, eucjp-win, sjis-win");
 
-/* "auto" es un alias de "ASCII,JIS,UTF-8,EUC-JP,SJIS" */
+/* Si mbstring.language es "Japanese", "auto" es extendido a "ASCII,JIS,UTF-8,EUC-JP,SJIS" */
 $str = mb_convert_encoding($str, "EUC-JP", "auto");
 ?>
 ]]>
@@ -95,18 +168,19 @@ $str = mb_convert_encoding($str, "EUC-JP", "auto");
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>mb_detect_order</function></member>
+    <member><methodname>UConverter::transcode</methodname></member>
+    <member><function>iconv</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

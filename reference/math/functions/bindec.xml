@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 1cd19d56e1982c9947be9239b73cc8bd03ff178e Maintainer: gerardocdc Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: 86e6094e86b84a51d00ab217ac50ce8dde33d82a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xml:id="function.bindec" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>bindec</refname>
-  <refpurpose>Binario a decimal</refpurpose>
+  <refpurpose>Convierte de binario a decimal</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <type>number</type><methodname>bindec</methodname>
-   <methodparam><type>string</type><parameter>binary_string</parameter></methodparam>
-  </methodsynopsis>
+   <methodsynopsis>
+    <type class="union"><type>int</type><type>float</type></type><methodname>bindec</methodname>
+    <methodparam><type>string</type><parameter>binary_string</parameter></methodparam>
+   </methodsynopsis>
   <para>
-   Devuelve el equivalente decimal del número binario representado por
-   el argumento <parameter>binary_string</parameter>.
+   Devuelve la conversión de un número binario representado por la cadena
+   <parameter>binary_string</parameter> a decimal.
   </para>
   <para>
-   <function>bindec</function> convierte un número binario a un 
-   <type>integer</type> o, si es necesario por razones de tamaño, a un <type>float</type>.
+   <function>bindec</function> convierte un número binario en un &integer;,
+   o, si es necesario por razones de tamaño, en un &float;.
   </para>
   <para>
-   <function>bindec</function> interpreta todos los valores de
-   <parameter>binary_string</parameter> como enteros sin signo.
-   Esto es debido a que <function>bindec</function> considera 
-   al bit más significativo como otro orden de magnitud 
-   en lugar de como el bit de signo.
+   <function>bindec</function> interpreta todos los valores
+   <parameter>binary_string</parameter> como enteros no firmados.
+   Esto se debe a que la función <function>bindec</function> ve
+   el primer bit como otro orden de magnitud en lugar de como el
+   bit de signo.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -37,7 +38,10 @@
      <term><parameter>binary_string</parameter></term>
      <listitem>
       <para>
-       El string binario a convertir
+       La cadena binaria a convertir.
+       Cualquier carácter inválido en <parameter>binary_string</parameter>
+       es ignorado silenciosamente.
+       A partir de PHP 7.4.0, proporcionar caracteres inválidos está deprecado.
       </para>
      </listitem>
     </varlistentry>
@@ -45,8 +49,8 @@
   </para>
   <warning>
    <para>
-    Este parámetro debe ser un string.
-    Cualquier otro tipo de dato empleado puede producir resultados inesperados.
+    Este parámetro debe ser un &string;.
+    El uso de otro tipo de datos produce resultados inesperados.
    </para>
   </warning>
  </refsect1>
@@ -56,11 +60,36 @@
    El valor decimal de <parameter>binary_string</parameter>
   </para>
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>7.4.0</entry>
+      <entry>
+       Proporcionar caracteres inválidos generará ahora una advertencia deprecada.
+       El resultado se calculará siempre como si los caracteres inválidos
+       no existieran.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>bindec</function></title>
+    <title>Ejemplo con <function>bindec</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -83,44 +112,44 @@ echo bindec('111');
   </para>
   <para>
    <example>
-    <title><function>bindec</function> interpreta las entradas como enteros sin signo</title>
+    <title><function>bindec</function> interpreta la entrada
+     como un entero no firmado</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 /*
- * La lección de este ejemplo es el resultado 
- * más que el código de PHP en sí.
+ * Lo más importante en este ejemplo está en la salida
+ * más que en el código PHP en sí.
  */
 
 $magnitude_lower = pow(2, (PHP_INT_SIZE * 8) - 2);
 p($magnitude_lower - 1);
-p($magnitude_lower, '¿Ve el incremento?  Obsérvelo la próxima vez...');
+p($magnitude_lower, '¿Ha visto el cambio? Esté atento la próxima vez...');
 
 p(PHP_INT_MAX, 'PHP_INT_MAX');
-p(~PHP_INT_MAX, 'interpretado como uno más que PHP_INT_MAX');
+p(~PHP_INT_MAX, 'interpretado como superior a PHP_INT_MAX');
 
 if (PHP_INT_SIZE == 4) {
-    $nota = 'interpretado como el mayor entero sin signo';
+    $note = 'interpretado como el mayor entero no firmado';
 } else {
-    $nota = 'interpretado como el mayor entero sin signo
-              (18446744073709551615) aunque sesgado por la precisión del float';
+    $note = 'interpretado como el mayor entero no firmado
+              (18446744073709551615) pero distorsionado por la precisión de los flotantes';
 }
-p(-1, $nota);
+p(-1, $note);
 
+function p($input, $note = '') {
+    echo "entrada :        $input\n";
 
-function p($entrada, $nota = '') {
-    echo "entrada:      $entrada\n";
+    $format = '%0' . (PHP_INT_SIZE * 8) . 'b';
+    $bin = sprintf($format, $input);
+    echo "binario :       $bin\n";
 
-    $formato = '%0' . (PHP_INT_SIZE * 8) . 'b';
-    $bin = sprintf($formato, $entrada);
-    echo "binario:      $bin\n";
-
-    ini_set('precision', 20);  // Para la legibilidad en bloques de 64 bits.
+    ini_set('precision', 20);  // Para mayor legibilidad en PC de 64 bits.
     $dec = bindec($bin);
-    echo 'bindec():     ' . $dec . "\n";
+    echo 'bindec() :     ' . $dec . "\n";
 
-    if ($nota) {
-        echo "NOTA:         $nota\n";
+    if ($note) {
+        echo "Nota :         $note\n";
     }
 
     echo "\n";
@@ -131,73 +160,75 @@ function p($entrada, $nota = '') {
     &example.outputs.32bit;
     <screen>
 <![CDATA[
-entrada:      1073741823
-binario:      00111111111111111111111111111111
-bindec():     1073741823
+entrada :        1073741823
+binario :       00111111111111111111111111111111
+bindec() :     1073741823
 
-entrada:      1073741824
-binario:      01000000000000000000000000000000
+entrada :        1073741824
+binario :       01000000000000000000000000000000
 bindec():     1073741824
-NOTA:         ¿Ve el incremento?  Obsérvelo la próxima vez...
+Nota :         ¿Ha visto el cambio? Esté atento la próxima vez...
 
-entrada:      2147483647
-binario:      01111111111111111111111111111111
+entrada :        2147483647
+binario :       01111111111111111111111111111111
 bindec():     2147483647
-NOTA:         PHP_INT_MAX
+Nota :         PHP_INT_MAX
 
-entrada:      -2147483648
-binario:      10000000000000000000000000000000
+entrada :        -2147483648
+binario :       10000000000000000000000000000000
 bindec():     2147483648
-NOTA:         interpretado como uno más que PHP_INT_MAX
+Nota :         interpretado como superior a PHP_INT_MAX
 
-entrada:      -1
-binario:      11111111111111111111111111111111
+entrada :        -1
+binario :       11111111111111111111111111111111
 bindec():     4294967295
-NOTA:         interpretado como el mayor entero sin signo
+Nota :         interpretado como el mayor entero no firmado
 ]]>
     </screen>
     &example.outputs.64bit;
     <screen>
 <![CDATA[
-entrada:      4611686018427387903
-binario:      0011111111111111111111111111111111111111111111111111111111111111
-bindec():     4611686018427387903
+entrada :        4611686018427387903
+binario :       0011111111111111111111111111111111111111111111111111111111111111
+bindec() :     4611686018427387903
 
-entrada:      4611686018427387904
-binario:      0100000000000000000000000000000000000000000000000000000000000000
-bindec():     4611686018427387904
-NOTA:         ¿Ve el incremento?  Obsérvelo la próxima vez...
+entrada :        4611686018427387904
+binario :       0100000000000000000000000000000000000000000000000000000000000000
+bindec() :     4611686018427387904
+Nota :         ¿Ha visto el cambio? Esté atento la próxima vez...
 
-entrada:      9223372036854775807
-binario:      0111111111111111111111111111111111111111111111111111111111111111
-bindec():     9223372036854775807
-NOTA:         PHP_INT_MAX
+entrada :        9223372036854775807
+binario :       0111111111111111111111111111111111111111111111111111111111111111
+bindec() :     9223372036854775807
+Nota :         PHP_INT_MAX
 
-entrada:      -9223372036854775808
-binario:      1000000000000000000000000000000000000000000000000000000000000000
-bindec():     9223372036854775808
-NOTA:         interpretado como uno más que PHP_INT_MAX
+entrada :        -9223372036854775808
+binario :       1000000000000000000000000000000000000000000000000000000000000000
+bindec() :     9223372036854775808
+Nota :         interpretado como superior a PHP_INT_MAX
 
-entrada:      -1
-binario:      1111111111111111111111111111111111111111111111111111111111111111
-bindec():     18446744073709551616
-NOTA:         interpretado como el mayor entero sin signo
-              (18446744073709551615) aunque sesgado por la precisión del float
+entrada :        -1
+binario :       1111111111111111111111111111111111111111111111111111111111111111
+bindec() :     18446744073709551616
+Nota :         interpretado como el mayor entero no firmado
+              (18446744073709551615) pero distorsionado por la precisión de los flotantes
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Esta función puede convertir números que son demasiado grandes para caber en el tipo
-    <type>integer</type> de cada plataforma, devolviendo en este caso un valor de tipo
-    <type>float</type> para los valores mayores.
+    La función puede convertir números que son demasiado grandes para
+    caber en un tipo &integer;, en cuyo caso estos valores se devuelven
+    como &float;.
    </para>
   </note>
  </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>

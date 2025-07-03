@@ -1,109 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 158ca973fb58fca74c39c088897d2c7c5446dc61 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.ignore-user-abort" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ignore_user_abort</refname>
-  <refpurpose>Establecer si la desconexión de un cliente debería abortar la ejecución del script</refpurpose>
+  <refpurpose>Activa la interrupción de script al desconectarse el visitante</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>int</type><methodname>ignore_user_abort</methodname>
-   <methodparam choice="opt"><type>bool</type><parameter>value</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>bool</type><type>null</type></type><parameter>enable</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Establece si la desconexión de un cliente debería ocasionar que el script sea abortado.
+   <function>ignore_user_abort</function> activa la opción que permite que,
+   al desconectarse el cliente Web, el script continúe
+   su ejecución.
   </para>
   <para>
-   Cuando se ejecuta PHP como un script de línea de comandos, y el tty del script
-   finaliza sin que el script haya terminado, el script cesará su ejecución la
-   siguiente vez que se intente escribir algo, a menos que
-   <parameter>value</parameter> esté establecido a &true;
+   Cuando PHP se ejecuta como script en línea de comandos, y el tty del script
+   se cierra sin que el script haya terminado, entonces el script
+   se detendrá tan pronto como intente escribir algo, a menos que
+   <parameter>enable</parameter> sea &true;
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>value</parameter></term>
+     <term><parameter>enable</parameter></term>
      <listitem>
       <para>
-       Si se establece, esta función establecerá la configuración ini de <link
-       linkend="ini.ignore-user-abort">ignore_user_abort</link>
-       al valor dado por <parameter>value</parameter>. Si no, esta función sólo
-       devolverá la configuración previa sin cambiarla.
+       Si está definido y no es &null;, la función asignará a la directiva
+       <link linkend="ini.ignore-user-abort">ignore_user_abort</link>
+       el valor de <parameter>enable</parameter>. Si se omite, esta
+       función solo devuelve el valor de la configuración actual.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la configuración previa, como un integer.
+   Devuelve la configuración anterior, en forma de &integer;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>enable</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo <function>ignore_user_abort</function></title>
+    <title>Ejemplo con <function>ignore_user_abort</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Ignorar los abortos hechos por el usuario y permitir que el script
-// se ejecute siempre
+// Ignora la desconexión del usuario y permite
+// que el script continúe ejecutándose
 ignore_user_abort(true);
 set_time_limit(0);
 
-echo 'Probando la gestión de conexión de PHP';
+echo 'Prueba del gestor de conexión de PHP';
 
-// Ejecutar un bucle que hará, con suerte,
-// que hagamos clic fuera de la
-// página o en el botón "Parar".
+// Ejecución de un bucle infinito que monitorea
+// la actividad del usuario. O bien hace clic fuera
+// de la página, o bien hace clic en el botón "Stop".
 while(1)
 {
-    // ¿Falló la conexión?
+    // ¿Ha fallado la conexión?
     if(connection_status() != CONNECTION_NORMAL)
     {
         break;
     }
 
-    // Dormir durante 10 segundos
+    // Se espera 10 segundos
     sleep(10);
 }
 
-// Si se alcanza esto, el 'break' 
-// fue provocado desde dentro del bucle while
+// Si se alcanza este punto, entonces la instrucción 'break'
+// se ejecutará desde el bucle infinito
 
-// Por tanto, aquí podemos realizar una anotación o cualquier
-// otra tarea que sea necesaria sin depender realmente del
-// navegador.
+// Además, en este nivel se pueden ingresar datos en el historial,
+// o ejecutar otras tareas necesarias, sin depender del navegador.
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <para>
-   PHP no detectará que el usuario abortó la conexión hasta que
-   se haga un intento de enviar información al cliente. Usar simplemente
-   una sentencia echo no garantiza que la información sea enviada, veáse
-   <function>flush</function>. 
+   PHP no detecta la desconexión del cliente Web hasta que
+   se intenta enviar algo. Simplemente usar un <function>echo</function> no garantiza
+   que la información se envíe, ver la función
+   <function>flush</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -111,15 +134,14 @@ while(1)
     <member><function>connection_aborted</function></member>
     <member><function>connection_status</function></member>
     <member>
-     <link linkend="features.connection-handling">Manejo de conexiones</link>
-     para una descripción completa del manejo de conexiones de PHP.
+     <link linkend="features.connection-handling">Gestor de conexión</link>
+     para una descripción completa del gestor de conexión en PHP.
     </member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
