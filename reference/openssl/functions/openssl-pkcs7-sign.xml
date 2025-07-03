@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-pkcs7-sign">
+<!-- EN-Revision: 5bc68add3da3cd18c40f851e944b15095d3a26aa Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.openssl-pkcs7-sign" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>openssl_pkcs7_sign</refname>
   <refpurpose>Firma un mensaje S/MIME</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>openssl_pkcs7_sign</methodname>
-   <methodparam><type>string</type><parameter>infilename</parameter></methodparam>
-   <methodparam><type>string</type><parameter>outfilename</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>signcert</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>privkey</parameter></methodparam>
-   <methodparam><type>array</type><parameter>headers</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>PKCS7_DETACHED</initializer></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>extracerts</parameter></methodparam>
+   <methodparam><type>string</type><parameter>input_filename</parameter></methodparam>
+   <methodparam><type>string</type><parameter>output_filename</parameter></methodparam>
+   <methodparam><type class="union"><type>OpenSSLCertificate</type><type>string</type></type><parameter>certificate</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type class="union"><type>OpenSSLAsymmetricKey</type><type>OpenSSLCertificate</type><type>array</type><type>string</type></type><parameter>private_key</parameter></methodparam>
+   <methodparam><type class="union"><type>array</type><type>null</type></type><parameter>headers</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer><constant>PKCS7_DETACHED</constant></initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>untrusted_certificates_filename</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>openssl_pkcs7_sign</function> toma el contenido del archivo
-   nombrado por <parameter>infilename</parameter> y lo firma usando el
-   certificado y su clave privada coincidente especificados por los
-   parámetros <parameter>signcert</parameter> y
-   <parameter>privkey</parameter>.
+   <function>openssl_pkcs7_sign</function> toma el contenido del fichero
+   <parameter>input_filename</parameter> y lo firma utilizando el
+   certificado y la clave privada contenidos en los argumentos
+   <parameter>certificate</parameter> y <parameter>private_key</parameter>.
   </para>
  </refsect1>
 
@@ -33,30 +33,38 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>infilename</parameter></term>
+     <term><parameter>input_filename</parameter></term>
      <listitem>
       <para>
+       El fichero de entrada que se tiene la intención de firmar digitalmente.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>outfilename</parameter></term>
+     <term><parameter>output_filename</parameter></term>
      <listitem>
       <para>
+       El fichero donde se escribirá la firma digital.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>signcert</parameter></term>
+     <term><parameter>certificate</parameter></term>
      <listitem>
       <para>
+       El certificado X.509 utilizado para firmar digitalmente <parameter>input_filename</parameter>.
+       Ver <link linkend="openssl.certparams">parámetros Clave/Certificado</link>
+       para una lista de valores válidos.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>privkey</parameter></term>
+     <term><parameter>private_key</parameter></term>
      <listitem>
       <para>
+       <parameter>private_key</parameter> es la clave privada correspondiente a <parameter>certificate</parameter>.
+       Ver <link linkend="openssl.certparams">parámetros Clave Pública/Privada</link>
+       para una lista de valores válidos.
       </para>
      </listitem>
     </varlistentry>
@@ -64,10 +72,10 @@
      <term><parameter>headers</parameter></term>
      <listitem>
       <para>
-       <parameter>headers</parameter> es una matriz de cabeceras que
-       serán añadidas delante de la información después de que se haya firmado (véase
-       <function>openssl_pkcs7_encrypt</function> para más información acerca
-       del formato de este parámetro).
+       <parameter>headers</parameter> es un array de encabezados que
+       serán añadidos a los datos cifrados (ver la función
+       <function>openssl_pkcs7_encrypt</function> para más detalles sobre
+       el formato del parámetro).
       </para>
      </listitem>
     </varlistentry>
@@ -75,18 +83,19 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       <parameter>flags</parameter> se puede usar para alterar la salida - véase <link
-       linkend="openssl.pkcs7.flags">constantes PKCS7</link>.
+       <parameter>flags</parameter> puede ser utilizado para modificar la salida.
+       Ver las <link linkend="openssl.pkcs7.flags">constantes PKCS7</link>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>extracerts</parameter></term>
+     <term><parameter>untrusted_certificates_filename</parameter></term>
      <listitem>
       <para>
-       <parameter>extracerts</parameter> especifica el nombre de un archivo que contiene
-       un grupo de certificados extra, para incluir en la firma, que puede ser usado para,
-       por ejemplo, ayudar al destinatario a verificar el certificado que se usó.
+       <parameter>untrusted_certificates_filename</parameter> especifica el nombre del fichero que contiene
+       un conjunto de certificados adicionales a incluir en la
+       firma, los cuales podrán ayudar al destinatario a verificar los
+       datos que se utilizan.
       </para>
      </listitem>
     </varlistentry>
@@ -101,35 +110,67 @@
   </para>
  </refsect1>
 
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>certificate</parameter> ahora acepta una instancia de
+       <classname>OpenSSLCertificate</classname> ;
+       anteriormente, se aceptaba un &resource; de tipo <literal>OpenSSL X.509 CSR</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>private_key</parameter> ahora acepta una instancia de
+       <classname>OpenSSLAsymmetricKey</classname> o <classname>OpenSSLCertificate</classname> ;
+       anteriormente, se aceptaba un &resource; de tipo <literal>OpenSSL key</literal> o <literal>OpenSSL X.509</literal>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>openssl_pkcs7_sign</function></title>
+    <title>Ejemplo con <function>openssl_pkcs7_sign</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// el mensaje que quiere firmar, por lo que el destinatario puede estar serguro de fue usted
-// el que lo envió
+// el mensaje que se quiere firmar, para que el destinatario esté seguro de que
+// proviene de usted
 $data = <<<EOD
 
-Tiene mi autorización para emplear $10,000 en gastos de comida.
+Usted está autorizado a gastar 10 000€ en gastos de viaje.
 
-El Presidente
+El PDG
 EOD;
-// guardar el mensaje en un archivo
-$fp = fopen("mensaje.txt", "w");
+// guardar el mensaje en un fichero
+$fp = fopen("msg.txt", "w");
 fwrite($fp, $data);
 fclose($fp);
-// encriptarlo
-if (openssl_pkcs7_sign("mensaje.txt", "firmado.txt", "micert.pem",
-    array("file://micert.pem", "mi_frase_de_contraseña"),
-    array("Para" => "joes@example.com", // sintaxis asociativa
-          "DE: C.G. <presidente@example.com>", // sintaxis indexada
-          "Tema" => "Confidencial")
+// cifrarlo
+if (openssl_pkcs7_sign("msg.txt", "signed.txt", "file://mycert.pem",
+    array("file://mycert.pem", "mypassphrase"),
+    array("To" => "joes@example.com", // sintaxis con clave
+          "From: HQ <ceo@example.com>", // sintaxis indexada
+          "Subject" => "Eyes only")
     )) {
     // mensaje firmado - ¡envíelo!
-    exec(ini_get("ruta_correo") . " < firmado.txt");
+    exec(ini_get("sendmail_path") . " < signed.txt");
 }
 ?>
 ]]>
@@ -139,7 +180,6 @@ if (openssl_pkcs7_sign("mensaje.txt", "firmado.txt", "micert.pem",
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

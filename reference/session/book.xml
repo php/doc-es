@@ -1,91 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: dff279a1fb1cefe17b594d2058741b308e420a36 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: ba6a83ca3558574695be5ef0a0e008e4e5f78ddb Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <book xml:id="book.session" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <?phpdoc extension-membership="bundled" ?>
- <title>Manejo de sesiones</title>
+ <title>Gestión de sesiones</title>
  <titleabbrev>Sesiones</titleabbrev>
- 
+
  <!-- {{{ preface -->
  <preface xml:id="intro.session">
   &reftitle.intro;
   <para>
-   El soporte para sesiones en PHP consiste en una forma de preservar cierta información
-   a lo largo de accesos subsiguientes.
+   El soporte de sesiones de PHP es un medio para preservar
+   datos entre varios accesos.
   </para>
   <para>
-   A un visitante que accede a un sitio web se le asigna un id único,
-   también llamado id de sesión. Éste es almacenado en una cookie en la
-   parte del cliente o se propaga en el URL.
+   Cada visitante que accede a su página web se le asigna un
+   identificador único, llamado "identificador de sesión". Puede
+   almacenarse en una cookie o propagarse en la URL.
   </para>
   <para>
-   El soporte para sesiones permite almacenar los datos entre peticiones en el array
-   superglobal <varname>$_SESSION</varname>. Cuando un visitante acceda
-   a un sitio web, PHP comprobará automáticamente (si <link linkend="ini.session.auto-start">session.auto_start</link>
-   está establecido a 1), o sobre su petición (explícitamete a través de
-   <function>session_start</function>), si se ha enviado un id de sesión
-   específico con la petición. Si éste es el caso, se recrea
-   el entorno anteriormente guardado.
+   El soporte de sesiones permite almacenar datos entre las peticiones
+   en el array superglobal <varname>$_SESSION</varname>.
+   Cuando un visitante accede a su sitio, PHP verificará automáticamente (si
+   <link linkend="ini.session.auto-start"><option>session.auto_start
+    </option></link> está activado) o bajo demanda (explícitamente con
+   <function>session_start</function>) si existe una
+   sesión con el mismo nombre. En caso afirmativo, el entorno
+   previamente guardado será recreado.
   </para>
   <caution>
    <para>
     Si se activa <link linkend="ini.session.auto-start">
-    session.auto_start</link>, la única manera de colocar objetos
-    en las sesiones es cargar su definición de clase usando
-    <link linkend="ini.auto-prepend-file">auto_prepend_file</link> ,
-    en el que, además de cargar la definición de clase, se tendrá que
-    emplear <function>serialize</function> para serializar el objeto
-    y <function>unserialize</function> para deserializarlo
-    después.
+    session.auto_start</link> entonces el único medio de poner objetos
+    en la sesión es cargar las definiciones de clase con
+    <link linkend="ini.auto-prepend-file">auto_prepend_file</link>
+    en el cual se cargan las definiciones necesarias,
+    o bien se deberá utilizar <function>serialize</function>
+    en su objeto, y <function>unserialize</function>
+    para recuperarlo.
    </para>
   </caution>
   <para>
-   <varname>$_SESSION</varname> (y todas las variables registradas) son serializadas 
-   internamente por PHP utilizando el gestor de serialización especificado en el 
-   ajuste ini <link linkend="ini.session.serialize-handler">session.serialize_handler</link>, 
-   una vez finalizada la solicitud. Las variables registradas que están sin definir son 
-   marcadas como no definidas. En accesos subsiguientes, éstas no estarán definidas
-   por el módulo de sesión a menos que el usuario las defina después.
+   La variable <varname>$_SESSION</varname> (y todas las variables
+   registradas) son serializadas internamente por PHP utilizando el
+   gestor de serialización especificado por la opción de configuración
+   <link linkend="ini.session.serialize-handler">session.serialize_handler</link>,
+   después de la ejecución del script PHP. Las variables que están indefinidas son marcadas
+   como tales. En accesos posteriores, no estarán
+   definidas, hasta que el usuario lo haga.
   </para>
   <warning>
    <para>
-    Debido a que los datos de sesión son serializados, las variables <type>resource</type> 
-    no pueden ser almacenadas en la sesión.
+    Debido a que los datos de sesión son serializados,
+    las variables de tipo <type>resource</type> no pueden almacenarse
+    en una sesión.
    </para>
    <para>
-    Los gestortes serializados (<literal>php</literal>
+    Los gestores de serialización (<literal>php</literal>
     y <literal>php_binary</literal>) heredan las limitaciones de
-    register_globals. Por lo tanto, no se pueden usar índices númericos o de string
-    que contengan los caracteres especiales (<literal>|</literal>
-    y <literal>!</literal>). Si se utilizan, se finalizará
-    con errores al cierre del script. <literal>php_serialize</literal>
-    no tiene tales limitaciones. <literal>php_serialize</literal>
-    está disponible desde PHP 5.5.4.
+    register_globals. Por lo tanto, los índices numéricos o los índices
+    en forma de string que contienen caracteres especiales
+    (<literal>|</literal> y <literal>!</literal>) no
+    pueden utilizarse. Su uso generará errores al final del script. <literal>php_serialize</literal>
+    no tiene este tipo de limitaciones.
    </para>
   </warning>
   <note>
    <para>
-    Por favor, observe que al trabajar con sesiones, no se crea un registro
-    de una sesión hasta que una variable haya sido registrada usando la
-    función <function>session_register</function> o añadiendo una nueva
-    clave al array superglobal <varname>$_SESSION</varname>. Esto siempre es
-    así, sin importar si una sesión ha sido iniciada usando la
-    función <function>session_start</function>.
-   </para>
-  </note>
-  <note>
-   <para>
-    PHP 5.2.2 introdujo una característica no documentada para almacenar ficheros de sesiones
-    en "/tmp" incluso si <link linkend="ini.open-basedir">open_basedir</link> 
-    estaba habilitado y "/tmp" no estaba explícitamente añadido a la lista de rutas permitidas.
-    Esta característica ha sido eliminada de PHP a partir de PHP 5.3.0.
+    Tenga en cuenta que al trabajar con sesiones, un registro
+    en la sesión no será creado hasta que la variable sea
+    registrada añadiendo una clave al array superglobal
+    <varname>$_SESSION</varname>. Esto solo es válido si se ha iniciado una
+    sesión llamando a la función <function>session_start</function>.
    </para>
   </note>
  </preface>
  <!-- }}} -->
- 
+
  &reference.session.setup;
  &reference.session.constants;
  &reference.session.examples;
@@ -96,7 +89,7 @@
  &reference.session.sessionhandlerinterface;
  &reference.session.sessionidinterface;
  &reference.session.sessionupdatetimestamphandlerinterface;
- 
+
 </book>
 
 <!-- Keep this comment at the end of the file
@@ -119,4 +112,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

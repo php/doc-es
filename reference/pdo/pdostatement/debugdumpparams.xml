@@ -1,66 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 53b3265387b584af0c3e2df2d34d2bdc1a66cc32 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 661e6858acade9f5a08fc8f9c07b605f42f4a700 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="pdostatement.debugdumpparams" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDOStatement::debugDumpParams</refname>
   <refpurpose>
-   Vuelca un comando preparado de SQL
+   Detalla una instrucción SQL preparada
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>void</type><methodname>PDOStatement::debugDumpParams</methodname>
-   <void />
+  <methodsynopsis role="PDOStatement">
+   <modifier>public</modifier> <type class="union"><type>bool</type><type>null</type></type><methodname>PDOStatement::debugDumpParams</methodname>
+   <void/>
   </methodsynopsis>
   <para>
-   Vuelca la información contenida en una sentencia preparada directamente en la
-   salida. Proporcionará la consulta <literal>SQL</literal> en uso, el
-   número de parámetros usados (<literal>Params</literal>), la lista
-   de parámetros con su nombre de clave o posición, su nombre, su posición
-   en la consulta (si lo admite el controlador de PDO, si no,
-   será -1), el tipo (<literal>param_type</literal>) como entero, y un valor
-   booleano <literal>is_param</literal>.
+   Detalla la información contenida en una instrucción preparada,
+   directamente en la salida estándar. La información incluye
+   la consulta <literal>SQL</literal> utilizada, el número de parámetros
+   usados (<literal>Params</literal>), la lista de parámetros, con
+   el nombre de clave o su posición, su nombre, su posición en la consulta
+   (si esta última información no es soportada por el controlador PDO,
+   es siempre -1), un tipo (<literal>param_type</literal>) en forma de entero,
+   y un valor booleano <literal>is_param</literal>.
   </para>
   <para>
-   Esta es una función de depuración que vuelca directamente los datos en la salida
-   habitual.
+   Esta es una función de depuración, que muestra directamente información
+   en la salida estándar.
    &tip.ob-capture;
   </para>
   <para>
-   Solamente volcará los parámetros de la sentencia en el momento
-   del vuelco. Los parámetros extra no son almacenados en la sentencia,
-   y tampoco son mostrados.
+   Los parámetros mostrados son aquellos que han sido añadidos en la consulta
+   hasta el momento de la llamada. Los parámetros adicionales son ignorados.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  &no.function.parameters;
+ </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.void;
+   Devuelve &null;, o &false; en caso de error.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        <methodname>PDOStatement::debugDumpParams</methodname> ahora devuelve
+        el SQL enviado a la base de datos, incluyendo la consulta
+        completa, RAW (incluyendo los marcadores de posición reemplazados con sus
+        valores delimitados). Tenga en cuenta que esto solo estará disponible si
+        las instrucciones preparadas emuladas están activadas.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>PDOStatement::debugDumpParams</function> con parámetros con nombre</title>
+   <title>Ejemplo con <methodname>PDOStatement::debugDumpParams</methodname> y parámetros nombrados</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada vinculando variables de PHP */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
+/* ejecución de una instrucción preparada con enlace a variables PHP */
+$calories = 150;
+$colour = 'red';
+$sth = $dbh->prepare('SELECT name, colour, calories
     FROM fruit
     WHERE calories < :calories AND colour = :colour');
-$gsent->bindParam(':calories', $calorías, PDO::PARAM_INT);
-$gsent->bindValue(':colour', $color, PDO::PARAM_STR, 12);
-$gsent->execute();
+$sth->bindParam(':calories', $calories, PDO::PARAM_INT);
+$sth->bindValue(':colour', $colour, PDO::PARAM_STR, 12);
+$sth->execute();
 
-$gsent->debugDumpParams();
+$sth->debugDumpParams();
 
 ?>
 ]]>
@@ -85,26 +117,26 @@ param_type=2
 ]]>
    </screen>
   </example>
-  
+
   <example>
-   <title>Ejemplo de <function>PDOStatement::debugDumpParams</function> con parámetros sin nombre</title>
+   <title>Ejemplo con <methodname>PDOStatement::debugDumpParams</methodname> y parámetros anónimos</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-/* Ejecutar una sentencia preparada vinculando variables de PHP */
-$calorías = 150;
-$color = 'red';
+/* ejecución de una instrucción preparada con enlace a variables PHP */
+$calories = 150;
+$colour = 'red';
 $name = 'apple';
 
-$gsent = $gbd->prepare('SELECT name, colour, calories
+$sth = $dbh->prepare('SELECT name, colour, calories
     FROM fruit
     WHERE calories < ? AND colour = ?');
-$gsent->bindParam(1, $calorías, PDO::PARAM_INT);
-$gsent->bindValue(2, $color, PDO::PARAM_STR);
-$gsent->execute();
+$sth->bindParam(1, $calories, PDO::PARAM_INT);
+$sth->bindValue(2, $colour, PDO::PARAM_STR);
+$sth->execute();
 
-$gsent->debugDumpParams();
+$sth->debugDumpParams();
 
 ?>
 
@@ -130,22 +162,20 @@ param_type=2
 ]]>
    </screen>
   </example>
-  
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>PDO::prepare</function></member>
-    <member><function>PDOStatement::bindParam</function></member>
-    <member><function>PDOStatement::bindValue</function></member>
+    <member><methodname>PDO::prepare</methodname></member>
+    <member><methodname>PDOStatement::bindParam</methodname></member>
+    <member><methodname>PDOStatement::bindValue</methodname></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

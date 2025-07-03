@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5a3f0c18ac46e6d4313367e44866527badac5b73 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5e41012cfdf8f2eff5fa56de446c7656afac536c Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: mikaelkael -->
 <refentry xml:id="function.oci-execute" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>oci_execute</refname>
-  <refpurpose>Ejecuta una sentencia</refpurpose>
+  <refpurpose>Ejecuta un comando SQL de Oracle</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>oci_execute</methodname>
    <methodparam><type>resource</type><parameter>statement</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer>OCI_COMMIT_ON_SUCCESS</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>mode</parameter><initializer><constant>OCI_COMMIT_ON_SUCCESS</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Ejecuta la sentencia dada por <parameter>statement</parameter> anteriormente devuelta
-   desde <function>oci_parse</function>.
+   Ejecuta una consulta <parameter>statement</parameter> previamente
+   devuelta por la función <function>oci_parse</function>.
   </para>
   <para>
-   Después de la ejecución, las sentencias como <literal>INSERT</literal>,
-   por omisión, contendrán datos consolidados en la base de datos. Para sentencias
-   como <literal>SELECT</literal>, la ejecución realiza la lógica de la
-   consulta. Los resultados de las consultas pueden obtenerse posteriormente en PHP con
-   funciones como <function>oci_fetch_array</function>.
+   Tras la ejecución, las consultas como <literal>INSERT</literal>
+   tendrán por omisión los datos validados (cometidos) en la base de datos.
+   Para consultas como <literal>SELECT</literal>, la ejecución
+   realiza la lógica de la consulta. Los resultados de la consulta
+   pueden ser recuperados por PHP con funciones como
+   <function>oci_fetch_array</function>.
   </para>
   <para>
-   Cada sentencia analizada podría ser ejecutada múltiples veces, ahorrando el
-   coste de un reanálisis. Esto se utlilza comúnmente
-   para sentencias <literal>INSERT</literal> cuando los datos están vinculados
-   con <function>oci_bind_by_name</function>.
+   Cada consulta analizada puede ser ejecutada varias veces, por lo que
+   no es necesario analizarlas de nuevo. Esto es práctico para consultas
+   de tipo <literal>INSERT</literal> cuando los datos están vinculados
+   mediante la función <function>oci_bind_by_name</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -42,7 +43,7 @@
      <term><parameter>statement</parameter></term>
      <listitem>
       <para>
-       Un identificador de sentencia de OCI válido.
+       Un identificador de consulta OCI válido.
       </para>
      </listitem>
     </varlistentry>
@@ -50,7 +51,7 @@
      <term><parameter>mode</parameter></term>
      <listitem>
       <para>
-       Este segundo parámetro opcional puede ser una de las siguietnes constantes:
+       Un segundo argumento opcional puede tomar una de las constantes siguientes:
        <table>
         <title>Modos de ejecución</title>
         <tgroup cols="2">
@@ -63,53 +64,47 @@
          <tbody>
           <row>
            <entry><constant>OCI_COMMIT_ON_SUCCESS</constant></entry>
-           <entry>Consolida automáticamente todos los cambios pendientes de
-            esta conexión cuando la sentencia ha tenido éxito. Es
-            la predetermianda.</entry>
+           <entry>Validación automática en la conexión cuando la consulta
+            ha sido ejecutada con éxito. Este es el comportamiento por omisión.</entry>
           </row>
           <row>
            <entry><constant>OCI_DESCRIBE_ONLY</constant></entry>
-           <entry>Dispone los metadatos de la consulta a funciones
-            como <function>oci_field_name</function>, pero no
-            crea un conjunto de resultados. Cualquier llamada de obtención subsiguiente,
-            como con <function>oci_fetch_array</function>,
-            fallará.</entry>
+           <entry>Hace disponibles los metadatos de la consulta a funciones
+            como <function>oci_field_name</function> pero no crea un conjunto de resultados. Cualquier llamada a funciones de recuperación como
+            <function>oci_fetch_array</function> fallará.</entry>
           </row>
           <row>
            <entry><constant>OCI_NO_AUTO_COMMIT</constant></entry>
-           <entry>No consolida automáticamete los cambios. Antes de PHP
-            5.3.2 (PECL OCI8 1.4)
-            use <constant>OCI_DEFAULT</constant>, la cual es equivalente
-            a <constant>OCI_NO_AUTO_COMMIT</constant>.</entry>
+           <entry>No valida automáticamente las modificaciones.</entry>
           </row>
          </tbody>
         </tgroup>
        </table>
       </para>
       <para>
-       Al usar el modo <constant>OCI_NO_AUTO_COMMIT</constant> se inicia o continua una
-       transacción. Las transacciones son automáticamente revertidas cuando
-       la conexión se cierra, o cuando el script finaliza. Para consolidar
-       explícitamente una trasacción, invoque a <function>oci_commit</function>,
-       o a <function>oci_rollback</function> para abortarla.
+       El uso del modo <constant>OCI_NO_AUTO_COMMIT</constant> inicia
+       o continúa una transacción. Las transacciones son automáticamente anuladas
+       cuando la conexión se cierra o cuando el script termina.
+       Llame explícitamente a la función <function>oci_commit</function> para
+       validar la transacción o a la función <function>oci_rollback</function>
+       para anularla.
       </para>
       <para>
-       Cuando se insertar o actualizan datos, se recomienda usar transacciones
-       para mantener la consistencia de datos relacionales y por razones de
-       rendimiento.
+       Al insertar o actualizar datos, el uso de transacciones es altamente recomendado
+       para garantizar la consistencia relacional de los datos, así como por un
+       significativo aumento de rendimiento.
       </para>
       <para>
-       Si se usa el modo <constant>OCI_NO_AUTO_COMMIT</constant> para cualquier
-       sentencia, incluyendo consultas, y no se llama posteriormente a
-       <function>oci_commit</function>
-       o <function>oci_rollback</function>,
-       OCI8 realizará una reversión al final del
-       script incluso si no se modificó ningún dato. Para evitar reversiones
-       innecesarias, muchos scripts no usan
-       el modo <constant>OCI_NO_AUTO_COMMIT</constant> para consultas o
-       PL/SQL. Tenga cuidado de asegurar la consistencia transaccional
-       apropiada para la aplicación cuando
-       use <function>oci_execute</function> con diferentes modos en
+       Si el modo <constant>OCI_NO_AUTO_COMMIT</constant> es utilizado para
+       todas las operaciones incluyendo consultas, y las funciones
+       <function>oci_commit</function> y <function>oci_rollback</function>
+       nunca son llamadas, OCI8 realizará una anulación al final del
+       script incluso si los datos han cambiado. Para evitar este comportamiento,
+       la mayoría de los scripts no utiliza el modo
+       <constant>OCI_NO_AUTO_COMMIT</constant> para consultas o
+       procedimientos almacenados PL/SQL. Asegúrese de la consistencia
+       transaccional apropiada de sus aplicaciones al utilizar
+       la función <function>oci_execute</function> con diferentes modos en
        el mismo script.
       </para>
      </listitem>
@@ -117,19 +112,19 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title><function>oci_execute</function> para consultas</title>
+    <title>Ejemplo con <function>oci_execute</function> para consultas</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -140,10 +135,10 @@ $stid = oci_parse($conn, 'SELECT * FROM employees');
 oci_execute($stid);
 
 echo "<table border='1'>\n";
-while ($fila = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
+while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
     echo "<tr>\n";
-    foreach ($fila as $elemento) {
-        echo "    <td>" . ($elemento !== null ? htmlentities($elemento, ENT_QUOTES) : "") . "</td>\n";
+    foreach ($row as $item) {
+        echo "    <td>" . ($item !== null ? htmlentities($item, ENT_QUOTES) : "") . "</td>\n";
     }
     echo "</tr>\n";
 }
@@ -156,19 +151,19 @@ echo "</table>\n";
   </para>
   <para>
    <example>
-    <title>Ejemplo de <function>oci_execute</function> sin especificar un modo</title>
+    <title>Ejemplo con <function>oci_execute</function> sin especificar modo</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutarlo, cree la tabla:
+// Antes de la ejecución, cree la tabla:
 //   CREATE TABLE MYTABLE (col1 NUMBER);
 
 $conn = oci_connect('hr', 'welcome', 'localhost/XE');
 
 $stid = oci_parse($conn, 'INSERT INTO mytab (col1) VALUES (123)');
 
-oci_execute($stid); // La fila se consolida y es visible inmediatamente a otros usuarios
+oci_execute($stid); // La fila es validada y es inmediatamente visible por otros usuarios
 
 ?>
 ]]>
@@ -177,12 +172,12 @@ oci_execute($stid); // La fila se consolida y es visible inmediatamente a otros 
   </para>
   <para>
    <example>
-    <title>Ejemplo de <function>oci_execute</function> con <constant>OCI_NO_AUTO_COMMIT</constant></title>
+    <title>Ejemplo con <function>oci_execute</function> y <constant>OCI_NO_AUTO_COMMIT</constant></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutarlo, cree la tabla:
+// Antes de la ejecución, cree la tabla:
 //   CREATE TABLE MYTABLE (col1 NUMBER);
 
 $conn = oci_connect('hr', 'welcome', 'localhost/XE');
@@ -190,9 +185,9 @@ $conn = oci_connect('hr', 'welcome', 'localhost/XE');
 $stid = oci_parse($conn, 'INSERT INTO mytab (col1) VALUES (:bv)');
 oci_bind_by_name($stid, ':bv', $i, 10);
 for ($i = 1; $i <= 5; ++$i) {
-    oci_execute($stid, OCI_NO_AUTO_COMMIT);  // use OCI_DEFAULT para PHP <= 5.3.1
+    oci_execute($stid, OCI_NO_AUTO_COMMIT);
 }
-oci_commit($conn);  // consolida todos los nuevos valores: 1, 2, 3, 4, 5
+oci_commit($conn);  // valida todos los nuevos valores: 1, 2, 3, 4, 5
 
 ?>
 ]]>
@@ -201,21 +196,21 @@ oci_commit($conn);  // consolida todos los nuevos valores: 1, 2, 3, 4, 5
   </para>
   <para>
    <example>
-    <title>Ejemplo de <function>oci_execute</function> con diferentes modos de consolidación</title>
+    <title>Ejemplo con <function>oci_execute</function> y diferentes modos en el mismo script</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutarlo, cree la tabla:
+// Antes de la ejecución, cree la tabla:
 //   CREATE TABLE MYTABLE (col1 NUMBER);
 
 $conn = oci_connect('hr', 'welcome', 'localhost/XE');
 
 $stid = oci_parse($conn, 'INSERT INTO mytab (col1) VALUES (123)');
-oci_execute($stid, OCI_NO_AUTO_COMMIT);  // datos no consolidados
+oci_execute($stid, OCI_NO_AUTO_COMMIT);  // datos no cometidos
 
 $stid = oci_parse($conn, 'INSERT INTO mytab (col1) VALUES (456)');
-oci_execute($stid);  // consolida tanto el valor 123 como 456
+oci_execute($stid);  // valida tanto los valores 123 como 456
 
 ?>
 ]]>
@@ -224,7 +219,7 @@ oci_execute($stid);  // consolida tanto el valor 123 como 456
   </para>
   <para>
    <example>
-    <title>Ejemplo de <function>oci_execute</function> con
+    <title>Ejemplo con <function>oci_execute</function> y
      <constant>OCI_DESCRIBE_ONLY</constant></title>
     <programlisting role="php">
 <![CDATA[
@@ -244,37 +239,36 @@ for ($i = 1; $i <= oci_num_fields($stid); ++$i) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Las transacciones son automáticamente revertidas cuando se cierran las
-    conexiones, o cuando el script finaliza, lo que ocurra antes. Para consolidar
-    explícitamente una transacción, invoque a <function>oci_commit</function>.
+    Las transacciones son automáticamente anuladas cuando las conexiones
+    se cierran, o cuando el script termina, según lo que ocurra primero.
+    Llame explícitamente a la función <function>oci_commit</function> para validar
+    una transacción.
    </para>
    <para>
-    Cualquier llamada a <function>oci_execute</function> que use
-    el modo <constant>OCI_COMMIT_ON_SUCCESS</constant>, explícitamente o por
-    omisión, consolidará cualquier transacción no consolidada anterioremente.
+    Cualquier llamada a la función <function>oci_execute</function> que utilice el modo
+    <constant>OCI_COMMIT_ON_SUCCESS</constant> explícita o implícitamente
+    validará todas las transacciones en curso.
    </para>
    <para>
-    Cualquier sentencia DDL de Oracle, como <literal>CREATE</literal>
-    o <literal>DROP</literal>, consolidará automáticamente cualquier
-    transacción no consolidada.
+    Todas las consultas Oracle DDL como <literal>CREATE</literal>
+    o <literal>DROP</literal> validarán todas las transacciones en curso.
    </para>
   </note>
   <note>
    <para>
-    Debido a que la función <function>oci_execute</function> generalmente
-    envía la sentencia a la
-    base de datos, <function>oci_execute</function> puede identificar algunos
-    errores de sintaxis que no identifica la función ligera local
-    <function>oci_parse</function>.
+    Debido a que la función <function>oci_execute</function> generalmente envía
+    la consulta a la base de datos, la función
+    <function>oci_execute</function> puede identificar errores de sintaxis
+    de la consulta que la función <function>oci_parse</function> pudo no detectar.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -283,9 +277,8 @@ for ($i = 1; $i <= oci_num_fields($stid); ++$i) {
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,110 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 714b2ac860374965c4212d1aded401baf8255c57 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: d861a1bcea24f05e52e4938c1ecdf9d70326d7aa Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <chapter xml:id="pdo.connections" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Conexiones y su administración</title>
+ <title>Conexiones y gestor de conexión</title>
  <para>
-  Las conexiones se establecen creando instancias de la clase base PDO.
-  No importa el controlador que se utilice; siempre se usará el nombre de
-  la clase PDO. El constructor acepta parámetros para especificar el
-  origen de la base de datos (conocido como DSN) y, opcionalmente, el nombre de usuario
-  y la contraseña (si la hubiera).
+  Las conexiones se establecen creando instancias de la clase base de PDO.
+  No importa qué controlador se desee utilizar; siempre se utiliza el nombre
+  de la clase PDO. El constructor acepta argumentos para especificar
+  la fuente de la base de datos (conocida como DSN) y opcionalmente,
+  el nombre de usuario y la contraseña (si los hay).
  </para>
  <para>
   <example>
-   <title>Conectarse a MySQL</title>
+   <title>Conexión a MySQL</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mbd = new PDO('mysql:host=localhost;dbname=prueba', $usuario, $contraseña);
+$dbh = new PDO('mysql:host=localhost;dbname=test', $user, $pass);
 ?>
-]]> 
+]]>
    </programlisting>
   </example>
  </para>
  <para>
-  Si hubieran errores de conexión, se lanzará un objeto <literal>PDOException</literal>.
-  Se puede capturar la excepción si fuera necesario manejar
-  la condición del error, o se podría optar por dejarla en manos de un
-  manejador de excepciones global de aplicación configurado mediante
-  <function>set_exception_handler</function>.
+  Si existen errores de conexión, se lanza un objeto <literal>PDOException</literal>.
+  Este error puede ser capturado si se desea gestionar la excepción, o bien
+  puede ser tratado por el gestor global de excepciones definido
+  mediante la función <function>set_exception_handler</function>.
  </para>
  <para>
-  <example><title>Manejo de errores de conexión</title>
+  <example>
+   <title>Gestión de errores de conexión</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 try {
-    $mbd = new PDO('mysql:host=localhost;dbname=prueba', $usuario, $contraseña);
-    foreach($mbd->query('SELECT * from FOO') as $fila) {
-        print_r($fila);
-    }
-    $mbd = null;
+    $dbh = new PDO('mysql:host=localhost;dbname=test', $user, $pass);
 } catch (PDOException $e) {
-    print "¡Error!: " . $e->getMessage() . "<br/>";
-    die();
+    // intentar reintentar la conexión después de un cierto tiempo, por ejemplo
 }
-?>
 ]]>
    </programlisting>
   </example>
  </para>
  <warning>
   <para>
-   Si la aplicación no captura la excepción lanzada por el constructor
-   de PDO, la acción predeterminada que toma el motor zend es la de finalizar
-   el script y mostrar información de seguimiento. Esta información probablemente revelará
-   todos los detalles de la conexión a la base de datos, incluyendo el nombre de usuario y
-   la contraseña. Es su responsabilidad capturar esta excepción, ya sea
-   explícitamente (con una sentencia <literal>catch</literal>) o implícitamente por medio de
-   <function>set_exception_handler</function>.
+   Al igual que todas las demás <link linkend="language.exceptions">excepciones</link>,
+   <classname>PDOException</classname> puede ser capturada ya sea explícitamente, mediante
+   una instrucción &catch;, o implícitamente a través de <function>set_exception_handler</function>.
+   De lo contrario, se producirá el comportamiento por defecto de convertir una excepción no capturada en una
+   <constant>E_FATAL_ERROR</constant>.
+   El error fatal contendrá un backtrace que podría revelar detalles sobre la conexión.
+   Por lo tanto, la opción &php.ini; <link linkend="ini.display-errors"><literal>display_errors</literal></link>
+   debe estar configurada a <literal>0</literal> en un servidor de producción.
   </para>
  </warning>
  <para>
-  Una vez realizada con éxito una conexión a la base de datos, será devuelta una instancia
-  de la clase PDO al script. La conexión permanecerá activa durante el tiempo
-  de vida del objeto PDO. Para cerrar la conexión, es necesario
-  destruir el objeto asegurándose de que todas las referencias a él existentes sean
-  eliminadas; esto se puede hacer asignando &null; a la variable que contiene el
-  objeto. Si no se realiza explícitamente, PHP cerrará automáticamente
-  la conexión cuando el script finalice.
+  Cuando la conexión a la base de datos tiene éxito, se devuelve una instancia de la clase
+  PDO al script. La conexión permanece activa mientras el objeto PDO lo esté. Para cerrar la conexión,
+  se debe destruir el objeto asegurándose de que todas sus referencias sean eliminadas. Esto puede hacerse
+  asignando &null; a la variable que gestiona el objeto. Si no se hace explícitamente, PHP cerrará
+  automáticamente la conexión cuando el script llegue al final.
  </para>
  <note>
   <simpara>
-   Si aún existen otras referencias a esta instancia de PDO (tales como desde una
-   instancia de PDOStatement, o desde otras variables que hacen referencia a la misma
-   instancia de PDO), estas también han de eliminarse (por ejemplo, asignando NULL a
-   la variable que hace referencia al PDOStatement).
+   Si aún existen otras referencias a esta instancia PDO (por ejemplo,
+   desde una instancia PDOStatement u otras variables que referencian
+   la misma instancia PDO), estas también deben ser eliminadas (por
+   ejemplo, asignando &null; a la variable que referencia el PDOStatement).
   </simpara>
  </note>
  <para>
   <example>
-   <title>Cerrar una conexión</title>
+   <title>Cierre de una conexión</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mbd = new PDO('mysql:host=localhost;dbname=prueba', $usuario, $contraseña);
-// Utilizar la conexión aquí
-$sth = $mbd->query('SELECT * FROM foo');
+$dbh = new PDO('mysql:host=localhost;dbname=test', $user, $pass);
+// usar la conexión aquí
+$sth = $dbh->query('SELECT * FROM foo');
 
-// Ya se ha terminado; se cierra
+// y ahora, cerrarla !
 $sth = null;
-$mbd = null;
+$dbh = null;
 ?>
 ]]>
    </programlisting>
   </example>
  </para>
  <para>
-  Muchas aplicaciones web se beneficiarán del uso de conexiones persistentes a
-  servidores de bases de datos. Las conexiones persistentes no son cerradas al final del
-  script, sino que son almacenadas en caché y reutilizadas cuando otro script solicite una
-  conexión que use las mismas credenciales. La caché de conexiones persistentes
-  permite evitar la carga adicional de establecer una nueva conexión cada vez
-  que un script necesite comunicarse con la base de datos, dando como resultado
-  una aplicación web más rápida.
+  Muchas aplicaciones web utilizan conexiones persistentes a los servidores
+  de base de datos. Las conexiones persistentes no se cierran al final del
+  script, sino que se almacenan en caché y se reutilizan cuando otro script solicita una conexión
+  utilizando los mismos parámetros. La caché de conexiones persistentes
+  permite evitar establecer una nueva conexión cada vez que un
+  script necesita acceder a una base de datos, lo que hace que la aplicación web sea más rápida.
  </para>
  <para>
   <example>
@@ -112,7 +104,7 @@ $mbd = null;
    <programlisting role="php">
 <![CDATA[
 <?php
-$mbd = new PDO('mysql:host=localhost;dbname=prueba', $usuario, $contraseña, array(
+$dbh = new PDO('mysql:host=localhost;dbname=test', $user, $pass, array(
     PDO::ATTR_PERSISTENT => true
 ));
 ?>
@@ -120,26 +112,35 @@ $mbd = new PDO('mysql:host=localhost;dbname=prueba', $usuario, $contraseña, arr
    </programlisting>
   </example>
  </para>
+ <para>
+  El valor de la opción <constant>PDO::ATTR_PERSISTENT</constant> se convierte
+  en &boolean; (activar/desactivar conexiones persistentes), a menos que sea
+  una &string; no numérica, en cuyo caso esto permite el uso de
+  varios grupos de conexiones persistentes.
+  Esto es útil si las conexiones diferentes utilizan parámetros
+  incompatibles, por ejemplo, valores diferentes de
+  <constant>PDO::MYSQL_ATTR_USE_BUFFERED_QUERY</constant>.
+ </para>
  <note>
   <para>
-   Para utilizar conexiones persistentes, se deberá establecer
-   <constant>PDO::ATTR_PERSISTENT</constant> en las opciones del array del controlador
-   pasado al constructor de PDO. Si este atributo se establece con
-   <function>PDO::setAttribute</function> después de la instanciación del
-   objeto, el controlador no utilizará conexiones persistentes.
+   Si se desea utilizar conexiones persistentes, se debe
+   utilizar el valor <constant>PDO::ATTR_PERSISTENT</constant> en el
+   array de opciones del controlador pasado al constructor PDO. Si se
+   establece este atributo con el método <methodname>PDO::setAttribute</methodname>
+   después de la instanciación del objeto, el controlador no utilizará las
+   conexiones persistentes.
   </para>
  </note>
  <note>
   <para>
-   Si se usa el controlador PDO y las bibliotecas ODBC admiten el aprovisionamiento
-   de conexiones ODBC (unixODBC y Windows lo hacen; podrían haber
-   más), se recomienda no utilizar las conexiones persistentes de PDO,
-   y, en su lugar, dejar el almacenamiento en caché de conexiones a la capa del aprovisionamiento
-   de conexiones de ODBC. La provisión de conexiones de ODBC se comparte con otros
-   módulos en el proceso; si se le indica a PDO que almacene en caché la conexión, entonces
-   dicha conexión nunca será devuelta a la provisión de conexiones de ODBC,
-   dando como resultado la creación de conexiones adicionales para servir a los
-   demás módulos.
+   Si se utiliza el controlador PDO ODBC y si su librería ODBC soporta
+   el pool de conexiones ODBC (tanto unixODBC como Windows lo soportan;
+   puede ser más), entonces se recomienda no utilizar las conexiones persistentes
+   PDO, sino dejar que el pool de conexiones ODBC almacene en caché las conexiones.
+   El pool de conexiones ODBC es compartido con otros módulos en el proceso;
+   si PDO almacena en caché la conexión, entonces esta conexión nunca será devuelta
+   por el pool de conexiones ODBC, lo que hace que se creen múltiples conexiones para
+   otros módulos.
   </para>
  </note>
 </chapter>
@@ -164,4 +165,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

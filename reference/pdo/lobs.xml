@@ -1,44 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a1772e86ca91b72001b0875c73c314574cb7526d Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: eae19eb5fe0f5bebcbce382ea7a505cedeb5a883 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 
 <chapter xml:id="pdo.lobs" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
- <title>Objetos grandes (LOB)</title>
+ <title>Los objetos grandes (LOB)</title>
  <para>
-  En algún momento, una aplicación podría necesitar almacenar
-  datos "grandes" en la base de datos. Grande típicamente significa "alrededor de 4kb o
-  más", aunque algunas bases de datos pueden manejar fácilmente hasta 32kb antes de que
-  los datos se consideren "grandes". Los objetos grandes, o LOB (acrónimo en inglés de 'Large OBjects'), pueden ser de texto o binarios.
-  PDO permite trabajar con este tipo de datos grandes utilizando el código del tipo
-  <constant>PDO::PARAM_LOB</constant>
-  en llamadas a <function>PDOStatement::bindParam</function> o
-  <function>PDOStatement::bindColumn</function>.
-  <constant>PDO::PARAM_LOB</constant> indica a
-  PDO que haga corresponder los datos como un flujo, pudiendo manipularlos así utilizando la
-  <link linkend="ref.stream">API de flujos de PHP</link>.
+  En algún momento de su aplicación, podría ser necesario almacenar
+  grandes cantidades de datos en la base de datos. « Grande » significa
+  típicamente datos de aproximadamente 4 ko o más, aunque algunas bases de datos
+  pueden manejar más de 32 ko antes de que los datos se consideren « grandes ». Los objetos
+  grandes pueden ser de naturaleza textual o binaria. PDO permite trabajar
+  con este tipo de grandes datos utilizando el código tipo
+  <constant>PDO::PARAM_LOB</constant> en las llamadas a las funciones
+  <methodname>PDOStatement::bindParam</methodname> o
+  <methodname>PDOStatement::bindColumn</methodname>.
+  <constant>PDO::PARAM_LOB</constant> solicita a PDO que transforme los datos
+  en un flujo que pueda ser manipulado utilizando
+  la <link linkend="ref.stream">API PHP de flujos</link>.
  </para>
  <para>
   <example>
    <title>Mostrar una imagen desde una base de datos</title>
    <para>
-    Este ejemplo vincula un LOB a una variable llamada $lob, y luego lo envía
-    al navegador usando <function>fpassthru</function>. Ya que el LOB
-    está representado como un flujo, se pueden emplear funciones tales como
+    Este ejemplo vincula un LOB en una variable llamada $lob y lo envía
+    al navegador utilizando la función <function>fpassthru</function>.
+    Dado que un LOB se representa como un flujo, las funciones como
     <function>fgets</function>, <function>fread</function> y
-    <function>stream_get_contents</function> para manejarlo.
+    <function>stream_get_contents</function> pueden ser utilizadas en este flujo.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$bd = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2');
-$sentencia = $bd->prepare("select contenttype, imagedata from images where id=?");
-$sentencia->execute(array($_GET['id']));
-$sentencia->bindColumn(1, $tipo, PDO::PARAM_STR, 256);
-$sentencia->bindColumn(2, $lob, PDO::PARAM_LOB);
-$sentencia->fetch(PDO::FETCH_BOUND);
+$db = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2');
+$stmt = $db->prepare("select contenttype, imagedata from images where id=?");
+$stmt->execute(array($_GET['id']));
+$stmt->bindColumn(1, $type, PDO::PARAM_STR, 256);
+$stmt->bindColumn(2, $lob, PDO::PARAM_LOB);
+$stmt->fetch(PDO::FETCH_BOUND);
 
-header("Content-Type: $tipo");
+header("Content-Type: $type");
 fpassthru($lob);
 ?>
 ]]>
@@ -49,29 +50,30 @@ fpassthru($lob);
   <example>
    <title>Insertar una imagen en una base de datos</title>
    <para>
-    Este ejemplo abre un fichero y pasa el manejador del fichero a PDO para insertarlo
-    como un LOB. PDO hará todo lo posible para enviar el contenido del fichero
-    a la base de datos de la manera más eficiente.
+    Este ejemplo abre un fichero y pasa el puntero de fichero a PDO
+    para insertarlo como LOB. PDO hará lo posible por recuperar
+    el contenido del fichero e insertarlo en la base de datos de la
+    manera más eficiente posible.
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$bd = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2');
-$sentencia = $bd->prepare("insert into images (id, contenttype, imagedata) values (?, ?, ?)");
-$id = get_new_id(); // alguna función para asignar un nuevo ID
+$db = new PDO('odbc:SAMPLE', 'db2inst1', 'ibmdb2');
+$stmt = $db->prepare("insert into images (id, contenttype, imagedata) values (?, ?, ?)");
+$id = get_new_id(); // función para asignar un nuevo ID
 
-// Se asume que se está ejecutando como parte de un formulario de subida de ficheros
-// Se puede encontrar más información en la documentación de PHP
+// asumamos que obtenemos un fichero desde un formulario
+// puede encontrar más detalles en la documentación de PHP
 
 $fp = fopen($_FILES['file']['tmp_name'], 'rb');
 
-$sentencia->bindParam(1, $id);
-$sentencia->bindParam(2, $_FILES['file']['type']);
-$sentencia->bindParam(3, $fp, PDO::PARAM_LOB);
+$stmt->bindParam(1, $id);
+$stmt->bindParam(2, $_FILES['file']['type']);
+$stmt->bindParam(3, $fp, PDO::PARAM_LOB);
 
-$bd->beginTransaction();
-$sentencia->execute();
-$bd->commit();
+$db->beginTransaction();
+$stmt->execute();
+$db->commit();
 ?>
 ]]>
    </programlisting>
@@ -79,34 +81,33 @@ $bd->commit();
  </para>
  <para>
   <example>
-   <title>Insertar una imagen en una base de datos: Oracle</title>
+   <title>Insertar una imagen en una base de datos Oracle</title>
    <para>
-    Oracle requiere una sintaxis ligeramente diferente para insertar un LOB desde un
-    fichero. También es esencial que se realice la inserción bajo una
-    transacción, si no, el LOB recién insertado será consignado con una
-    longitud cero como parte de la consigna implícita que ocurre cuando la consulta
-    se ejecuta:
+    Oracle requiere una sintaxis ligeramente diferente para insertar un LOB
+    desde un fichero. Asimismo, es esencial realizar la inserción
+    dentro de una transacción, de lo contrario, el nuevo LOB será insertado
+    con una longitud de cero:
    </para>
    <programlisting role="php">
 <![CDATA[
 <?php
-$bd = new PDO('oci:', 'scott', 'tiger');
-$sentencia = $bd->prepare("insert into images (id, contenttype, imagedata) " .
+$db = new PDO('oci:', 'scott', 'tiger');
+$stmt = $db->prepare("insert into images (id, contenttype, imagedata) " .
 "VALUES (?, ?, EMPTY_BLOB()) RETURNING imagedata INTO ?");
-$id = get_new_id(); // alguna función para asignar un nuevo ID
+$id = get_new_id(); // función para asignar un nuevo ID
 
-// Se asume que se está ejecutando como parte de un formulario de subida de ficheros
-// Se puede encontrar más información en la documentación de PHP
+// asumamos que obtenemos un fichero desde un formulario
+// puede encontrar más detalles en la documentación de PHP
 
 $fp = fopen($_FILES['file']['tmp_name'], 'rb');
 
-$sentencia->bindParam(1, $id);
-$sentencia->bindParam(2, $_FILES['file']['type']);
-$sentencia->bindParam(3, $fp, PDO::PARAM_LOB);
+$stmt->bindParam(1, $id);
+$stmt->bindParam(2, $_FILES['file']['type']);
+$stmt->bindParam(3, $fp, PDO::PARAM_LOB);
 
-$bd->beginTransaction();
-$sentencia->execute();
-$bd->commit();
+$db->beginTransaction();
+$stmt->execute();
+$db->commit();
 ?>
 ]]>
    </programlisting>
@@ -134,4 +135,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

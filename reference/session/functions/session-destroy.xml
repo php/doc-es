@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 682510e91d1f19fb59d2f7aef6ab370e8af842a1 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-destroy">
  <refnamediv>
   <refname>session_destroy</refname>
-  <refpurpose>Destruye toda la información registrada de una sesión</refpurpose>
+  <refpurpose>Destruye una sesión</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -14,17 +16,62 @@
    <void/>
   </methodsynopsis>
   <simpara>
-   <function>session_destroy</function> destruye toda la información asociada
-   con la sesión actual. No destruye ninguna de las variables globales
-   asociadas con la sesión, ni destruye la cookie de sesión.
-   Para volver a utilizar las variables de sesión se debe llamar a <function>session_start</function>.
+   <function>session_destroy</function> destruye todos los datos
+   asociados a la sesión actual. Esta función no destruye
+   las variables globales asociadas a la sesión, de igual manera, no
+   destruye la cookie de sesión. Para acceder nuevamente a las variables
+   de sesión, la función <function>session_start</function> debe ser
+   llamada nuevamente.
   </simpara>
+  <note>
+   <simpara>
+    No es necesario llamar a <function>session_destroy</function>
+    desde el programa generalmente.
+    Limpiar el array $_SESSION en lugar de destruir los datos de sesión.
+   </simpara>
+  </note>
   <para>
-   Para destruir la sesión completamente, como desconectar al usuario, el
-   id de sesión también debe ser destruido. Si se usa una cookie para propagar el
-   id de sesión (comportamiento por defecto), entonces la cookie de sesión se debe borrar.
-   <function>setcookie</function> se puede usar para eso.
+   Para destruir completamente una sesión,
+   el identificador de la sesión debe ser eliminado también. Si una cookie es utilizada
+   para propagar el identificador de sesión (comportamiento por omisión), entonces la cookie
+   de sesión debe ser eliminada. La función <function>setcookie</function>
+   puede ser utilizada para esto.
   </para>
+  <para>
+   Cuando <link linkend="ini.session.use-strict-mode">session.use_strict_mode</link>
+   está activado. No es necesario eliminar las cookies de ID de sesión
+   obsoletas ya que el módulo de sesión no acepta las cookies de ID de sesiones
+   cuando no hay datos asociados con estos ID de sesiones y definirá
+   una nueva cookie de ID de sesión.
+   Activar <link linkend="ini.session.use-strict-mode">session.use_strict_mode</link>
+   es recomendado para todos los sitios.
+  </para>
+  <warning>
+   <para>
+    La eliminación inmediata de una sesión puede causar resultados inesperados.
+    Cuando hay peticiones simultáneas, otras conexiones pueden
+    perder repentinamente datos de sesión. Por ejemplo peticiones
+    desde JavaScript y/o peticiones desde enlaces URL.
+   </para>
+   <para>
+    Aunque el módulo de sesión actual no acepta una cookie de ID de sesión
+    vacía, la eliminación inmediata de sesión puede provocar una cookie
+    de ID de sesión vacía debido a una condición de concurrencia lado-cliente
+    (navegador). Esto provocará la creación de muchos ID de sesión
+    innecesarios por el cliente.
+   </para>
+   <para>
+    Para evitar esto, se debe definir un timestamp en $_SESSION y
+    rechazar el acceso a todas las fechas posteriores. O asegurarse de que su
+    aplicación no tenga peticiones simultáneas. Esto también se aplica a
+    <function>session_regenerate_id</function>.
+   </para>
+  </warning>
+ </refsect1>
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  &no.function.parameters;
  </refsect1>
 
  <refsect1 role="returnvalues">
@@ -38,19 +85,21 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Destruir una sesión con <varname>$_SESSION</varname></title>
+    <title>Destrucción de una sesión con <varname>$_SESSION</varname></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Inicializar la sesión.
-// Si está usando session_name("algo"), ¡no lo olvide ahora!
+// Inicialización de la sesión.
+// Si se utiliza otro nombre
+// session_name("otroNombre")
 session_start();
 
-// Destruir todas las variables de sesión.
+// Destruye todas las variables de sesión
 $_SESSION = array();
 
-// Si se desea destruir la sesión completamente, borre también la cookie de sesión.
-// Nota: ¡Esto destruirá la sesión, y no la información de la sesión!
+// Si se quiere destruir completamente la sesión, también se debe eliminar
+// la cookie de sesión.
+// Nota: esto destruirá la sesión y no solo los datos de sesión !
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000,
@@ -59,7 +108,7 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// Finalmente, destruir la sesión.
+// Finalmente, se destruye la sesión.
 session_destroy();
 ?>
 ]]>
@@ -68,20 +117,13 @@ session_destroy();
   </para>
  </refsect1>
 
- <refsect1 role="notes">
-  &reftitle.notes;
-  <note>
-   <para>
-    Usar sólo <function>session_unset</function> para códigos antiguos obsoletos
-    que no usan <varname>$_SESSION</varname>.
-   </para>
-  </note>
- </refsect1>
-
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
+    <member><link linkend="ini.session.use-strict-mode">session.use_strict_mode</link></member>
+    <member><function>session_reset</function></member>
+    <member><function>session_regenerate_id</function></member>
     <member><function>unset</function></member>
     <member><function>setcookie</function></member>
    </simplelist>

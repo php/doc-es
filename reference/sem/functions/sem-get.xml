@@ -1,33 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.sem-get">
+<!-- EN-Revision: 105769eb557af47e5f2d0bea47457827114942fa Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.sem-get" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>sem_get</refname>
-  <refpurpose>Obtener el id de un semáforo</refpurpose>
+  <refpurpose>Retorna un identificador de semáforo</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>sem_get</methodname>
+   <type class="union"><type>SysvSemaphore</type><type>false</type></type><methodname>sem_get</methodname>
    <methodparam><type>int</type><parameter>key</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>max_acquire</parameter><initializer>1</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>perm</parameter><initializer>0666</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>auto_release</parameter><initializer>1</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>permissions</parameter><initializer>0666</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>auto_release</parameter><initializer>&true;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>sem_get</function> devuelve un id que se puede usar para
-   acceder al semáforo de System V con la clave dada por <parameter>key</parameter>.
+   <function>sem_get</function> retorna un identificador que podrá
+   ser utilizado para acceder a un semáforo System V.
   </para>
   <para>
-   Una segunda llamada a <function>sem_get</function> para la misma clave
-   devolverá un identificador de semáforo diferente, pero ambos
-   identificadores accederán al mismo semáforo subyacente.
+   Una segunda llamada a <function>sem_get</function>
+   con la misma clave retornará un identificador
+   diferente, pero ambos identificadores permitirán
+   acceder al mismo semáforo.
+  </para>
+  <para>
+   Si <parameter>key</parameter> es <literal>0</literal>, un nuevo semáforo
+   privado se crea para cada llamada a <function>sem_get</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -43,17 +48,18 @@
      <term><parameter>max_acquire</parameter></term>
      <listitem>
       <para>
-       El número de procesos que puede adquirir el semáforo simultáneamente
-       está establecido por <parameter>max_acquire</parameter>.
+       El número de procesos que pueden reservar simultáneamente el semáforo
+       se especifica en el argumento <parameter>max_acquire</parameter>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>perm</parameter></term>
+     <term><parameter>permissions</parameter></term>
      <listitem>
       <para>
-       Los permisos del semáforo. En realidad este valor se
-       establece sólo si el proceso que lo encuentra es el único proceso actualmente
+       Los permisos del semáforo.
+       Actualmente, este valor solo se aplica
+       si el proceso es el único proceso actualmente
        adjunto al semáforo.
       </para>
      </listitem>
@@ -62,36 +68,69 @@
      <term><parameter>auto_release</parameter></term>
      <listitem>
       <para>
-       Especifica si el semáforo debería ser liberado automáticamente al cierre
-       de la petición.
+       El argumento opcional <parameter>auto_release</parameter> especifica
+       si el semáforo debe ser liberado automáticamente al cerrar.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un identificador de semáforo positivo en caso de éxito, o &false; en caso de
-   error.
+   Retorna un recurso de semáforo en caso de éxito, y &false; en caso de error.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        En caso de éxito, esta función retorna una instancia de
+        <classname>SysvSemaphore</classname> ahora; anteriormente; un
+        <type>resource</type> era retornado.
+       </entry>
+      </row>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        El tipo de <parameter>auto_release</parameter> ha sido modificado de
+        <type>int</type> a <type>bool</type>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="notes">
   &reftitle.notes;
   <warning>
    <simpara>
-    Al usar <function>sem_get</function> para acceder a un semáforo creado
-    fuera de PHP, se ha de observar que el semáforo debe haber sido creado como un conjunto de 3
-    semáforos (por ejemplo, especificando 3 en el parámetro <literal>nsems</literal>,
-    al llamar a la función <literal>semget()</literal> de C),
-    de lo contrario, PHP no podrá acceder al semáforo.
+    Al utilizar la función <function>sem_get</function> para acceder a
+    un semáforo creado fuera de PHP, tenga en cuenta que el semáforo debe haber
+    sido creado como un conjunto de 3 semáforos (por ejemplo, especificando 3 como
+    argumento <literal>nsems</literal> durante la llamada a la función C
+    <literal>semget()</literal>), de lo contrario, PHP no será capaz de acceder a este
+    semáforo.
    </simpara>
   </warning>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -101,10 +140,9 @@
     <member><function>ftok</function></member>
    </simplelist>
   </para>
- </refsect1>  
- 
-</refentry>
+ </refsect1>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

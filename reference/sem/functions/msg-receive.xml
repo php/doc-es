@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5474843de6a8fec6c466b9fa7ab61b43b43b3c46 Maintainer: seros Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.msg-receive">
+<!-- EN-Revision: f7e33278a909d7f7bf491f77cb10c93581091736 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.msg-receive" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>msg_receive</refname>
-  <refpurpose>Recibir un mensaje de la cola de mensajes</refpurpose>
+  <refpurpose>Recibe un mensaje desde una cola de mensajes</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>msg_receive</methodname>
-   <methodparam><type>resource</type><parameter>queue</parameter></methodparam>
-   <methodparam><type>int</type><parameter>desiredmsgtype</parameter></methodparam>
-   <methodparam><type>int</type><parameter role="reference">msgtype</parameter></methodparam>
-   <methodparam><type>int</type><parameter>maxsize</parameter></methodparam>
+   <methodparam><type>SysvMessageQueue</type><parameter>queue</parameter></methodparam>
+   <methodparam><type>int</type><parameter>desired_message_type</parameter></methodparam>
+   <methodparam><type>int</type><parameter role="reference">received_message_type</parameter></methodparam>
+   <methodparam><type>int</type><parameter>max_message_size</parameter></methodparam>
    <methodparam><type>mixed</type><parameter role="reference">message</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>unserialize</parameter><initializer>true</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>unserialize</parameter><initializer>&true;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter role="reference">errorcode</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter role="reference">error_code</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>msg_receive</function> recibirá el primer mensaje de la cola
-   especificada por <parameter>queue</parameter> del tipo especificado por
-   <parameter>desiredmsgtype</parameter>.
+   <function>msg_receive</function> recibe el primer mensaje de la
+   cola <parameter>queue</parameter>, cuyo tipo está especificado por
+   <parameter>desired_message_type</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,43 +36,43 @@
      <term><parameter>queue</parameter></term>
      <listitem>
       <para>
+       Descriptor de recurso de cola de mensajes
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>desiredmsgtype</parameter></term>
+     <term><parameter>desired_message_type</parameter></term>
      <listitem>
       <para>
-       Si <parameter>desiredmsgtype</parameter> es 0, se devolverá el mensaje al frente
-       de la cola. Si <parameter>desiredmsgtype</parameter> es
-       mayor que 0, se devolverá el primer mensaje de ese tipo.
-       Si <parameter>desiredmsgtype</parameter> es menor que 0, se leerá
-       el primer mensaje de la cola con el tipo más bajo menor o igual que el
-       valor absoluto de <parameter>desiredmsgtype</parameter>.
-       Si ningún mensaje concuerda con el criterio, el script esperará hasta que un mensaje
-       apropiado llegue a la cola. Se puede prevenir que se bloquee el script
-       especificando <constant>MSG_IPC_NOWAIT</constant> en el
-       parámetro <parameter>flags</parameter>.
+       Si <parameter>desired_message_type</parameter> vale 0, se devuelve el primer mensaje
+       de la cola. Si <parameter>desired_message_type</parameter> vale
+       más que 0, entonces se devolverá el primer mensaje de ese tipo.
+       Si <parameter>desired_message_type</parameter> vale menos que 0, se devolverá el primer
+       mensaje de la cola cuyo tipo sea inferior o igual al valor absoluto
+       de <parameter>desired_message_type</parameter>. Si no hay mensajes
+       que cumplan los criterios, el script esperará a que llegue un mensaje
+       de ese tipo a la cola. Este bloqueo puede evitarse especificando la opción
+       <constant>MSG_IPC_NOWAIT</constant> en el parámetro
+       <parameter>flags</parameter>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>msgtype</parameter></term>
+     <term><parameter>received_message_type</parameter></term>
      <listitem>
       <para>
-       El tipo de mensaje que fue recibido se almacenará en este
-       parámetro.
+       El tipo de mensaje recibido se almacenará en este parámetro.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>maxsize</parameter></term>
+     <term><parameter>max_message_size</parameter></term>
      <listitem>
       <para>
-       El tamaño máximo del mensaje aceptado se especifica mediante
-       <parameter>maxsize</parameter>; si el mensaje de la cola es mayor
-       que este tamaño la función fallará (a menos que se establezca
-       <parameter>flags</parameter> como está descrito abajo).
+       El tamaño máximo de mensaje se establece mediante
+       <parameter>max_message_size</parameter>; si el mensaje de la cola es más grande
+       que este tamaño, la función fallará (a menos que se utilice una opción
+       <parameter>flags</parameter>, descrita a continuación).
       </para>
      </listitem>
     </varlistentry>
@@ -79,8 +80,8 @@
      <term><parameter>message</parameter></term>
      <listitem>
       <para>
-       El mensaje recibido será almacenado en <parameter>message</parameter>,
-       a menos que hubiera errores al recibir dicho mensaje.
+       El mensaje recibido se almacenará en el parámetro <parameter>message</parameter>,
+       a menos que haya habido errores al recibir el mensaje.
       </para>
      </listitem>
     </varlistentry>
@@ -88,16 +89,15 @@
      <term><parameter>unserialize</parameter></term>
      <listitem>
       <para>
-       Si está establecido a
-       &true;, el mensaje es tratado como si fuera serializado usando el
-       mismo mecanismo que el del módulo de sesión. El mensaje será deserializado
-       y después devuelto al script. Esto permite recibir de forma sencilla
-       matrices y objetos complejos desde otros scripts de PHP, o si se está usando
-       el serializador WDDX, desde cualquier fuente compatible con WDDX.
+       Cuando esto es cierto, el mensaje se trata como si hubiera sido serializado
+       con el mismo mecanismo que el módulo de sesión. El mensaje será entonces
+       deserializado y devuelto al script. Esto permitirá recibir fácilmente
+       arrays u objetos complejos en su script, enviados por otros scripts PHP,
+       o, si se utiliza WDDX, desde cualquier fuente compatible con WDDX.
       </para>
       <para>
-       Si <parameter>unserialize</parameter> es &false;, el mensaje será
-       devuelto como cadena segura a nivel binario.
+       Si <parameter>unserialize</parameter> vale &false;,
+       el mensaje se devolverá intacto, sin modificar los valores binarios.
       </para>
      </listitem>
     </varlistentry>
@@ -105,34 +105,34 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       El parámetro opcional <parameter>flags</parameter> permite pasar banderas a la
-       llamada a bajo nivel de msgrcv. Por defecto es 0, pero se puede especificar uno
-       o más de los siguientes valores (añadiéndolos o usando OR).
+       El parámetro <parameter>flags</parameter> permite pasar opciones
+       para configurar las llamadas msgrcv. Por omisión, vale 0, pero se pueden
+       especificar una o varias opciones combinándolas con el operador OR.
        <table>
-        <title>Flag values for msg_receive</title>
+        <title>Opciones de la función <function>msg_receive</function></title>
         <tgroup cols="2">
          <tbody>
           <row>
            <entry><constant>MSG_IPC_NOWAIT</constant></entry>
-           <entry>Si no hay mensajes del tipo deseado dado por
-            <parameter>desiredmsgtype</parameter>, devuelve inmediatamente y no
-            espera. La función fallará y devolverá un valor de tipo integer
+           <entry>Si no hay mensajes del tipo
+            <parameter>desired_message_type</parameter>, se devuelve inmediatamente
+            y no se espera. La función fallará y devolverá un entero
             correspondiente a <constant>MSG_ENOMSG</constant>.
            </entry>
           </row>
           <row>
            <entry><constant>MSG_EXCEPT</constant></entry>
-           <entry>Usar esta bandera en combinación con un
-            <parameter>desiredmsgtype</parameter> mayor que 0 causará que la
-            función reciba el primer mensaje que no sea igual a
-            <parameter>desiredmsgtype</parameter>.</entry>
+           <entry>Al utilizar esta opción en combinación con
+           un tipo <parameter>desired_message_type</parameter> superior a 0, la
+           función leerá el primer mensaje que no sea
+           del tipo solicitado por <parameter>desired_message_type</parameter>.</entry>
           </row>
           <row>
            <entry><constant>MSG_NOERROR</constant></entry>
            <entry>
-            Si el mensaje es mayor que <parameter>maxsize</parameter>,
-            establecer esta bandera truncará el mensaje a
-            <parameter>maxsize</parameter> y no enviará un error.
+            Si el mensaje es más grande que <parameter>max_message_size</parameter>,
+            esta opción truncará el mensaje al tamaño de
+            <parameter>max_message_size</parameter> y no reportará errores.
            </entry>
           </row>
          </tbody>
@@ -145,28 +145,54 @@
      <term><parameter>errorcode</parameter></term>
      <listitem>
       <para>
-       Si la función falla, el parámetro opcional <parameter>errorcode</parameter>
-       será establecido al valor de la variable errno del sistema.
+       Si la función falla, el parámetro opcional
+       <parameter>error_code</parameter> se establecerá al valor
+       de la variable del sistema errno.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
   <para>
-   Si se finalizó con éxito, la estructura de datos de la cola de mensajes se actualiza como
-   sigue: <literal>msg_lrpid</literal> se establece al ID del proceso de
-   llamada, <literal>msg_qnum</literal> se disminuye en 1 y
-   <literal>msg_rtime</literal> se establece al momento actual.
+   Al recibir un mensaje con éxito, la cola se actualiza
+   de la siguiente manera: <literal>msg_lrpid</literal> toma el valor del identificador
+   de proceso del proceso llamante, <literal>msg_qnum</literal> se decrementa en
+   1 y <literal>msg_rtime</literal> toma la fecha y hora actuales.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.0.0</entry>
+       <entry>
+        <parameter>queue</parameter> ahora espera una <classname>SysvMessageQueue</classname>;
+        anteriormente, se esperaba un <type>resource</type>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -177,10 +203,9 @@
     <member><function>msg_set_queue</function></member>
    </simplelist>
   </para>
- </refsect1>  
- 
-</refentry>
+ </refsect1>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

@@ -1,48 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.session-cache-limiter">
+<!-- EN-Revision: 927c3d9ef797f572473754d0ed8488d34986f0ca Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.session-cache-limiter" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>session_cache_limiter</refname>
-  <refpurpose>Obtener y/o establecer el limitador de caché actual</refpurpose>
+  <refpurpose>Lee y/o modifica el limitador de caché de sesión</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>session_cache_limiter</methodname>
-   <methodparam choice="opt"><type>string</type><parameter>cache_limiter</parameter></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>session_cache_limiter</methodname>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>value</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>session_cache_limiter</function> devuelve el nombre del
-   limitador de caché actual.
+   <function>session_cache_limiter</function> devuelve la configuración
+   actual del limitador de caché.
   </para>
   <para>
-   El limitador de caché define cuáles cabeceras HTTP de control de caché son enviadas
-   al cliente. Estas cabeceras determinan las normas por las cuáles el contenido de la página
-   puede ser examinada por el cliente y por los proxies intermediarios. Establecer el limitador
-   de caché a <literal>nocache</literal> rechaza cualquier examen por parte del cliente/proxy.
-   Un valor de <literal>public</literal> permite la examen por proxies y el
-   client, mientras que <literal>private</literal> rechaza la examen por proxies
-   y permite al cliente examinar el contenido.
+   El limitador de caché controla los encabezados HTTP enviados al cliente.
+   Algunos encabezados determinan las reglas de almacenamiento en caché de la página
+   en el navegador. Al configurar este limitador a <literal>nocache</literal>,
+   por ejemplo, el navegador no almacenará la página en su caché. El valor
+   <literal>public</literal>, en cambio, permitirá el almacenamiento en caché. El valor
+   <literal>private</literal> desactiva la caché para el proxy y autoriza al
+   cliente a almacenar en caché el contenido.
   </para>
   <para>
-   En modo <literal>private</literal>, la cabecera Expire enviada al cliente
-   puede causar confusión a algunos navegadores, incluido <productname>Mozilla</productname>.
-   Se puede evitar este problema usando el modo <literal>private_no_expire</literal>. La
-   cabecera <literal>Expire</literal> nunca se envía al cliente en este modo.
+   En modo <literal>private</literal>, el encabezado Expire enviado al cliente
+   puede causar problemas en algunos navegadores, como, por ejemplo,
+   <productname>Mozilla</productname>. Este problema puede evitarse con el modo
+   <literal>private_no_expire</literal>. El encabezado <literal>Expire</literal>
+   nunca se envía al navegador para este modo.
   </para>
   <para>
-   Establecer el limitador de caché a <literal>''</literal> desactivará el envío automático
-   de las cabeceras de caché completamente.
+   El hecho de definir el limitador de caché a
+   la valor <literal>''</literal> desactivará
+   automáticamente y por completo el envío de los encabezados de caché.
   </para>
   <para>
-   El limitador de caché se reinicia a su valor predeterminado almacenado en
-   <link linkend="ini.session.cache-limiter">session.cache_limiter</link>
-   en el momento de iniciar una petición. Por lo tanto, se necesita llamar a
-   <function>session_cache_limiter</function> para cada
-   petición (y antes de llamar a <function>session_start</function>).
+   El limitador de caché se restablece al valor por defecto de
+   <link linkend="ini.session.cache-limiter"><option>session.cache_limiter</option></link> en cada
+   inicio de script PHP. Por lo tanto, deberá llamarse a <function>session_cache_limiter</function> en
+   cada página, y antes de <function>session_start</function>.
   </para>
  </refsect1>
 
@@ -51,19 +52,19 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>cache_limiter</parameter></term>
+     <term><parameter>value</parameter></term>
      <listitem>
       <para>
-       Si se especifica <parameter>cache_limiter</parameter>, el nombre del
-       limitador de caché actual se cambia por el nuevo valor.
+       Si <parameter>value</parameter> se proporciona y no es &null;,
+       el limitador de caché se reconfigura con este valor.
       </para>
       <table>
        <title>Valores posibles</title>
        <tgroup cols="2">
         <thead>
          <row>
-          <entry>Valor</entry>
-          <entry>Cabeceras enviadas</entry>
+          <entry>Valores</entry>
+          <entry>Encabezados enviados</entry>
          </row>
         </thead>
         <tbody>
@@ -72,9 +73,9 @@
           <entry>
            <programlisting role="header">
 <![CDATA[
-Expires: (algún momento en el futuro, según session.cache_expire)
-Cache-Control: public, max-age=(algún momento en el futuro, según session.cache_expire)
-Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última vez)
+Expires: (Algo en el futuro, según session.cache_expire)
+Cache-Control: public, max-age=(Algo en el futuro, según session.cache_expire)
+Last-Modified: (el timestamp correspondiente al último guardado de la sesión)
 ]]>
            </programlisting>
           </entry>
@@ -84,8 +85,8 @@ Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última
           <entry>
            <programlisting role="header">
 <![CDATA[
-Cache-Control: private, max-age=(session.cache_expire en el futuro), pre-check=(session.cache_expire en el futuro)
-Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última vez)
+Cache-Control: private, max-age=(session.cache_expire en el futuro)
+Last-Modified: (el timestamp correspondiente al último guardado de la sesión)
 ]]>
            </programlisting>
           </entry>
@@ -96,8 +97,8 @@ Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última
            <programlisting role="header">
 <![CDATA[
 Expires: Thu, 19 Nov 1981 08:52:00 GMT
-Cache-Control: private, max-age=(session.cache_expire en el futuro), pre-check=(session.cache_expire en el futuro)
-Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última vez)
+Cache-Control: private, max-age=(session.cache_expire en el futuro)
+Last-Modified: (el timestamp correspondiente al último guardado de la sesión)
 ]]>
            </programlisting>
           </entry>
@@ -108,7 +109,7 @@ Last-Modified: (la marca de tiempo de cuando la sesión fue guardada por última
            <programlisting role="header">
 <![CDATA[
 Expires: Thu, 19 Nov 1981 08:52:00 GMT
-Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Cache-Control: no-store, no-cache, must-revalidate
 Pragma: no-cache
 ]]>
            </programlisting>
@@ -127,24 +128,47 @@ Pragma: no-cache
   &reftitle.returnvalues;
   <para>
    Devuelve el nombre del limitador de caché actual.
+   En caso de error, se devuelve &false;.
   </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>value</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>session_cache_limiter</function></title>
+    <title>Ejemplo con <function>session_cache_limiter</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-/* establecer el limitador de caché a 'private' */
+/* configura el limitador de caché a 'private' */
 
 session_cache_limiter('private');
 $cache_limiter = session_cache_limiter();
 
-echo "El limitador de caché ahora está establecido a $cache_limiter<br />";
+echo "El limitador de caché ahora vale $cache_limiter<br />";
 ?>
 ]]>
     </programlisting>
@@ -162,7 +186,6 @@ echo "El limitador de caché ahora está establecido a $cache_limiter<br />";
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

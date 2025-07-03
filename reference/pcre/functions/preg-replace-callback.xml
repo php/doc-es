@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 22e850b66cd9a4b8f0e002bd5850f9839caaf152 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: c1f37a6c270aadbbb3da56a3973ffd62197adf2b Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.preg-replace-callback" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>preg_replace_callback</refname>
-  <refpurpose>Realiza una búsqueda y sustitución de una expresión regular usando una llamada de retorno</refpurpose>
+  <refpurpose>Buscar y reemplazar mediante expresión regular estándar utilizando una función de retrollamada</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>preg_replace_callback</methodname>
-   <methodparam><type>mixed</type><parameter>pattern</parameter></methodparam>
+   <type class="union"><type>string</type><type>array</type><type>null</type></type><methodname>preg_replace_callback</methodname>
+   <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>pattern</parameter></methodparam>
    <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>subject</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>subject</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>limit</parameter><initializer>-1</initializer></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter role="reference">count</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter role="reference">count</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   El comportamiento de esta función es casi idéntico al de
-   <function>preg_replace</function>, excepto por el hecho de que en vez
-   del parámetro <parameter>replacement</parameter>, se debería especificar
-   <parameter>callback</parameter>.
+   El comportamiento de <function>preg_replace_callback</function> es casi
+   idéntico al de <function>preg_replace</function>, con la excepción de que
+   en lugar del argumento <parameter>replacement</parameter>, se debe
+   especificar una función de retrollamada <parameter>callback</parameter>
+   que será llamada con los elementos encontrados como argumentos.
   </para>
  </refsect1>
 
@@ -34,7 +35,7 @@
      <term><parameter>pattern</parameter></term>
      <listitem>
       <para>
-       El patron de búsqueda. Puede ser tanto un cadena como un array de
+       El patrón a buscar. Puede ser un &string; o un array que contenga
        cadenas.
       </para>
      </listitem>
@@ -43,9 +44,10 @@
      <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       Una llamada de retorno que será llamada y pasada a un array de elementos coincidentes
-       en la cadena <parameter>subject</parameter>. La llamada de retorno debería
-       devolver la cadena de sustitución. Esta es la firma de la llamada de retorno:
+       La función de retrollamada que recibirá el array de elementos
+       encontrados en la cadena <parameter>subject</parameter>.
+       La función de retrollamada debe devolver la cadena de
+       reemplazo. Esta es la firma de la función de retrollamada:
       </para>
       <para>
        <methodsynopsis>
@@ -54,36 +56,36 @@
        </methodsynopsis>
       </para>
       <para>
-       A menudo se necesitará la función de <parameter>callback</parameter>
-       para usar <function>preg_replace_callback</function> únicamente en un lugar.
-       En este caso se puede usar una
-       <link linkend="functions.anonymous">función anónima</link> para
-       declarar una llamada de retorno dentro de la llamada a
-       <function>preg_replace_callback</function>. Al hacerlo de este modo,
-       se tiene toda la información de la llamada en un único lugar y no
-       abarrota el espacio de nombres de funciones con un nombre de función de llamada de retorno
-       que no se usa en ningún otro sitio.
+       Con frecuencia, la función <parameter>callback</parameter> se utiliza
+       con <function>preg_replace_callback</function> en un solo lugar.
+       En este caso, puede simplemente utilizar una
+       <link linkend="functions.anonymous">función anónima</link>
+       para declarar una función de retrollamada para
+       <function>preg_replace_callback</function>.
+       Al hacer esto, se concentran todas las rutinas relacionadas con
+       el reemplazo en un solo lugar, y no se contamina el espacio de nombres de funciones con funciones de un solo uso.
       </para>
       <para>
        <example>
         <title><function>preg_replace_callback</function> y
-         función anónima</title>
-        <programlisting role="php">
+        función anónima</title>
+        <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
-/* un filtro de línea de comandos estilo unix para convertir letras
- * mayúsculas a minúsculas al principio de párrafos */
-$fp = fopen("php://stdin", "r") or die("no se puede leer stdin");
+// Un filtro de línea de comandos Unix para convertir la primera letra
+// de los párrafos (que comienzan con "<p>") a minúscula
+
+$fp = fopen("php://stdin", "r") or die("No se puede leer la línea de comandos");
 while (!feof($fp)) {
-    $línea = fgets($fp);
-    $línea = preg_replace_callback(
+    $line = fgets($fp);
+    $line = preg_replace_callback(
         '|<p>\s*\w|',
-        function ($coincidencias) {
-            return strtolower($coincidencias[0]);
+        function ($matches) {
+            return strtolower($matches[0]);
         },
-        $línea
+        $line
     );
-    echo $línea;
+    echo $line;
 }
 fclose($fp);
 ?>
@@ -97,7 +99,7 @@ fclose($fp);
      <term><parameter>subject</parameter></term>
      <listitem>
       <para>
-       La cadena o un array de cadenas a buscar y reemplazar.
+       La cadena o el array de cadenas a buscar y reemplazar.
       </para>
      </listitem>
     </varlistentry>
@@ -105,9 +107,9 @@ fclose($fp);
      <term><parameter>limit</parameter></term>
      <listitem>
       <para>
-       Las sustituciones máximas posibles por cada patrón en cada
-       cadena <parameter>subject</parameter>. Por defecto
-       <literal>-1</literal> (sin límite).
+       El número máximo de reemplazos para cada patrón
+       en cada cadena <parameter>subject</parameter>.
+       Por omisión, vale <literal>-1</literal> (sin límite).
       </para>
      </listitem>
     </varlistentry>
@@ -115,8 +117,19 @@ fclose($fp);
      <term><parameter>count</parameter></term>
      <listitem>
       <para>
-       Si se especifica, esta variable será rellenada con el número de
-       sustituciones hechas.
+       Si se proporciona, esta variable será rellenada con el número de reemplazos realizados.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>flags</parameter></term>
+     <listitem>
+      <para>
+       <parameter>flags</parameter> puede ser una combinación de los indicadores
+       <constant>PREG_OFFSET_CAPTURE</constant> y
+       <constant>PREG_UNMATCHED_AS_NULL</constant>, que influyen en el formato
+       del array de coincidencias.
+       Consulte la descripción de <function>preg_match</function> para más detalles.
       </para>
      </listitem>
     </varlistentry>
@@ -127,14 +140,19 @@ fclose($fp);
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   <function>preg_replace_callback</function> devuelve un array si el
-   parámetro <parameter>subject</parameter> es un array, o, por el contrario
-   una cadena. Si se producen errores, el valor devuleto es &null;
+   <function>preg_replace_callback</function> devuelve un array si el argumento
+   <parameter>subject</parameter> es un &array;, o, de lo contrario, un &string;.
+   Si ocurre un error, el valor devuelto será &null;.
   </para>
   <para>
-   Si se encontraron coincidencias, el nuevo sujeto será devuelto, de lo contrario
-   <parameter>subject</parameter> será devuelto sin cambios.
+   Si se encuentran coincidencias, se devuelve el nuevo sujeto, de lo contrario
+   <parameter>subject</parameter> se devuelve sin cambios.
   </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &pcre.pattern.warning;
  </refsect1>
 
  <refsect1 role="changelog">
@@ -150,9 +168,9 @@ fclose($fp);
      </thead>
      <tbody>
       <row>
-       <entry>5.1.0</entry>
+       <entry>7.4.0</entry>
        <entry>
-        Se añadió el parámetro <parameter>count</parameter>
+        Se añadió el argumento <parameter>flags</parameter>.
        </entry>
       </row>
      </tbody>
@@ -165,26 +183,26 @@ fclose($fp);
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>preg_replace_callback</function></title>
+    <title>Ejemplo con <function>preg_replace_callback</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// este texto se usó en 2002
-// queremos actualizarlo al 2003
-$texto = "El Día de los Inocentes es el 28/12/2002\n";
-$texto.= "Las últimas Navidades fueron el 24/12/2001\n";
-// la función de llamada de retorno
-function añoSiguiente($coincidencias)
+// Este texto era cierto en 2002
+// queremos actualizarlo para 2003
+$text = "El primer abril es el 04/01/2002\n";
+$text.= "La última navidad fue el 12/24/2001\n";
+
+// Función de retrollamada
+function next_year($matches)
 {
-  // como es usual: $coincidencias[0] es la coincidencia completa
-  // $coincidencias[1] la coincidencia del primer sub-patrón
-  // encerrado entre '(...)' y así sucesivamente
-  return $coincidencias[1].($coincidencias[2]+1);
+  // como de costumbre: $matches[0] representa el valor total
+  // $matches[1] representa el primer paréntesis capturante
+  return $matches[1].($matches[2]+1);
 }
 echo preg_replace_callback(
             "|(\d{2}/\d{2}/)(\d{4})|",
-            "añoSiguiente",
-            $texto);
+            "next_year",
+            $text);
 
 ?>
 ]]>
@@ -192,36 +210,36 @@ echo preg_replace_callback(
     &example.outputs;
     <screen>
 <![CDATA[
-El Día de los Inocentes es el 28/12/2003
-Las últimas Navidades fueron el 24/12/2002
+El primer abril es el 04/01/2003
+La última navidad fue el 12/24/2002
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title><function>preg_replace_callback</function> usando una estructura recursiva
-     para manejar el código BB encapsulado</title>
+    <title>Ejemplo con <function>preg_replace_callback</function> utilizando una estructura recursiva
+     para manejar BB code</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$entrada = "nivel 1 [indent] nivel 2 [indent] nivel 3 [/indent] nivel 2 [/indent] nivel 1";
+$input = "plain [indent] deep [indent] deeper [/indent] deep [/indent] plain";
 
-function analizarEtiquetasRecursivo($entrada)
+function parseTagsRecursive($input)
 {
 
     $regex = '#\[indent]((?:[^[]|\[(?!/?indent])|(?R))+)\[/indent]#';
 
-    if (is_array($entrada)) {
-        $entrada = '<div style="margin-left: 10px">'.$entrada[1].'</div>';
+    if (is_array($input)) {
+        $input = '<div style="margin-left: 10px">'.$input[1].'</div>';
     }
 
-    return preg_replace_callback($regex, 'analizarEtiquetasRecursivo', $entrada);
+    return preg_replace_callback($regex, 'parseTagsRecursive', $input);
 }
 
-$salida = analizarEtiquetasRecursivo($entrada);
+$output = parseTagsRecursive($input);
 
-echo $salida;
+echo $output;
 ?>
 ]]>
     </programlisting>
@@ -233,18 +251,17 @@ echo $salida;
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link linkend="pcre.pattern">Patrones de PCRE</link></member>
+    <member><link linkend="pcre.pattern">Patrones PCRE</link></member>
     <member><function>preg_replace_callback_array</function></member>
     <member><function>preg_quote</function></member>
     <member><function>preg_replace</function></member>
     <member><function>preg_last_error</function></member>
-    <member><link linkend="functions.anonymous">Funciones anónimas</link></member>
+    <member><link linkend="functions.anonymous">Las funciones anónimas</link></member>
    </simplelist>
   </para>
  </refsect1>
 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

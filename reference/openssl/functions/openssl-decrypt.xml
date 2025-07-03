@@ -1,32 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e5bbd6cf6c7c97cb43fc6d1a9c57d5f6c5cbb2e7 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: e5ab2937efd9b1d7184993e0fdfa957893f7f827 Maintainer: PhilDaiguille Status: ready -->
+<!--  Reviewed: no -->
 <refentry xml:id="function.openssl-decrypt" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>openssl_decrypt</refname>
-  <refpurpose>Desencripta datos</refpurpose>
+  <refpurpose>Descifrar los datos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>openssl_decrypt</methodname>
+   <type class="union"><type>string</type><type>false</type></type><methodname>openssl_decrypt</methodname>
    <methodparam><type>string</type><parameter>data</parameter></methodparam>
-   <methodparam><type>string</type><parameter>method</parameter></methodparam>
-   <methodparam><type>string</type><parameter>password</parameter></methodparam>
+   <methodparam><type>string</type><parameter>cipher_algo</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>passphrase</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>options</parameter><initializer>0</initializer></methodparam>
    <methodparam choice="opt"><type>string</type><parameter>iv</parameter><initializer>""</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>tag</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>aad</parameter><initializer>""</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Toma una cadena codificada en bruto o mediante base64 y la desencripta usando un método y una clave.
+   Toma una cadena sin tratar o codificada en base64 y la descifra utilizando
+   el método y la frase de contraseña proporcionados.
   </para>
-  
-  &warn.undocumented.func;
-  
+
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -35,67 +34,107 @@
      <term><parameter>data</parameter></term>
      <listitem>
       <para>
-       Los datos.
+       El mensaje cifrado a descifrar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>method</parameter></term>
+     <term><parameter>cipher_algo</parameter></term>
      <listitem>
       <para>
-       El método de cifrado.
+       El algoritmo de cifrado. Para obtener la lista de algoritmos de cifrado
+       disponibles, utilizar <function>openssl_get_cipher_methods</function>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>password</parameter></term>
+     <term><parameter>passphrase</parameter></term>
      <listitem>
       <para>
-       La contraseña.
+       La frase de contraseña. Si la frase de contraseña es más corta de lo esperado, se completa silenciosamente
+       con caracteres <literal>NUL</literal>; si la frase de contraseña es más larga de lo esperado,
+       se trunca silenciosamente.
       </para>
+      <caution>
+       <simpara>
+        No se utiliza ninguna función de derivación de clave para el parámetro <parameter>passphrase</parameter>
+        como su nombre podría sugerir. La única operación utilizada es el relleno con caracteres
+        <literal>NUL</literal> o la truncación si la longitud es diferente de la esperada.
+       </simpara>
+      </caution>
      </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>options</parameter></term>
-     <listitem>
-      <para>
-       <parameter>options</parameter> puede ser una de las constantes
-       <constant>OPENSSL_RAW_DATA</constant>,
-       <constant>OPENSSL_ZERO_PADDING</constant>.
-      </para>
-     </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>options</parameter></term>
+      <listitem>
+       <para>
+        El parámetro <parameter>options</parameter> puede
+        tomar como valor
+        <constant>OPENSSL_RAW_DATA</constant> o
+        <constant>OPENSSL_ZERO_PADDING</constant>
+        o <constant>OPENSSL_DONT_ZERO_PAD_KEY</constant>.
+       </para>
+      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>iv</parameter></term>
      <listitem>
       <para>
-       Un Vector de Inicialización no NULL.
+       Un vector de inicialización no-&null;. Si el VI es más corto de lo esperado, se completa con
+       caracteres <literal>NUL</literal> y se emite un aviso; si la frase de contraseña es más larga
+       de lo esperado, se trunca y se emite un aviso.
       </para>
      </listitem>
     </varlistentry>
-   </variablelist>
-  </para>
- </refsect1>
- 
+    <varlistentry>
+     <term><parameter>tag</parameter></term>
+     <listitem>
+      <para>
+       La etiqueta de autenticación en modo de cifrado AEAD. Si es incorrecta, la autenticación falla y la función devuelve &false;.
+      </para>
+      <caution>
+       <simpara>
+        La longitud de <parameter>tag</parameter> no es verificada por la función.
+        Es responsabilidad del llamador asegurarse de que la longitud del
+        tag coincida con la longitud del tag recibido cuando
+        <function>openssl_encrypt</function> fue llamada. De lo contrario, el
+        descifrado puede tener éxito si el inicio del tag proporcionado coincide con el inicio
+        del verdadero tag.
+       </simpara>
+      </caution>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>aad</parameter></term>
+     <listitem>
+      <para>
+       Datos adicionales autenticados.
+      </para>
+     </listitem>
+    </varlistentry>
+  </variablelist>
+ </para>
+</refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   La cadena desencriptada si se tuvo éxito &return.falseforfailure;.
+   La cadena descifrada en caso de éxito &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Emite un error de nivel <constant>E_WARNING</constant> si se pasa un algoritmo de cifrado
-   desconocido mediante el parámetro <parameter>method</parameter>.
+   Emite un error de nivel <constant>E_WARNING</constant> si se pasa un algoritmo
+   de cifrado desconocido a través de <parameter>cipher_algo</parameter>.
   </para>
   <para>
-   Emite un error de nivel <constant>E_WARNING</constant> si se le pasa un valor vacío
-   mediante en parámetro <parameter>iv</parameter>.
+   Emite un error de nivel <constant>E_WARNING</constant> si se pasa un valor
+   vacío como parámetro <parameter>iv</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <informaltable>
@@ -108,22 +147,18 @@
     </thead>
     <tbody>
      <row>
-      <entry>5.3.3</entry>
-      <entry>
-       Se añadió el parámetro <parameter>iv</parameter>.
-      </entry>
+      <entry>8.1.0</entry>
+      <entry><parameter>tag</parameter> ahora es nullable.</entry>
      </row>
      <row>
-      <entry>5.4.0</entry>
-      <entry>
-       <parameter>raw_output</parameter> se cambió a <parameter>options</parameter>.
-      </entry>
+      <entry>7.1.0</entry>
+      <entry>Se añadieron los parámetros <parameter>tag</parameter> y <parameter>aad</parameter>.</entry>
      </row>
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -132,9 +167,8 @@
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

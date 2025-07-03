@@ -1,32 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 49944c9148ba4e48c1aa96544cdec3911b2f4131 Maintainer: edwincartagenah Status: ready -->
+<!-- EN-Revision: c2eca73ef79ebe78cebb34053e41b565af504c4f Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xml:id='function.pg-delete' xmlns="http://docbook.org/ns/docbook">
+<refentry xml:id="function.pg-delete" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_delete</refname>
   <refpurpose>
-   Borra registros
+   Elimina filas de PostgreSQL
   </refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>pg_delete</methodname>
-   <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
+   <type class="union"><type>string</type><type>bool</type></type><methodname>pg_delete</methodname>
+   <methodparam><type>PgSql\Connection</type><parameter>connection</parameter></methodparam>
    <methodparam><type>string</type><parameter>table_name</parameter></methodparam>
-   <methodparam><type>array</type><parameter>assoc_array</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>options</parameter><initializer>PGSQL_DML_EXEC</initializer></methodparam>
+   <methodparam><type>array</type><parameter>conditions</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer><constant>PGSQL_DML_EXEC</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_delete</function> Borra los registros de una tabla especificada por
-   las claves y los valores en <parameter>assoc_array</parameter>. Si <parameter>options</parameter> se
-   especifica, se aplica <function>pg_convert</function> a
-   <parameter>assoc_array</parameter> con las opciones especificadas.
+   <function>pg_delete</function> elimina las filas de una tabla especificadas por
+   las claves y valores del array asociativo <parameter>conditions</parameter>.
+  </para>
+  <para>
+   Si <parameter>flags</parameter> es proporcionado,
+   <function>pg_convert</function> es aplicado a
+   <parameter>conditions</parameter> con los flags proporcionados.
+  </para>
+  <para>
+   Por omisión <function>pg_delete</function> pasa valores sin tratar.
+   Los valores deben ser escapados o el flag <constant>PGSQL_DML_ESCAPE</constant>
+   debe ser especificado en <parameter>flags</parameter>.
+   <constant>PGSQL_DML_ESCAPE</constant> añade comillas y escapa los parámetros/identificadores.
+   Por lo tanto, los nombres de tablas/columnas se vuelven sensibles a mayúsculas/minúsculas.
+  </para>
+  <para>
+   Tenga en cuenta que ni el escape ni las consultas preparadas pueden proteger
+   consultas LIKE, JSON, arrays, Regex, etc. Estos parámetros deben ser
+   tratados según su contexto. Es decir, escapar/validar los valores.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -34,110 +48,100 @@
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conección a la base de datos PostgreSQL.
-      </para>
+      &pgsql.parameter.connection;
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>table_name</parameter></term>
      <listitem>
       <para>
-       Nombre de la tabla de la cual se va a borrar las filas.
+       Nombre de la tabla desde la cual las filas serán eliminadas.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>assoc_array</parameter></term>
+     <term><parameter>conditions</parameter></term>
      <listitem>
       <para>
-       Un tipo <type>array</type> en los cuales están los nombres de los campos en la tabla <parameter>table_name</parameter>,
-       y cuyos valores son los valores de esos campos que están por ser borrados.
+       Un &array; donde las claves son los nombres de los campos de la tabla
+       <parameter>table_name</parameter> y donde los valores son los valores
+       de estos campos que deben ser eliminados.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>options</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Cualquier número de <constant>PGSQL_CONV_FORCE_NULL</constant>,
+       Cualquier combinación de los siguientes valores:
+       <constant>PGSQL_CONV_FORCE_NULL</constant>,
        <constant>PGSQL_DML_NO_CONV</constant>,
        <constant>PGSQL_DML_ESCAPE</constant>,
        <constant>PGSQL_DML_EXEC</constant>,
        <constant>PGSQL_DML_ASYNC</constant> o
-       <constant>PGSQL_DML_STRING</constant> combinadas. Si <constant>PGSQL_DML_STRING</constant> es parte de
-       <parameter>options</parameter>, se devuelve el string de consulta. Cuando <constant>PGSQL_DML_NO_CONV</constant>
-       o <constant>PGSQL_DML_ESCAPE</constant> están establecidas, no se llama a <function>pg_convert</function> internamente.
+       <constant>PGSQL_DML_STRING</constant>.
+       Si <constant>PGSQL_DML_STRING</constant> forma parte del parámetro
+       <parameter>flags</parameter> entonces, la consulta será devuelta.
+       Cuando la constante <constant>PGSQL_DML_NO_CONV</constant> o la constante
+       <constant>PGSQL_DML_ESCAPE</constant> están definidas, ninguna llamada a la función
+       <function>pg_convert</function> será realizada internamente.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   &return.success;  Devuelve <type>string</type> si <constant>PGSQL_DML_STRING</constant> es pasada
-   por medio de <parameter>options</parameter>.
+   &return.success;  Devuelve un &string; si <constant>PGSQL_DML_STRING</constant>
+   es pasado en el parámetro <parameter>flags</parameter>.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &pgsql.changelog.connection-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de la función <function>pg_delete</function></title>
+    <title>Ejemplo con <function>pg_delete</function></title>
     <programlisting role="php">
 <![CDATA[
-<?php 
-  $db = pg_connect('dbname=foo');
-  // Esta forma es segura, ya que $_POST se convierte automaticamente
-  $res = pg_delete($db, 'post_log', $_POST);
-  if ($res) {
-      echo "El dato POST será borrado: $res\n";
-  } else {
-      echo "El usuario debe haber enviado entradas incorrectas\n";
-  }
+<?php
+ $db = pg_connect ('dbname=foo');
+// Esto es seguro en cierta medida, ya que todos los valores son escapados
+// Sin embargo PostgreSSQL soporta JSON/arrays. Estos no son
+// seguros ni por escape ni por consultas preparadas.
+ $res = pg_delete($db, 'post_log', $_POST, PG_DML_ESCAPE);
+ if ($res) {
+     echo "Los datos POST han sido eliminados: $res\n";
+ } else {
+     echo "Los datos de entrada son incorrectos.\n";
+ }
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.6.0</entry>
-       <entry>
-        Ya no es experimental. Se añadió la constante <constant>PGSQL_DML_ESCAPE</constant>,
-        se admiten los tipos de datos &true;/&false; y &null;.
-       </entry>
-      </row>
-      <row>
-       <entry>5.5.3/5.4.19</entry>
-       <entry>
-        La inyección SQL directa a <parameter>table_name</parameter> y la inyección SQL
-        indirecta a identificadores son fijasinjection.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -147,7 +151,6 @@
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

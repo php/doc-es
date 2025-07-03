@@ -1,112 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: d3c871ae1e218ab417e15731c9dee930149baad0 Maintainer: seros Status: ready -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-open">
+<!-- EN-Revision: 730fd5c3dd1523bb9330762084ce016d4e58e946 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.openssl-open" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>openssl_open</refname>
-  <refpurpose>Abre información sellada</refpurpose>
+  <refpurpose>Abre datos sellados</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>openssl_open</methodname>
-   <methodparam><type>string</type><parameter>sealed_data</parameter></methodparam>
-   <methodparam><type>string</type><parameter role="reference">open_data</parameter></methodparam>
-   <methodparam><type>string</type><parameter>env_key</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>priv_key_id</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>method</parameter></methodparam>
+   <methodparam><type>string</type><parameter>data</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter role="reference">output</parameter></methodparam>
+   <methodparam><type>string</type><parameter>encrypted_key</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type class="union"><type>OpenSSLAsymmetricKey</type><type>OpenSSLCertificate</type><type>array</type><type>string</type></type><parameter>private_key</parameter></methodparam>
+   <methodparam><type>string</type><parameter>cipher_algo</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>iv</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>openssl_open</function> abre (desencripta)
-   <parameter>sealed_data</parameter> usando la clave privada asociada con
-   el indentificador de clave <parameter>priv_key_id</parameter> y la clave de sobre
-   <parameter>env_key</parameter>, y rellena
-   <parameter>open_data</parameter> con la información desencriptada.
-   La clave de sobre es generada cuando la
-   información es sellada y sólo puede usarse por una clave privada específica. Véase
-   <function>openssl_seal</function> para más información.
+   La <function>openssl_open</function> abre (descifra) <parameter>data</parameter> utilizando una clave de envoltura
+   que se descifra a partir de <parameter>encrypted_key</parameter> utilizando
+   <parameter>private_key</parameter>. La descifrado se realiza mediante
+   <parameter>cipher_algo</parameter> y <parameter>iv</parameter>. El IV es requerido únicamente si el
+   método de cifrado lo exige. La función llena <parameter>output</parameter> con los datos
+   descifrados. La clave de envoltura generalmente se genera cuando los datos son sellados utilizando una clave pública
+   asociada a la clave privada. Consulte <function>openssl_seal</function> para más información.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>sealed_data</parameter></term>
+     <term><parameter>data</parameter></term>
      <listitem>
       <para>
+       Los datos sellados.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>open_data</parameter></term>
+     <term><parameter>output</parameter></term>
      <listitem>
       <para>
-       Si la llamada tiene éxtio la información abierta es devuelta en este
-       parámetro.
+       Si la llamada tiene éxito, los datos abiertos son
+       devueltos en este parámetro.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>env_key</parameter></term>
+     <term><parameter>encrypted_key</parameter></term>
      <listitem>
       <para>
+       La clave simétrica cifrada que puede ser descifrada utilizando <parameter>private_key</parameter>
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>priv_key_id</parameter></term>
+     <term><parameter>private_key</parameter></term>
      <listitem>
       <para>
+       La clave privada utilizada para descifrar <parameter>encrypted_key</parameter>.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>cipher_algo</parameter></term>
+     <listitem>
+      <para>
+       El método de cifrado utilizado para el descifrado de <parameter>data</parameter>.
+       <caution>
+        <simpara>
+         El valor por omisión para las versiones de PHP anteriores a 8.0 es (<literal>'RC4'</literal>), que es
+         considerada como no segura. Se recomienda fuertemente especificar explícitamente un método de cifrado
+         seguro.
+        </simpara>
+       </caution>
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>iv</parameter></term>
+     <listitem>
+      <para>
+       El vector de inicialización utilizado para el descifrado de <parameter>data</parameter>. Es requerido
+       si el método de cifrado necesita un IV. Esto puede ser determinado llamando
+       a <function>openssl_cipher_iv_length</function> con <parameter>cipher_algo</parameter>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>private_key</parameter> ahora acepta una instancia de
+       <classname>OpenSSLAsymmetricKey</classname> o <classname>OpenSSLCertificate</classname>;
+       anteriormente, se aceptaba un &resource; de tipo <literal>OpenSSL key</literal> o <literal>OpenSSL X.509 CSR</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>cipher_algo</parameter> ya no es un parámetro opcional.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>openssl_open</function></title>
+    <title>Ejemplo con <function>openssl_open</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// se asume que $sealed y $env_key contienen la información sellada
-// y nuestra clave de sobre, ambas entregadas a nosotros por el sellador.
 
-// traer la clave privada del archivo y prepararla
-$fp = fopen("/src/openssl-0.9.6/demos/sign/key.pem", "r");
-$priv_key = fread($fp, 8192);
-fclose($fp);
-$pkeyid = openssl_get_privatekey($priv_key);
+// Se asume que $sealed, $env_key y $iv contienen los datos sellados,
+// la clave de envoltura y el IV. Todos proporcionados por el remitente.
 
-// desencriptar la información y guardarla en $open
-if (openssl_open($sealed, $open, $env_key, $pkeyid)) {
-    echo "aquí está la información abierta: ", $open;
+// Obtener la clave privada desde el archivo ubicado en private_key.pem
+$pkey = openssl_get_privatekey("file://private_key.pem");
+
+// Descifrado de los datos: se colocan en $open
+if (openssl_open($sealed, $open, $env_key, $pkey, 'AES256', $iv)) {
+    echo "Aquí están los datos descifrados: ", $open;
 } else {
-    echo "fallo al abrir la información";
+    echo "No se pudo descifrar los datos";
 }
 
-// liberar la clave privada de la memoria
-openssl_free_key($pkeyid);
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -115,9 +170,8 @@ openssl_free_key($pkeyid);
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

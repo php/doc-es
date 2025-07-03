@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: ae5ececd1763fea7c2b3f47d913c7236ff6e4467 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5e41012cfdf8f2eff5fa56de446c7656afac536c Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes Maintainer: PhilDaiguille -->
 <refentry xml:id="function.oci-commit" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>oci_commit</refname>
-  <refpurpose>Consigna la transacción pendiente de la base de datos</refpurpose>
+  <refpurpose>Valida las transacciones Oracle en curso</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -15,26 +15,27 @@
    <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Consigna la transacción pendiente de la conexión de
-   Oracle dada por <parameter>connection</parameter>. Una consignación finaliza la
-   transacción actual y hace permanente todos los cambios. Libera todos
-   los bloqueos que hubiera.
+   Valida todas las transacciones en curso en la conexión Oracle
+   <parameter>connection</parameter>. Una validación hace permanentes
+   todas las modificaciones, liberando todos los bloqueos.
   </para>
   <para>
-   Una transacción comienza cuando la primera sentencia SQL que modifica datos
-   es ejecutada con <function>oci_execute</function> usando
-   la bandera <constant>OCI_NO_AUTO_COMMIT</constant>. Las modificaciones posteriores
-   de datos realizados por otra sentencia serán parte de la misma
-   transacción. Las modificaciones hechas en una transacción son temporales
-   hasta que sea consignada o revertida. Los demás usuarios de
-   la base de datos no verán dichos cambios hasta que sean consignados.
+   Una transacción comienza cuando se ejecuta la primera consulta SQL
+   que modifica datos con la función
+   <function>oci_execute</function> utilizando el flag
+   <constant>OCI_NO_AUTO_COMMIT</constant>. Las modificaciones siguientes
+   realizadas por otras consultas forman parte de la misma transacción. Los datos
+   modificados por una transacción son temporales hasta que la transacción sea
+   validada o revertida. Otros usuarios de la base de datos no verán estas
+   modificaciones hasta que la transacción sea validada.
   </para>
   <para>
-   Cuando se insertan datos, se recomienda usar transacciones para
-   mantener la consistencia de datos relacionales y por motivos de rendimiento.
+   Al insertar o actualizar datos, el uso de transacciones es recomendado
+   para garantizar la consistencia relacional de los datos, así como para
+   mejorar el rendimiento.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -43,54 +44,54 @@
      <term><parameter>connection</parameter></term>
      <listitem>
       <para>
-       Un identificador de conexión de Oracle, devuelto por
-       <function>oci_connect</function>, <function>oci_pconnect</function>, o <function>oci_new_connect</function>.
+       Un identificador de conexión Oracle, devuelto por la función
+       <function>oci_connect</function>, <function>oci_pconnect</function>,
+       o <function>oci_new_connect</function>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>oci_commit</function></title>
+    <title>Ejemplo con <function>oci_commit</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Insertar en varias tablas, y revertir los cambios si ocurrió un error
+// Inserción en múltiples tablas, con cancelación de las modificaciones si ocurren errores
 
 $conn = oci_connect('hr', 'welcome', 'localhost/XE');
 
 $stid = oci_parse($conn, "INSERT INTO mysalary (id, name) VALUES (1, 'Chris')");
 
-// La bandera OCI_NO_AUTO_COMMIT indica a Oracle que no consigne el INSERT inmediatamente
-// Use OCI_DEFAULT como bandera para PHP <= 5.3.1. Las dos banderas son equivalentes
+// El flag OCI_NO_AUTO_COMMIT indica a Oracle que no valide las inserciones automáticamente.
 $r = oci_execute($stid, OCI_NO_AUTO_COMMIT);
-if (!$r) {    
+if (!$r) {
     $e = oci_error($stid);
     trigger_error(htmlentities($e['message']), E_USER_ERROR);
 }
 
 $stid = oci_parse($conn, 'INSERT INTO myschedule (startday) VALUES (12)');
 $r = oci_execute($stid, OCI_NO_AUTO_COMMIT);
-if (!$r) {    
+if (!$r) {
     $e = oci_error($stid);
-    oci_rollback($conn);  // revertir los cambios en ambas tablas
+    oci_rollback($conn);  // Cancelación de las modificaciones en las 2 tablas
     trigger_error(htmlentities($e['message']), E_USER_ERROR);
 }
 
-// Consignar los cambios de ambas tablas
+// Valida las modificaciones en las 2 tablas
 $r = oci_commit($conn);
 if (!$r) {
     $e = oci_error($conn);
@@ -103,29 +104,30 @@ if (!$r) {
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Las transacciones son revertidas automáticamente cuando se cierra la
-    conexión, o cuando el script finaliza, lo que suceda antes. Es
-    necesario llamar a <function>oci_commit</function> para consignar
-    la transacción.
+    Las transacciones son automáticamente revertidas al cerrar la conexión,
+    o cuando el script finaliza, cualquiera de los dos que ocurra primero.
+    Debe llamarse explícitamente a la función
+    <function>oci_commit</function> para validar la transacción.
    </para>
    <para>
-    Cualquier llamada a <function>oci_execute</function> que utilice el modo
-    <constant>OCI_COMMIT_ON_SUCCESS</constant>, de forma explícita o por omisión,
-    consignará cualquier transacción no consignada previamente.
+    Cada llamada a la función <function>oci_execute</function> que
+    utiliza el modo <constant>OCI_COMMIT_ON_SUCCESS</constant>
+    explícitamente o por omisión, validará todas las transacciones
+    no validadas hasta ese punto.
    </para>
    <para>
-    Cualquier sentencia DDL de Oracle, como <literal>CREATE</literal>
-    o <literal>DROP</literal>, consignará automáticamente cualquier
-    transacción no consignada.
+    Todas las consultas Oracle como <literal>CREATE</literal>
+    o <literal>DROP</literal> también validarán todas las
+    transacciones no validadas.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -135,7 +137,7 @@ if (!$r) {
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

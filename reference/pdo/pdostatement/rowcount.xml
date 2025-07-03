@@ -1,136 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: a5950d8ae47e8befb9fa5f774ddb96a860833ed5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="pdostatement.rowcount" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDOStatement::rowCount</refname>
   <refpurpose>
-   Devuelve el número de filas afectadas por la última sentencia SQL
+   Devuelve el número de filas afectadas por la última
+   llamada a la función PDOStatement::execute()
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="PDOStatement">
    <modifier>public</modifier> <type>int</type><methodname>PDOStatement::rowCount</methodname>
    <void/>
   </methodsynopsis>
-  
+
   <para>
-   <function>PDOStatement::rowCount</function> devuelve el número de
-   filas afectadas por la última sentencia DELETE, INSERT, o UPDATE
-   ejecutada por el correspondiente objeto <literal>PDOStatement</literal>. 
+   <methodname>PDOStatement::rowCount</methodname> devuelve el número de filas
+   afectadas por la última consulta DELETE, INSERT o UPDATE ejecutada por
+   el objeto <literal>PDOStatement</literal> correspondiente.
   </para>
   <para>
-   Si la última sentencia SQL ejecutada por el objeto <literal>PDOStatement</literal>
-   asociado fue una sentencia SELECT, algunas bases de datos
-   podrían devolver el número de filas devuelto por dicha sentencia. Sin embargo, este
-   comportamiento no está garantizado para todas las bases de datos y no debería confiarse
-   en él para aplicaciones portables.
+   Si la última consulta SQL ejecutada por el objeto <literal>PDOStatement</literal>
+   asociado es una consulta de tipo SELECT, algunas bases de datos
+   devolverán el número de filas devueltas por dicha consulta. No obstante,
+   este comportamiento no está garantizado para todas las bases de datos
+   y no debería ser utilizado para aplicaciones portables.
   </para>
+  <note>
+   <para>
+    Este método siempre devuelve "0" (cero) con el controlador PostgreSQL,
+    cuando el atributo de declaración
+    <constant>PDO::ATTR_CURSOR</constant> está definido como
+    <constant>PDO::CURSOR_SCROLL</constant>.
+   </para>
+  </note>
  </refsect1>
- 
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  &no.function.parameters;
+ </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-   <para>
-    Devuelve el número de filas.
-   </para>
+  <para>
+   Devuelve el número de filas.
+  </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &pdo.errors;
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Devolver el número de filas eliminadas</title>
+    <title>Devuelve el número de filas eliminadas</title>
     <para>
-     <function>PDOStatement::rowCount</function> devuelve el número de
-     filas afectadas por una sentencia DELETE, INSERT, o UPDATE.
+     <methodname>PDOStatement::rowCount</methodname> devuelve
+     el número de filas afectadas por una consulta DELETE, INSERT,
+     o UPDATE.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Borrar todas las filas de la tabla FRUIT */
-$del = $gbd->prepare('DELETE FROM fruit');
+/* Eliminación de todas las filas de la tabla FRUIT */
+$del = $dbh->prepare('DELETE FROM fruit');
 $del->execute();
 
-/* Devolver el número de filas que fueron eliminadas */
-print("Devolver el número de filas que fueron eliminadas:\n");
-$cuenta = $del->rowCount();
-print("Eliminadas $cuenta filas.\n");
+/* Devuelve el número de filas eliminadas */
+print "Devuelve el número de filas eliminadas :\n";
+$count = $del->rowCount();
+print "Eliminación de $count filas.\n";
 ?>
 ]]>
     </programlisting>
-    &example.outputs;
+    &example.outputs.similar;
     <screen>
-<![CDATA[
-Devolver el número de filas que fueron eliminadas:
-Eliminadas 9 filas.
+ <![CDATA[
+Devuelve el número de filas eliminadas :
+Eliminación de 9 filas.
 ]]>
     </screen>
-   </example>
-   <example>
-    <title>Contar las filas devueltas por una sentencia SELECT</title>
-    <para>
-     Para muchas bases de datos, <function>PDOStatement::rowCount</function> no
-     devuelve el número de filas afectadas por una sentencia SELECT. En su lugar, use
-     <function>PDO::query</function> para ejecutar una sentencia SELECT COUNT(*)
-     con las mismas declaraciones que la sentencia SELECT pretendida, luego use
-     <function>PDOStatement::fetchColumn</function> para recuperar el número
-     de filas que serán devueltas. La aplicación podrá entonces realizar la
-     acción correcta.
-    </para>
-    <programlisting role="php">
-<![CDATA[
+    </example>
+    <example>
+     <title>Conteo de filas devueltas por una consulta SELECT</title>
+     <para>
+      Para la mayoría de las bases de datos, <methodname>PDOStatement::rowCount</methodname>
+      no devuelve el número de filas afectadas por una consulta SELECT.
+      En su lugar, utilice <methodname>PDO::query</methodname> para hacer una consulta
+      SELECT COUNT(*), luego utilice <methodname>PDOStatement::fetchColumn</methodname>
+      para recuperar el número de filas correspondientes.
+     </para>
+     <programlisting role="php">
+  <![CDATA[
 <?php
 $sql = "SELECT COUNT(*) FROM fruit WHERE calories > 100";
-if ($resultado = $conexión->query($sql)) {
+$res = $conn->query($sql);
+$count = $res->fetchColumn();
 
-    /* Comprobar el número de filas que coinciden con la sentencia SELECT */
-  if ($resultado->fetchColumn() > 0) {
-
-        /* Ejecutar la sentencia SELECT real y trabajar con los resultados */
-         $sql = "SELECT name FROM fruit WHERE calories > 100";
-       foreach ($conexión->query($sql) as $fila) {
-           print "Nombre: " .  $fila['NAME'] . "\n";
-         }
-    }
-    /* No coincide ningua fila -- hacer algo en consecuencia */
-  else {
-      print "Ninguna fila coincide con la consulta.";
-    }
-}
-
-$resultado = null;
-$conexión = null;
+print "Hay " .  $count . " fila(s) correspondiente(s).";
 ?>
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
+     </programlisting>
+    &example.outputs.similar;
+     <screen>
 <![CDATA[
-apple
-banana
-orange
-pear
+Hay  2 fila(s) correspondiente(s).
 ]]>
-    </screen>
-   </example>
-   
-  </para>
- </refsect1>
- <refsect1 role="seealso">
-  &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>PDOStatement::columnCount</function></member>
-    <member><function>PDOStatement::fetchColumn</function></member>
-    <member><function>PDO::query</function></member>
-   </simplelist>
-  </para>
-  
- </refsect1>
-</refentry>
+     </screen>
+    </example>
+   </para>
+  </refsect1>
 
+  <refsect1 role="seealso">
+   &reftitle.seealso;
+   <para>
+    <simplelist>
+    <member><methodname>PDOStatement::columnCount</methodname></member>
+    <member><methodname>PDOStatement::fetchColumn</methodname></member>
+    <member><methodname>PDO::query</methodname></member>
+    </simplelist>
+   </para>
+  </refsect1>
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

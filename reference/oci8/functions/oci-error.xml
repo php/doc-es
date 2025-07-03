@@ -1,59 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: ed6de1ae20ce16c0c7be0b3fef282b6065bebfac Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.oci-error" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>oci_error</refname>
-  <refpurpose>Devuelve el último error encontrado</refpurpose>
+  <refpurpose>Devuelve el último error de Oracle</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>oci_error</methodname>
-   <methodparam choice="opt"><type>resource</type><parameter>resource</parameter></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>oci_error</methodname>
+   <methodparam choice="opt"><type class="union"><type>resource</type><type>null</type></type><parameter>connection_or_statement</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve el último error encontrado.
+   Devuelve el último error de Oracle.
   </para>
   <para>
-   La función debería ser invocada inmediatamente después de que ocurra un error.
-   Los errores son limpiados por una sentencia que tenga éxito.
+   La función debe ser llamada inmediatamente después de que ocurra un error.
+   Los errores son reinicializados después de una consulta exitosa.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>resource</parameter></term>
+     <term><parameter>connection_or_statement</parameter></term>
      <listitem>
       <para>
-       Para la mayoría de errores, <parameter>resource</parameter> es el
-       gestor de recurso que fue pasado a la función que falló.
-       Para errores de conexión con <function>oci_connect</function>,
-       <function>oci_new_connect</function> o
-       <function>oci_pconnect</function>, no pase <parameter>resource</parameter>.
+       Para la mayoría de los errores, el argumento <parameter>connection_or_statement</parameter>
+       representa un recurso de conexión. Para los errores de conexión con las funciones
+       <function>oci_connect</function>, <function>oci_new_connect</function> o
+       <function>oci_pconnect</function>, &null; debe ser pasado.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si no se encontró ningún error, <function>oci_error</function> devuelve
-   &false;. De lo contrario, <function>oci_error</function> devuelve la
-   información del error como un array asociativo.
+   Si no se encuentra ningún error, <function>oci_error</function> devuelve
+   &false;. De lo contrario, <function>oci_error</function> devuelve la información sobre
+   el error en forma de un array asociativo.
   </para>
   <para>
    <table>
-    <title>Descripción del array de <function>oci_error</function></title>
-    
+    <title>Descripción del array devuelto por <function>oci_error</function></title>
     <tgroup cols="3">
      <thead>
       <row>
@@ -65,7 +64,7 @@
      <tbody>
       <row>
        <entry><literal>code</literal></entry>
-       <entry><type>integer</type></entry>
+       <entry><type>int</type></entry>
        <entry>
         El número de error de Oracle.
        </entry>
@@ -79,17 +78,17 @@
       </row>
       <row>
        <entry><literal>offset</literal></entry>
-       <entry><type>integer</type></entry>
+       <entry><type>int</type></entry>
        <entry>
-        La posición del byte de un error en una sentencia SQL. Si no
-        existiera tal sentencia, este valor será <literal>0</literal>
+        La posición del byte del error en la consulta SQL. Si no hay
+        consulta, <literal>0</literal> será colocado como valor.
        </entry>
       </row>
       <row>
        <entry><literal>sqltext</literal></entry>
        <entry><type>string</type></entry>
        <entry>
-        El texto de la sentencia SQL. Si no existiera tal sentencia, este valor
+        El texto de la consulta SQL. Si no hay consulta,
         será una cadena vacía.
        </entry>
       </row>
@@ -98,18 +97,41 @@
    </table>
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0, PECL OCI8 3.0.0</entry>
+      <entry>
+       <parameter>connection_or_statement</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Mostrar el mensaje de error de Oracle después de un error de conexión</title>
+    <title>Ejemplo de visualización de un mensaje de error de Oracle después de un error
+     de conexión</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $conn = oci_connect("hr", "welcome", "localhost/XE");
 if (!$conn) {
-    $e = oci_error();   // Para errores de oci_connect errors, no pase un gestor
+    $e = oci_error();   // Para los errores oci_connect, no se pasa un manejador de conexión
     trigger_error(htmlentities($e['message']), E_USER_ERROR);
 }
 ?>
@@ -119,13 +141,14 @@ if (!$conn) {
   </para>
   <para>
    <example>
-    <title>Mostrar el mensaje de error de Oracle después de un error de análisis</title>
+    <title>Ejemplo de visualización de un mensaje de error de Oracle después de un error
+     de análisis</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$stid = oci_parse($conn, "select ' from dual");  // observe la comilla simple dispareja
+$stid = oci_parse($conn, "select ' from dual");  // Note el error con las comillas
 if (!$stid) {
-    $e = oci_error($conn);  // Para errores de oci_parse, pase el gestor de conexión
+    $e = oci_error($conn);  // Para los errores oci_parse, se pasa el manejador de conexión
     trigger_error(htmlentities($e['message']), E_USER_ERROR);
 }
 ?>
@@ -135,15 +158,15 @@ if (!$stid) {
   </para>
   <para>
    <example>
-    <title>Mostrar el mensaje de error de Oracle, la sentencia problemática,
-     y la posición del problema en un error de ejecución</title>
+    <title>Ejemplo de visualización de un mensaje de error de Oracle después de un error
+     de ejecución encontrado en una consulta SQL</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $stid = oci_parse($conn, "select does_not_exist from dual");
 $r = oci_execute($stid);
 if (!$r) {
-    $e = oci_error($stid);  // Para errores de oci_execute, pase el gestor de sentencia
+    $e = oci_error($stid);  // Para los errores oci_execute, se pasa el manejador de conexión
     print htmlentities($e['message']);
     print "\n<pre>\n";
     print htmlentities($e['sqltext']);
@@ -156,8 +179,8 @@ if (!$r) {
    </example>
   </para>
  </refsect1>
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

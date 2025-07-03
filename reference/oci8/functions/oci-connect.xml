@@ -1,46 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5a3f0c18ac46e6d4313367e44866527badac5b73 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 5e41012cfdf8f2eff5fa56de446c7656afac536c Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.oci-connect" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>oci_connect</refname>
-  <refpurpose>Conecta a una base de datos de Oracle</refpurpose>
+  <refpurpose>Establece una conexión con un servidor Oracle</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>oci_connect</methodname>
+   <type class="union"><type>resource</type><type>false</type></type><methodname>oci_connect</methodname>
    <methodparam><type>string</type><parameter>username</parameter></methodparam>
    <methodparam><type>string</type><parameter>password</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>connection_string</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>character_set</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>session_mode</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>connection_string</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>encoding</parameter><initializer>""</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>session_mode</parameter><initializer><constant>OCI_DEFAULT</constant></initializer></methodparam>
   </methodsynopsis>
   <para>
-   Devuelve un identificador de conexión necesario para la mayoría de las operaciones de OCI8.
+   Devuelve un identificador de conexión, necesario para la mayoría de las llamadas OCI8.
   </para>
   <para>
-   Véase <link linkend="oci8.connection">Manejo de conexiones</link> para obtener
-   información general sobre la gestión y agrupamiento de
-   conexiones.
+   Para mejorar el rendimiento, la mayoría de las aplicaciones deberían utilizar
+   conexiones persistentes con <function>oci_pconnect</function> en lugar de
+   <function>oci_connect</function>.
+   Consulte la sección sobre <link linkend="oci8.connection">la gestión de conexiones</link>
+   para obtener información general sobre la gestión de conexiones y el agrupamiento de conexiones.
   </para>
   <para>
-   Desde PHP 5.1.2 (PECL OCI8 1.1), se puede usar <function>oci_close</function>
-   para cerrar conexiones.
-  </para>
-  <para>
-   La segunda y subsiguientes llamadas a <function>oci_connect</function>
-   con los mismos parámetros devolverán el gestor de conexión devuelto
-   desde la primera llamada. Esto significa que las transacciones de un gestor también
-   son las de los demás gestores, ya que usan la
-   <emphasis>misma</emphasis> conexión subyacente a la base de datos. Si dos
-   gestores necesitan ser aislados transaccionalmente uno de otro, use
-   <function>oci_new_connect</function> en su lugar.
+   Las llamadas siguientes (tras la primera) a la función <function>oci_connect</function>
+   con los mismos parámetros devolverán el manejador de conexión
+   devuelto en la primera llamada. Esto significa que las transacciones realizadas
+   sobre un manejador estarán activas en los demás, siempre que utilicen
+   la <emphasis>misma</emphasis> conexión subyacente. Si 2 manejadores deben tener
+   transacciones aisladas, utilice en su lugar la función <function>oci_new_connect</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -57,7 +54,7 @@
      <term><parameter>password</parameter></term>
      <listitem>
       <para>
-       La contraseña para <parameter>username</parameter>.
+       La contraseña del usuario.
       </para>
      </listitem>
     </varlistentry>
@@ -68,7 +65,7 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>character_set</parameter></term>
+     <term><parameter>encoding</parameter></term>
      <listitem>
       &oci.charset;
      </listitem>
@@ -82,24 +79,46 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un identificador de conexión, o &false; en caso de error.
+   Devuelve un identificador de conexión o &false; si ocurre un error.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0, PECL OCI8 3.0.0</entry>
+      <entry>
+       <parameter>connection_string</parameter> ahora es nullable.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Uso básico de <function>oci_connect</function> utilizando la sintaxis de Easy Connect</title>
+    <title>Ejemplo con <function>oci_connect</function> utilizando la sintaxis simplificada</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Conectar al servicio XE (es deicr, la base de datos) en la máquina "localhost"
+// Conexión al servicio XE (es decir, la base de datos) en la máquina "localhost"
 $conn = oci_connect('hr', 'welcome', 'localhost/XE');
 if (!$conn) {
     $e = oci_error();
@@ -126,13 +145,13 @@ echo "</table>\n";
   </para>
   <para>
    <example>
-    <title>Uso básico de  <function>oci_connect</function> utilizando un nombre de Network Connect</title>
+    <title>Ejemplo con <function>oci_connect</function> utilizando un nombre de conexión de red</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
-// Conectar a la base de datos MYDB descrita en el fichero tnsnames.ora,
-// Un ejemplo de una entrada de tnsnames.ora para MYDB podría ser:
+// Conexión a la base de datos MYDB descrita en el archivo tnsnames.ora,
+// Un ejemplo de entrada tnsnames.ora para MYDB podría ser:
 //   MYDB =
 //     (DESCRIPTION =
 //       (ADDRESS = (PROTOCOL = TCP)(HOST = mymachine.oracle.com)(PORT = 1521))
@@ -168,7 +187,7 @@ echo "</table>\n";
   </para>
   <para>
    <example>
-    <title><function>oci_connect</function> con un conjunto de caracteres explícito</title>
+    <title>Ejemplo con <function>oci_connect</function> utilizando un juego de caracteres específico</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -199,7 +218,7 @@ echo "</table>\n";
   </para>
   <para>
    <example>
-    <title>Usar múltiples llamadas a <function>oci_connect</function></title>
+    <title>Ejemplo con múltiples llamadas a la función <function>oci_connect</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -207,8 +226,8 @@ echo "</table>\n";
 $c1 = oci_connect("hr", "welcome", 'localhost/XE');
 $c2 = oci_connect("hr", "welcome", 'localhost/XE');
 
-// $c1 y $c2 muestran el mismo id de recurso de PHP, ya que usan la
-// misma conexión subyacente a la base de datos
+// Tanto $c1 como $c2 muestran el mismo identificador de recursos PHP, lo que significa
+// que se trata de la misma conexión a la base de datos
 echo "c1 is $c1<br>\n";
 echo "c2 is $c2<br>\n";
 
@@ -253,28 +272,27 @@ function select_data($connname, $conn)
 
 create_table($c1);
 
-insert_data('c1', $c1);   // Insertar una fila usando c1
-sleep(2);                 // Dormir para mostrar una marca de tiempo diferente en la 2ª fila
-insert_data('c2', $c2);   // Insertar una fila usando c2
+insert_data('c1', $c1);   // Inserta una fila utilizando c1
+sleep(2);                 // Se espera para ver un timestamp diferente para la segunda fila
+insert_data('c2', $c2);   // Inserta una fila utilizando c2
 
-select_data('c1', $c1);   // Son devueltas ambas inserciones
-select_data('c2', $c2);   // Son devueltas ambas inserciones
+select_data('c1', $c1);   // Se devuelven los resultados de las 2 inserciones
+select_data('c2', $c2);   // Se devuelven los resultados de las 2 inserciones
 
-rollback('c1', $c1);      // Revertir usando c1
+rollback('c1', $c1);      // Revertir la transacción utilizando c1
 
-select_data('c1', $c1);   // Ambas inserciones han sido revertidas
+select_data('c1', $c1);   // Las 2 inserciones han sido revertidas
 select_data('c2', $c2);
 
 drop_table($c1);
 
-// El cierre de una de las conexiones hace que la variable de PHP sea inutilizable, aunque
-// se podría utilizar la otra
+// El cierre de una conexión hace que las variables PHP sean inaccesibles, pero las demás
+// pueden seguir siendo utilizadas
 oci_close($c1);
 echo "c1 is $c1<br>\n";
 echo "c2 is $c2<br>\n";
 
-
-// La salida es:
+// Salida:
 //    c1 is Resource id #5
 //    c2 is Resource id #5
 //    Created table
@@ -294,7 +312,7 @@ echo "c2 is $c2<br>\n";
 //    c2 ----selecting
 //    c2 ----done
 //    Dropped table
-//    c1 is 
+//    c1 is
 //    c2 is Resource id #5
 
 ?>
@@ -303,19 +321,19 @@ echo "c2 is $c2<br>\n";
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Una instalación o configuración incorrecta de la extensión OCI8 a menudo
-    se manifestará como un problema o error de conexión.
-    Véase la sección <link linkend="oci8.setup">Instalación/Configuración</link> para
-    obtener información sobre la solución de problemas.
+    Si ha ocurrido un problema durante la instalación de la extensión OCI8,
+    una de las manifestaciones será un problema durante la conexión.
+    Consulte la sección <link linkend="oci8.setup">Instalación/Configuración</link>
+    para obtener más información en caso de errores.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -326,9 +344,8 @@ echo "c2 is $c2<br>\n";
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
@@ -349,4 +366,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

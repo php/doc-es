@@ -1,48 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b64ba59d6aa1f51c14d3240359b228cb6e617cb1 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
+<!-- EN-Revision: 22e850b66cd9a4b8f0e002bd5850f9839caaf152 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="function.preg-quote" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>preg_quote</refname>
-  <refpurpose>Escapar caracteres en una expresión regular</refpurpose>
+  <refpurpose>Protección de caracteres especiales de expresiones regulares</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>preg_quote</methodname>
    <methodparam><type>string</type><parameter>str</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>delimiter</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>delimiter</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>preg_quote</function> toma <parameter>string</parameter>
-   y pone una barra invertida delante de cada carácter que es parte de
-   la sintaxis de la expresión regular. Esto es útil si tiene una
-   cadena en tiempo de ejecución que necesite comparar con algún texto, y la
-   cadena pueda contener caracteres de expresiones regulares especiales.
+   <function>preg_quote</function> añade una barra invertida antes de cada carácter de la cadena <parameter>str</parameter> que forma parte de la sintaxis de expresiones regulares.
+   Esto es muy útil si se tiene una cadena que va a
+   servir como máscara, pero que es generada
+   durante la ejecución.
   </para>
   <para>
-   Los caracteres de expresiones regulares especiales son:
-   <literal>. \ + * ? [ ^ ] $ ( ) { } = ! &lt; &gt; | : -</literal>
+   Los caracteres especiales que serán protegidos son los siguientes:
+   <literal>. \ + * ? [ ^ ] $ ( ) { } = ! &lt; &gt; | : - #</literal>
   </para>
   <para>
-   Observe que <literal>/</literal> no es un carácter especial de expresión regular.
+   Tenga en cuenta que <literal>/</literal> no es un carácter especial de expresión regular.
   </para>
   <note>
    <para>
-    Observe que <function>preg_quote</function> no está pensada para que sea apliaca a los
-    strings de <function>preg_replace</function> etc.
+    Tenga en cuenta que <function>preg_quote</function> no está destinado a ser aplicado a
+    las cadenas $replacement de <function>preg_replace</function> etc.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>string</parameter></term>
+     <term><parameter>str</parameter></term>
      <listitem>
       <para>
        La cadena de entrada.
@@ -53,24 +52,24 @@
      <term><parameter>delimiter</parameter></term>
      <listitem>
       <para>
-       Si se especifica el parámetro opcional <parameter>delimiter</parameter>, éste
-       también será escapado. Esto es útil para escapar el delimitador
-       que es necesario para las funciones PCRE. El delimitador <literal>/</literal>es el que se usa
-       comúnmente.
+       Si el argumento opcional <parameter>delimiter</parameter> es proporcionado,
+       también será escapado. Esto es práctico para escapar
+       el delimitador requerido por las funciones PCRE. La barra <literal>/</literal> es el
+       delimitador más común.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el string entrecomillado (escapado).
+   Retorna la cadena protegida.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog">
   &reftitle.changelog;
   <para>
@@ -84,9 +83,15 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.3.0</entry>
+       <entry>7.3.0</entry>
        <entry>
-        El carácter <literal>-</literal> ahora es escapado
+        El carácter <literal>#</literal> ahora es protegido
+       </entry>
+      </row>
+      <row>
+       <entry>7.2.0</entry>
+       <entry>
+        <parameter>delimiter</parameter> ahora es nullable.
        </entry>
       </row>
      </tbody>
@@ -94,18 +99,18 @@
    </informaltable>
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>preg_quote</function></title>
+    <title>Ejemplo con <function>preg_quote</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$claves = '$40 por un a g3/400';
-$claves = preg_quote($claves, '/');
-echo $claves; // devuelve \$40 por un g3\/400
+$keywords = '$40 para un g3/400';
+$keywords = preg_quote($keywords, '/');
+echo $keywords; // retorna \$40 para un g3\/400
 ?>
 ]]>
     </programlisting>
@@ -113,43 +118,41 @@ echo $claves; // devuelve \$40 por un g3\/400
   </para>
   <para>
    <example>
-    <title>Poner en cursiva una palabra dentro de un texto</title>
+    <title>Poner en cursiva una palabra en un texto</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// En este ejemplo, preg_quote($palabra) se usa para que los
-// asteriscos sigan teniendo un significado especial en la
-// expresión regular.
+// En este ejemplo, preg_quote($word) sirve para evitar que los asteriscos
+// tengan un valor especial en la expresión regular.
 
-$texto = "Este libro es *muy* difícil de encontrar.";
-$palabra = "*muy*";
-$texto = preg_replace ("/" . preg_quote($palabra, '/') . "/",
-                       "<i>" . $palabra . "</i>",
-                       $texto);
+$textbody = "Este libro es *muy* difícil de encontrar.";
+$word = "*muy*";
+$textbody = preg_replace ("/" . preg_quote($word, '/') . "/",
+                          "<i>" . $word . "</i>",
+                          $textbody);
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.bin-safe;
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link linkend="pcre.pattern">Patrones de PCRE</link></member>
+    <member><link linkend="pcre.pattern">Máscaras PCRE</link></member>
     <member><function>escapeshellcmd</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

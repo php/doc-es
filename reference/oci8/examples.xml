@@ -1,117 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a48bfbee2a121bdf25ceee2946aa27728e611365 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 5e41012cfdf8f2eff5fa56de446c7656afac536c Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="oci8.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  &reftitle.examples;
  <para>
-  En estos ejemplos se realiza la conexión con el usuario <literal>HR</literal>, que es
-  el esquema de ejemplo &quot;Human Resources&quot; proporcionado con la
-  base de datos Oracle. Podría ser necesario desbloquear la cuenta y
-  reiniciar la contraseña antes de poder usarla.
+  Estos ejemplos utilizan, para conectarse a la base de datos,
+  el usuario <literal>HR</literal> que es el esquema
+  <literal>&quot;Human Resources&quot;</literal> proporcionado por la
+  base de datos Oracle. Esta cuenta debe haber sido desbloqueada y
+  la contraseña reestablecida antes de poder utilizarla.
  </para>
- 
+
  <para>
-  Los ejemplos se conectan a la base de datos <literal>XE</literal> de su
-  máquina. Cambie la cadena de conexión a su base de datos antes de ejecutar
-  los ejemplos.
+  Estos ejemplos se conectan a la base de datos
+  <literal>XE</literal> de su máquina. Modifique la cadena de conexión
+  para que corresponda a su base de datos antes de ejecutar los
+  ejemplos de esta documentación.
  </para>
- 
+
  <example>
-  <title>Consulta básica</title>
+  <title>Consulta simple</title>
   <para>
-   Este ejemplo muestra la realización de consultas y la visualización de resultados. Las sentencias
-   en OCI8 usan la secuencia de pasos 'preparación-ejecución-obtención'.
+   Este ejemplo muestra la ejecución de una consulta y la visualización de los resultados.
+   Las consultas OCI8 utilizan las etapas preparación/ejecución/recuperación
+   de datos.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conexión) {
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-// Preparar la sentencia
-$stid = oci_parse($conexión, 'SELECT * FROM departments');
+// Preparación de la consulta
+$stid = oci_parse($conn, 'SELECT * FROM departments');
 if (!$stid) {
-    $e = oci_error($conexión);
+    $e = oci_error($conn);
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-// Realizar la lógica de la consulta
+// Ejecución de la lógica de la consulta
 $r = oci_execute($stid);
 if (!$r) {
     $e = oci_error($stid);
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-// Obtener los resultados de la consulta
+// Recuperación de los resultados de la consulta
 print "<table border='1'>\n";
-while ($fila = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
+while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_NULLS)) {
     print "<tr>\n";
-    foreach ($fila as $elemento) {
-        print "    <td>" . ($elemento !== null ? htmlentities($elemento, ENT_QUOTES) : "") . "</td>\n";
+    foreach ($row as $item) {
+        print "    <td>" . ($item !== null ? htmlentities($item, ENT_QUOTES) : "") . "</td>\n";
     }
     print "</tr>\n";
 }
 print "</table>\n";
 
 oci_free_statement($stid);
-oci_close($conexión);
+oci_close($conn);
 
 ?>
 ]]>
   </programlisting>
  </example>
- 
+
  <example>
-  <title>Inserción con variables vinculadas</title>
+  <title>Inserción de datos utilizando variables ligadas</title>
   <para>
-   Las variables vinculadas mejoran el rendimiento permitiendo la reutilización de contextos
-   ejecutados y cachés. Las variables vinculadas mejoran la seguridad previniendo
-   algunos tipos de problemas de Inyecciones SQL.
+   Las variables ligadas aumentan el rendimiento permitiendo la reutilización
+   del caché y el contexto de ejecución. Las variables ligadas aumentan también
+   la seguridad previniendo muchos casos de inyección SQL.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutarlo, cree la tabla:
+// Antes de la ejecución, cree la siguiente tabla:
 //   CREATE TABLE MYTABLE (mid NUMBER, myd VARCHAR2(20));
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conexión) {
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$stid = oci_parse($conexión, 'INSERT INTO MYTABLE (mid, myd) VALUES(:myid, :mydata)');
+$stid = oci_parse($conn, 'INSERT INTO MYTABLE (mid, myd) VALUES(:myid, :mydata)');
 
 $id = 60;
-$datos = 'Algunos datos';
+$data = 'Some data';
 
 oci_bind_by_name($stid, ':myid', $id);
-oci_bind_by_name($stid, ':mydata', $datos);
+oci_bind_by_name($stid, ':mydata', $data);
 
-$r = oci_execute($stid);  // ejecuta y consigna
+$r = oci_execute($stid);  // ejecución y validación
 
 if ($r) {
     print "Una fila insertada";
 }
 
 oci_free_statement($stid);
-oci_close($conexión);
+oci_close($conn);
 
 ?>
 ]]>
   </programlisting>
  </example>
- 
  <example>
-  <title>Vincular la cláusula WHERE a una consulta</title>
+  <title>Ligadura de una cláusula WHERE de una consulta</title>
   <para>
-   Lo siguiente muestra una vinculación escalar única.
+   Esto muestra la ligadura simple.
   </para>
   <programlisting role="php">
 <![CDATA[
@@ -132,7 +134,7 @@ while (($row = oci_fetch_array($stid, OCI_ASSOC)) != false) {
     echo $row['LAST_NAME'] ."<br>\n";
 }
 
-// La salida es
+// Muestra:
 //    Austin
 //    Ernst
 //    Hunold
@@ -146,54 +148,55 @@ oci_close($conn);
 ]]>
   </programlisting>
  </example>
- 
+
  <example>
-  <title>Insertar datos en una columna CLOB</title>
+  <title>Inserción de datos en una columna CLOB</title>
   <para>
-   Para datos grandes use los tipos objeto grande binario (BLOB) u objeto
-   grande de caracteres (CLOB). Este ejemplo usa CLOB.
+   Para datos grandes, utilice un objeto binario largo (BLOB)
+   o un objeto de caracteres largo (CLOB). Este ejemplo utiliza los CLOB.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
-// Antes de ejecutarlo, cree la tabla:
+// Antes de la ejecución, cree la siguiente tabla:
 //     CREATE TABLE MYTABLE (mykey NUMBER, myclob CLOB);
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conexión) {
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$mykey = 12343;  // clave arbitraria para este ejemplo;
+$mykey = 12343;  // clave arbitraria para el ejemplo
 
 $sql = "INSERT INTO mytable (mykey, myclob)
         VALUES (:mykey, EMPTY_CLOB())
         RETURNING myclob INTO :myclob";
 
-$stid = oci_parse($conexión, $sql);
-$clob = oci_new_descriptor($conexión, OCI_D_LOB);
+$stid = oci_parse($conn, $sql);
+$clob = oci_new_descriptor($conn, OCI_D_LOB);
 oci_bind_by_name($stid, ":mykey", $mykey, 5);
 oci_bind_by_name($stid, ":myclob", $clob, -1, OCI_B_CLOB);
-oci_execute($stid, OCI_NO_AUTO_COMMIT); // utilice OCI_DEFAULT para PHP <= 5.3.1
-$clob->save("Una cadena muy grande");
+oci_execute($stid, OCI_NO_AUTO_COMMIT);
+$clob->save("Una cadena realmente muy larga");
 
-oci_commit($conexión);
+oci_commit($conn);
 
-// Obtener los datos CLOB
+// Recuperación de datos CLOB
 
-$consulta = 'SELECT myclob FROM mytable WHERE mykey = :mykey';
+$query = 'SELECT myclob FROM mytable WHERE mykey = :mykey';
 
-$stid = oci_parse ($conexión, $consulta);
+$stid = oci_parse ($conn, $query);
 oci_bind_by_name($stid, ":mykey", $mykey, 5);
 oci_execute($stid);
 
 print '<table border="1">';
 while ($row = oci_fetch_array($stid, OCI_ASSOC+OCI_RETURN_LOBS)) {
     print '<tr><td>'.$row['MYCLOB'].'</td></tr>';
-    // En un bucle, liberar la variable grande antes de la 2ª obtención reduce el uso de memoria de picos de PHP
-    unset($row);  
+    // En un bucle, liberar la variable antes de recuperar la
+    // segunda línea permite reducir el uso de memoria de PHP
+    unset($row);
 }
 print '</table>';
 
@@ -201,20 +204,20 @@ print '</table>';
 ]]>
   </programlisting>
  </example>
- 
+
  <example>
-  <title>Usar una función almacenada de PL/SQL</title>
+  <title>Uso de una función almacenada PL/SQL</title>
   <para>
-   Se debe vincular una variable para el valor de retorno y, opcionalmente, para
-   cualquier argumento de la función de PL/SQL.
+   Debe ligar una variable para el valor devuelto y, opcionalmente,
+   para todos los argumentos de la función PL/SQL.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
 /*
-  Antes de ejecutar el programa de PHP, cree una función almacenada en
-  SQL*Plus o SQL Developer:
+  Antes de ejecutar el programa PHP, cree una función almacenada
+  en lenguaje SQL*Plus o SQL Developer:
 
   CREATE OR REPLACE FUNCTION myfunc(p IN NUMBER) RETURN NUMBER AS
   BEGIN
@@ -223,42 +226,43 @@ print '</table>';
 
 */
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conexión) {
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
 $p = 8;
 
-$stid = oci_parse($conexión, 'begin :r := myfunc(:p); end;');
+$stid = oci_parse($conn, 'begin :r := myfunc(:p); end;');
 oci_bind_by_name($stid, ':p', $p);
 oci_bind_by_name($stid, ':r', $r, 40);
 
 oci_execute($stid);
 
-print "$r\n";   // imprime 24
+print "$r\n";   // Muestra 24
 
 oci_free_statement($stid);
-oci_close($conexión);
+oci_close($conn);
 
 ?>
 ]]>
   </programlisting>
  </example>
- 
+
  <example>
-  <title>Utilizar un procedimiento almacenado de PL/SQL</title>
+  <title>Uso de una procedimiento almacenado PL/SQL</title>
   <para>
-   Con los procedimientos almacenados se deberían vincular variables para cualquier argumento.
+   Con los procedimientos almacenados, debe ligar las variables para todos
+   los argumentos.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 
 /*
-  Antes de ejecutar el programa de PHP, cree un procedimiento almacenado en
-  SQL*Plus or SQL Developer:
+  Antes de ejecutar el programa PHP, cree un procedimiento almacenado en
+  lenguaje SQL*Plus o SQL Developer:
 
   CREATE OR REPLACE PROCEDURE myproc(p1 IN NUMBER, p2 OUT NUMBER) AS
   BEGIN
@@ -267,41 +271,41 @@ oci_close($conexión);
 
 */
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
-if (!$conexión) {
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
+if (!$conn) {
     $e = oci_error();
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
 $p1 = 8;
 
-$stid = oci_parse($conexión, 'begin myproc(:p1, :p2); end;');
+$stid = oci_parse($conn, 'begin myproc(:p1, :p2); end;');
 oci_bind_by_name($stid, ':p1', $p1);
 oci_bind_by_name($stid, ':p2', $p2, 40);
 
 oci_execute($stid);
 
-print "$p2\n";   // imprime 16
+print "$p2\n";   // muestra 16
 
 oci_free_statement($stid);
-oci_close($conexión);
+oci_close($conn);
 
 ?>
 ]]>
   </programlisting>
  </example>
- 
+
  <example>
-  <title>Llamar a una función de PL/SQL que devuelve un <literal>REF CURSOR</literal></title>
+  <title>Llamada a una función PL/SQL que devuelve un <literal>REF CURSOR</literal></title>
   <para>
    Cada valor devuelto por la consulta es un <literal>REF
-   CURSOR</literal> desde el que se pueden obtener datos.
+   CURSOR</literal> a utilizar para recuperar los datos.
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
 /*
-  Cree una función almacenada de PL/SQL como:
+  Cree una función almacenada PL/SQL de la siguiente manera:
 
   CREATE OR REPLACE FUNCTION myfunc(p1 IN NUMBER) RETURN SYS_REFCURSOR AS
       rc SYS_REFCURSOR;
@@ -311,32 +315,32 @@ oci_close($conexión);
   END;
 */
 
-$conexión = oci_connect('hr', 'welcome', 'localhost/XE');
+$conn = oci_connect('hr', 'welcome', 'localhost/XE');
 
-$stid = oci_parse($conexión, 'SELECT myfunc(5) AS mfrc FROM dual');
+$stid = oci_parse($conn, 'SELECT myfunc(5) AS mfrc FROM dual');
 oci_execute($stid);
 
 echo "<table border='1'>\n";
-while (($fila = oci_fetch_array($stid, OCI_ASSOC))) {
+while (($row = oci_fetch_array($stid, OCI_ASSOC))) {
     echo "<tr>\n";
-    $rc = $fila['MFRC'];
-    oci_execute($rc);  // el valor de la columna devuelta por la consulta es un ref cursor
-    while (($fila_rc = oci_fetch_array($rc, OCI_ASSOC))) {   
-        echo "    <td>" . $fila_rc['CITY'] . "</td>\n";
+    $rc = $row['MFRC'];
+    oci_execute($rc);  // El valor de la columna devuelto desde la consulta es una referencia de cursor
+    while (($rc_row = oci_fetch_array($rc, OCI_ASSOC))) {
+        echo "    <td>" . $rc_row['CITY'] . "</td>\n";
     }
     oci_free_statement($rc);
     echo "</tr>\n";
 }
 echo "</table>\n";
 
-// La salida es:
+// Muestra:
 //   Beijing
 //   Bern
 //   Bombay
 //   Geneva
 
 oci_free_statement($stid);
-oci_close($conexión);
+oci_close($conn);
 
 ?>
 ]]>
@@ -364,4 +368,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-
