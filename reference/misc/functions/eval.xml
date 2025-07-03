@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a0a0165e07a83d74a66c316d52b04c1f4bf52aeb Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 78d17c25eeecc78cb7098b1a01d42391e36af2c1 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.eval" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>eval</refname>
-  <refpurpose>Evaluar una cadena como código de PHP</refpurpose>
+  <refpurpose>Ejecuta una cadena como un script PHP</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -15,19 +16,31 @@
    <methodparam><type>string</type><parameter>code</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Evalua el código dado por <parameter>code</parameter> como código PHP.
+   Evalúa el <parameter>code</parameter> proporcionado como código PHP.
+  </para>
+  <para>
+   El código en evaluación hereda el
+   <link linkend="language.variables.scope">ámbito de las variables</link>
+   de la línea en la que se realiza la llamada a <function>eval</function>.
+   Todas las variables disponibles en esa línea serán accesibles en lectura y
+   modificación en el código evaluado.
+   Sin embargo, todas las funciones y clases definidas se definirán en el espacio de nombres global.
+   En otras palabras, el compilador considera el código evaluado como si se tratara de
+   un <link linkend="function.include">archivo incluido</link> separado.
   </para>
   <caution>
    <para>
-    El constructor de lenguaje <function>eval</function> es <emphasis>muy peligroso</emphasis>
-    porque permite la ejecución de código de PHP arbitrario. <emphasis>Su uso está totalmente
-    desaconsejado.</emphasis> Si se ha verificado cuidadosamente que no existe otra opción
-    que usar este constructor, se ha de poner especial atención en <emphasis>no pasar ninguna
-    información proporcionada por el usuario</emphasis> a esta función sin haberla validado apropiadamente con anterioridad.
+    La construcción de lenguaje <function>eval</function> es
+    <emphasis>muy peligrosa</emphasis> ya que permite la ejecución
+    de código PHP arbitrario. <emphasis>Su uso se desaconseja
+    encarecidamente.</emphasis> Si se ha verificado cuidadosamente que
+    no hay otras opciones que utilizarla, se debe prestar una atención
+    especial <emphasis>a no pasar datos provenientes de un usuario</emphasis>
+    sin haberlos validado previamente de manera minuciosa.
    </para>
   </caution>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -36,92 +49,97 @@
      <term><parameter>code</parameter></term>
      <listitem>
       <para>
-       El código de PHP válido ser evaluado.
+       Código PHP válido a evaluar.
       </para>
       <para>
-       El código no debe encerrarse entre
-       <link linkend="language.basic-syntax.phpmode">etiquetas de PHP</link> de apertura y cierre,
-       es decir, se debe pasar <literal>'echo "¡Hola!";'</literal> en vez de
-       <literal>'&lt;?php echo "¡Hola!"; ?&gt;'</literal>. Aún es posible abandonar y
-       reentrar en el modo PHP usando las etiquetas de PHP apropiadas, p.ej.
-       <literal>'echo "¡En el modo PHP!"; ?&gt;¡En el modo HTML!&lt;?php echo "¡De vuelta en el modo PHP!";'</literal>.
+       El código no debe estar rodeado de
+       <link linkend="language.basic-syntax.phpmode">etiquetas PHP</link>
+       de apertura y cierre, es decir, <literal>'echo "Hi!";'</literal>
+       debe ser pasado en lugar de
+       <literal>'&lt;?php echo "Hi!"; &gt;'</literal>.
+       Siempre es posible salir y volver al modo PHP
+       utilizando las etiquetas PHP apropiadas, es decir,
+       <literal>'echo "En modo PHP !"; ?&gt;En modo HTML !&lt;?php echo "Retorno al modo PHP !";'</literal>.
       </para>
       <para>
-       Aparte de que el código pasado debe ser código de PHP válido. Esto incluye que todas las sentencias
-       deben finalizar apropiadamente usando un punto y coma.
-       <literal>'echo "¡Hola!"'</literal>, por ejemplo, causará un error de análisis, mientras que
-       <literal>'echo "¡Hola!";'</literal> funcionará.
+       Además de esto, el código PHP pasado debe ser válido. Esto incluye que todas las
+       instrucciones deben terminar con un punto y coma.
+       <literal>'echo "Hi!"'</literal> por ejemplo resultará en un error fatal, mientras que
+       <literal>'echo "Hi!";'</literal> funcionará.
       </para>
       <para>
-       Una sentencia <literal>return</literal> finalizará inmediantamente la
-       evaluación del código.
+       Una instrucción <literal>return</literal> terminará inmediatamente la evaluación del código.
       </para>
       <para>
-       El código se ejecutará en el ámbito del código que llama a <function>eval</function>. Así, cualquier
-       variable definida o cambiada en la llamada a <function>eval</function> permanecerá visible después de que
-       finalice.
+       El código se ejecutará en el ámbito del código que llama a la función
+       <function>eval</function>. Por lo tanto, todas las variables definidas o modificadas
+       en la llamada a la función <function>eval</function> seguirán siendo visibles después
+       de la finalización de la ejecución de la función.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    <function>eval</function> devuelve &null; a menos que
-   se llame a <literal>return</literal> en el código evaluado, en cuyo caso
-   el valor pasado a <literal>return</literal> es devuelto. A partir de PHP 7, si hay un
-   error de análisis en el código evaluado, <function>eval</function> lanzará una excepción ParseError.
-   Antes de PHP 7, <function>eval</function> devolvía
-   &false; y la ejecución del código posterior continuaba normalmente. No es
-   posible capturar un error de análisis de <function>eval</function>
-   usando <function>set_error_handler</function>.
+   <literal>return</literal> sea llamado en el código evaluado,
+   en cuyo caso el valor pasado a <literal>return</literal>
+   es devuelto. A partir de PHP 7, si hay un error de sintaxis en
+   el código evaluado, <function>eval</function> lanza una excepción <classname>ParseError</classname>.
+   Antes de PHP 7, en este caso <function>eval</function> devuelve &false;
+   y la ejecución del código siguiente continúa normalmente. No
+   es posible capturar el error de análisis de la
+   función <function>eval</function> utilizando la función
+   <function>set_error_handler</function>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>eval</function> - fusión de texto sencillo</title>
+    <title>Ejemplo con <function>eval</function> - concatenación de texto</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$cadena = 'taza';
-$nombre = 'café';
-$str = 'Esto es una $cadena con mi $nombre en ella.';
-echo $str. "\n";
-eval("\$str = \"$str\";");
-echo $str. "\n";
+$string = 'taza';
+$name = 'café';
+$str = 'Esto es un $string con mi $name dentro.<br />';
+echo $str;
+eval( "\$str = \"$str\";" );
+echo $str;
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Esto es una $cadena con mi $nombre en ella.
-Esto es una taza con mi café en ella.
+Esto es un $string con mi $name dentro.
+Esto es una taza con mi café dentro.
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
-  
+
   &note.language-construct;
-  
+
   &tip.ob-capture;
   <note>
    <para>
-    En caso de un error fatal en el código evaluado, se saldrá del script completamente.
+    En caso de un error fatal en el código evaluado, todo el script se
+    terminará.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>

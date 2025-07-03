@@ -1,33 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 55929e29ac7535345c9f38ad3f703c6f3cd2cc59 Maintainer: chuso Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 5fabd07880ab15b0ad2cf7eb055c7c2b36d7120f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.unpack" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>unpack</refname>
-  <refpurpose>Desempaqueta datos de una cadena binaria</refpurpose>
+  <refpurpose>Desempaqueta datos desde una cadena binaria</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>unpack</methodname>
+   <type class="union"><type>array</type><type>false</type></type><methodname>unpack</methodname>
    <methodparam><type>string</type><parameter>format</parameter></methodparam>
-   <methodparam><type>string</type><parameter>data</parameter></methodparam>
+   <methodparam><type>string</type><parameter>string</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Desempaqueta desde una cadena binaria a una matriz de acuerdo a
-   <parameter>format</parameter>.
+   Desempaqueta los datos <parameter>data</parameter>
+   desde una cadena binaria con el formato <parameter>format</parameter>.
   </para>
   <para>
-   Los datos desempaquetados son almacenados en una matriz asociativa. Para
-   lograr esto es necesario nombrar los diferentes códigos de formato y
-   separarlos con una barra /. Si estuviera presente un parámetro repetidor,
-   cada una de las claves de la matriz tendría un número de secuencia tras
-   el valor establecido.
+   Los datos desempaquetados se almacenan en un
+   array. Para ello, debe asignarse un nombre a cada
+   formato utilizado y separarlos con una barra (/). Si
+   se proporciona un argumento de repetición, entonces cada una de
+   las claves del array tendrá un número de secuencia detrás del
+   nombre proporcionado.
+  </para>
+  <para>
+   Se han realizado modificaciones para alinear el comportamiento
+   de esta función con Perl :
+   <simplelist>
+    <member>
+     El código "a" ya no elimina los bytes NULL finales.
+    </member>
+    <member>
+     El código "A" ahora elimina todos los espacios en blanco ASCII finales
+     (espacio, tabulación, nuevas líneas, retorno de carro, y bytes NULL).
+    </member>
+    <member>
+     Se ha añadido el código "Z" para las cadenas rellenas con caracteres
+     NULL, y elimina los bytes NULL finales.
+    </member>
+   </simplelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -36,31 +56,38 @@
      <term><parameter>format</parameter></term>
      <listitem>
       <para>
-       Vea <function>pack</function> para una explicación de los códigos de
-       formato.
+       Consulte la función <function>pack</function> para una explicación de los códigos de formato.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>data</parameter></term>
+     <term><parameter>string</parameter></term>
      <listitem>
       <para>
        Los datos empaquetados.
       </para>
      </listitem>
     </varlistentry>
+    <varlistentry>
+     <term><parameter>offset</parameter></term>
+     <listitem>
+      <para>
+       La posición donde comenzar el desempaquetado.
+      </para>
+     </listitem>
+    </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve una matriz asociativa que contiene los elementos desempaquetados
-   de la cadena binaria.
+   Devuelve un array asociativo que contiene los elementos desempaquetados
+   de una cadena binaria, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="changelog"><!-- {{{ -->
   &reftitle.changelog;
   <para>
@@ -74,22 +101,15 @@
      </thead>
      <tbody>
       <row>
-       <entry>5.5.0</entry>
+       <entry>7.2.0</entry>
        <entry>
-        <para>
-         Cambios realizados para poner esta función en línea con Perl:
-        </para>
-        <para>
-         El código "a" ahora guarda bytes NULL sobrantes de cola.
-        </para>
-        <para>
-         El código "A" ahora elimina todos los espacios en blanco ASCII sobrantes de cola
-         (espacios, tabulaciones, nuevas líneas, retorno de carro, y bytes NULL).
-        </para>
-        <para>
-         Se añadió en código "Z" para cadenas rellenadas con NULL, y elimina los bytes NULL
-         sobrantes de cola.
-        </para>
+        Los tipos <type>float</type> y <type>double</type> soportan tanto la orientación Big Endian como Little Endian.
+       </entry>
+      </row>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        Se ha añadido el argumento opcional <parameter>offset</parameter>.
        </entry>
       </row>
      </tbody>
@@ -97,88 +117,113 @@
    </informaltable>
   </para>
  </refsect1><!-- }}} -->
- 
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>unpack</function></title>
+    <title>Ejemplo con <function>unpack</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$datosbinarios = "\x04\x00\xa0\x00";
-$matriz = unpack("cchars/nint", $datosbinarios);
+$binarydata = "\x04\x00\xa0\x00";
+$array = unpack("cchars/nint", $binarydata);
+print_r($array);
 ?>
 ]]>
     </programlisting>
-    <para>
-     La matriz resultante contendrá las entradas "chars" con el valor
-     <literal>4</literal> e "int" con el valor <literal>160</literal>.
-    </para>
+    &example.outputs;
+    <screen>
+<![CDATA[
+Array
+(
+    [chars] => 4
+    [int] => 160
+)
+]]>
+    </screen>
    </example>
   </para>
-  
+
   <para>
    <example>
-    <title>Ejemplo de <function>unpack</function> con un repetidor</title>
+    <title>Ejemplo con <function>unpack</function> y un argumento de repetición</title>
     <programlisting role="php">
-<![CDATA[
-<?php
-$datosbinarios = "\x04\x00\xa0\x00";
-$matriz = unpack("c2chars/nint", $datosbinarios);
+ <![CDATA[
+ <?php
+$binarydata = "\x04\x00\xa0\x00";
+$array = unpack("c2chars/nint", $binarydata);
+print_r($array);
 ?>
+ ]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Array
+(
+    [chars1] => 4
+    [chars2] => 0
+    [int] => 40960
+)
 ]]>
-    </programlisting>
-    <para>
-     La matriz resultante contendrá las entradas "chars1",
-     "chars2" e "int".
-    </para>
-   </example>
-  </para>
- </refsect1>
- 
+     </screen>
+    </example>
+   </para>
+  </refsect1>
+
  <refsect1 role="notes">
   &reftitle.notes;
   <caution>
    <para>
-    Note que PHP almacena internamente los valores enteros como valores con
-    signo. Si desempaqueta un entero largo sin signo y es del mismo tamaño
-    que los valores almacenados internamente por PHP, el resultado será un
-    número negativo incluso si se especifica un valor sin signo al
-    desempaquetar.
+    Debe tenerse en cuenta que PHP maneja los valores internamente
+    en forma firmada. Si se desempaqueta
+    un valor que es tan grande como el tamaño utilizado
+    internamente por PHP, el resultado será
+    un número negativo, incluso si se ha
+    desempaquetado con la opción <literal>"no firmado"</literal>.
    </para>
   </caution>
   <caution>
    <para>
-    Tenga en cuenta que si un elemento no tiene nombre, se usará una cadena vacía.
-    Si hubiera más de un elemento sin nombre, esto significaría que se
-    sobrescribirían algunos datos, ya que sus claves coincidirían, como ocurre en:
+    Si no se nombra un elemento, se utilizan los índices numéricos a partir de
+    <literal>1</literal>. Tenga en cuenta que si tiene más de un
+    elemento sin nombre, algunos datos se sobrescriben porque la numeración
+    se reinicia a partir de <literal>1</literal> para cada elemento.
    </para>
    <para>
     <example>
-     <title>Ejemplo <function>unpack</function> con claves sin nombre</title>
+     <title>Ejemplo con <function>unpack</function> con claves no nombradas</title>
      <programlisting role="php">
 <![CDATA[
 <?php
-$datosbinarios = "\x32\x42\x00\xa0";
-$matriz = unpack("c2/n", $datosbinarios);
-var_dump($matriz);
+$binarydata = "\x32\x42\x00\xa0";
+$array = unpack("c2/n", $binarydata);
+var_dump($array);
 ?>
 ]]>
      </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+array(2) {
+  [1]=>
+  int(160)
+  [2]=>
+  int(66)
+}
+]]>
+     </screen>
      <para>
-      La matriz resultante contendrá las entradas "1" con el valor
-      <literal>160</literal> y "2" con <literal>66</literal>. El
-      primer valor del especificador <literal>c</literal> quedaría
-      sobrescrito por el primer valor del especificador
-      <literal>n</literal>.
+      Observe que el primer
+      valor desde el especificador <literal>c</literal> es sobrescrito
+      por el primer valor desde el especificador <literal>n</literal>.
      </para>
     </example>
    </para>
   </caution>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -187,9 +232,8 @@ var_dump($matriz);
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

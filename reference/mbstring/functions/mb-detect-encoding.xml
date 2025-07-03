@@ -1,49 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a07a17c15bc5fd5d01c704e768087028c7b05080 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 34f90a65914c900173f9a42331acc45bc53d8eee Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.mb-detect-encoding" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mb_detect_encoding</refname>
-  <refpurpose>Detecta la codificación de caracteres</refpurpose>
+  <refpurpose>Detecta un encodage</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>string</type><methodname>mb_detect_encoding</methodname>
-   <methodparam><type>string</type><parameter>str</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>encoding_list</parameter><initializer>mb_detect_order()</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>strict</parameter><initializer>false</initializer></methodparam>
+   <type class="union"><type>string</type><type>false</type></type><methodname>mb_detect_encoding</methodname>
+   <methodparam><type>string</type><parameter>string</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>string</type><type>null</type></type><parameter>encodings</parameter><initializer>&null;</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>strict</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Detecta la codificación de caracteres del <type>string</type> <parameter>str</parameter>. 
+   Detecta el encodage más probable para la &string;
+   <parameter>string</parameter> desde una lista ordenada de candidatos.
   </para>
+  <para>
+   La detección automática del juego de caracteres previsto nunca es totalmente
+   fiable; sin información adicional, es similar a descifrar una cadena cifrada sin la clave. Siempre es preferible utilizar una indicación del juego de caracteres almacenado o transmitido con los datos,
+   como el encabezado HTTP "Content-Type".
+  </para>
+  <para>
+   Esta función se utiliza principalmente con encodages multioctetos, donde
+   no todas las secuencias de octetos forman una cadena válida. Si la cadena
+   de entrada contiene una secuencia de este tipo, este encodage será rechazado, y el
+   siguiente encodage será verificado.
+  </para>
+
+  <warning>
+   <title>El resultado no es fiable</title>
+   <para>
+    El nombre de esta función es engañoso, realiza una « suposición » en lugar de una « detección ».
+   </para>
+   <para>
+    Las suposiciones están lejos de ser precisas, y por lo tanto, esta función no permite
+    detectar de manera fiable el encodage correcto de los caracteres.
+   </para>
+  </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>str</parameter></term>
+     <term><parameter>string</parameter></term>
      <listitem>
       <para>
-       El <type>string</type> en el que detectar la codificación.
+       La <type>string</type> siendo inspeccionada.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>encoding_list</parameter></term>
+     <term><parameter>encodings</parameter></term>
      <listitem>
       <para>
-       <parameter>encoding_list</parameter> es una lista de codificaciones de
-       caracteres. El orden de codificaciones puede ser especificado por un array o una
-       lista de string separados por comas.
+       Una lista de encodages de caracteres a probar, en orden.
+       Esta lista puede ser especificada como un &array; de &string;,
+       o como una &string; única separada por comas.
       </para>
       <para>
-       Si se omite <parameter>encoding_list</parameter>,
-       se usará detect_order.
+       Si <parameter>encodings</parameter> es omitido o &null;,
+       el detect_order actual (definido con la opción de configuración
+       <link linkend="ini.mbstring.detect-order">mbstring.detect_order</link>,
+       o la función <function>mb_detect_order</function>) será utilizado.
       </para>
      </listitem>
     </varlistentry>
@@ -51,53 +76,176 @@
      <term><parameter>strict</parameter></term>
      <listitem>
       <para>
-       <parameter>strict</parameter> especifica si usar
-       la detección de codificación estricta o no.
-       El valor predeterminado es &false;.
+       Controla el comportamiento cuando <parameter>string</parameter> no es
+       válido en ninguno de los <parameter>encodings</parameter> listados.
+       Si <parameter>strict</parameter> está definido como &false;, el encodage que
+       corresponda más será devuelto; si <parameter>strict</parameter>
+       está definido como &true;, &false; será devuelto.
+      </para>
+      <para>
+       El valor por omisión de <parameter>strict</parameter> puede ser definido
+       con la opción de configuración
+       <link linkend="ini.mbstring.strict-detection">mbstring.strict_detection</link>.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   La codificación de caracteres detectada, o &false; si la codificación no se pudo
-   detectar en el string dado.
+   El encodage de caracteres detectado, o &false; si la cadena no es válida
+   en uno de los encodages listados.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.2.0</entry>
+      <entry>
+       <function>mb_detect_encoding</function> ya no devolverá los siguientes
+       encodages no textuales:
+       <literal>"Base64"</literal>, <literal>"QPrint"</literal>,
+       <literal>"UUencode"</literal>, <literal>"HTML entities"</literal>,
+       <literal>"7 bit"</literal> y <literal>"8 bit"</literal>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>mb_detect_encoding</function></title>
+    <title>Ejemplo con <function>mb_detect_encoding</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Detectar la codificación de caracteres con el detect_order en uso */
-echo mb_detect_encoding($str);
 
-/* "auto" se desarrolla según mbstring.language */
-echo mb_detect_encoding($str, "auto");
+$str = "\x95\xB6\x8E\x9A\x83\x52\x81\x5B\x83\x68";
 
-/* Especificar la codificación de caracteres encoding_list mediante una lista separada por comas */
-echo mb_detect_encoding($str, "JIS, eucjp-win, sjis-win");
+// Detecta el encodage con el detect_order actual
+var_dump(mb_detect_encoding($str));
 
-/* Usar un array para especificar encoding_list  */
-$ary[] = "ASCII";
-$ary[] = "JIS";
-$ary[] = "EUC-JP";
-echo mb_detect_encoding($str, $ary);
+// "auto" es modificado según mbstring.language
+var_dump(mb_detect_encoding($str, "auto"));
+
+// Especifica el parámetro "encodings" con una lista separada por comas
+var_dump(mb_detect_encoding($str, "JIS, eucjp-win, sjis-win"));
+
+// Uso de un array para especificar el parámetro "encodings"
+$encodings = [
+  "ASCII",
+  "JIS",
+  "EUC-JP"
+];
+var_dump(mb_detect_encoding($str, $encodings));
 ?>
 ]]>
     </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(5) "ASCII"
+string(5) "ASCII"
+string(8) "SJIS-win"
+string(5) "ASCII"
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   <example>
+    <title>Efecto del parámetro <parameter>strict</parameter></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// 'áéóú' encoded in ISO-8859-1
+$str = "\xE1\xE9\xF3\xFA";
+
+// La cadena no es válida en ASCII o UTF-8, pero UTF-8 es considerado un mejor ajuste
+var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8'], false));
+var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8'], true));
+
+// Si un encodage válido es encontrado, el parámetro strict no cambia el resultado
+var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8', 'ISO-8859-1'], false));
+var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8', 'ISO-8859-1'], true));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(5) "UTF-8"
+bool(false)
+string(10) "ISO-8859-1"
+string(10) "ISO-8859-1"
+]]>
+    </screen>
+   </example>
+  </para>
+  <para>
+   En ciertos casos, la misma secuencia de octetos puede formar una cadena válida
+   en diferentes encodages de caracteres, y es imposible determinar
+   cuál interpretación era prevista. Un ejemplo, entre otros,
+   la secuencia de octetos "\xC4\xA2" podría ser:
+  </para>
+  <para>
+   <simplelist>
+    <member>
+     "Ä¢" (U+00C4 LATIN CAPITAL LETTER A WITH DIAERESIS seguido de U+00A2 CENT SIGN)
+     codificado en ISO-8859-1, ISO-8859-15, o Windows-1252
+    </member>
+    <member>
+     "ФЂ" (U+0424 CYRILLIC CAPITAL LETTER EF seguido de U+0402 CYRILLIC CAPITAL LETTER
+     DJE) codificado en ISO-8859-5
+    </member>
+    <member>
+     "Ģ" (U+0122 LATIN CAPITAL LETTER G WITH CEDILLA) codificado en UTF-8
+    </member>
+   </simplelist>
+  </para>
+  <para>
+   <example>
+    <title>Efecto del orden cuando múltiples encodages coinciden</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$str = "\xC4\xA2";
+
+// La cadena es válida en los tres encodages, por lo que el primero listado será devuelto
+var_dump(mb_detect_encoding($str, ['UTF-8', 'ISO-8859-1', 'ISO-8859-5']));
+var_dump(mb_detect_encoding($str, ['ISO-8859-1', 'ISO-8859-5', 'UTF-8']));
+var_dump(mb_detect_encoding($str, ['ISO-8859-5', 'UTF-8', 'ISO-8859-1']));
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+string(5) "UTF-8"
+string(10) "ISO-8859-1"
+string(10) "ISO-8859-5"
+]]>
+    </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -106,9 +254,8 @@ echo mb_detect_encoding($str, $ary);
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

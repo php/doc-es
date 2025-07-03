@@ -1,35 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8b5940cadeb4f1c8492f4a7f70743a2be807cf39 Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: b65b98da1039e01b4a8f51f94560822ec9a113d9 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.uniqid" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>uniqid</refname>
-  <refpurpose>Generar un ID único</refpurpose>
+  <refpurpose>Genera un identificador basado en el tiempo</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>uniqid</methodname>
    <methodparam choice="opt"><type>string</type><parameter>prefix</parameter><initializer>""</initializer></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter>more_entropy</parameter><initializer>false</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>more_entropy</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Obtiene un identificador único prefijado basado en la hora actual en
-   microsegundos. 
+   Genera un identificador basado en la hora actual con una precisión a la microsegundo,
+   prefijado por el <parameter>prefix</parameter> dado y añadiendo
+   eventualmente un valor generado aleatoriamente.
   </para>
+  &caution.cryptographically-insecure;
   <warning>
    <para>
-    Esta función no crea valores de tipo string aleatorios ni impredecibles.
-    <emphasis>Esta función no debe usarse con propósitos de seguridad.</emphasis>
-    Use una función o generador aleatorios criptográficamente seguros y
-    funciones hash criptográficamente seguras para crear ID de seguridad
-    impredecibles.
+    Esta función no garantiza la unicidad del valor devuelto
+    ya que este se basa en la hora actual en microsegundos
+    o en la hora actual con una pequeña cantidad de datos aleatorios añadidos
+    si <parameter>more_entropy</parameter> es &true;.
    </para>
   </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -38,14 +40,17 @@
      <term><parameter>prefix</parameter></term>
      <listitem>
       <para>
-       Puede ser útil, por ejemplo, si se generan identificadores
-       simultáneamente en varios hosts que podrían, por casualidad, generar el
-       identificador en el mismo microsegundo.
+       Puede ser útil, por ejemplo, para identificar fácilmente diferentes hosts, si se genera
+       simultáneamente en varios hosts que pueden generar el
+       mismo identificador en la misma microsegundo. (Esto puede ocurrir
+       incluso en un solo host si el reloj del sistema se mueve hacia atrás,
+       por ejemplo por un ajuste NTP.)
       </para>
       <para>
-       Con un <parameter>prefix</parameter> vacío, el string devuelto tendrá
-       una longitud de 13 caracteres. Si <parameter>more_entropy</parameter> es
-       &true;, tendrá 23 caracteres.
+       Sin <parameter>prefix</parameter> (prefijo vacío), la
+       cadena devuelta tendrá 13 caracteres. Si
+       <parameter>more_entropy</parameter> es &true;, tendrá 23
+       caracteres.
       </para>
      </listitem>
     </varlistentry>
@@ -53,46 +58,51 @@
      <term><parameter>more_entropy</parameter></term>
      <listitem>
       <para>
-       Si está establecido a &true;, <function>uniqid</function> añadirá entropía
-       adicional (usando el generador congruente lineal combinado) al final
-       del valor retornado, lo que incrementará la posibilidad de que el resultado
-       sea único.
+       Si el parámetro opcional <parameter>more_entropy</parameter> es
+       &true;, <function>uniqid</function> añadirá una entropía
+       <literal>"combined LCG"</literal> al final del valor devuelto,
+       lo que aumenta la probabilidad de la unicidad del resultado.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el identificador único, como string.
+   Devuelve un identificador basado en el timestamp, en forma de &string;.
   </para>
+  <warning>
+   <para>
+    Esta función no garantiza la unicidad del valor devuelto.
+   </para>
+  </warning>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>uniqid</function></title>
+    <title>Ejemplo con <function>uniqid</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Un id único, como: 4b3403665fea6 */
+/* Un identificador único, como: 4b3403665fea6 */
 printf("uniqid(): %s\r\n", uniqid());
 
-/* También podemos prefijar el id único, esto es lo mismo que
- * hacer:
+/* También podemos prefijar el identificador único,
+ * lo que equivale a:
  *
- * $uniqid = $prefijo . uniqid();
- * $uniqid = uniqid($prefijo);
+ * $uniqid = $prefix . uniqid();
+ * $uniqid = uniqid($prefix);
  */
 printf("uniqid('php_'): %s\r\n", uniqid('php_'));
 
-/* También podemos activar el parámetro more_entropy, que es
- * necesario en algunos sistemas, como Cygwin. Esto hace que uniqid()
- * produzca un valor como: 4b340550242239.64159797
+/* También podemos activar el parámetro more_entropy,
+ * requerido por algunos sistemas, como Cygwin. Esto hará que
+ * uniqid() produzca un valor como: 4b340550242239.64159797
  */
 printf("uniqid('', true): %s\r\n", uniqid('', true));
 ?>
@@ -101,27 +111,22 @@ printf("uniqid('', true): %s\r\n", uniqid('', true));
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
-  <caution>
-   <para>
-    Esta función no genera tokens criptográficamente seguros,
-    de hecho, el valor devuelto, sin pasar ningún parámetro adicional,
-    es ligeramente diferente del de <function>microtime</function>. Si
-    fuera necesario generar tokens criptográficamente seguros utilice
-    <function>openssl_random_pseudo_bytes</function>.
-   </para>
-  </caution>
   <note>
    <para>
-    Bajo Cygwin, <parameter>more_entropy</parameter> debe ser establecido
-    a &true; para que esta función funcione.
+    En Cygwin, el parámetro <parameter>more_entropy</parameter> debe ser
+    pasado a &true; para que esta función funcione.
    </para>
   </note>
-  
  </refsect1>
- 
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><function>random_bytes</function></member>
+  </simplelist>
+ </refsect1>
 </refentry>
 
 <!-- Keep this comment at the end of the file

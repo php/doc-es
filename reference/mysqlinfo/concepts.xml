@@ -1,239 +1,192 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 7e2109691481280c3488c5e95e90f1c235cc0800 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 968c2bc60de3e93d7f38be0b9d2d1b9685a16ea7 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="mysqlinfo.concepts" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Conceptos</title>
  <para>
-  Estos conceptos son específicos para los controladores de MYSQL para PHP.
+  Estos conceptos son específicos para los drivers MySQL para PHP.
  </para>
- 
+
  <section xml:id="mysqlinfo.concepts.buffering">
-  <title>Consultas almacenadas y no almacenadas en buffer</title>
-  
+  <title>Consultas con o sin almacenamiento en memoria</title>
+
   <para>
-   Las consultas usan el modo de almacenamiento en buffer por omisión. Esto significa que los resultados de
-   las consultas son transferidos inmediatamente del Servidor MySQL a PHP donde luego se mantienen en la memoria
-   del proceso de PHP. Esto permite operaciones adicionales como la cuenta del
-   número de filas y mover (buscar) el puntero actual del resultado. También permite
-   emitir más consultas en la misma conexión mientras se trabaja con el conjunto de resultados.
-   El lado negativo del modo de almacenamiento en buffer es que los conjuntos de resultados grandes requieren
-   bastante más memoria. La memoria se mantendrá ocupada hasta que todas las referencias al
-   conjunto de resultados sean desestablecidas o se libere explícitamente el conjunto de resultados, lo que
-   automáticamente ocurrirá durante la finalización de la última petición. La terminología "resultado almacenado" también se usa
-   para el modo de almacenamiento en buffer, ya que el conjunto de resultados completo se almacena de una vez.
+   Las consultas utilizan por omisión el modo de almacenamiento en memoria.
+   Esto significa que el resultado de las consultas se transfiere inmediatamente
+   del servidor MySQL a PHP y se conserva en la memoria
+   del proceso PHP. Esto permite operaciones complementarias
+   como contar el número de resultados, y desplazar el
+   puntero de resultado actual. También permite ejecutar consultas adicionales
+   sobre la misma conexión mientras se trabaja con el conjunto de resultados. La desventaja del almacenamiento en memoria es que los conjuntos de resultados grandes pueden requerir
+   mucha más memoria. La memoria permanecerá ocupada hasta que
+   todas las referencias a los conjuntos de resultados sean desactivadas o que los conjuntos de resultados sean liberados explícitamente,
+   lo cual ocurre de manera automática al final del
+   proceso. La terminología "store result" también se utiliza con el modo de almacenamiento en memoria, ya que la totalidad de los resultados
+   se almacenan a la vez.
   </para>
-  
+
   <note>
    <para>
-    Cuando se usa libmysqlclient como biblioteca, el límite de memoria de PHP no contará la memoria usada
-    por los conjuntos de resultados a menos que los datos sean puestos en variables de PHP. Con mysqlnd,
-    la memoria tenida en cuenta incluirá el conjunto de resultados completo.
+    Cuando se utiliza libmysqlclient como biblioteca, el límite de memoria de PHP no contará la memoria utilizada para los
+    conjuntos de resultados a menos que los datos sean leídos en las variables PHP. Con mysqlnd, la memoria utilizada incluirá
+    el conjunto de resultados completo.
    </para>
   </note>
-  
+
   <para>
-   Las consultas de MySQL no almacenadas en buffer ejecutan la consulta y luego devuelven un <type>resource</type>
-   mientras los datos aún siguen esperado en el servidor MySQL a que sean extraidos. Esto utiliza menos memoria
-   por parte de PHP, pero puede incrementar la carga del servidor. A menos que se obtenga el conjunto de resultados
-   completo del servidor no se podrán enviar más consultas en la misma conexión. Las consultas no almacenada
-   en buffer también pueden ser descritas como "resultados de uso".
+   Las consultas sin almacenamiento en memoria, las consultas MySQL ejecutan su consulta y luego esperan
+   que los datos del servidor MySQL sean recuperados. Esto utiliza menos memoria
+   en el lado de PHP, pero puede aumentar la carga
+   en el servidor. A menos que el conjunto de resultados completo haya sido
+   recuperado desde el servidor, ninguna otra consulta puede ser
+   enviada sobre la misma conexión. Las consultas sin almacenamiento en memoria también pueden hacer referencia a un
+   "use result". Una vez que todas las líneas del conjunto de resultados
+   han sido recuperadas, el conjunto de resultados desaparece y ya no es posible recorrerlo nuevamente.
   </para>
-  
+
   <para>
-   Siguiendo estas características, las consultas almacenadas en buffer deberían usarse en casos donde se espera
-   solamente un conjunto de resultados limitado o se necesite conocer la cantidad de filas devueltas antes de leer
-   todas las filas. El modo de no almacenamiento en buffer debería usarse cuando se esperesn resultados grandes.
+   Siguiendo estas características, las consultas sin almacenamiento en memoria deben ser utilizadas únicamente
+   cuando se espera obtener un gran conjunto de resultados que será procesado secuencialmente.
+   Las consultas sin almacenamiento en memoria presentan varias trampas que las hacen más
+   difíciles de utilizar, por ejemplo el número de líneas en el conjunto de resultados no es conocido
+   antes de que la última línea sea recuperada.
   </para>
-  
-  <!-- @TODO
-    - Add list of issues people run into with unbuffered queries
-    - Add list of specific use cases for when unbuffered queries are useful
-    - Question: Unbuffered queries still require all rows to be returned or resource free before executing another? Applies to all extensions?
-    - Show "free_result" functions / unset usage with buffered queries 8double-check with Andrey on mysqlnd optimizations
-   -->
-  
+
   <para>
-   Ya que las consultas almacenadas en buffer son las predeterminadas, los ejemplos de abajo demuestran cómo
-   ejecutar consultas no almacenadas en buffer con cada API.
+   Debido a que las consultas son almacenadas en memoria
+   por omisión, los ejemplos a continuación muestran cómo
+   ejecutar consultas, con cada API, sin almacenamiento en memoria.
   </para>
-  
+
   <example>
-   <title>Ejemplo de consulta no almacenada en buffer: mysqli</title>
+   <title>Ejemplo de consultas sin almacenamiento en memoria: mysqli</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli  = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
-$res_sin_buffer = $mysqli->query("SELECT Name FROM City", MYSQLI_USE_RESULT);
+$mysqli  = new mysqli("localhost", "my_user", "my_password", "world");
+$unbufferedResult = $mysqli->query("SELECT Name FROM City", MYSQLI_USE_RESULT);
 
-if ($res_sin_buffer) {
-   while ($fila = $res_sin_buffer->fetch_assoc()) {
-       echo $fila['Name'] . PHP_EOL;
-   }
+foreach ($unbufferedResult as $row) {
+    echo $row['Name'] . PHP_EOL;
 }
-$res_sin_buffer->close();
 ?>
 ]]>
    </programlisting>
   </example>
-  
+
   <example>
-   <title>Ejemplo de consulta no almacenada en buffer: pdo_mysql</title>
+   <title>Ejemplo de consultas sin almacenamiento en memoria: pdo_mysql</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$pdo = new PDO("mysql:host=localhost;dbname=world", 'mi_usuario', 'mi_contraseña');
+$pdo = new PDO("mysql:host=localhost;dbname=world", 'my_user', 'my_password');
 $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
 
-$res_sin_buffer = $pdo->query("SELECT Name FROM City");
-if ($res_sin_buffer) {
-   while ($fila = $res_sin_buffer->fetch(PDO::FETCH_ASSOC)) {
-       echo $fila['Name'] . PHP_EOL;
-   }
-}
-?>
-]]>
-   </programlisting>
-  </example>
-  
-  <example>
-   <title>Ejemplo de consulta no almacenada en buffer: mysql</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-$conexión = mysql_connect("localhost", "mi_usuario", "mi_contraseña");
-$bd = mysql_select_db("world");
-
-$res_sin_buffer = mysql_unbuffered_query("SELECT Name FROM City");
-if ($res_sin_buffer) {
-   while ($fila = mysql_fetch_assoc($res_sin_buffer)) {
-       echo $fila['Name'] . PHP_EOL;
-   }
+$unbufferedResult = $pdo->query("SELECT Name FROM City");
+foreach ($unbufferedResult as $row) {
+    echo $row['Name'] . PHP_EOL;
 }
 ?>
 ]]>
    </programlisting>
   </example>
  </section>
- 
+
  <section xml:id="mysqlinfo.concepts.charset">
-  <title>Conjuntos de caracteres</title>
-  
+  <title>Juegos de caracteres</title>
+
   <para>
-   De forma ideal, un conjunto de caracteres apropiado será establecido a nivel del servidor, que está descrito
-   dentro de la sección <link xlink:href="&url.mysql.charsets.config;">Configuración del conjunto de caracteres</link>
-   del manual del Servidor MySQL. De forma alternativa, cada API de MySQL ofrece métodos para establecer
-   el conjunto de caracteres en tiempo de ejecución.
+   Idealmente, un juego de caracteres adecuado debe ser definido
+   a nivel del servidor, operación descrita en la sección
+   <link xlink:href="&url.mysql.charsets.config;">Configuración del juego de
+    caracteres</link> del manual del servidor MySQL. Alternativamente, cada API
+   MySQL ofrece un método para definir el juego de caracteres durante
+   la ejecución.
   </para>
-  
+
   <caution>
-   <title>El conjunto de caracteres y el escape de caracteres</title>
+   <title>El juego de caracteres y el escape de caracteres</title>
    <para>
-    El conjunto de caracteres debería entenderse y ser definido, ya que afecta a cada
-    acción, e incluye implicaciones de seguridad. Por ejemplo, el mecanismo de escape
-    (p.ej., <function>mysqli_real_escape_string</function> para mysqli, <function>mysql_real_escape_string</function>
-    para mysql, y <methodname>PDO::quote</methodname> para PDO_MySQL) cumplirá con
-    esta configuración. Es importante darse cuenta que estas funciones no usarán el conjunto de
-    caracteres que está definido en una consulta, por lo que, por ejemplo, lo siguiente no tendrá efecto
-    sobre ellas:
+    El juego de caracteres debe ser comprendido y definido, sabiendo que tiene
+    un efecto en cada acción, y tiene implicaciones a nivel de seguridad. Por ejemplo, el mecanismo de escape (i.e.
+    <function>mysqli_real_escape_string</function> para mysqli, y
+    <methodname>PDO::quote</methodname> para PDO_MySQL) utilizará
+    esta configuración. Es importante tener en cuenta que estas funciones
+    no utilizarán el juego de caracteres definido con una consulta, por lo tanto,
+    el ejemplo siguiente no tendrá ningún efecto sobre el juego de caracteres:
    </para>
   </caution>
-  
+
   <example>
-   <title>Problemas al establecer el conjunto de caracteres con SQL</title>
+   <title>Problemas al definir el juego de caracteres con SQL</title>
    <programlisting role="php">
 <![CDATA[
 <?php
 
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-// NO afectará a $mysqli->real_escape_string();
-$mysqli->query("SET NAMES utf8");
+// NO afectará $mysqli->real_escape_string();
+$mysqli->query("SET NAMES utf8mb4");
 
-// NO afectará a $mysqli->real_escape_string();
-$mysqli->query("SET CHARACTER SET utf8");
+// NO afectará $mysqli->real_escape_string();
+$mysqli->query("SET CHARACTER SET utf8mb4");
 
-// Pero esto sí afectará a $mysqli->real_escape_string();
-$mysqli->set_charset('utf8'));
+// Pero esto afectará $mysqli->real_escape_string();
+$mysqli->set_charset('utf8mb4');
 
-// Y esto NO le afectará (utf-8 frente a utf8) -- no emplee guiones aquí
-$mysqli->set_charset('utf-8');
+// Pero esto NO lo afectará (UTF-8 en comparación con utf8mb4) -- no utilice guiones aquí
+$mysqli->set_charset('UTF-8');
 ?>
 ]]>
    </programlisting>
   </example>
-  
+
   <para>
-   Abajo hay ejemplos que demuestran cómo alterar adecuadamente el conjunto de caracteres en tiempo de ejecución
-   usando cada API.
+   A continuación, los ejemplos que demuestran cómo modificar correctamente
+   el juego de caracteres durante la ejecución utilizando cada una de las APIs.
   </para>
-  
+
   <note>
-   <title>Posible confusión con UTF-8</title>
+   <title>Confusión posible con UTF-8</title>
    <para>
-    Debido a que los nombres de los conjuntos de caracteres no contienen guiones, la cadena
-    "utf8" es válida en MySQL para establecer el conjunto de caracteres a UTF-8. La cadena
-    "utf-8" no es válida para cambiar el
-    conjunto de caracteres.
+    Debido a que los nombres de los juegos de caracteres en MySQL no contienen guiones,
+    la cadena "utf8" es correcta en MySQL y definirá el juego de caracteres en UTF-8.
+    La cadena "UTF-8" no es correcta, y utilizar "utf-8" fallará al modificar el
+    juego de caracteres.
    </para>
   </note>
-  
+
   <example>
-   <title>Ejemplo para establecer el conjunto de caracteres: mysqli</title>
+   <title>Ejemplo de definición del juego de caracteres: mysqli</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$mysqli = new mysqli("localhost", "mi_usuario", "mi_contraseña", "world");
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
 
-printf("Conjunto de caracteres inicial: %s\n", $mysqli->character_set_name());
+echo 'Juego de caracteres inicial: ' . $mysqli->character_set_name() . "\n";
 
-if (!$mysqli->set_charset('utf8')) {
-    printf("Error cargando el conjunto de caracteres utf8: %s\n", $mysqli->error);
+if (!$mysqli->set_charset('utf8mb4')) {
+    printf("Error al cargar el juego de caracteres utf8mb4: %s\n", $mysqli->error);
     exit;
 }
 
-echo "Información del nuevo conjunto de caracteres:\n";
-print_r( $mysqli->get_charset() );
-
+echo 'Su juego de caracteres actual es: ' . $mysqli->character_set_name() . "\n";
 ?>
 ]]>
    </programlisting>
   </example>
-  
+
   <example>
-   <title>Ejemplo para establecer el conjunto de caracteres: <link linkend="ref.pdo-mysql.connection">pdo_mysql</link></title>
-   <para>
-    Nota: Sólo funciona a partir de PHP 5.3.6.
-   </para>
+   <title>Ejemplo de definición del juego de caracteres: <link linkend="ref.pdo-mysql.connection">pdo_mysql</link></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$pdo = new PDO("mysql:host=localhost;dbname=world;charset=utf8", 'mi_usuario', 'mi_contraseña');
+$pdo = new PDO("mysql:host=localhost;dbname=world;charset=utf8mb4", 'my_user', 'my_pass');
 ?>
 ]]>
    </programlisting>
   </example>
-  
-  <example>
-   <title>Ejemplo para establecer el conjunto de caracteres: mysql</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-$conexión = mysql_connect("localhost", "mi_usuario", "mi_contraseña");
-$bd   = mysql_select_db("world");
-
-echo 'Conuunto de caracteres inicial: ' .  mysql_client_encoding($conexión) . "\n";
-
-if (!mysql_set_charset('utf8', $conexión)) {
-    echo "Error: No se pudo establecer el conjunto de caracteres.\n";
-    exit;
-}
-
-echo 'El conjunto de caracteres actual es: ' .  mysql_client_encoding($conexión);
-?>
-]]>
-   </programlisting>
-  </example>  
  </section>
- 
+
 </chapter>
