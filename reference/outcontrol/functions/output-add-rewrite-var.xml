@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: ba4d305a78a5a09589424a4ceb84182334c247c2 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
+
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.output-add-rewrite-var">
  <refnamediv>
   <refname>output_add_rewrite_var</refname>
-  <refpurpose>Añadir valores al mecanismo de reescritura de URLs</refpurpose>
+  <refpurpose>Añade una regla de reescritura de URL</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -16,26 +16,45 @@
    <methodparam><type>string</type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función añade otro par nombre/valor al mecanismo de reescritura de URLs.
-   El nombre y el valor se agregarán a los URLs (como parámetros de GET) y a los formularios
-   (como camos intput ocultos) de la misma forma que el ID de sesión cuando la reescritura de
-   URLs de forma transparente está habilitada con <link
-   linkend="ini.session.use-trans-sid">session.use_trans_sid</link>. Observe
-   que los URLs absolutos (http://example.com/..) no son reescritos.
+   Esta función inicia el gestor de búfer de salida <literal>'URL-Rewriter'</literal>
+   si no está activo,
+   almacena los argumentos <parameter>name</parameter> y <parameter>value</parameter>,
+   y cuando el búfer se vacía, reescribe las <acronym>URL</acronym>s
+   y los formularios según los argumentos <acronym>ini</acronym> aplicables.
+   Las llamadas posteriores a esta función almacenarán todas las parejas nombre/valor
+   adicionales hasta que el gestor sea desactivado.
   </para>
   <para>
-   El comportamiento de esta función está controlado por el parámetro <link
-   linkend="ini.url-rewriter.tags">url_rewriter.tags</link>
-   de &php.ini;.
+   Cuando el búfer de salida se vacía
+   (al llamar a <function>ob_flush</function>, <function>ob_end_flush</function>,
+   <function>ob_get_flush</function> o al final del script),
+   el gestor <literal>'URL-Rewriter'</literal> añade las parejas nombre/valor
+   como argumentos de consulta a las <acronym>URL</acronym>s en los atributos de las etiquetas HTML
+   y añade campos ocultos a los formularios según los valores de
+   las directivas de configuración <link linkend="ini.url-rewriter.tags">url_rewriter.tags</link> y
+   <link linkend="ini.url-rewriter.hosts">url_rewriter.hosts</link>.
+  </para>
+  <para>
+   Cada pareja nombre/valor añadida al gestor <literal>'URL-Rewriter'</literal>
+   se añade a las <acronym>URL</acronym>s y/o formularios
+   incluso si esto resulta en argumentos de consulta de <acronym>URL</acronym> duplicados
+   o elementos con los mismos atributos de nombre.
   </para>
   <note>
    <simpara>
-    Al llamar a esta función se iniciará el almacenamiento implícito en búfer de salida
-    si no estaba ya activo.
+    Una vez que el gestor <literal>'URL-Rewriter'</literal> ha sido desactivado,
+    no puede ser reiniciado.
    </simpara>
   </note>
+  <warning>
+   <simpara>
+    Antes de PHP 8.4.0, los hosts a reescribir se definían en
+    <link linkend="ini.session.trans-sid-hosts">session.trans_sid_hosts</link>
+    en lugar de <link linkend="ini.url-rewriter.hosts">url_rewriter.hosts</link>.
+   </simpara>
+  </warning>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -59,27 +78,59 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <para>
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        A partir de PHP 7.1.0, se utiliza un búfer de salida dedicado,
+        <link linkend="ini.url-rewriter.tags">url_rewriter.tags</link>
+        se utiliza únicamente para las funciones de salida y
+        <link linkend="ini.url-rewriter.tags">url_rewriter.hosts</link> está disponible.
+        Anterior a PHP 7.1.0, las variables de reescritura definidas por <function>output_add_rewrite_var</function>
+        compartían un búfer de salida con el soporte transparente del ID de sesión
+        (ver <link linkend="ini.session.trans-sid-tags">session.trans_sid_tags</link>).
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </para>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>output_add_rewrite_var</function></title>
+    <title>Ejemplo con <function>output_add_rewrite_var</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-output_add_rewrite_var('var', 'valor');
+ini_set('url_rewriter.tags', 'a=href,form=');
 
-// algunos enlaces
-echo '<a href="fichero.php">enlace</a>
-<a href="http://example.com">enlace2</a>';
+output_add_rewrite_var('var', 'value');
+
+// Algunos enlaces
+echo '<a href="file.php">link</a>
+<a href="http://example.com">link2</a>';
 
 // un formulario
 echo '<form action="script.php" method="post">
@@ -93,11 +144,11 @@ print_r(ob_list_handlers());
     &example.outputs;
     <screen>
 <![CDATA[
-<a href="fichero.php?var=valor">enlace</a>
-<a href="http://example.com">enlace2</a>
+<a href="file.php?var=value">link</a>
+<a href="http://example.com">link2</a>
 
 <form action="script.php" method="post">
-<input type="hidden" name="var" value="valor" />
+<input type="hidden" name="var" value="value" />
 <input type="text" name="var2" />
 </form>
 
@@ -110,7 +161,7 @@ Array
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -118,10 +169,12 @@ Array
     <member><function>output_reset_rewrite_vars</function></member>
     <member><function>ob_flush</function></member>
     <member><function>ob_list_handlers</function></member>
+    <member><link linkend="ini.url-rewriter.tags">url_rewriter.tags</link></member>
+    <member><link linkend="ini.url-rewriter.hosts">url_rewriter.hosts</link></member>
    </simplelist>
   </para>
- </refsect1>  
- 
+ </refsect1>
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

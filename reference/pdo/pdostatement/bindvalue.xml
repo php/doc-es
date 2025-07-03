@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 14af302c9c0e561fa6f9cdd956268758ba9a89c5 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 9ee48af9ac7897f4d226edb57329d3174afb07b6 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="pdostatement.bindvalue" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDOStatement::bindValue</refname>
   <refpurpose>
-   Vincula un valor a un parámetro
+   Asocia un valor a un parámetro
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="PDOStatement">
    <modifier>public</modifier> <type>bool</type><methodname>PDOStatement::bindValue</methodname>
-   <methodparam><type>mixed</type><parameter>parameter</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>int</type></type><parameter>param</parameter></methodparam>
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>data_type</parameter><initializer>PDO::PARAM_STR</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>type</parameter><initializer>PDO::PARAM_STR</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Vincula un valor al parámetro de sustitución con nombre o de signo de interrogación
-   de la sentencia SQL que se utilizó para preparar la sentencia.
+   Asocia un valor a un nombre correspondiente o a un punto de interrogación
+   (como parámetro ficticio) en la consulta SQL que se ha utilizado para
+   preparar la consulta.
   </para>
  </refsect1>
 
@@ -28,35 +28,34 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>parameter</parameter></term>
-     <listitem>
-      <para>
-       El identificador del parámetro. Para sentencias preparadas que usen parámetros de
-       sustición con nombre, esto será un nombre de parámetro con la forma
-       <varname>:nombre</varname>. Para sentencias preparadas que usen parámetros de
-       sustición de signos de interrogación, esto será la posición índice-1 del
-       parámetro.
-      </para>
-     </listitem>
-    </varlistentry>
+     <term><parameter>param</parameter></term>
+      <listitem>
+       <para>
+        Identificador del parámetro. Para una consulta preparada utilizando los
+        marcadores, esto será un nombre de parámetro de la forma
+        <varname>:nombre</varname>. Para una consulta preparada utilizando los
+        puntos de interrogación (como parámetro ficticio), esto será un
+        array indexado numéricamente que comienza en la posición 1 del parámetro.
+       </para>
+      </listitem>
+     </varlistentry>
     <varlistentry>
      <term><parameter>value</parameter></term>
-     <listitem>
-      <para>
-       El valor a vincular al parámetro.
-      </para>
-     </listitem>
-    </varlistentry>
+      <listitem>
+       <para>
+        El valor a asociar al parámetro.
+       </para>
+      </listitem>
+     </varlistentry>
     <varlistentry>
-     <term><parameter>data_type</parameter></term>
-     <listitem>
-      <para>
-       El tipo de datos explícito para el parámetro, usando las <link
-        linkend="pdo.constants">constantes
-       <constant>PDO::PARAM_*</constant></link>.
-      </para>
-     </listitem>
-    </varlistentry>
+     <term><parameter>type</parameter></term>
+      <listitem>
+       <para>
+        Tipo de datos explícito para el parámetro utilizando las constantes
+        <link linkend="pdo.constants"><literal>PDO::PARAM_*</literal></link>.
+       </para>
+      </listitem>
+     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
@@ -68,60 +67,67 @@
   </para>
  </refsect1>
 
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &pdo.errors;
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
-  <example><title>Ejecutar una sentencia preparada con parámetros de sustitución con nombre</title>
+  <example>
+   <title>Ejecutar una consulta preparada con marcadores nombrados</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada vinculando varialbes de PHP */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
-    FROM fruit
-    WHERE calories < :calories AND colour = :colour');
-$gsent->bindValue(':calories', $calorías, PDO::PARAM_INT);
-$gsent->bindValue(':colour', $color, PDO::PARAM_STR);
-$gsent->execute();
+/* Ejecutar una consulta preparada asociando variables PHP */
+$calorias = 150;
+$color = 'rojo';
+$sth = $dbh->prepare('SELECT nombre, color, calorias
+    FROM fruta
+    WHERE calorias < :calorias AND color = :color');
+
+/* Definir el valor de un parámetro utilizando su nombre */
+$sth->bindValue('calorias', $calorias, PDO::PARAM_INT);
+/* Opcionalmente, los nombres de los parámetros pueden ser prefijados con dos puntos ": " */
+$sth->bindValue(':color', $color, PDO::PARAM_STR);
+$sth->execute();
 ?>
 ]]>
    </programlisting>
   </example>
 
-  <example><title>Ejecutar una sentencia preparada con parámetros de sustitución de signos de interrogación</title>
+  <example>
+   <title>Ejecutar una consulta preparada con puntos de interrogación como parámetro ficticio</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada vinculando varialbes de PHP */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
-    FROM fruit
-    WHERE calories < ? AND colour = ?');
-$gsent->bindValue(1, $calorías, PDO::PARAM_INT);
-$gsent->bindValue(2, $color, PDO::PARAM_STR);
-$gsent->execute();
+/* Ejecutar una consulta preparada asociando variables PHP */
+$calorias = 150;
+$color = 'rojo';
+$sth = $dbh->prepare('SELECT nombre, color, calorias
+    FROM fruta
+    WHERE calorias < ? AND color = ?');
+$sth->bindValue(1, $calorias, PDO::PARAM_INT);
+$sth->bindValue(2, $color, PDO::PARAM_STR);
+$sth->execute();
 ?>
 ]]>
    </programlisting>
   </example>
-
-
  </refsect1>
 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>PDO::prepare</function></member>
-    <member><function>PDOStatement::execute</function></member>
-    <member><function>PDOStatement::bindParam</function></member>
+    <member><methodname>PDO::prepare</methodname></member>
+    <member><methodname>PDOStatement::execute</methodname></member>
+    <member><methodname>PDOStatement::bindParam</methodname></member>
    </simplelist>
   </para>
 
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

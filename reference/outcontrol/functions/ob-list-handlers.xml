@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a0efd60818b767c51af678fd7a62c7521665f35d Maintainer: seros Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
-<refentry xml:id="function.ob-list-handlers" xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: 87a266cdd7f53bc86cd22d21af289b9a75f57f94 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.ob-list-handlers">
  <refnamediv>
   <refname>ob_list_handlers</refname>
-  <refpurpose>Enumerar todos los gestores de salida en uso</refpurpose>
+  <refpurpose>Lista los gestores de salida utilizados</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
@@ -15,40 +16,117 @@
    <void/>
   </methodsynopsis>
   <para>
-   Enumera todos los gestores de salida en uso.
+   Lista los gestores de salida utilizados.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  &no.function.parameters;
+ </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Esta función devolverá un array con los gestores de salida en uso (si existen). Si
-   <link linkend="ini.output-buffering">output_buffering</link> está habilitado o
-   se usó una función anónima con <function>ob_start</function>,
-   <function>ob_list_handlers</function> devolverá "default output handler"
-   (gestor de salida predeterminado).
+   Devuelve un array con el gestor de salida
+   en uso (si existe).
+  </para>
+  <para>
+   Si <link linkend="ini.output-buffering">output_buffering</link> está activado
+   y no se ha definido ningún <link linkend="ini.output-handler">output_handler</link>,
+   o si no se ha pasado ninguna función de retorno o &null; a <function>ob_start</function>,
+   se devuelve <literal>"default output handler"</literal>.
+   Activar <link linkend="ini.output-buffering">output_buffering</link>
+   y definir un <link linkend="ini.output-handler">output_handler</link>
+   equivale a pasar
+   una <link linkend="functions.internal">función interna (integrada)</link>
+   a <function>ob_start</function>.
+  </para>
+  <para>
+   Si se ha pasado un <type>callable</type> a <function>ob_start</function>,
+   se devuelve el <link linkend="language.namespaces.basics">nombre completamente cualificado</link>
+   del <type>callable</type>.
+   Si el <type>callable</type> es un objeto que implementa
+   <link linkend="language.oop5.magic.invoke">__invoke()</link>,
+   se devuelve el <link linkend="language.namespaces.basics">nombre completamente cualificado</link>
+   del método <link linkend="language.oop5.magic.invoke">__invoke()</link> del objeto.
+   Si el <type>callable</type> es una <classname>Closure</classname>,
+   se devuelve <literal>"Closure::__invoke"</literal>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>ob_list_handlers</function></title>
+    <title>Ejemplo con <function>ob_list_handlers</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-//usando output_buffering=On
-print_r(ob_list_handlers());
+// uso de output_buffering=On, sin output_handler definido
+var_dump(ob_list_handlers());
 ob_end_flush();
 
-ob_start("ob_gzhandler");
-print_r(ob_list_handlers());
-ob_end_flush();
+// ningún retorno o null
+ob_start();
+var_dump(ob_list_handlers());
 
-// funciones anónimas
+// Función anónima
 ob_start(function($string) { return $string; });
-print_r(ob_list_handlers());
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// función flecha
+ob_start(fn($string) => $string);
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// callable de primera clase
+$firstClassCallable = userDefinedFunction(...);
+
+ob_start([$firstClassCallable, '__invoke']);
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// función interna (integrada)
+ob_start('print_r');
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// función definida por el usuario
+function userDefinedFunction($string, $flags) { return $string; };
+
+ob_start('userDefinedFunction');
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+class MyClass {
+    public static function staticHandle($string) {
+        return $string;
+    }
+
+    public static function handle($string) {
+        return $string;
+    }
+
+    public function __invoke($string) {
+        return $string;
+    }
+}
+
+// clase y método estático
+ob_start(['MyClass','staticHandle']);
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// objeto y método no estático
+ob_start([new MyClass,'handle']);
+var_dump(ob_list_handlers());
+ob_end_flush();
+
+// objeto invocable
+ob_start(new MyClass);
+var_dump(ob_list_handlers());
 ob_end_flush();
 ?>
 ]]>
@@ -56,26 +134,52 @@ ob_end_flush();
     &example.outputs;
     <screen>
 <![CDATA[
-Array
-(
-    [0] => default output handler
-)
-
-Array
-(
-    [0] => ob_gzhandler
-)
-
-Array
-(
-    [0] => Closure::__invoke
-)
+array(1) {
+  [0]=>
+  string(22) "default output handler"
+}
+array(1) {
+  [0]=>
+  string(22) "default output handler"
+}
+array(1) {
+  [0]=>
+  string(7) "print_r"
+}
+array(1) {
+  [0]=>
+  string(19) "userDefinedFunction"
+}
+array(1) {
+  [0]=>
+  string(17) "Closure::__invoke"
+}
+array(1) {
+  [0]=>
+  string(17) "Closure::__invoke"
+}
+array(1) {
+  [0]=>
+  string(17) "Closure::__invoke"
+}
+array(1) {
+  [0]=>
+  string(21) "MyClass::staticHandle"
+}
+array(1) {
+  [0]=>
+  string(15) "MyClass::handle"
+}
+array(1) {
+  [0]=>
+  string(17) "MyClass::__invoke"
+}
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -87,14 +191,14 @@ Array
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
 sgml-omittag:t
-sgml-shorttag:t
+stsgml-shorttag:t
 sgml-minimize-attributes:nil
 sgml-always-quote-attributes:t
 sgml-indent-step:1

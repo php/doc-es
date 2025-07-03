@@ -1,28 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 79dcbe011fb254dcd92c597064571fe313362a09 Maintainer: jvenegasperu Status: ready -->
+<!-- EN-Revision: aa2e1accf0888a290a76b9193844d0d7b7bd40b8 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 
 <chapter xml:id="pgsql.examples" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  &reftitle.examples;
  <section xml:id="pgsql.examples-basic">
   <title>Uso básico</title>
   <para>
-   Este sencillo ejemplo muestra cómo conectarse, ejecutar una consulta, imprimir
-   filas resultantes y desconectarse de una base de datos PostgreSQL.
+   Este simple ejemplo muestra cómo conectarse, ejecutar una consulta y
+   mostrar las líneas resultantes y desconectarse de una base de datos
+   PostgreSQL.
    <example>
-    <title>Ejemplo resumido de la extensión PostgreSQL</title>
+    <title>Ejemplo general de la extensión PostgreSQL</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Conectando y seleccionado la base de datos  
+
+// Conexión, selección de la base de datos
 $dbconn = pg_connect("host=localhost dbname=publishing user=www password=foo")
-    or die('No se ha podido conectar: ' . pg_last_error());
+    or die('Conexión imposible : ' . pg_last_error());
 
-// Realizando una consulta SQL
+// Ejecución de la consulta SQL
 $query = 'SELECT * FROM authors';
-$result = pg_query($query) or die('La consulta fallo: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Fallo en la consulta : ' . pg_last_error());
 
-// Imprimiendo los resultados en HTML
+// Mostrar los resultados en HTML
 echo "<table>\n";
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo "\t<tr>\n";
@@ -33,11 +36,87 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 echo "</table>\n";
 
-// Liberando el conjunto de resultados
+// Liberar el resultado
 pg_free_result($result);
 
-// Cerrando la conexión
+// Cerrar la conexión
 pg_close($dbconn);
+
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </section>
+
+ <section xml:id="pgsql.examples-queries">
+  <title>Uso básico</title>
+  <para>
+   Estos ejemplos contienen funciones definidas por el usuario similares
+   a las funciones anteriores de MySQL.
+
+   <example>
+    <title>Ejemplo de funciones PostgreSQL definidas por el usuario</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+// Esta función debería ser necesaria, ya que una conexión PostgreSQL se
+// vincula a una base de datos.
+function pg_list_dbs($db)
+{
+    assert(is_resource($db));
+    $query = '
+SELECT
+ d.datname as "Name",
+ u.usename as "Owner",
+ pg_encoding_to_char(d.encoding) as "Encoding"
+FROM
+ pg_database d LEFT JOIN pg_user u ON d.datdba = u.usesysid
+ORDER BY 1;
+';
+    return pg_query($db, $query);
+}
+
+// Listar las tablas.
+function pg_list_tables($db)
+{
+    assert(is_resource($db));
+    $query = "
+SELECT
+ c.relname as \"Name\",
+ CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' END as \"Type\",
+  u.usename as \"Owner\"
+FROM
+ pg_class c LEFT JOIN pg_user u ON c.relowner = u.usesysid
+WHERE
+ c.relkind IN ('r','v','S','')
+ AND c.relname !~ '^pg_'
+ORDER BY 1;
+";
+    return pg_query($db, $query);
+}
+
+// Ver también pg_meta_data(). Esto devuelve la definición de los campos como array.
+function pg_list_fields($db, $table)
+{
+    assert(is_resource($db));
+    $query = "
+SELECT
+ a.attname,
+ format_type(a.atttypid, a.atttypmod),
+ a.attnotnull,
+ a.atthasdef,
+ a.attnum
+FROM
+ pg_class c,
+ pg_attribute a
+WHERE
+ c.relname = '".$table."'
+ AND a.attnum > 0 AND a.attrelid = c.oid
+ORDER BY a.attnum;
+";
+    return pg_query($db, $query);
+}
 ?>
 ]]>
     </programlisting>
@@ -47,7 +126,7 @@ pg_close($dbconn);
 </chapter>
 
 <!-- Keep this comment at the end of the file
-Local variables: 
+Local variables:
 mode: sgml
 sgml-omittag:t
 sgml-shorttag:t
@@ -66,4 +145,3 @@ vim600: syn=xml fen fdm=syntax fdl=2 si
 vim: et tw=78 syn=sgml
 vi: ts=1 sw=1
 -->
-

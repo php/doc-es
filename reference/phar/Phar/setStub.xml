@@ -1,51 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 656d1610af1a960d87c8b7056e54d0d4c75fb123 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 9c828621cbce488cf6306b21c39e208f847eabd5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="phar.setstub">
  <refnamediv>
   <refname>Phar::setStub</refname>
-  <refpurpose>Establecer el cargador de PHP o la rutina de interoperabilidad de un archivo Phar</refpurpose>
+  <refpurpose>Utilizado para especificar el cargador PHP o el contenedor de carga de un archivo Phar</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="Phar">
    <modifier>public</modifier> <type>bool</type><methodname>Phar::setStub</methodname>
-   <methodparam><type>string</type><parameter>stub</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>len</parameter><initializer>-1</initializer></methodparam>
+   <methodparam><type class="union"><type>resource</type><type>string</type></type><parameter>stub</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>length</parameter><initializer>-1</initializer></methodparam>
   </methodsynopsis>
   &phar.write;
-  
-  
+
   <para>
-   Este método se utiliza para añadir una rutina de interoperabilidad cargadora a un nuevo archivo Phar, o
-   reemlazar la rutina de interoperabilidad de un archivo Phar existente.
+   Este método se utiliza para añadir un cargador PHP a un nuevo archivo Phar, o
+   para reemplazar el contenedor de carga de un archivo Phar existente.
   </para>
   <para>
-   La rutina de interoperabilidad cargadora de un archivo Phar se utiliza siempre que un archivo esté incluido directamente
+   El contenedor de carga de un archivo Phar se utiliza cuando un archivo es incluido directamente
    como en este ejemplo:
   </para>
   <programlisting role="php">
 <![CDATA[
 <?php
-include 'miphar.phar';
+include 'monphar.phar';
 ?>
    ]]>
   </programlisting>
   <para>
-   Al cargador no se accede cuando se incluye un archivo a través de la envoltura
-   de flujos <literal>phar</literal> como aquí:
+   El cargador no se utiliza cuando un fichero es incluido a través del flujo <literal>phar</literal>
+   como esto:
   </para>
   <programlisting role="php">
-<![CDATA[
+   <![CDATA[
 <?php
-include 'phar://miphar.phar/un_fichero.php';
+include 'phar://monphar.phar/unfchier.php';
 ?>
    ]]>
   </programlisting>
-  
+
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -54,63 +52,88 @@ include 'phar://miphar.phar/un_fichero.php';
      <term><parameter>stub</parameter></term>
      <listitem>
       <para>
-       Una cadena o un gestor de flujo abierto para usarlo como la rutina de interoperabilidad ejecutable de este
-       archivo phar.
+       Una cadena o un &resource; de flujo abierto a utilizar
+       como contenedor ejecutable para este archivo phar.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>len</parameter></term>
+     <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       
+
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
+
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Se lanza una excepción de tipo <classname>UnexpectedValueException</classname> si
-   <link linkend="ini.phar.readonly">phar.readonly</link> está habilitado
-   en php.ini.
-   Se lanza una excepción de tipo <classname>PharException</classname> si se encuentra cualquier problema
-   al volcar los cambios al disco.
+   Una excepción <classname>UnexpectedValueException</classname> es lanzada si
+   <link linkend="ini.phar.readonly">phar.readonly</link> está activado en
+   el php.ini.
+   Una excepción <classname>PharException</classname> es lanzada si se encuentran problemas al
+   escribir los cambios en el disco.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Llamar a <methodname>Phar::setStub</methodname> con una
+       <type>resource</type> y una <parameter>length</parameter>
+       ahora está obsoleto. Tales llamadas deberían ser reemplazadas por:
+       <code>$phar->setStub(stream_get_contents($resource));</code>
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo de <function>Phar::setStub</function></title>
+    <title>Un ejemplo con <function>Phar::setStub</function></title>
     <para>
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
 try {
-    $p = new Phar(dirname(__FILE__) . '/nuevo_phar.phar', 0, 'nuevo_phar.phar');
-    $p['a.php'] = '<?php var_dump("Hola");';
-    $p->setStub('<?php var_dump("Primero"); Phar::mapPhar("nuevo_phar.phar"); __HALT_COMPILER(); ?>');
-    include 'phar://nuevo_phar.phar/a.php';
+    $p = new Phar(dirname(__FILE__) . '/nouveau.phar', 0, 'nouveau.phar');
+    $p['a.php'] = '<?php var_dump("Salut");';
+    $p->setStub('<?php var_dump("Premier"); Phar::mapPhar("nouveau.phar"); __HALT_COMPILER(); ?>');
+    include 'phar://nouveau.phar/a.php';
     var_dump($p->getStub());
-    $p['b.php'] = '<?php var_dump("Mundo");';
-    $p->setStub('<?php var_dump("Segundo"); Phar::mapPhar("nuevo_phar.phar"); __HALT_COMPILER(); ?>');
-    include 'phar://nuevo_phar.phar/b.php';
+    $p['b.php'] = '<?php var_dump("Tout le monde");';
+    $p->setStub('<?php var_dump("Second"); Phar::mapPhar("nouveau.phar"); __HALT_COMPILER(); ?>');
+    include 'phar://nouveau.phar/b.php';
     var_dump($p->getStub());
 } catch (Exception $e) {
-    echo 'Las operaciones de escritura sobre nuevo_phar.phar fallaron: ', $e;
+    echo 'Error al escribir nuevo.phar: ', $e;
 }
 ?>
 ]]>
@@ -118,40 +141,16 @@ try {
     &example.outputs;
     <screen>
 <![CDATA[
-string(4) "Hola"
-string(84) "<?php var_dump("Primero"); Phar::mapPhar("nuevo_phar.phar"); __HALT_COMPILER(); ?>"
-string(5) "Mundo"
-string(84) "<?php var_dump("Segundo"); Phar::mapPhar("nuevo_phar.phar"); __HALT_COMPILER(); ?>"
+string(5) "Salut"
+string(79) "<?php var_dump("Premier"); Phar::mapPhar("nouveau.phar"); __HALT_COMPILER(); ?>"
+string(13) "Tout le monde"
+string(78) "<?php var_dump("Second"); Phar::mapPhar("nouveau.phar"); __HALT_COMPILER(); ?>"
 ]]>
     </screen>
    </example>
   </para>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.4.0</entry>
-       <entry>
-        Se añadió el parámetro <parameter>len</parameter>.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
- </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -161,7 +160,7 @@ string(84) "<?php var_dump("Segundo"); Phar::mapPhar("nuevo_phar.phar"); __HALT_
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

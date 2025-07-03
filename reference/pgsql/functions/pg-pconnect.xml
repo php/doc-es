@@ -1,43 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: jvenegasperu Status: ready -->
+<!-- EN-Revision: 3b2503bdcbbffc9bd1381078ee06c298d4f8a49a Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.82 -->
 <refentry xml:id="function.pg-pconnect" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_pconnect</refname>
-  <refpurpose>Abre una conexión persistente a PostgreSQL</refpurpose>
+  <refpurpose>
+   Establece una conexión PostgreSQL persistente
+  </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>pg_pconnect</methodname>
+   <type class="union"><type>PgSql\Connection</type><type>false</type></type><methodname>pg_pconnect</methodname>
    <methodparam><type>string</type><parameter>connection_string</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>connect_type</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_pconnect</function> Abre una conexión con una base de datos PostgreSQL. Devuelve un recurso de conexión que es necesario por otras funciones para PostgreSQL.
+   <function>pg_pconnect</function> devuelve una instancia <classname>PgSql\Connection</classname>
+   de conexión persistente.
   </para>
   <para>
-   Si se hace una segunda llamada a la función <function>pg_pconnect</function>
-   con la misma <parameter>connection_string</parameter> y hay una conexión existente,
-   la conexión existente será devuelta a menos que pase la constante <constant>PGSQL_CONNECT_FORCE_NEW</constant>
-   como <parameter>connect_type</parameter>.
+   Si se realiza una segunda llamada a <function>pg_pconnect</function> con el mismo
+   <parameter>connection_string</parameter> como una conexión
+   existente, se devolverá la conexión existente a menos que se pase
+   <constant>PGSQL_CONNECT_FORCE_NEW</constant> a
+   <parameter>flags</parameter>.
   </para>
   <para>
-   Para habilitar la conexión persistente,
-   la directiva de &php.ini; <link linkend="ini.pgsql.allow-persistent">pgsql.allow_persistent
-   </link> se debe establecer en &quot;On&quot; (que es el predeterminado).
-   El número máximo de conexiones persistentes se pueden definir con la directiva de &php.ini;
-   <link linkend="ini.pgsql.max-persistent">pgsql.max_persistent</link>
-   (por defecto es -1 para sin límite). El número total de conexiones se pueden establecer con la directiva de 
-   &php.ini; <link linkend="ini.pgsql.max-links">pgsql.max_links</link>.
+   Para activar las conexiones persistentes, la directiva de configuración
+   <link linkend="ini.pgsql.allow-persistent"><option>pgsql.allow_persistent</option></link>
+   del &php.ini; debe establecerse en <literal>On</literal> (que es su valor por omisión).
+   El número máximo de conexiones puede limitarse mediante
+   la directiva de configuración
+   <link linkend="ini.pgsql.max-persistent"><option>pgsql.max_persistent</option></link>
+   en el archivo &php.ini; (por omisión, su valor es <literal>-1</literal>, es decir, sin límite).
+   El número total de conexiones puede configurarse con la directiva
+   <link linkend="ini.pgsql.max-links"><option>pgsql.max_links</option></link> del archivo
+   &php.ini;.
   </para>
   <para>
-   <function>pg_close</function> no cerrará enlaces persistentes
-    generados por <function>pg_pconnect</function>.
+   <function>pg_close</function> no cerrará las conexiones persistentes
+   generadas por <function>pg_pconnect</function>.
   </para>
  </refsect1>
 
@@ -49,27 +53,40 @@
      <term><parameter>connection_string</parameter></term>
      <listitem>
       <para>
-       El parametro <parameter>connection_string</parameter> puede estar vacío para usar todos los parámetros por defecto, o puede contener uno o más parámetros separados por espacios en blanco.
-Cada ajuste de parámetros se encuentra en la forma <literal>keyword = value</literal>. Los espacios alrededor del signo igual son opcionales. Para escribir un valor vacío o un valor que contiene espacios, hay que encerrarlo entre comillas simples, por ejemplo, <literal>keyword = 'a value'</literal>. Las comillas simples y barras invertidas en el valor se pueden colocar utilizando el caracter de escapado barra invertida, es decir, \'y \\.       
+       La cadena <parameter>connection_string</parameter> puede estar vacía para
+       utilizar todos los parámetros por omisión o puede contener uno o
+       varios parámetros de configuración separados por espacios.
+       Cada parámetro de configuración tiene la forma <literal>code =
+       valor</literal>. Los espacios alrededor del signo igual son opcionales.
+       Para escribir un valor vacío o un valor que contenga espacios,
+       rodee este valor con comillas simples, por ejemplo: <literal>code =
+       'un valor'</literal>. Las comillas simples y las barras invertidas dentro
+       del valor deben escaparse con una barra invertida, es decir
+       <literal>\'</literal> y <literal>\\</literal>.
       </para>
       <para>
-       Las palabras clave reconocidas actualmente como parámetros son:       
-       <parameter>host</parameter>, <parameter>hostaddr</parameter>, <parameter>port</parameter>,
+       Las palabras clave actualmente reconocidas son :
+       <parameter>host</parameter>, <parameter>hostaddr</parameter>,
+       <parameter>port</parameter>,
        <parameter>dbname</parameter>, <parameter>user</parameter>,
-       <parameter>password</parameter>, <parameter>connect_timeout</parameter>,
-       <parameter>options</parameter>, <parameter>tty</parameter> (ignored), <parameter>sslmode</parameter>,
-       <parameter>requiressl</parameter> (obsoleto a favor de <parameter>sslmode</parameter>), y
-       <parameter>service</parameter>. Cada uno de estos argumentos existen dependiendo
-        de su versión de PostgreSQL.
+       <parameter>password</parameter>,
+       <parameter>connect_timeout</parameter>,
+       <parameter>options</parameter>, <parameter>tty</parameter> (ignorado),
+       <parameter>sslmode</parameter>,
+       <parameter>requiressl</parameter> (obsoleto, utilice
+       <parameter>sslmode</parameter>) y
+       <parameter>service</parameter>.
+       La lista de estos argumentos depende de la versión del servidor PostgreSQL.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>connect_type</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Si <constant>PGSQL_CONNECT_FORCE_NEW</constant> es pasado, entonces una nueva conexión
-       es creada, inclusive si la <parameter>connection_string</parameter> es idéntica a la de la conexión existente.
+       Si <constant>PGSQL_CONNECT_FORCE_NEW</constant> se pasa como argumento,
+       entonces se creará una nueva conexión, incluso si la cadena
+       <parameter>connection_string</parameter> es idéntica a la de la conexión existente.
       </para>
      </listitem>
     </varlistentry>
@@ -80,37 +97,62 @@ Cada ajuste de parámetros se encuentra en la forma <literal>keyword = value</li
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Recurso de conexión PostgreSQL en caso de éxito, &false; en caso de fallo.
+   Devuelve una instancia de <classname>PgSql\Connection</classname> en caso de éxito, &return.falseforfailure;.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.1.0</entry>
+      <entry>
+       Ahora devuelve una instancia de <classname>PgSql\Connection</classname> ;
+       anteriormente, se devolvía un &resource;.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Usando <function>pg_pconnect</function></title>
+    <title>Ejemplo con <function>pg_pconnect</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$dbconn = pg_pconnect("dbname=mary");
-//conectar a la base de datos llamada "mary"
+// conexión a una base de datos llamada "marie"
+$dbconn = pg_pconnect("dbname=marie");
 
-$dbconn2 = pg_pconnect("host=localhost port=5432 dbname=mary");
-// conectar a la base de datos llamada "mary" en "localhost" en el puerto "5432"
+// conexión a una base de datos llamada "marie" en el host "localhost" en el puerto "5432"
+$dbconn2 = pg_pconnect("host=localhost port=5432 dbname=marie");
 
-$dbconn3 = pg_pconnect("host=sheep port=5432 dbname=mary user=lamb password=foo");
-//conectar a la base de datos llamada "mary" en el host "sheep" con usuario y password
+// conexión a una base de datos llamada "marie" en el host "mouton" con un
+// nombre de usuario y una contraseña
+$dk
 
-$conn_string = "host=sheep port=5432 dbname=test user=lamb password=bar";
+// conexión a una base de datos llamada "test" en el host "mouton" con un
+// nombre de usuario y una contraseña
+$conn_string = "host=mouton port=5432 dbname=test user=agneau password=bar";
 $dbconn4 = pg_pconnect($conn_string);
-//conectar a la base de datos llamada "test" en el host "sheep" con usuario y password
 ?>
 ]]>
     </programlisting>
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -118,13 +160,12 @@ $dbconn4 = pg_pconnect($conn_string);
     <member><function>pg_connect</function></member>
     <member>
      <link linkend="features.persistent-connections">
-     Conexiones Persistentes a Bases de Datos</link>
+     Conexiones Persistentes</link>
     </member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

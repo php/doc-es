@@ -1,60 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 7ed327e1437810b073a0d4fb0e862717558ce608 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 082ddc19f53e6e254010de1a1fbbe485ff744ec1 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="pdo.prepare" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDO::prepare</refname>
   <refpurpose>
-   Prepara una sentencia para su ejecución y devuelve un objeto sentencia
+   Prepara una consulta para su ejecución y devuelve un objeto
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>PDOStatement</type><methodname>PDO::prepare</methodname>
-   <methodparam><type>string</type><parameter>statement</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>driver_options</parameter><initializer>array()</initializer></methodparam>
+  <methodsynopsis role="PDO">
+   <modifier>public</modifier> <type class="union"><type>PDOStatement</type><type>false</type></type><methodname>PDO::prepare</methodname>
+   <methodparam><type>string</type><parameter>query</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>options</parameter><initializer>[]</initializer></methodparam>
   </methodsynopsis>
 
   <para>
-   Prepara una sentencia SQL para ser ejecutada por el método
-   <function>PDOStatement::execute</function>. La sentencia SQL puede
-   contener cero o más marcadores de parámetros con nombre (:name) o signos de interrogación (?)
-   por los cuales los valores reales serán sustituidos cuando la sentencia sea ejecutada.
-   No se pueden usar marcadores de parámetros con nombre y signos de interrogación en
-   la misma sentencia SQL; se debe elegir uno de los dos estilos de parámetros.
-   Se deben usar estos parámetros para sustituir cualquier dato de usuario, y no usarlos
+   Prepara una consulta SQL para ser ejecutada por el método
+   <methodname>PDOStatement::execute</methodname>. El modelo de declaración puede contener
+   cero o más parámetros nombrados (<literal>:nombre</literal>) o marcadores
+   (<literal>?</literal>) para los cuales los valores reales serán sustituidos
+   cuando la consulta sea ejecutada.
+   El uso tanto de parámetros nombrados como de marcadores es
+   imposible en un modelo de declaración; solo uno u otro estilo de parámetro.
+   Utilícese estos parámetros para ligar las entradas del usuario, no se incluyan
    directamente en la consulta.
   </para>
   <para>
-   Se debe incluir un único marcador de parámetro para cada valor que se desee pasar
-   a la sentencia cuando se llame a <function>PDOStatement::execute</function>.
-   No se puede usar un marcador de parámetro con nombre con el mismo nombre más de una vez en una
-   sentencia preparada, a menos que el modo de emulación esté activado.
+   Debe incluirse un marcador con un nombre único para cada valor que
+   se desee pasar en la consulta al llamar a
+   <methodname>PDOStatement::execute</methodname>. No puede utilizarse
+   un marcador con dos nombres idénticos en una consulta preparada, a menos que
+   el modo de emulación esté activo.
   </para>
-  <note>
+<note>
    <para>
-    Los marcadores de parámetros solamente pueden representar un literal de datos completo.
-    No se pueden vincular usando parámetros una parte del literal, ni una palabra clave, ni un
-    identificador, ni ninguna parte arbitraria de una consulta. Por ejemplo, no se puede vincular valores
-    múltiples a un único parámetro en la cláusula IN() de una sentencia SQL.
+    Los marcadores de parámetros pueden representar únicamente un literal de
+    datos completo.
+    Ni una parte de literal, ni una palabra clave, ni un identificador, ni cualquier otra
+    consulta arbitraria pueden ser ligados utilizando los parámetros.
+    Por ejemplo, no puede asociarse múltiples valores a un solo marcador de nombre entrante, en la cláusula IN() de una consulta SQL.
    </para>
   </note>
   <para>
-   Llamar a <function>PDO::prepare</function> y a
-   <function>PDOStatement::execute</function> para sentencias que serán
-   ejecutadas en múltiples ocasiones con diferentes parámetros optimiza el
-   rendimiento de la aplicación permitiendo al driver negociar en lado del
-   cliente y/o servidor el almacenamiento en caché del plan de consulta y meta información,
-   y ayuda a prevenir inyecciones SQL eliminando la necesidad de
-   entrecomillar manualmente los parámetros.
+   Llamar a <methodname>PDO::prepare</methodname> y
+   <methodname>PDOStatement::execute</methodname> para las consultas
+   que deben ser ejecutadas varias veces con diferentes valores de
+   parámetros optimiza el rendimiento de la aplicación permitiendo al controlador negociar
+   del lado del cliente y/o servidor con la caché de consultas
+   y las meta-informaciones. Además, llamar a <methodname>PDO::prepare</methodname> y
+   <methodname>PDOStatement::execute</methodname> ayuda a prevenir ataques por
+   inyección SQL eliminando la necesidad de proteger los parámetros manualmente.
   </para>
   <para>
-   PDO emulará sentencias preparadas/parámetros de sustitución para drivers que
-   no lo soporten nativamente, y puede reescribir el estilo de los parámetros de
-   sustitución por una forma más apropiada, si el driver
-   soporta un estilo pero no el otro.
+   PDO emula las consultas preparadas / los parámetros ligados para los controladores
+   que no los soportan nativamente, y puede también reescribir los
+   parámetros nombrados o los marcadores en algo más
+   apropiado, si el controlador soporta un estilo y no el otro.
+  </para>
+  <note>
+   <simpara>
+    El analizador utilizado para las declaraciones preparadas
+    emuladas y para reescribir los parámetros nombrados o del estilo de punto
+    de interrogación soporta el escape antislash no estándar para las comillas simples y dobles. Esto significa que las comillas finales que
+    son precedidas por un antislash no serán reconocidas como tales, lo que puede
+    resultar en una mala detección de los parámetros causando que la declaración
+    preparada falle al ser ejecutada. Un contorno es no utilizar las consultas emuladas para tales consultas SQL, y evitar reescribir los parámetros utilizando un estilo de parámetro que es
+    soportado nativamente por el controlador.
+   </simpara>
+  </note>
+  <para>
+   A partir de PHP 7.4.0, los puntos de interrogación pueden ser escapados duplicándolos.
+   Esto significa que la cadena <literal>??</literal> será traducida en <literal>?</literal>
+   al enviar la consulta a la base de datos.
   </para>
  </refsect1>
  <refsect1 role="parameters">
@@ -62,22 +81,23 @@
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>statement</parameter></term>
+     <term><parameter>query</parameter></term>
      <listitem>
       <para>
-       Debe ser una plantilla de sentencia SQL válida para el servidor de base de datos destino.
+       Debe ser un modelo de consulta SQL válido para el servidor de base de datos objetivo.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>driver_options</parameter></term>
+     <term><parameter>options</parameter></term>
      <listitem>
       <para>
-       Este array guarda uno o más pares clave=&gt;valor para establecer
-       el valor de los atributos del objeto PDOStatement que este método
-       devuelve. Comúnmente se establece el valor <constant>PDO::ATTR_CURSOR</constant> a
-       <constant>PDO::CURSOR_SCROLL</constant> para solicitar el cursor desplazable.
-       Algunos drivers tienen opciones específicas que pueden ser establecidas
+       Este array contiene una o más parejas clave=&gt;valor para definir
+       los valores de los atributos para el objeto <classname>PDOStatement</classname>
+       que esta método devuelve. Puede utilizarse esto para definir el valor
+       <literal>PDO::ATTR_CURSOR</literal> a
+       <literal>PDO::CURSOR_SCROLL</literal> para solicitar un cursor desplazable.
+       Algunos controladores tienen opciones específicas que pueden ser definidas
        en el momento de la preparación.
       </para>
      </listitem>
@@ -89,53 +109,77 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si el servidor de la base de datos prepara con éxito la sentencia,
-   <function>PDO::prepare</function> devuelve un objeto <classname>PDOStatement</classname>.
-   Si no es posible, <function>PDO::prepare</function> devuelve &false;
-   o emite una excepción<classname>PDOException</classname> (dependiendo del <link
-   linkend="pdo.error-handling">manejo de errores</link>).
+   Si el servidor de base de datos prepara con éxito esta consulta,
+   <methodname>PDO::prepare</methodname> devuelve un objeto <classname>PDOStatement</classname>.
+   Si el servidor de base de datos no logra preparar la consulta,
+   <methodname>PDO::prepare</methodname> devuelve &false; o emite una excepción
+   <classname>PDOException</classname> (siguiendo el
+   <link linkend="pdo.error-handling">gestor de errores</link>).
   </para>
   <note>
    <para>
-    Las sentencias preparadas emuladas no se comunican con el servidor de la base de datos
-    con lo cual  <function>PDO::prepare</function> no comprueba la sentencia.
+    La emulación de consultas preparadas no comunica con el servidor de base
+    de datos. También, la función <methodname>PDO::prepare</methodname> no verifica
+    la consulta.
    </para>
   </note>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &pdo.errors;
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
-   <example><title>Prepara una sentencia SQL con parámetros de sustitución nombrados</title>
+   <example>
+    <title>Modelo de declaración SQL con parámetros nombrados</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecuta una sentencia preparada pasando un array de valores */
-$sql = 'SELECT name, colour, calories
-    FROM fruit
-    WHERE calories < :calories AND colour = :colour';
-$sth = $dbh->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
-$sth->execute(array(':calories' => 150, ':colour' => 'red'));
+/* Ejecuta una consulta preparada pasando un array de valores */
+$sql = 'SELECT nombre, color, calorias
+    FROM fruta
+WHERE calorias < :calorias AND color = :color';
+$sth = $dbh->prepare($sql, [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
+$sth->execute(['calorias' => 150, 'color' => 'red']);
 $red = $sth->fetchAll();
-$sth->execute(array(':calories' => 175, ':colour' => 'yellow'));
+/* Las claves del array pueden ser prefijadas con dos puntos ":" también (opcional) */
+$sth->execute([':calorias' => 175, ':color' => 'yellow']);
 $yellow = $sth->fetchAll();
 ?>
 ]]>
     </programlisting>
    </example>
    <example>
-    <title>Prepara una sentencia SQL con parámetros de signos de interrogación</title>
+    <title>Modelo de declaración SQL con marcadores</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecuta una sentencia preparada pasando un array de valores */
-$sth = $dbh->prepare('SELECT name, colour, calories
-    FROM fruit
-    WHERE calories < ? AND colour = ?');
-$sth->execute(array(150, 'red'));
+/* Ejecuta una consulta preparada pasando un array de valores */
+$sth = $dbh->prepare('SELECT nombre, color, calorias
+    FROM fruta
+    WHERE calorias < ? AND color = ?');
+$sth->execute([150, 'rojo']);
 $red = $sth->fetchAll();
-$sth->execute(array(175, 'yellow'));
+$sth->execute([175, 'amarillo']);
 $yellow = $sth->fetchAll();
+?>
+]]>
+    </programlisting>
+   </example>
+   <example>
+    <title>Modelo de declaración SQL con un punto de interrogación escapado</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+/* nota: esto solo es válido para bases de datos PostgreSQL */
+$sth = $dbh->prepare('SELECT * FROM issues WHERE tag::jsonb ?? ?');
+$sth->execute(['feature']);
+$featureIssues = $sth->fetchAll();
+$sth->execute(['performance']);
+$performanceIssues = $sth->fetchAll();
 ?>
 ]]>
     </programlisting>
@@ -147,14 +191,13 @@ $yellow = $sth->fetchAll();
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>PDO::exec</function></member>
-    <member><function>PDO::query</function></member>
-    <member><function>PDOStatement::execute</function></member>
+    <member><methodname>PDO::exec</methodname></member>
+    <member><methodname>PDO::query</methodname></member>
+    <member><methodname>PDOStatement::execute</methodname></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

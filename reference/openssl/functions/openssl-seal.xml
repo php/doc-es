@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: de6dd71a28e6323f1873900e299dd3374059b80e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 110ac43250fdb3531fe26d4d29292e33df7855e8 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-seal">
+<refentry xml:id="function.openssl-seal" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>openssl_seal</refname>
-  <refpurpose>Sellar (encriptar) información</refpurpose>
+  <refpurpose>Sella datos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>int</type><methodname>openssl_seal</methodname>
-   <methodparam><type>string</type><parameter>data</parameter></methodparam>
+   <type class="union"><type>int</type><type>false</type></type><methodname>openssl_seal</methodname>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type>string</type><parameter>data</parameter></methodparam>
    <methodparam><type>string</type><parameter role="reference">sealed_data</parameter></methodparam>
-   <methodparam><type>array</type><parameter role="reference">env_keys</parameter></methodparam>
-   <methodparam><type>array</type><parameter>pub_key_ids</parameter></methodparam>
-   <methodparam choice="opt"><type>string</type><parameter>method</parameter><initializer>"RC4"</initializer></methodparam>
+   <methodparam><type>array</type><parameter role="reference">encrypted_keys</parameter></methodparam>
+   <methodparam><type>array</type><parameter>public_key</parameter></methodparam>
+   <methodparam><type>string</type><parameter>cipher_algo</parameter></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter role="reference">iv</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>openssl_seal</function> sella (encripta)
-   la información dada por <parameter>data</parameter> mediante el método dado por <parameter>method</parameter> con una clave secreta
-   generada aleatoriamente. La clave es encriptada con cada clave pública
-   asociada con los identificadores de <parameter>pub_key_ids</parameter>
-   y cada clave encriptada es devuelta
-   en <parameter>env_keys</parameter>. Esto significa que se puede enviar
-   información sellada a múltiples destinatarios (siempre que se hayan obtenido sus
-   claves públicas). Cada destinatario debe recibir tanto la información sellada como
-   la clave de sobre que fue encriptada con la clave publica del destinatario.
+   La <function>openssl_seal</function> sella (cifra) <parameter>data</parameter> utilizando el
+   <parameter>cipher_algo</parameter> especificado con una clave secreta generada aleatoriamente. La clave es
+   posteriormente cifrada con cada una de las claves públicas en el array <parameter>public_key</parameter>,
+   y cada clave de envoltura cifrada es devuelta en <parameter>encrypted_keys</parameter>. Esto permite
+   enviar datos sellados a múltiples destinatarios (siempre que sus claves públicas estén disponibles).
+   Cada destinatario debe recibir tanto los datos sellados como la clave de envoltura que ha sido cifrada con
+   la clave pública del destinatario. El IV (vector de inicialización) es generado, y su valor es devuelto en
+   <parameter>iv</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -39,7 +39,7 @@
      <term><parameter>data</parameter></term>
      <listitem>
       <para>
-       Los datos a sellar.
+       Los datos a sellar
       </para>
      </listitem>
     </varlistentry>
@@ -52,78 +52,68 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>env_keys</parameter></term>
+     <term><parameter>encrypted_keys</parameter></term>
      <listitem>
       <para>
-       Un array de claves encriptadas.
+       Array de claves cifradas.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>pub_key_ids</parameter></term>
+     <term><parameter>public_key</parameter></term>
      <listitem>
       <para>
-       Un array de identificadores de recursos de clave pública.
+       Array de instancias <classname>OpenSSLAsymmetricKey</classname>
+       que contienen las claves públicas.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>method</parameter></term>
+     <term><parameter>cipher_algo</parameter></term>
      <listitem>
       <para>
        El método de cifrado.
+       <caution>
+        <simpara>
+         El valor por omisión para versiones de PHP anteriores a 8.0 es (<literal>'RC4'</literal>), que se
+         considera no segura. Se recomienda encarecidamente especificar explícitamente un método de cifrado
+         seguro.
+        </simpara>
+       </caution>
       </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>iv</parameter></term>
+     <listitem>
+      <para>
+       El vector de inicialización para el descifrado de <parameter>data</parameter>. Es requerido si
+       el método de cifrado necesita un IV. Esto puede ser determinado llamando a
+       <function>openssl_cipher_iv_length</function> con <parameter>cipher_algo</parameter>.
+      </para>
+      <caution>
+       <simpara>
+        El IV no puede ser definido explícitamente. Cualquier valor que se le asigne es sobrescrito por un valor
+        generado aleatoriamente.
+       </simpara>
+      </caution>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve la longitud de la información sellada si se tuvo éxito, o &false; si se produjo un error.
-   Si se tuvo éxito, la información sellada es devuelta en
-   <parameter>sealed_data</parameter>, y las claves de sobre en
-   <parameter>env_keys</parameter>.
+   Devuelve la longitud de los datos
+   sellados en caso de éxito, y &false; en caso contrario.
+   En caso de éxito, los datos sellados son
+   colocados en el parámetro <parameter>sealed_data</parameter>,
+   y las claves de envoltura en <parameter>encrypted_keys</parameter>.
   </para>
  </refsect1>
- 
- <refsect1 role="examples">
-  &reftitle.examples;
-  <para>
-   <example>
-    <title>Ejemplo de <function>openssl_seal</function></title>
-    <programlisting role="php">
-<![CDATA[
-<?php
-// se asume que $data contiene la información que va a ser sellada
 
-// traer las claves públicas para nuestros destinatarios, y prepararlas
-$fp = fopen("/src/openssl-0.9.6/demos/maurice/cert.pem", "r");
-$cert = fread($fp, 8192);
-fclose($fp);
-$pk1 = openssl_get_publickey($cert);
-// Repetir para el segundo destinatario
-$fp = fopen("/src/openssl-0.9.6/demos/sign/cert.pem", "r");
-$cert = fread($fp, 8192);
-fclose($fp);
-$pk2 = openssl_get_publickey($cert);
-
-// sellar el mensaje, sólo los propietarios de $pk1 y $pk2 pueden desencriptar $sealed
-// con las claves $ekeys[0] y $ekeys[1] respectivamente.
-openssl_seal($data, $sealed, $ekeys, array($pk1, $pk2));
-
-// liberar las claves de la memoria
-openssl_free_key($pk1);
-openssl_free_key($pk2);
-?>
-]]>
-    </programlisting>
-   </example>
-  </para>
- </refsect1>
- 
  <refsect1 role="changelog">
   &reftitle.changelog;
   <informaltable>
@@ -136,16 +126,60 @@ openssl_free_key($pk2);
     </thead>
     <tbody>
      <row>
-      <entry>5.3.0</entry>
+      <entry>8.0.0</entry>
       <entry>
-       Se añadió el parámetro <parameter>method</parameter>.
+       <parameter>public_key</parameter> ahora acepta un &array;
+       de instancias de <classname>OpenSSLAsymmetricKey</classname>;
+       anteriormente, se aceptaba un &array; de &resource;s de tipo <literal>OpenSSL key</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>cipher_algo</parameter> ya no es un parámetro opcional.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>iv</parameter> ahora es nullable.
       </entry>
      </row>
     </tbody>
    </tgroup>
   </informaltable>
  </refsect1>
- 
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+   <example>
+    <title>Ejemplo con <function>openssl_seal</function></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+
+$data = "test";
+
+// obtener las claves públicas
+$pk1 = openssl_get_publickey("file://cert1.pem");
+$pk2 = openssl_get_publickey("file://cert2.pem");
+
+// sella el mensaje: solo los poseedores de $pk1 y $pk2 pueden descifrar
+// el mensaje $sealed con las claves $ekeys[0] y $ekeys[1] (respectivamente).
+openssl_seal($data, $sealed, $ekeys, array($pk1, $pk2));
+
+if (openssl_seal($data, $sealed, $ekeys, array($pk1, $pk2), 'AES256', $iv) > 0) {
+    // posiblemente almacenar los valores $sealed y $iv y utilizarlos más tarde en openssl_open
+    echo "éxito\n";
+}
+?>
+]]>
+    </programlisting>
+   </example>
+  </para>
+ </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -154,9 +188,8 @@ openssl_free_key($pk2);
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

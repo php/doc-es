@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: e41806c30bf6975e452c0d4ce35ab0984c2fa68c Maintainer: agarzon Status: ready -->
-
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-csr-sign">
+<!-- EN-Revision: 6338117af97ec5a8d5d8e1b1ba632918f8147e2e Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.openssl-csr-sign" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>openssl_csr_sign</refname>
-  <refpurpose>Firmar una CSR con otro certificado (o autofirmar) y generar un certificado</refpurpose>
+  <refpurpose>Firma un <acronym>CSR</acronym> con otro certificado (o consigo mismo) y genera un certificado</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>resource</type><methodname>openssl_csr_sign</methodname>
-   <methodparam><type>mixed</type><parameter>csr</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>cacert</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>priv_key</parameter></methodparam>
+   <type class="union"><type>OpenSSLCertificate</type><type>false</type></type><methodname>openssl_csr_sign</methodname>
+   <methodparam><type class="union"><type>OpenSSLCertificateSigningRequest</type><type>string</type></type><parameter>csr</parameter></methodparam>
+   <methodparam><type class="union"><type>OpenSSLCertificate</type><type>string</type><type>null</type></type><parameter>ca_certificate</parameter></methodparam>
+   <methodparam><modifier role="attribute">#[\SensitiveParameter]</modifier><type class="union"><type>OpenSSLAsymmetricKey</type><type>OpenSSLCertificate</type><type>array</type><type>string</type></type><parameter>private_key</parameter></methodparam>
    <methodparam><type>int</type><parameter>days</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>configargs</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>options</parameter><initializer>&null;</initializer></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>serial</parameter><initializer>0</initializer></methodparam>
+   <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>serial_hex</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>openssl_csr_sign</function> genera un recurso de certificado x509
-   desde la CSR dada.
+   <function>openssl_csr_sign</function> genera un certificado x509 desde el <acronym>CSR</acronym> proporcionado.
   </para>
   &note.openssl.cnf;
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -34,29 +34,28 @@
      <term><parameter>csr</parameter></term>
      <listitem>
       <para>
-       Una CSR previamente generada por <function>openssl_csr_new</function>.
-       También puede ser la ruta de una CSR codificada con PEM cuando se especifica con
-       <filename>file://ruta/a/csr</filename> o una cadena exportada generada por
+       Un <acronym>CSR</acronym> generado previamente por <function>openssl_csr_new</function>.
+       Sin embargo, esto también puede ser la ruta hacia un <acronym>CSR</acronym> codificado en formato <acronym>PEM</acronym> si se especifica con
+       <filename>file://path/to/csr</filename> o una cadena exportada generada por
        <function>openssl_csr_export</function>.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>cacert</parameter></term>
+     <term><parameter>ca_certificate</parameter></term>
      <listitem>
       <para>
-       El certificado generado será firmado por <parameter>cacert</parameter>.
-       Si <parameter>cacert</parameter> es &null;, el certificado generado
-       será un certificado autofirmado.
+       El certificado generado será firmado por el certificado <parameter>ca_certificate</parameter>.
+       Si <parameter>ca_certificate</parameter> es &null;, el certificado generado será autosignado.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>priv_key</parameter></term>
+     <term><parameter>private_key</parameter></term>
      <listitem>
       <para>
-       <parameter>priv_key</parameter> es la clave privada que se corresponde con
-       <parameter>cacert</parameter>.
+       <parameter>private_key</parameter> es la clave privada que corresponde al certificado
+       <parameter>ca_certificate</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -64,18 +63,18 @@
      <term><parameter>days</parameter></term>
      <listitem>
       <para>
-       <parameter>days</parameter> especifica la duración durante la cuál el
-       certificado generado será válido, en días.
+       <parameter>days</parameter> especifica la duración para la cual el certificado
+       es válido, en número de días.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>configargs</parameter></term>
+     <term><parameter>options</parameter></term>
      <listitem>
       <para>
-       Se puede ajustar la firma de la CSR mediante <parameter>configargs</parameter>.
-       Véase <function>openssl_csr_new</function> para más información acerca de
-       <parameter>configargs</parameter>.
+       Se pueden ajustar las opciones de firma <acronym>CSR</acronym> con <parameter>options</parameter>.
+       Consulte la función <function>openssl_csr_new</function> para obtener más información sobre
+       <parameter>options</parameter>.
       </para>
      </listitem>
     </varlistentry>
@@ -83,53 +82,119 @@
      <term><parameter>serial</parameter></term>
      <listitem>
       <para>
-       El número de serie opcional del certificado emitido. Si no se especifica
-       será 0 por defecto.
+       Un número de serie opcional para el certificado emitido. Si no se especifica,
+       tendrá un valor de 0.
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><parameter>serial_hex</parameter></term>
+     <listitem>
+      <para>
+       Una cadena hexadecimal opcional que representa el número de serie del
+       certificado emitido. Si se define, tiene prioridad sobre el valor
+       del parámetro <parameter>serial</parameter>. Si no se especifica
+       o se define como &null;, se utiliza el valor del parámetro
+       <parameter>serial</parameter> en su lugar.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un recurso de certificado x509 si se tuvo éxito, &false; si falló.
+   Devuelve una instancia de <classname>OpenSSLCertificate</classname> en caso de éxito, &false; en caso contrario.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.4.0</entry>
+      <entry>
+       Se ha añadido el parámetro <parameter>serial_hex</parameter>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       En caso de éxito, esta función devuelve ahora una instancia de
+       <classname>OpenSSLCertificate</classname> ; anteriormente se devolvía un
+       &resource; de tipo <literal>OpenSSL X.509</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>csr</parameter> ahora acepta una instancia de
+       <classname>OpenSSLCertificateSigningRequest</classname> ;
+       anteriormente se aceptaba un &resource; de tipo <literal>OpenSSL X.509 CSR</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>ca_certificate</parameter> ahora acepta una instancia de
+       <classname>OpenSSLCertificate</classname> ;
+       anteriormente se aceptaba un &resource; de tipo <literal>OpenSSL X.509</literal>.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>ca_certificate</parameter> ahora acepta una instancia de
+       <classname>OpenSSLAsymmetricKey</classname> o <classname>OpenSSLCertificate</classname> ;
+       anteriormente se aceptaba un &resource; de tipo <literal>OpenSSL key</literal> o
+       <literal>OpenSSL X.509</literal>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>openssl_csr_sign</function> - firmar una
-     CSR (cómo implementar su propia AC)</title>
+    <title>Ejemplo con <function>openssl_csr_sign</function> - firmar una
+     <acronym>CSR</acronym> (cómo ser su propia Autoridad de Certificación)</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Asumimos que este script está establecido para recivir una CSR que ha
-// sido pegada al área de texto desde otra página
+// Supongamos que este script está configurado para recibir CSR que han
+// sido pegados en un campo textarea desde otra página
 $csrdata = $_POST["CSR"];
 
-// Firmaremos la petición usando nuestro propio certificado de "autoridad
-// certificadora". También puede usar cualquier certificado para firmar otro, pero
-// el proceso no vale de nada a menos que el certificado de firma sea acreditado
-// por el software/usuarios que tratarán con el certificado recién firmado
+// Vamos a firmar la solicitud con nuestro propio certificado, como
+// "autoridad de certificación". Puede utilizarse cualquier certificado para firmar otro,
+// pero el proceso es inútil a menos que el certificado de firma tenga la confianza de los usuarios
+// que utilizarán el nuevo certificado firmado.
 
-// Necesitamos nuestro certificado de AC y su clave privada
-$cacert = "file://ruta/a/ca.crt";
-$privkey = array("file://ruta/a/ca.key", "su_frase_de_contraseña");
+// Necesitamos nuestro certificado y la clave privada
+$cacert = "file://path/to/ca.crt";
+$privkey = array("file://path/to/ca.key", "la_clave_secreta_de_su_certificado");
 
 $usercert = openssl_csr_sign($csrdata, $cacert, $privkey, 365, array('digest_alg'=>'sha256') );
 
-// Ahora mostramos el certificado generado por lo que el ususario puede
-// copiarlo y pegarlo a su configuración local (tal como un archivo
-// para guardar el certificado para su servidor SSL)
+// Mostramos ahora el certificado generado, de forma que el usuario
+// pueda copiarlo/pegarlo en su configuración local (como un
+// archivo que contiene los certificados de su servidor SSL)
 openssl_x509_export($usercert, $certout);
 echo $certout;
 
-// Mostrar cualquier error que ocurra
+// Muestra todos los errores ocurridos
 while (($e = openssl_error_string()) !== false) {
     echo $e . "\n";
 }
@@ -139,9 +204,8 @@ while (($e = openssl_error_string()) !== false) {
    </example>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

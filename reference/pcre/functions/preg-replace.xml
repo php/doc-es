@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 41c8533ff5a8f93ba9fdf0732d05dd5ab79864c9 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: seros -->
-
+<!-- EN-Revision: d6f54016d62904cfd8200604aadd5e3f0d9bad97 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.preg-replace" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>preg_replace</refname>
-  <refpurpose>Realiza una búsqueda y sustitución de una expresión regular</refpurpose>
+  <refpurpose>Buscar y reemplazar mediante expresión regular estándar</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -20,9 +19,14 @@
    <methodparam choice="opt"><type>int</type><parameter role="reference">count</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Busca en <parameter>subject</parameter> coincidencias de
-   <parameter>pattern</parameter> y las reemplaza con
-   <parameter>replacement</parameter>.
+   Analiza <parameter>subject</parameter> para encontrar la expresión
+   regular <parameter>pattern</parameter> y reemplaza los
+   resultados por <parameter>replacement</parameter>.
+  </para>
+  <para>
+   Para hacer coincidir una cadena exacta, en lugar de una expresión regular,
+   se recomienda el uso de <function>str_replace</function> o <function>str_ireplace</function>
+   en lugar de esta función.
   </para>
  </refsect1>
 
@@ -34,12 +38,10 @@
      <term><parameter>pattern</parameter></term>
      <listitem>
       <para>
-       El patrón de búsqueda. Puede ser tanto una cadena como un array de
-       cadenas.
+       El patrón a buscar. Puede ser una cadena o un array de cadenas.
       </para>
       <para>
-       También hay disponibles varios
-       <link linkend="reference.pcre.pattern.modifiers">modificadores de PCRE</link>.
+       También están disponibles varios <link linkend="reference.pcre.pattern.modifiers">modificadores PCRE</link>.
       </para>
      </listitem>
     </varlistentry>
@@ -47,52 +49,50 @@
      <term><parameter>replacement</parameter></term>
      <listitem>
       <para>
-       La cadena o array de cadenas a reemplazar. Si este parámetro es una
-       cadena y el parámetro <parameter>pattern</parameter> es un array,
-       todos los patrones serán sustituidos por esa cadena. Si ambos parámetros,
-       <parameter>pattern</parameter> y <parameter>replacement</parameter>,
-       son arrays, cada <parameter>pattern</parameter> será reemplazado
-       por el <parameter>replacement</parameter> equivalente. Si
-       hay menos elementos en el array <parameter>replacement</parameter>
-       que en el array <parameter>pattern</parameter>, cualquier
-       <parameter>pattern</parameter> extra será reemplazado por una cadena vacía.
+       La cadena o un array de cadenas para el reemplazo.
+       Si este parámetro es una cadena y el parámetro <parameter>pattern</parameter>
+       es un array, todos los patrones serán reemplazados por esta cadena.
+       Si los parámetros <parameter>pattern</parameter> y
+       <parameter>replacement</parameter> son arrays, cada
+       <parameter>pattern</parameter> será reemplazado por su
+       <parameter>replacement</parameter> asociado.
+       Si <parameter>replacement</parameter> tiene menos elementos
+       que <parameter>pattern</parameter>, entonces una cadena vacía es
+       utilizada para el resto de los valores.
       </para>
       <para>
-       <parameter>replacement</parameter> puede contener referencias de la forma
-       <literal>\\<replaceable>n</replaceable></literal> o
-       <literal>$<replaceable>n</replaceable></literal>, siendo preferida la
-       última forma. Cada referencia de este tipo será sustituida por el texto
-       capturado por el <replaceable>n</replaceable>-simo patrón entre paréntesis.
-       <replaceable>n</replaceable> puede ser desde 0 a 99, y
-       <literal>\\0</literal> o <literal>$0</literal> se refiere al texto coincidido
-       por el patrón completo. Los paréntesis de apertura se cuentan de izquierda a derecha
-       (comenzando por 1) para obtener el número de sub-patrones de captura.
-       Se debe doblar la barra invertida para poder usarla en la sustitución
-       (cadena PHP <literal>"\\\\"</literal>).
+       <parameter>replacement</parameter> puede contener referencias
+       de la forma <literal>\<replaceable>n</replaceable></literal> o
+       <literal>$<replaceable>n</replaceable></literal>.
+       Esta última forma es recomendada. Estas referencias serán reemplazadas
+       por el texto capturado por la <replaceable>n</replaceable>-ésima parentesis
+       capturante del patrón. <replaceable>n</replaceable> puede tomar valores de
+       0 a 99, y <literal>\0</literal> o <literal>$0</literal>, corresponden al texto que
+       satisface el patrón completo. Los paréntesis abiertos son contados de izquierda a derecha (empezando por 1) para
+       determinar el número de paréntesis capturante.
+       Es de notar que en los &string; literales los antislashs deben
+       ser escapados.
       </para>
       <para>
-       Cuando se trabaja con un patrón de sustitución donde una retroreferencia es
-       immediatamente seguida de otro número (p.ej.: colocar un número literal
-       immediatamente después de un patrón coincidido), no puede usar la notación familiar
-       <literal>\\1</literal> para sus retroreferencias.
-       <literal>\\11</literal>, por ejemplo, confundiría a
-       <function>preg_replace</function> ya que no sabe si quiere que
-       la retroreferencia <literal>\\1</literal> esté seguida por un literal
-       <literal>1</literal>, o que la retroreferencia <literal>\\11</literal>
-       esté seguida de nada. En este caso la solución es usar
-       <literal>${1}1</literal>. Esto crea una retroreferencia
-       <literal>$1</literal> aislada, dejando el <literal>1</literal>
-       como un literal.
+       Cuando se trabaja con un patrón de reemplazo donde una referencia hacia atrás
+       es seguida directamente por un número (i.e.: colocar un número literal inmediatamente
+       después de una referencia hacia atrás), no se puede usar la sintaxis clásica
+       <literal>\1</literal> para la referencia hacia atrás. <literal>\11</literal>, por ejemplo,
+       será confuso para la función <function>preg_replace</function> en el sentido de que
+       no sabrá si se desea la referencia hacia atrás <literal>\1</literal> seguida del número
+       &one; o si se desea la referencia hacia atrás <literal>\11</literal>
+       seguida de "nada". En este caso, la solución es usar la sintaxis <literal>${1}1</literal>.
+       Esto creará una referencia hacia atrás aislada <literal>$1</literal>, seguida del número
+       literal &one;.
       </para>
       <para>
-       Cuando se usa el modificador obsoleto <literal>e</literal>, esta función escapa
-       algunos caracteres (a saber, <literal>'</literal>, <literal>"</literal>,
-       <literal>\</literal> y NULL) en la cadena que sustituye a las
-       retroreferencias. Esto está hecho para asegurarse de que no surjan errores de sintaxis
-       en el uso de retroreferencias con comillas simples o dobles (p.ej.
-       <literal>'strlen(\'$1\')+strlen("$2")'</literal>). Asegúrese de que
-       conoce la <link linkend="language.types.string">sintaxis de
-       cadena</link> para saber cómo se asemejarán las cadenas interpretadas.
+       Cuando se usa la opción obsoleta <literal>e</literal>, esta función
+       escapa algunos caracteres (<literal>'</literal>, <literal>"</literal>,
+       <literal>\</literal> y NULL) en la cadena que reemplaza las referencias hacia atrás.
+       Este comportamiento se justifica para asegurar que no ocurra ningún error de sintaxis
+       al usar las referencias hacia atrás con comillas simples y dobles (e.g. <literal>'strlen(\'$1\')+strlen("$2")'</literal>).
+       Asegúrese de estar familiarizado con la <link linkend="language.types.string">sintaxis
+       de las cadenas</link> para saber exactamente a qué debe parecerse la cadena interpretada.
       </para>
      </listitem>
     </varlistentry>
@@ -100,12 +100,15 @@
      <term><parameter>subject</parameter></term>
      <listitem>
       <para>
-       La cadena o array de cadenas a buscar y sustituir.
+       La cadena o el array que contiene las cadenas a buscar y reemplazar.
       </para>
       <para>
-       Si <parameter>subject</parameter> es un array, entonces la búsqueda y
-       sustitución se llevan a cabo para cada entrada de <parameter>subject</parameter>,
-       y el valor devuelto también es un array.
+       Si <parameter>subject</parameter> es un array, entonces la operación
+       será aplicada a cada uno de los elementos del array, y el array será devuelto.
+      </para>
+      <para>
+       Si el array <parameter>subject</parameter> es asociativo, entonces las claves
+       serán preservadas en el valor devuelto.
       </para>
      </listitem>
     </varlistentry>
@@ -113,8 +116,8 @@
      <term><parameter>limit</parameter></term>
      <listitem>
       <para>
-       Las sustituciones máximas posibles por cada patrón en cada
-       cadena <parameter>subject</parameter>. Por defecto es
+       El número máximo de reemplazos para cada patrón en
+       cada cadena <parameter>subject</parameter>. Por omisión, vale
        <literal>-1</literal> (sin límite).
       </para>
      </listitem>
@@ -123,8 +126,7 @@
      <term><parameter>count</parameter></term>
      <listitem>
       <para>
-       Si se especifica, esta variable será rellenada con el número de
-       sustituciones hechas.
+       Si se proporciona, esta variable contendrá el número de reemplazos realizados.
       </para>
      </listitem>
     </varlistentry>
@@ -135,127 +137,137 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   <function>preg_replace</function> devuelve un array si el
-   parámetro <parameter>subject</parameter> es un array, o, de lo contrario,
-   una cadena.
+   <function>preg_replace</function> devuelve un array si el parámetro
+   <parameter>subject</parameter> es un array, o una cadena en caso contrario.
   </para>
   <para>
-   Si se encuentran coincidencias, el nuevo <parameter>subject</parameter> será
-   devuelto, de lo contrario, <parameter>subject</parameter> será
-   devuelto sin cambios o &null; si se produjo un error.
+   Si se encuentran coincidencias, el nuevo
+   <parameter>subject</parameter> será devuelto, de lo contrario
+   <parameter>subject</parameter> será devuelto sin cambios, o &null;
+   si ocurre un error.
   </para>
  </refsect1>
 
  <refsect1 role="errors">
   &reftitle.errors;
   <para>
-   Usando el modificador "\e" es un error;
-   y un <constant>E_WARNING</constant> es emitido en este caso.
+   Utilizar la opción "\e" es un error; se emite una <constant>E_WARNING</constant>
+   en este caso.
   </para>
+  &pcre.pattern.warning;
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Usar retroreferencias seguidas de literales numéricos</title>
+    <title>Uso de referencias hacia atrás con literales numéricos</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$cadena = 'Abril 15, 2003';
-$patrón = '/(\w+) (\d+), (\d+)/i';
-$sustitución = '${1}1,$3';
-echo preg_replace($patrón, $sustitución, $cadena);
+$string = 'April 15, 2003';
+$pattern = '/(\w+) (\d+), (\d+)/i';
+$replacement = '${1}1,$3';
+echo preg_replace($pattern, $replacement, $string);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-Abril1,2003
+April1,2003
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>Emplear arrays indexados con <function>preg_replace</function></title>
+    <title>Uso de arrays indexados con <function>preg_replace</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$cadena = 'El veloz murciélago hindú comía feliz cardillo y kiwi.';
-$patrones = array();
-$patrones[0] = '/veloz/';
-$patrones[1] = '/hindú/';
-$patrones[2] = '/murciélago/';
-$sustituciones = array();
-$sustituciones[2] = 'galápago';
-$sustituciones[1] = 'africano';
-$sustituciones[0] = 'lento';
-echo preg_replace($patrones, $sustituciones, $cadena);
+$string = 'Le renard marron agile saute par dessus le chien paresseux.';
+$patterns = array();
+$patterns[0] = '/agile/';
+$patterns[1] = '/marron/';
+$patterns[2] = '/renard/';
+$replacements = array();
+$replacements[2] = 'grizzly';
+$replacements[1] = 'brun';
+$replacements[0] = 'lent';
+echo preg_replace($patterns, $replacements, $string);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-El galápago lento africano comía feliz cardillo y kiwi.
+Le lent brun grizzly saute par dessus le chien paresseux.
 ]]>
     </screen>
     <para>
-     Al usar ksort en patrones y sustituciones, podríamos obtener lo que buscábamos.
+     Ordenando los patrones y los reemplazos, se debería obtener el resultado esperado.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-ksort($patrones);
-ksort($sustituciones);
-echo preg_replace($patrones, $sustituciones, $cadena);
+$string = 'Le renard marron agile saute par dessus le chien paresseux.';
+$patterns = array();
+$patterns[0] = '/agile/';
+$patterns[1] = '/marron/';
+$patterns[2] = '/renard/';
+$replacements = array();
+$replacements[2] = 'grizzly';
+$replacements[1] = 'brun';
+$replacements[0] = 'lent';
+ksort($patterns);
+ksort($replacements);
+echo preg_replace($patterns, $replacements, $string);
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-El lento galápago africano comía feliz cardillo y kiwi.
+Le grizzly brun lent saute par dessus le chien paresseux.
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>Sustituir varios valores</title>
+    <title>Reemplazo de múltiples valores simultáneamente</title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$patrones = array ('/(19|20)(\d{2})-(\d{1,2})-(\d{1,2})/',
+$patterns = array ('/(19|20)(\d{2})-(\d{1,2})-(\d{1,2})/',
                    '/^\s*{(\w+)}\s*=/');
-$sustitución = array ('\4/\3/\1\2', '$\1 =');
-echo preg_replace($patrones, $sustitución, '{fechaInicio} = 1999-5-27');
+$replace = array ('\3/\4/\1\2', '$\1 =');
+echo preg_replace($patterns, $replace, '{startDate} = 1999-5-27');
 ?>
 ]]>
     </programlisting>
     &example.outputs;
     <screen>
 <![CDATA[
-$fechaInicio = 27/5/1999
+$startDate = 5/27/1999
 ]]>
     </screen>
    </example>
   </para>
   <para>
    <example>
-    <title>Quitar los espacios en blanco</title>
+    <title>Eliminación de espacios</title>
     <para>
-     Este ejemplo quita los espacios en blanco en exceso de una cadena.
+     Este ejemplo elimina los espacios en exceso en una cadena.
     </para>
     <programlisting role="php">
 <![CDATA[
 <?php
-$cadena = 'foo   o';
-$cadena = preg_replace('/\s\s+/', ' ', $cadena);
-// Ahora esto será 'foo o'
-echo $cadena;
+$str = 'foo   o';
+$str = preg_replace('/\s\s+/', ' ', $str);
+// Mostrará 'foo o'
+echo $str;
 ?>
 ]]>
     </programlisting>
@@ -263,14 +275,14 @@ echo $cadena;
   </para>
   <para>
    <example>
-    <title>Usar el parámetro <parameter>count</parameter></title>
+    <title>Uso del parámetro <parameter>count</parameter></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-$cuenta = 0;
+$count = 0;
 
-echo preg_replace(array('/\d/', '/\s/'), '*', 'xp 4 to', -1 , $cuenta);
-echo $cuenta; //3
+echo preg_replace(array('/\d/', '/\s/'), '*', 'xp 4 to', -1 , $count);
+echo $count; //3
 ?>
 ]]>
     </programlisting>
@@ -289,15 +301,43 @@ xp***to
   &reftitle.notes;
   <note>
    <para>
-    Cuando se usan arrays con <parameter>pattern</parameter> y
-    <parameter>replacement</parameter>, las claves se procesan en el orden
-    en que aparecen en el array. Éste <emphasis>no es necesariamente</emphasis> el
-    mismo que el orden de índice numérico. Si usa índices para identificar qué
-    <parameter>pattern</parameter> debería ser sustituido por cuál
-    <parameter>replacement</parameter>, debería usar
-    <function>ksort</function> en cada array antes de llamar a
-    <function>preg_replace</function>.
+    Cuando se usan arrays con los parámetros
+    <parameter>pattern</parameter> y
+    <parameter>replacement</parameter>, las claves son tratadas
+    en el orden en que aparecen en el array.
+    Esto <emphasis>no es necesariamente</emphasis> lo mismo que
+    el orden de los índices numéricos. Si se usan índices para
+    identificar qué <parameter>pattern</parameter> debe ser
+    reemplazado por qué <parameter>replacement</parameter>, se
+    recomienda hacer un ordenamiento <function>ksort</function> en cada
+    array antes de llamar a <function>preg_replace</function>.
    </para>
+  </note>
+  <note>
+   <para>
+    Cuando <parameter>pattern</parameter> y <parameter>replacement</parameter>
+    son arrays, las reglas de coincidencia funcionarán de
+    manera secuencial. Es decir, la segunda pareja
+    <parameter>pattern</parameter>/<parameter>replacement</parameter>
+    operará sobre la cadena de caracteres que resulta de la primera pareja
+    <parameter>pattern</parameter>/<parameter>replacement</parameter>,
+    y no sobre la cadena original. Si se desea simular reemplazos
+    funcionando en paralelo, como el intercambio de dos valores, reemplace un
+    patrón por un sustituto intermedio, luego en una pareja posterior,
+    reemplace este marcador intermedio por el reemplazo deseado.
+   </para>
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+$p = array('/a/', '/b/', '/c/');
+$r = array('b', 'c', 'd');
+print_r(preg_replace($p, $r, 'a'));
+// imprime d
+?>
+]]>
+    </programlisting>
+   </informalexample>
   </note>
  </refsect1>
 
@@ -305,18 +345,18 @@ xp***to
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><link linkend="pcre.pattern">Patrones de PCRE</link></member>
+    <member><link linkend="pcre.pattern">Patrones PCRE</link></member>
     <member><function>preg_quote</function></member>
     <member><function>preg_filter</function></member>
     <member><function>preg_match</function></member>
     <member><function>preg_replace_callback</function></member>
     <member><function>preg_split</function></member>
     <member><function>preg_last_error</function></member>
+    <member><function>str_replace</function></member>
    </simplelist>
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

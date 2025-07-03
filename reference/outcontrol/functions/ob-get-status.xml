@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: lboshell Status: ready -->
-<!-- Reviewed: yes Maintainer: seros -->
+<!-- EN-Revision: af7044e82ac0abe745ce3dfe2169e69a7e8e342f Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.ob-get-status" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>ob_get_status</refname>
-  <refpurpose>Obtener el estado de los búferes de salida</refpurpose>
+  <refpurpose>Lee el estado del búfer de salida</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>array</type><methodname>ob_get_status</methodname>
-   <methodparam choice="opt"><type>bool</type> <parameter>full_status</parameter> <initializer>FALSE</initializer></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter>full_status</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>ob_get_status</function> devuelve la información de estado sobre el búfer
-   de salida de nivel superior, o sobre todos los niveles activos de búferes de salida si
-   <parameter>full_status</parameter> es establecido a &true;.
+   <function>ob_get_status</function> devuelve información sobre el estado
+   del búfer de salida de alto nivel o de todos los búferes de salida si
+   <parameter>full_status</parameter> está definido como &true;.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -29,108 +28,167 @@
      <term><parameter>full_status</parameter></term>
      <listitem>
       <para>
-       &true; para devolver todos los niveles de búferes de salida activos. Si es &false;
-       o no se establece, solo es devuelto el búfer de salida de nivel más alto.
+       &true; para devolver todos los búferes de salida. Si es &false;
+       o no está definido, solo se devolverá el estado del búfer de salida de alto nivel.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si esta función es llamada sin el parámetro <parameter>full_status</parameter>,
-   o con <parameter>full_status</parameter> = &false;, se devuelve un único array
-   con los siguientes elementos:
-   <informalexample>
+   Si el parámetro <parameter>full_status</parameter> está omitido o es igual a &false;, se devuelve un array simple
+   que contiene información sobre el estado del nivel de salida activo.
+  </para>
+  <para>
+   Si el parámetro <parameter>full_status</parameter> es igual a &true;, se devuelve un array
+   con un elemento para cada nivel de búfer de salida activo. El nivel de salida se utiliza como clave del array superior y cada elemento del array
+   es a su vez otro array que contiene información sobre un nivel de salida activo.
+  </para>
+  <para>
+   Se devuelve un array vacío si la memoria intermedia de salida no está activada.
+  </para>
+  <para>
+   <segmentedlist>
+    <title>Elementos devueltos por la función <function>ob_get_status</function></title>
+    <segtitle>Clave</segtitle><segtitle>Valor</segtitle>
+    <seglistitem>
+     <seg>name</seg>
+     <seg>
+      Nombre del gestor de salida activo (ver los valores de retorno de
+      <function>ob_list_handlers</function> para más detalles)
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>type</seg>
+     <seg>
+      <literal>0</literal> (gestor interno) o
+      <literal>1</literal> (gestor proporcionado por el usuario)
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>flags</seg>
+     <seg>
+      Máscara de bits de los indicadores definidos por la función <function>ob_start</function>,
+      el tipo de gestor de salida (ver arriba)
+      y el estado del proceso de memoria intermedia
+      (<link linkend="outcontrol.constants.flags-returned-by-handler">
+       <constant>PHP_OUTPUT_HANDLER_<replaceable>*</replaceable></constant>
+      </link> constantes).
+      Si el gestor ha procesado con éxito el búfer y no ha devuelto &false;,
+      <constant>PHP_OUTPUT_HANDLER_STARTED</constant> y
+      <constant>PHP_OUTPUT_HANDLER_PROCESSED</constant> estarán definidos.
+      Si el gestor ha fallado al procesar el búfer o ha devuelto &false;,
+      <constant>PHP_OUTPUT_HANDLER_STARTED</constant> y
+      <constant>PHP_OUTPUT_HANDLER_DISABLED</constant> estarán definidos.
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>level</seg>
+     <seg>
+      Nivel de anidación de la salida (a partir de cero). Tenga en cuenta que el valor devuelto para
+      el mismo nivel por la función <function>ob_get_level</function> está desplazado en uno.
+      El primer nivel es <literal>0</literal> para <function>ob_get_status</function>,
+      y <literal>1</literal> para <function>ob_get_level</function>.
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>chunk_size</seg>
+     <seg>
+      Tamaño del fragmento en bytes. Definido por la función <function>ob_start</function>
+      o <link linkend="ini.output-buffering">output_buffering</link> si está activado
+      y su valor está definido como un entero positivo
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>buffer_size</seg>
+     <seg>
+      Tamaño del búfer de salida en bytes
+     </seg>
+    </seglistitem>
+    <seglistitem>
+     <seg>buffer_used</seg>
+     <seg>
+      Tamaño de los datos en el búfer de salida en bytes
+      (el mismo que el valor de retorno entero de <function>ob_get_length</function>)
+     </seg>
+    </seglistitem>
+   </segmentedlist>
+  </para>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <para>
+    <example>
+    <title>Array devuelto cuando el parámetro <parameter>full_status</parameter> es igual a &true;</title>
     <screen>
 <![CDATA[
 Array
 (
-    [level] => 2
     [type] => 0
-    [status] => 0
-    [name] => URL-Rewriter
-    [del] => 1
+    [flags] => 112
+    [level] => 2
+    [chunk_size] => 0
+    [buffer_size] => 16384
+    [buffer_used] => 1024
 )
 ]]>
     </screen>
-   </informalexample>
-   <segmentedlist>
-    <title>Resultados simples de <function>ob_get_status</function></title>
-    <segtitle>Clave</segtitle><segtitle>Valor</segtitle>
-    <seglistitem><seg>level</seg><seg>Nivel de anidamiento de la salida</seg></seglistitem>
-    <seglistitem><seg>type</seg><seg><literal>PHP_OUTPUT_HANDLER_INTERNAL(0)</literal> o <literal>PHP_OUTPUT_HANDLER_USER (1)</literal></seg></seglistitem>
-    <seglistitem><seg>status</seg><seg>Un valor entre <literal>PHP_OUTPUT_HANDLER_START</literal> (0), <literal>PHP_OUTPUT_HANDLER_CONT</literal> (1) o <literal>PHP_OUTPUT_HANDLER_END</literal> (2)</seg></seglistitem>
-    <seglistitem><seg>name</seg><seg>Nombre del gestor de salida activo, o 'default output handler' si no hay uno establecido</seg></seglistitem>
-    <seglistitem><seg>del</seg><seg>Bandera de borrado, tal y como está establecido por <function>ob_start</function></seg></seglistitem>
-   </segmentedlist>
+   </example>
   </para>
   <para>
-   Si se llama con <parameter>full_status</parameter> = &true;, se devuelve
-   un array con un elemento por cada nivel de búfer de salida activo.
-   El nivel de salida se usa como la clave del array de nivel superior, y cada elemento del
-   array en sí es otro array que contiene información de estado
-   sobre un nivel de salida activo.
-   <informalexample>
+   <example>
+    <title>Array devuelto cuando el parámetro <parameter>full_status</parameter> es igual a &true;</title>
     <screen>
 <![CDATA[
 Array
 (
     [0] => Array
         (
-            [chunk_size] => 0
-            [size] => 40960
-            [block_size] => 10240
-            [type] => 1
-            [status] => 0
             [name] => default output handler
-            [del] => 1
+            [type] => 0
+            [flags] => 112
+            [level] => 1
+            [chunk_size] => 0
+            [buffer_size] => 16384
+            [buffer_used] => 2048
         )
 
     [1] => Array
         (
-            [chunk_size] => 0
-            [size] => 40960
-            [block_size] => 10240
-            [type] => 0
-            [buffer_size] => 0
-            [status] => 0
             [name] => URL-Rewriter
-            [del] => 1
+            [type] => 0
+            [flags] => 112
+            [level] => 2
+            [chunk_size] => 0
+            [buffer_size] => 16384
+            [buffer_used] => 1024
         )
 
 )
 ]]>
     </screen>
-   </informalexample>
-  </para>
-  <para>
-   La salida completa contiene los siguientes elementos adicionales:
-   <segmentedlist>
-    <title>Resultados completos de <function>ob_get_status</function></title>
-    <segtitle>Clave</segtitle><segtitle>Valor</segtitle>
-    <seglistitem><seg>chunk_size</seg><seg>Tamaño del segmento, tal y como es establecido por <function>ob_start</function></seg></seglistitem>
-    <seglistitem><seg>size</seg><seg>...</seg></seglistitem>
-    <seglistitem><seg>blocksize</seg><seg>...</seg></seglistitem>
-   </segmentedlist>
+   </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>ob_get_level</function></member>
     <member><function>ob_list_handlers</function></member>
+    <member><function>ob_get_length</function></member>
+    <member><function>ob_start</function></member>
    </simplelist>
   </para>
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

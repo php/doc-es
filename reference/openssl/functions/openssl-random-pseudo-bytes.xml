@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: b9271c0d58c90c9359444348192c7c3f7d9e178f Maintainer: seros Status: ready -->
+<!-- EN-Revision: 52c495140bdb84f45f186bfb1cccf09788b0121e Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.openssl-random-pseudo-bytes">
+<refentry xml:id="function.openssl-random-pseudo-bytes" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>openssl_random_pseudo_bytes</refname>
-  <refpurpose>Genera una cadena de bytes pseudo-aleatoria</refpurpose>
+  <refpurpose>Genera una cadena pseudo-aleatoria de octetos</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>string</type><methodname>openssl_random_pseudo_bytes</methodname>
    <methodparam><type>int</type><parameter>length</parameter></methodparam>
-   <methodparam choice="opt"><type>bool</type><parameter role="reference">crypto_strong</parameter></methodparam>
+   <methodparam choice="opt"><type>bool</type><parameter role="reference">strong_result</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Genera una <type>cadena</type> de bytes pseudo-aleatoria, con el número de bytes
-   determinado por el parámetro <parameter>length</parameter>.
+   Genera una &string; pseudo-aleatoria de octetos, cuya longitud es
+   especificada por el argumento <parameter>length</parameter>.
   </para>
   <para>
-   También indica si se usó un algoritmo criptográficamente fuerte para producir los
-   bytes pseudo-aleatorios, y hace esto mediante el parámetro opcional <parameter>crypto_strong</parameter>.
-   Es raro que este parámetro sea &false;, pero algunos sistemas pueden ser antiguos o no funcionar correctamente.
+   Indica asimismo si el algoritmo fuerte de criptología ha sido utilizado para
+   producir estos octetos pseudo-aleatorios, utilizando el argumento
+   <parameter>strong_result</parameter>.
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -34,45 +34,80 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       La longitud de la cadena de bytes deseada. Debe ser un entero positivo. PHP intentará
-       asignar este parámetro a un entero no nulo para usarlo. 
+       El tamaño deseado para la cadena de octetos. Debe ser un número entero positivo
+       inferior o igual a <literal>2147483647</literal>. PHP intentará
+       convertir este argumento a un entero no nulo para utilizarlo.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>crypto_strong</parameter></term>
+     <term><parameter>strong_result</parameter></term>
      <listitem>
       <para>
-       Si se pasó en la función, mantendrá un valor <type>booleano</type> value que determina
-       si el algoritmo usado fue "criptográficamente fuerte", p.ej., seguro para el uso con GPG,
-       contraseñas, etc. &true; si lo hizo, de otro modo &false;
+       Si se proporciona, determina si el algoritmo de criptología utilizado
+       era criptológicamente fuerte, es decir, seguro para ser utilizado con GPG, contraseñas, etc. &true; si lo es, &false; en caso contrario.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el &string; de bytes generado si se tuvo éxito, &return.falseforfailure;.
+   Devuelve la cadena de octetos generada.
   </para>
  </refsect1>
- 
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   <function>openssl_random_pseudo_bytes</function> lanza una <classname>Exception</classname> en caso de error.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>strong_result</parameter> ahora es nullable.
+      </entry>
+     </row>
+     <row>
+      <entry>7.4.0</entry>
+      <entry>
+       La función ya no devuelve &false; en caso de error, sino que lanza una <classname>Exception</classname> en su lugar.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>openssl_random_pseudo_bytes</function></title>
+    <title>Ejemplo <function>openssl_random_pseudo_bytes</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-for ($i = -1; $i <= 4; $i++) {
+for ($i = 1; $i <= 4; $i++) {
     $bytes = openssl_random_pseudo_bytes($i, $cstrong);
     $hex   = bin2hex($bytes);
 
-    echo "Longitudes: Bytes: $i y Hex: " . strlen($hex) . PHP_EOL;
+    echo "Longitud : Octetos : $i y Hex: " . strlen($hex) . PHP_EOL;
     var_dump($hex);
     var_dump($cstrong);
     echo PHP_EOL;
@@ -83,27 +118,19 @@ for ($i = -1; $i <= 4; $i++) {
     &example.outputs.similar;
     <screen>
 <![CDATA[
-Longitudes: Bytes: -1 y Hex: 0
-string(0) ""
-NULL
-
-Longitudes: Bytes: 0 y Hex: 0
-string(0) ""
-NULL
-
-Longitudes: Bytes: 1 y Hex: 2
+Longitud : Octetos : 1 y Hex: 2
 string(2) "42"
 bool(true)
 
-Longitudes: Bytes: 2 y Hex: 4
+Longitud : Octetos : 2 y Hex: 4
 string(4) "dc6e"
 bool(true)
 
-Longitudes: Bytes: 3 y Hex: 6
+Longitud : Octetos : 3 y Hex: 6
 string(6) "288591"
 bool(true)
 
-Longitudes: Bytes: 4 y Hex: 8
+Longitud : Octetos : 4 y Hex: 8
 string(8) "ab86d144"
 bool(true)
 
@@ -112,15 +139,14 @@ bool(true)
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <simplelist>
    <member><function>random_bytes</function></member>
    <member><function>bin2hex</function></member>
    <member><function>crypt</function></member>
-   <member><function>mt_rand</function></member>
-   <member><function>uniqid</function></member>
+   <member><function>random_int</function></member>
   </simplelist>
  </refsect1>
 </refentry>

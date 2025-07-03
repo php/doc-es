@@ -1,218 +1,201 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: d4958e51d655cc86fa54b2facb279e7097be550e Maintainer: seros Status: ready -->
+<!-- EN-Revision: 216c5dc1ef01b98d6ccafe51056e4df68e77cbf6 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="pdostatement.execute" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>PDOStatement::execute</refname>
   <refpurpose>
-   Ejecuta una sentencia preparada
+   Ejecuta una consulta preparada
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="PDOStatement">
    <modifier>public</modifier> <type>bool</type><methodname>PDOStatement::execute</methodname>
-   <methodparam choice="opt"><type>array</type><parameter>input_parameters</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>params</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Ejecuta la <link linkend="pdo.prepared-statements">sentencia
-   preparada</link>. Si ésta incluía marcadores de parámetros,
-   se debe:
+   Ejecuta una <link linkend="pdo.prepared-statements">consulta preparada</link>.
+   Si la consulta preparada incluye marcadores de posición, se puede:
    <itemizedlist>
-    <listitem><para>llamar a <function>PDOStatement::bindParam</function> y/o
-     <function>PDOStatement::bindValue</function> para vincular variables o
-     valores (respectivamente) a los marcadores de parámetros. Las variables vinculadas pasan
-     su valor como entrada y reciben el valor de salida, si lo hubiera, de sus marcadores
-     de parámetros asociados</para></listitem>
+    <listitem><para><methodname>PDOStatement::bindParam</methodname> y/o
+     <methodname>PDOStatement::bindValue</methodname> debe ser llamado para vincular
+     variables o valores (respectivamente) a los marcadores de parámetros.
+     Las variables vinculadas pasan sus valores en entrada y reciben los
+     valores de salida, si los hay, de sus respectivos marcadores de posición</para></listitem>
     <listitem>
-     <para>o pasar un array de valores de parámetros de sólo entrada</para>
+     <para>o pasar un array de valores de parámetros, solo en entrada</para>
     </listitem>
    </itemizedlist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>input_parameters</parameter></term>
+     <term><parameter>params</parameter></term>
      <listitem>
       <para>
-       Un array de valores con tantos elementos como parámetros
-       vinculados en la sentencia SQL que va a ser ejecutada.
-       Todos los valores son tratados como <constant>PDO::PARAM_STR</constant>.
+       Un array de valores con tantos elementos como parámetros a asociar en la consulta SQL que será ejecutada.
+       Todos los valores son tratados como constantes
+       <constant>PDO::PARAM_STR</constant>.
       </para>
       <para>
-       No es posible vincular múltiples valores a un único parámetro; por ejemplo,
-       no se puede vincular dos valores a un único parámetro con nombre en una cláusula
-       IN().
+       Los valores múltiples no pueden ser vinculados a un solo parámetro; por
+       ejemplo, no está permitido vincular dos valores a un solo parámetro
+       nombrado en una cláusula IN().
       </para>
       <para>
-       Tampoco es posible vincular más valores que los especificados; si existen más claves en
-       <parameter>input_parameters</parameter> que en la sentencia SQL especificada
-       en <methodname>PDO::prepare</methodname>, entonces la sentencia
-       fallará y se emitirá un error.
+       Vincular más valores de los especificados no es posible; si hay
+       más claves en <parameter>params</parameter> que en el
+       código SQL utilizado para <methodname>PDO::prepare</methodname>, entonces la
+       consulta preparada fallará y se generará un error.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
  </refsect1>
- 
- <refsect1 role="changelog">
-  &reftitle.changelog;
-  <para>
-   <informaltable>
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry>&Version;</entry>
-       <entry>&Description;</entry>
-      </row>
-     </thead>
-     <tbody>
-      <row>
-       <entry>5.2.0</entry>
-       <entry>
-        Las claves de <parameter>input_parameters</parameter> deben coincidir con aquellas
-        declaradas en la sentencia SQL. Antes de PHP 5.2.0 esto se ignoraba silenciosamente.
-       </entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </informaltable>
-  </para>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  &pdo.errors;
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
-  <example><title>Ejecutar una sentencia preparada con una variable y valor vinculados</title>
+  <example>
+   <title>Ejecuta una consulta preparada con variables y valores vinculados</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada vinculando una variable y un valor */
-$calorías = 150;
-$color = 'gre';
-$gsent = $gbd->prepare('SELECT name, colour, calories
+/* Ejecuta una consulta preparada vinculando variables y valores */
+$calories = 150;
+$couleur = 'ver';
+$sth = $dbh->prepare('SELECT nom, couleur, calories
     FROM fruit
-    WHERE calories < :calorías AND colour LIKE :color');
-$gsent->bindParam(':calories', $calorías, PDO::PARAM_INT);
-$sth->bindValue(':colour', "%{$color}%");
-$gsent->execute();
+    WHERE calories < :calories AND couleur LIKE :couleur');
+$sth->bindParam('calories', $calories, PDO::PARAM_INT);
+/* Los nombres también pueden ser prefijados con dos puntos ":" (opcional) */
+$sth->bindValue(':colour', "%$colour%");
+$sth->execute();
 ?>
 ]]>
    </programlisting>
   </example>
-  
-  <example><title>Ejecutar una sentencia preparada con un array de valores de inserción (parámetros con nombre)</title>
+
+  <example>
+   <title>Ejecuta una consulta preparada con un array de valores nombrados</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada proporcionando un array de valores de inserción */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
+/* Ejecuta una consulta preparada pasando un array de valores */
+$calories = 150;
+$couleur = 'rouge';
+$sth = $dbh->prepare('SELECT nom, couleur, calories
     FROM fruit
-    WHERE calories < :calories AND colour = :colour');
-$gsent->execute(array(':calories' => $calorías, ':colour' => $color));
+    WHERE calories < :calories AND couleur = :couleur');
+$sth->execute(array('calories' => $calories, 'colour' => $couleur));
+/* Las claves del array también pueden ser prefijadas con dos puntos ":" (opcional) */
+$sth->execute(array(':calories' => $calories, ':couleur' => $couleur));
 ?>
 ]]>
    </programlisting>
   </example>
-  
-  <example><title>Ejecutar una sentencia preparada con un array de valores de inserción (parámetros de sustitución)</title>
+
+  <example>
+   <title>Ejecuta una consulta preparada con un array de valores posicionales</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada proporcionando un array de valores de inserción */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
+/* Ejecuta una consulta preparada pasando un array de valores */
+$calories = 150;
+$colour = 'rouge';
+$sth = $dbh->prepare('SELECT nom, couleur, calories
     FROM fruit
-    WHERE calories < ? AND colour = ?');
-$gsent->execute(array($calorías, $color));
+    WHERE calories < ? AND couleur = ?');
+$sth->execute(array($calories, $colour));
 ?>
 ]]>
    </programlisting>
   </example>
-  
-  <example><title>Ejecutar una sentencia preparada con parámetros de sustitución de signos de interrogación</title>
+
+  <example>
+   <title>Ejecuta una consulta preparada con variables vinculadas a un marcador de posición</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada vinculando variables de PHP */
-$calorías = 150;
-$color = 'red';
-$gsent = $gbd->prepare('SELECT name, colour, calories
+/* Ejecuta una consulta preparada vinculando variables PHP */
+$calories = 150;
+$couleur = 'rouge';
+$sth = $dbh->prepare('SELECT nom, couleur, calories
     FROM fruit
-    WHERE calories < ? AND colour = ?');
-$gsent->bindParam(1, $calorías, PDO::PARAM_INT);
-$gsent->bindParam(2, $color, PDO::PARAM_STR, 12);
-$gsent->execute();
+    WHERE calories < ? AND couleur = ?');
+$sth->bindParam(1, $calories, PDO::PARAM_INT);
+$sth->bindParam(2, $couleur, PDO::PARAM_STR, 12);
+$sth->execute();
 ?>
 ]]>
    </programlisting>
   </example>
-  
-  <example><title>Ejecutar una sentencia preparada usando un array para la cláusula IN</title>
+
+  <example>
+   <title>Ejecuta una consulta preparada utilizando un array para las cláusulas IN</title>
    <programlisting role="php">
 <![CDATA[
 <?php
-/* Ejecutar una sentencia preparada usando un array de valores para una cláusula IN */
-$parámetros = array(1, 21, 63, 171);
-/* Crear una cadena para los parámetros de sustitución rellenados con el número de parámetros */
-$place_holders = implode(',', array_fill(0, count($parámetros), '?'));
+/* Ejecuta una consulta preparada utilizando un array de valores para las cláusulas IN */
+$params = array(1, 21, 63, 171);
+/* Crea una cadena para los marcadores */
+$place_holders = '?' . str_repeat(', ?', count($params) - 1);
 
 /*
-    Esto prepara una sentencia con suficientes parámetros de sustitución sin nombre para
-    cada valor del array $parámetros. Los valores del array $parámetros son vinculados a
-    los parámetros de sustitución de la sentencia preparada cuando ésta sea ejecutada.
-    Esto no es lo mismo que usar PDOStatement::bindParam(), pues esto último
-    requiere una referencia a la variable. En su lugar, PDOStatement::execute() sólo
-    vincula por valor.
+    Este fragmento de código prepara la consulta con suficientes marcadores para cada valor
+    del array $params. Los valores del array $params son luego vinculados a los marcadores
+    de la consulta preparada cuando la consulta es ejecutada. Esto no es lo mismo
+    que utilizar el método PDOStatement::bindParam() ya que este impone una referencia
+    hacia los valores. El método PDOStatement::execute() solo vincula por valor.
 */
-$gsent = $gbd->prepare("SELECT id, name FROM contacts WHERE id IN ($place_holders)");
-$gsent->execute($parámetros);
+$sth = $dbh->prepare("SELECT id, name FROM contacts WHERE id IN ($place_holders)");
+$sth->execute($params);
 ?>
 ]]>
    </programlisting>
   </example>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   <note>
    <para>
-    Algunos controladores necesitan <link linkend="pdostatement.closecursor">cerrar
-    los cursores</link> antes de poder ejecutar la siguiente sentencia.
+    Algunos drivers requieren <link linkend="pdostatement.closecursor">cerrar
+    el cursor</link> antes de ejecutar la siguiente consulta.
    </para>
   </note>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
    <simplelist>
-    <member><function>PDO::prepare</function></member>
-    <member><function>PDOStatement::bindParam</function></member>
-    <member><function>PDOStatement::fetch</function></member>
-    <member><function>PDOStatement::fetchAll</function></member>
-    <member><function>PDOStatement::fetchColumn</function></member>
+    <member><methodname>PDO::prepare</methodname></member>
+    <member><methodname>PDOStatement::bindParam</methodname></member>
+    <member><methodname>PDOStatement::fetch</methodname></member>
+    <member><methodname>PDOStatement::fetchAll</methodname></member>
+    <member><methodname>PDOStatement::fetchColumn</methodname></member>
    </simplelist>
   </para>
  </refsect1>
- 
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml

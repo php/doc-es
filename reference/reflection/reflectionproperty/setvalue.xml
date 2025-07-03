@@ -1,30 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: c0575c87fbc508205c885277db704b583abe9b17 Maintainer: chuso Status: ready -->
-<!-- Reviewed: no -->
-
+<!-- EN-Revision: c4aabaa0b97ef1ecc00cf2cd539ea186c6a855ae Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
 <refentry xml:id="reflectionproperty.setvalue" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>ReflectionProperty::setValue</refname>
-  <refpurpose>Establece el valor de la propiedad</refpurpose>
+  <refpurpose>Define el valor de la propiedad</refpurpose>
  </refnamediv>
- 
+
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
+  <methodsynopsis role="ReflectionProperty">
    <modifier>public</modifier> <type>void</type><methodname>ReflectionProperty::setValue</methodname>
    <methodparam><type>object</type><parameter>object</parameter></methodparam>
-   <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
+   <methodparam><type class="union"><type>object</type><type>null</type></type><parameter>object</parameter></methodparam><methodparam><type>mixed</type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <methodsynopsis>
    <modifier>public</modifier> <type>void</type><methodname>ReflectionProperty::setValue</methodname>
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Establece (cambia) el valor de la propiedad.
+   Define (modifica) el valor de la propiedad.
   </para>
+  <note>
+   <simpara>
+    Para definir los valores de las propiedades estáticas, utilice <literal>ReflectionProperty::setValue(null, $value)</literal>.
+   </simpara>
+  </note>
  </refsect1>
- 
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -33,9 +36,8 @@
      <term><parameter>object</parameter></term>
      <listitem>
       <para>
-       Si la propiedad no fuera estática, se deberá proporcionar un objeto sobre el 
-       que se cambiará la propiedad. Si la propiedad fuera estática, se omite
-       este parámetro y sólo será necesario completar el <parameter>value</parameter>.
+       Para las propiedades estáticas, pase &null;.
+       Para las propiedades no estáticas, pase el objeto.
       </para>
      </listitem>
     </varlistentry>
@@ -50,41 +52,69 @@
    </variablelist>
   </para>
  </refsect1>
- 
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.void;
   </para>
  </refsect1>
- 
- <refsect1 role="errors">
-  &reftitle.errors;
-  <para>
-   Lanza <classname>ReflectionException</classname> si la propiedad no fuera accesible.
-   Si la propiedad fuera de tipo protegido o privado, podrá hacerse accesible mediante
-   <methodname>ReflectionProperty::setAccessible</methodname>.
-  </para>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       La llamada a este método con un solo argumento está obsoleto,
+       utilice en su lugar <literal>ReflectionProperty::setValue(null, $value)</literal>
+       para las propiedades estáticas.
+      </entry>
+     </row>
+     <row>
+      <entry>8.1.0</entry>
+      <entry>
+       Las propiedades privadas y protegidas son inmediatamente
+       accesibles por <methodname>ReflectionProperty::setValue</methodname>.
+       Anteriormente, debían ser hechas accesibles llamando
+       a <methodname>ReflectionProperty::setAccessible</methodname>,
+       de lo contrario se lanzaba una <classname>ReflectionException</classname>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
- 
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <methodname>ReflectionProperty::setValue</methodname></title>
+    <title>Ejemplo con <methodname>ReflectionProperty::setValue</methodname></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 class Foo {
     public static $staticProperty;
-    
+
     public $property;
     protected $privateProperty;
 }
 
 $reflectionClass = new ReflectionClass('Foo');
 
-$reflectionClass->getProperty('staticProperty')->setValue('foo');
+// A partir de PHP 8.3, pasar null como primer argumento es requerido
+// para acceder a las propiedades estáticas.
+$reflectionProperty = $reflectionClass->getProperty('staticProperty');
+$reflectionProperty->setValue(null, 'foo');
 var_dump(Foo::$staticProperty);
 
 $foo = new Foo;
@@ -93,7 +123,7 @@ $reflectionClass->getProperty('property')->setValue($foo, 'bar');
 var_dump($foo->property);
 
 $reflectionProperty = $reflectionClass->getProperty('privateProperty');
-$reflectionProperty->setAccessible(true);
+$reflectionProperty->setAccessible(true); // Solo necesario antes de PHP 8.1.0.
 $reflectionProperty->setValue($foo, 'foobar');
 var_dump($reflectionProperty->getValue($foo));
 ?>
@@ -110,7 +140,7 @@ string(6) "foobar"
    </example>
   </para>
  </refsect1>
- 
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
@@ -121,7 +151,7 @@ string(6) "foobar"
    </simplelist>
   </para>
  </refsect1>
- 
+
 </refentry>
 
 <!-- Keep this comment at the end of the file

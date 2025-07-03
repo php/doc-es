@@ -1,42 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 184f3f7bd45643cb80f828d0bb001991ec3a5fad Maintainer: jvenegasperu Status: ready -->
-<!-- Reviewed: yes Maintainer: julionc -->
-
-<!-- splitted from ./en/functions/pgsql.xml, last change in rev 1.80 -->
-<refentry xml:id='function.pg-convert' xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: 39bb8a868935a56cfce438b0169e13c02c93211c Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
+<refentry xml:id="function.pg-convert" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pg_convert</refname>
   <refpurpose>
-   Conviertir valores de un array asociativo en valores adecuados para sentencias SQL
+   Convierte valores de un array asociativo a una forma adecuada para consultas SQL
   </refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>array</type><methodname>pg_convert</methodname>
-   <methodparam><type>resource</type><parameter>connection</parameter></methodparam>
+   <type class="union"><type>array</type><type>false</type></type><methodname>pg_convert</methodname>
+   <methodparam><type>PgSql\Connection</type><parameter>connection</parameter></methodparam>
    <methodparam><type>string</type><parameter>table_name</parameter></methodparam>
-   <methodparam><type>array</type><parameter>assoc_array</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>options</parameter><initializer>0</initializer></methodparam>
+   <methodparam><type>array</type><parameter>values</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>flags</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   <function>pg_convert</function> evalua y convierte los valores de un
-   <parameter>assoc_array</parameter> en valores adecuados para su uso en una sentencia
-   SQL. La condición previa para la función <function>pg_convert</function> es la
-   existencia de una tabla con nombre igual al parámetro <parameter>table_name</parameter> que tiene
-   por lo menos tantas columnas como elementos tiene el <parameter>assoc_array</parameter>. Los
-   nombres de campos en <parameter>table_name</parameter> deben coincidir con los índices de
-   <parameter>assoc_array</parameter> y los tipos de datos correspondientes deben ser
-   compatibles. Devuelve un array con los valores convertidos en caso de éxito, &false;
-   de lo contrario.
+   <function>pg_convert</function> verifica y convierte el array
+   asociativo <parameter>values</parameter> en una consulta SQL válida.
+   Para que <function>pg_convert</function> funcione, debe existir la tabla
+   <parameter>table_name</parameter>, y debe contener al menos tantas columnas
+   como elementos tenga el array <parameter>values</parameter>. Los nombres de
+   los campos de <parameter>table_name</parameter> deben corresponder a los índices
+   del array en <parameter>values</parameter>.
+   Devuelve un array con los valores convertidos en caso de éxito, y de lo contrario,
+   &false;.
   </para>
   <note>
    <para>
-    Los valores booleanos son aceptados y se convierten a booleanos de PostgreSQL.
-    También se admiten representaciones de string de valores booleanos. &null; se
-    convierte al NULL de PostgreSQL.
+    Los valores booleanos son admitidos y convertidos a booleanos PostgreSQL.
+    Las representaciones de valores booleanos en forma de strings también son soportadas. &null; es convertido a NULL PostgreSQL.
    </para>
   </note>
  </refsect1>
@@ -48,34 +44,32 @@
     <varlistentry>
      <term><parameter>connection</parameter></term>
      <listitem>
-      <para>
-       Recurso de conexión de base de datos PostgreSQL.
-      </para>
+      &pgsql.parameter.connection;
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>table_name</parameter></term>
      <listitem>
       <para>
-       Nombre de la tabla contra la que convertir los tipos.
+       Nombre de la tabla para la cual se convertirán los tipos.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>assoc_array</parameter></term>
+     <term><parameter>values</parameter></term>
      <listitem>
       <para>
-       Los datos que desea convertir.
+       Datos a ser convertidos.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>options</parameter></term>
+     <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       Cualquier número de <constant>PGSQL_CONV_IGNORE_DEFAULT</constant>,
-       <constant>PGSQL_CONV_FORCE_NULL</constant> ó
-       <constant>PGSQL_CONV_IGNORE_NOT_NULL</constant>, ó una combinación de estos.
+       Un número de <constant>PGSQL_CONV_IGNORE_DEFAULT</constant>,
+       <constant>PGSQL_CONV_FORCE_NULL</constant> o
+       <constant>PGSQL_CONV_IGNORE_NOT_NULL</constant>, combinados.
       </para>
      </listitem>
     </varlistentry>
@@ -86,27 +80,60 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Un <type>array</type> de valores convertidos, o &false; en caso de error.
+   Un &array; de valores convertidos, &return.falseforfailure;.
   </para>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
+  <para>
+   Se lanza una <classname>ValueError</classname> o <classname>TypeError</classname>
+   cuando el valor o el tipo del campo no coincide correctamente con un tipo PostgreSQL.
+  </para>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.3.0</entry>
+      <entry>
+       Ahora lanza un error <classname>ValueError</classname> o <classname>TypeError</classname>
+       cuando el valor o el tipo del campo no coincide correctamente con un tipo PostgreSQL;
+       previamente, se emitía un <constant>E_WARNING</constant>.
+      </entry>
+     </row>
+     &pgsql.changelog.connection-object;
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>pg_convert</function></title>
+    <title>Ejemplo con <function>pg_convert</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
   $dbconn = pg_connect('dbname=foo');
 
   $tmp = array(
-      'author' => 'Joe Thackery',
-      'year' => 2005,
-      'title' => 'My Life, by Joe Thackery'
+      'auteur' => 'Joe Thackery',
+      'annee' => 2005,
+      'titre' => 'Ma Vie, par Joe Thackery'
   );
 
-  $vals = pg_convert($dbconn, 'authors', $tmp);
+  $vals = pg_convert($dbconn, 'auteurs', $tmp);
 ?>
 ]]>
     </programlisting>
@@ -115,7 +142,7 @@
  </refsect1>
 
  <refsect1 role="seealso">
-  &reftitle.seealso;
+ &reftitle.seealso;
   <para>
    <simplelist>
     <member><function>pg_meta_data</function></member>
@@ -127,7 +154,6 @@
   </para>
  </refsect1>
 </refentry>
-
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
