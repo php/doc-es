@@ -1,31 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 62126c55f1c6ed444043e7272c4f9e233818a44b Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 9960a09a5705102bf4dd0ce63e03d9ec716d0015 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+
 <refentry xml:id="function.imagexbm" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>imagexbm</refname>
-  <refpurpose>Imprimir una imagen XBM en el navegador o en un fichero</refpurpose>
+  <refpurpose>Genera una imagen en formato XBM</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
    <type>bool</type><methodname>imagexbm</methodname>
-   <methodparam><type>resource</type><parameter>image</parameter></methodparam>
-   <methodparam><type>string</type><parameter>filename</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>foreground</parameter></methodparam>
+   <methodparam><type>GdImage</type><parameter>image</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>null</type></type><parameter>filename</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>foreground_color</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Imprime o guarda una versión <acronym>XBM</acronym> de la imagen
-   <parameter>image</parameter>. 
+   Muestra o guarda una versión <acronym>XBM</acronym>
+   de la imagen <parameter>image</parameter>.
   </para>
   <note>
    <simpara>
-    <function>imagexbm</function> no aplica ningún relleno, por lo que el ancho de la image
-    ha de ser múltiplo de 8.
+    <function>imagexbm</function> no aplica relleno, por lo que
+    el ancho de la imagen debe ser un múltiplo de 8. Esta restricción ya no
+    se aplica a partir de PHP 7.0.9, respectivamente.
    </simpara>
   </note>
  </refsect1>
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
@@ -34,29 +36,71 @@
     <varlistentry>
      <term><parameter>filename</parameter></term>
      <listitem>
-      <para>&gd.image.path;</para>
+      <para>
+       Ruta de acceso donde se guardará el fichero, en forma
+       de &string;. Si no está definido, el flujo de imágenes RAW se
+       mostrará directamente en la salida estándar.
+      </para>
+      <para>
+       El nombre de fichero <parameter>filename</parameter> (sin la extensión .xbm)
+       también se utiliza para los identificadores C del <acronym>XBM</acronym>, en cuyo caso los caracteres no alfanuméricos de la configuración local actual son reemplazados por subrayados. Si
+       <parameter>filename</parameter> tiene el valor null,
+       <literal>image</literal> se utiliza para generar los identificadores C.
+      </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>foreground</parameter></term>
+     <term><parameter>foreground_color</parameter></term>
      <listitem>
       <para>
-       Se puede establecer el color de primer plano con este parámetro estableciendo un
-       identificador obtenido de <function>imagecolorallocate</function>.
-       El color de primer plano por defecto es negro. Todos los demás colores son tratados
-       como fondo.
+       Puede definirse el primer plano con este parámetro definiendo
+       un identificador obtenido desde la función <function>imagecolorallocate</function>.
+       Por omisión, el color del primer plano es negro. Todas las demás
+       colores se tratan como fondo.
       </para>
      </listitem>
     </varlistentry>
    </variablelist>
   </para>
  </refsect1>
+
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
    &return.success;
   </para>
+  &gd.return.trueonerror;
  </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     &gd.changelog.image-param;
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       <parameter>foreground_color</parameter> ahora es nullable.
+      </entry>
+     </row>
+     <row>
+      <entry>8.0.0</entry>
+      <entry>
+       El cuarto parámetro, que no se utilizaba, ha sido eliminado.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
@@ -65,16 +109,14 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-// Crear una imagen en blanco y añadir algún texto
+// Creación de una imagen vacía y adición de texto
 $im = imagecreatetruecolor(120, 20);
-$color_texto = imagecolorallocate($im, 233, 14, 91);
-imagestring($im, 1, 5, 5,  'A Simple Text String', $color_texto);
+$text_color = imagecolorallocate($im, 233, 14, 91);
+imagestring($im, 1, 5, 5,  'Un texto simple', $text_color);
 
 // Guardar la imagen
 imagexbm($im, 'simpletext.xbm');
 
-// Liberar memoria
-imagedestroy($im);
 ?>
 ]]>
     </programlisting>
@@ -86,19 +128,17 @@ imagedestroy($im);
     <programlisting role="php">
 <![CDATA[
 <?php
-// Crear una imagen en blanco y añadir algún texto
+// Creación de una imagen vacía y adición de texto
 $im = imagecreatetruecolor(120, 20);
-$color_texto = imagecolorallocate($im, 233, 14, 91);
-imagestring($im, 1, 5, 5,  'A Simple Text String', $color_texto);
+$text_color = imagecolorallocate($im, 233, 14, 91);
+imagestring($im, 1, 5, 5,  'Un texto simple', $text_color);
 
-// Esteblecer un color de primer plano sustituto
-$color_primer_plano = imagecolorallocate($im, 255, 0, 0);
+// Definir el color de primer plano
+$foreground_color = imagecolorallocate($im, 255, 0, 0);
 
 // Guardar la imagen
-imagexbm($im, NULL, $color_primer_plano);
+imagexbm($im, NULL, $foreground_color);
 
-// Liberar memoria
-imagedestroy($im);
 ?>
 ]]>
     </programlisting>

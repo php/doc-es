@@ -1,41 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: a08be5cd1e589aa206aaee6b20443b5b802bf1d5 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
-<refentry xml:id='function.iptcembed' xmlns="http://docbook.org/ns/docbook">
+<!-- EN-Revision: 0c9c2dd669fe9395eaa73d487fbd160f9057429a Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: yes -->
+<refentry xml:id="function.iptcembed" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>iptcembed</refname>
-  <refpurpose>Incluir información IPTC binaria en una imagen JPEG</refpurpose>
+  <refpurpose>Incorpora datos binarios IPTC en una imagen JPEG</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <type>mixed</type><methodname>iptcembed</methodname>
-   <methodparam><type>string</type><parameter>iptcdata</parameter></methodparam>
-   <methodparam><type>string</type><parameter>jpeg_file_name</parameter></methodparam>
+   <type class="union"><type>string</type><type>bool</type></type><methodname>iptcembed</methodname>
+   <methodparam><type>string</type><parameter>iptc_data</parameter></methodparam>
+   <methodparam><type>string</type><parameter>filename</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>spool</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Incluye información IPTC binaria en una imagen JPEG.
+   <function>iptcembed</function> incorpora datos binarios IPTC
+   en una imagen JPEG.
   </para>
  </refsect1>
+
  <refsect1 role="parameters">
   &reftitle.parameters;
   <para>
    <variablelist>
     <varlistentry>
-     <term><parameter>iptcdata</parameter></term>
+     <term><parameter>iptc_data</parameter></term>
      <listitem>
       <para>
-       La información que va a ser escrita.
+       Los datos a escribir.
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>jpeg_file_name</parameter></term>
+     <term><parameter>filename</parameter></term>
      <listitem>
       <para>
-       Ruta a la imagen JPEG.
+       Ruta hacia el fichero JPEG.
       </para>
      </listitem>
     </varlistentry>
@@ -43,8 +45,8 @@
      <term><parameter>spool</parameter></term>
      <listitem>
       <para>
-       Bandera de spool. Si la bandera de spool es menor que 2, el JPEG será
-       devuelto como una cadena. De lo contrario el JPEG será enviado a STDOUT.
+       El flag de la bobina. Si la bobina es inferior a 2, entonces el fichero JPEG
+       será devuelto en forma de &string;. De lo contrario el fichero JPEG será enviado a STDOUT.
       </para>
      </listitem>
     </varlistentry>
@@ -54,7 +56,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Si <parameter>spool</parameter> es menor que 2, se devolverá el JPEG,
+   Si <parameter>spool</parameter> es inferior a 2, el fichero JPEG será devuelto,
    &return.falseforfailure;. De lo contrario devuelve &true; en caso de éxito
    &return.falseforfailure;.
   </para>
@@ -62,7 +64,7 @@
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Incluir información IPTC a un JPEG</title>
+   <title>Ejemplo con <function>iptcembed</function></title>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -79,55 +81,54 @@ function iptc_make_tag($rec, $data, $value)
     }
     else
     {
-        $retval .= chr(0x80) . 
-                   chr(0x04) . 
-                   chr(($length >> 24) & 0xFF) . 
-                   chr(($length >> 16) & 0xFF) . 
-                   chr(($length >> 8) & 0xFF) . 
+        $retval .= chr(0x80) .
+                   chr(0x04) .
+                   chr(($length >> 24) & 0xFF) .
+                   chr(($length >> 16) & 0xFF) .
+                   chr(($length >> 8) & 0xFF) .
                    chr($length & 0xFF);
     }
 
     return $retval . $value;
 }
 
-// Ruta al fichero jpeg
-$ruta = './phplogo.jpg';
+// Ruta hacia el fichero JPEG
+$path = './phplogo.jpg';
 
-// Establecer las etiquetas IPTC
+// Define las etiquetas IPTC
 $iptc = array(
-    '2#120' => 'Imagen de prueba',
+    '2#120' => 'Test image',
     '2#116' => 'Copyright 2008-2009, The PHP Group'
 );
 
-// Convertir las etiquetas IPTC en código binario
+// Conversión de las etiquetas IPTC a código binario
 $data = '';
 
-foreach($iptc as $etiqueta => $cadena)
+foreach($iptc as $tag => $string)
 {
-    $etiqueta = substr($etiqueta, 2);
-    $data .= iptc_make_tag(2, $etiqueta, $cadena);
+    $tag = substr($tag, 2);
+    $data .= iptc_make_tag(2, $tag, $string);
 }
 
-// Incluir la información IPTC
-$contenido = iptcembed($data, $ruta);
+// Incorporación de los datos IPTC
+$content = iptcembed($data, $path);
 
-// Escribir la nueva información de la imagen en un fichero.
-$fp = fopen($ruta, "wb");
-fwrite($fp, $contenido);
+// Escribe los datos de la nueva imagen en un fichero.
+$fp = fopen($path, "wb");
+fwrite($fp, $content);
 fclose($fp);
 ?>
 ]]>
    </programlisting>
   </example>
  </refsect1>
- 
+
  <refsect1 role="notes">
   &reftitle.notes;
   &note.gd.notrequired;
  </refsect1>
- 
-</refentry>
 
+</refentry>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
