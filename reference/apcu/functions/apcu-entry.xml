@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: e9366ee458b2900c53a503b1ad97664e1d9a8859 Maintainer: PhilDaiguille Status: ready -->
-<!-- Reviewed: no Maintainer: Marqitos-->
+<!-- EN-Revision: 080a00e2014fbf36c8bd7fff91ed97f7ba636949 Maintainer: PhilDaiguille Status: ready -->
+<!-- Reviewed: no -->
 <refentry xml:id="function.apcu-entry" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>apcu_entry</refname>
   <refpurpose>
-   Recupera de manera atómica o genera una entrada de caché
+   Recupera o genera de forma atómica una entrada en caché
   </refpurpose>
  </refnamediv>
  <refsect1 role="description">
@@ -13,31 +13,24 @@
   <methodsynopsis>
    <type>mixed</type><methodname>apcu_entry</methodname>
    <methodparam><type>string</type><parameter>key</parameter></methodparam>
-   <methodparam><type>callable</type><parameter>generator</parameter></methodparam>
+   <methodparam><type>callable</type><parameter>callback</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>ttl</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Intenta recuperar de manera atómica el valor indexado por la clave <parameter>key</parameter>
-   en la caché. Si no puede ser recuperado, la función pasada a
-   <parameter>generator</parameter> es llamada, con el único argumento de la clave
-   contenida en <parameter>key</parameter>. El valor de retorno de la llamada es
-   luego almacenado en caché con el parámetro opcional <parameter>ttl</parameter>,
-   y luego devuelve el control.
+   Intenta de forma atómica encontrar <parameter>key</parameter> en la caché, si no se puede encontrar se llama a <parameter>callback</parameter>,
+   pasando <parameter>key</parameter> como único argumento. El valor de retorno de la llamada se almacena en caché con el <parameter>ttl</parameter> opcionalmente especificado,
+   y se devuelve.
   </para>
   <note>
    <simpara>
-    Cuando el control entra en <function>apcu_entry</function>, el bloqueo de la caché es
-    adquirido de manera exclusiva. Es liberado cuando el control sale de
-    <function>apcu_entry</function>: Más específicamente, el cuerpo de la función pasada a
-    <parameter>generator</parameter> se convierte en una sección crítica, lo que impide que
-    dos procesos ejecuten la misma parte del código de manera concurrente. Además, impide
-    la ejecución concurrente de cualquier otra función APCu, ya que adquirirá el mismo bloqueo.
+    Cuando el control entra en <function>apcu_entry</function> se adquiere el bloqueo para la caché de forma exclusiva, se libera cuando el control sale de <function>apcu_entry</function>:
+    En efecto, esto convierte el cuerpo de <parameter>callback</parameter> en una sección crítica, impidiendo que dos procesos ejecuten las mismas rutas de código concurrentemente.
+    Además, prohíbe la ejecución concurrente de cualquier otra función de APCu, ya que adquirirán el mismo bloqueo.
    </simpara>
   </note>
   <warning>
    <simpara>
-     La única función que puede ser llamada de manera segura por <parameter>generator</parameter>
-     es <function>apcu_entry</function>.
+    La única función de APCu que puede ser llamada de forma segura por <parameter>callback</parameter> es <function>apcu_entry</function>.
    </simpara>
   </warning>
  </refsect1>
@@ -49,16 +42,15 @@
      <term><parameter>key</parameter></term>
      <listitem>
       <para>
-       Clave de una entrada de caché.
+       Identidad de la entrada en caché
       </para>
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><parameter>generator</parameter></term>
+     <term><parameter>callback</parameter></term>
      <listitem>
       <para>
-       Un parámetro de tipo callable que toma <parameter>key</parameter> como único argumento
-       y devuelve el valor a almacenar en caché.
+       Una retrollamada que acepta <parameter>key</parameter> como único argumento y devuelve el valor a almacenar en caché.
       </para>
      </listitem>
     </varlistentry>
@@ -66,14 +58,14 @@
      <term><parameter>ttl</parameter></term>
      <listitem>
       <para>
-       Duración de vida; almacena la variable <parameter>var</parameter> en la caché por
-       una duración de <parameter>ttl</parameter> segundos. Después de la expiración de
-       <parameter>ttl</parameter>, la variable almacenada será retirada de la caché (en la
-       próxima solicitud). Si no se pasa ningún valor al parámetro
-       <parameter>ttl</parameter> (o si el valor de <parameter>ttl</parameter> es
-       <literal>0</literal>), la variable persistirá hasta que sea retirada
-       manualmente de la caché, o, de lo contrario, fallará al salir de la caché (durante un
-       borrado, reinicio, etc.).
+       Tiempo de Vida; almacena <parameter>var</parameter> en la caché durante
+       <parameter>ttl</parameter> segundos. Después de que
+       <parameter>ttl</parameter> haya pasado, la variable almacenada será
+       eliminada de la caché (en la siguiente petición). Si no se proporciona <parameter>ttl</parameter>
+       (o si el <parameter>ttl</parameter> es
+       <literal>0</literal>), el valor persistirá hasta que sea eliminado de
+       la caché manualmente, o deje de existir en la caché (limpieza,
+       reinicio, etc.).
       </para>
      </listitem>
     </varlistentry>
@@ -83,7 +75,7 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve el valor almacenado en caché.
+   Devuelve el valor almacenado en caché
   </para>
  </refsect1>
 
@@ -91,7 +83,7 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Un ejemplo con <function>apcu_entry</function></title>
+    <title>Un ejemplo de <function>apcu_entry</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
