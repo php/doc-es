@@ -34,3 +34,13 @@ Por favor, consulta para saber más detalles.
 Por favor date de alta en la lista de correo oficial: <doc-es-subscribe@lists.php.net> desde [PHP Docs ES Mailing List](https://news-web.php.net/php.doc.es), o enviando un correo en blanco a <doc-es+subscribe@lists.php.net>.
 
 O en otras Mailing Lists de PHP desde [PHP Mailing Lists](https://www.php.net/mailing-lists.php).
+
+## Construyendo con make y Docker
+
+- Instala Docker (https://docs.docker.com/get-docker/)
+- Reconstruye la documentación usando `make`
+- Abre output/php-chunked-xhtml/ en tu navegador.
+
+Si los repositorios `doc-base` o `phd` están disponibles en directorios adyacentes a este directorio, esos se utilizarán para la construcción. Para forzar que la imagen de Docker utilizada para la construcción se reconstruya a sí misma, puedes ejecutar `make -B build`; de lo contrario, el `Makefile` solo la construirá si no existe ya.
+
+También puedes construir la versión `web` de la documentación con `make php` y la salida se colocará en output/php-web.
