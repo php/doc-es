@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 539a9823a805ac29cab7fa4baf3ae3a28116a2f5 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: a19139232af73a3c2054fcf5a687640ade63a393 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.hash-hkdf" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>hash_hkdf</refname>
-  <refpurpose>Genera una derivación de clave HKDF desde una clave proporcionada</refpurpose>
+  <refpurpose>Genera una derivación de clave HKDF a partir de una clave de entrada proporcionada</refpurpose>
  </refnamediv>
  <refsect1 role="description">
   &reftitle.description;
@@ -27,11 +26,11 @@
      <term><parameter>algo</parameter></term>
      <listitem>
       <para>
-       Nombre del algoritmo de hash seleccionado (por ejemplo: <literal>"sha256"</literal>).
-       Para una lista de los algoritmos soportados ver <function>hash_hmac_algos</function>.
+       Nombre del algoritmo hash seleccionado (por ejemplo, <literal>"sha256"</literal>).
+       Para ver una lista de algoritmos soportados, consulte <function>hash_hmac_algos</function>.
        <note>
         <para>
-         Las funciones de hash no criptográficas no están permitidas.
+         No se permiten funciones hash no criptográficas.
         </para>
        </note>
       </para>
@@ -41,8 +40,7 @@
      <term><parameter>key</parameter></term>
      <listitem>
       <para>
-       Datos (Input keying material) en binario que servirán para el clavetage.
-       No puede estar vacío.
+       Material de clave de entrada (binario sin tratar). No puede estar vacío.
       </para>
      </listitem>
     </varlistentry>
@@ -50,12 +48,12 @@
      <term><parameter>length</parameter></term>
      <listitem>
       <para>
-       Longitud deseada de los datos de salida en octetos.
-       No puede ser mayor que 255 veces el tamaño de la función de hash.
+       Longitud deseada de la salida en bytes.
+       No puede ser mayor que 255 veces el tamaño de la función hash elegida.
       </para>
       <para>
-       Si <parameter>length</parameter> vale <literal>0</literal>, la longitud de los
-       datos de salida será por defecto el tamaño de la función de hash elegida.
+       Si <parameter>length</parameter> es <literal>0</literal>, la longitud de salida
+       será por omisión el tamaño de la función hash elegida.
       </para>
      </listitem>
     </varlistentry>
@@ -63,7 +61,7 @@
      <term><parameter>info</parameter></term>
      <listitem>
       <para>
-       Información en forma de &string; específica de la aplicación/contexto.
+       String de información específica de la aplicación/contexto.
       </para>
      </listitem>
     </varlistentry>
@@ -71,11 +69,10 @@
      <term><parameter>salt</parameter></term>
      <listitem>
       <para>
-       Sal a utilizar durante la derivación.
+       Salt a utilizar durante la derivación.
       </para>
       <para>
-       Aunque opcional, añadir una sal aleatoria aumenta significativamente la
-       robustez de HKDF.
+       Aunque es opcional, añadir un salt aleatorio mejora significativamente la robustez de HKDF.
       </para>
      </listitem>
     </varlistentry>
@@ -86,8 +83,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   Devuelve un &string; que contiene una representación binaria en bruto de la clave derivada
-   (también conocida como output keying material - OKM).
+   Devuelve un string que contiene una representación binaria sin tratar de la clave derivada
+   (también conocida como material de clave de salida - OKM).
   </para>
  </refsect1>
 
@@ -97,12 +94,12 @@
    Lanza una excepción <classname>ValueError</classname> si <parameter>key</parameter>
    está vacío, <parameter>algo</parameter> es desconocido/no criptográfico,
    <parameter>length</parameter> es menor que <literal>0</literal> o demasiado grande
-   (mayor que 255 veces el tamaño de la función de hash).
+   (mayor que 255 veces el tamaño de la función hash).
   </para>
  </refsect1>
 
  <refsect1 role="changelog">
- &reftitle.changelog;
+  &reftitle.changelog;
   <para>
    <informaltable>
     <tgroup cols="2">
@@ -116,8 +113,9 @@
       <row>
        <entry>8.0.0</entry>
        <entry>
-        Lanza una excepción <classname>ValueError</classname> en caso de error a partir de ahora.
-        Anteriormente, se devolvía &false; y se emitía un mensaje <constant>E_WARNING</constant>.
+        Ahora lanza una excepción <classname>ValueError</classname> en caso de error.
+        Anteriormente, se devolvía &false; y se emitía un mensaje
+        <constant>E_WARNING</constant>.
        </entry>
       </row>
      </tbody>
@@ -129,16 +127,21 @@
  <refsect1 role="examples">
   &reftitle.examples;
   <para>
+   El ejemplo siguiente produce un par de claves separadas, adecuadas para crear
+   una construcción de tipo encrypt-then-HMAC, utilizando AES-256 y SHA-256 para
+   cifrado y autenticación respectivamente.
+  </para>
+  <para>
    <example>
-    <title>Ejemplo con <function>hash_hkdf</function></title>
+    <title>Ejemplo de <function>hash_hkdf</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
-// Genera una clave aleatoria y una sal para reforzarla durante la derivación.
+// Generar una clave aleatoria y un salt para fortalecerla durante la derivación.
 $inputKey = random_bytes(32);
 $salt = random_bytes(16);
 
-// Deriva un par de claves separadas, utilizando los mismos datos creados anteriormente.
+// Derivar un par de claves separadas, utilizando la misma entrada creada arriba.
 $encryptionKey = hash_hkdf('sha256', $inputKey, 32, 'aes-256-encryption', $salt);
 $authenticationKey = hash_hkdf('sha256', $inputKey, 32, 'sha-256-authentication', $salt);
 
@@ -146,11 +149,6 @@ var_dump($encryptionKey !== $authenticationKey); // bool(true)
 ?>
 ]]>
     </programlisting>
-    <para>
-     El ejemplo anterior produce un par de claves separadas, que es adecuado para crear
-     una construcción cifrar-entonces-HMAC (encrypt-then-HMAC), utilizando AES-256
-     y SHA-256 para el cifrado y la autenticación respectivamente.
-    </para>
    </example>
   </para>
  </refsect1>
@@ -161,7 +159,7 @@ var_dump($encryptionKey !== $authenticationKey); // bool(true)
    <simplelist>
     <member><function>hash_pbkdf2</function></member>
     <member><link xlink:href="&url.rfc;5869">RFC 5869</link></member>
-    <member><link xlink:href="&url.git.hub;narfbg/hash_hkdf_compat">implementación en userland</link></member>
+    <member><link xlink:href="&url.git.hub;narfbg/hash_hkdf_compat">implementación en espacio de usuario</link></member>
    </simplelist>
   </para>
  </refsect1>

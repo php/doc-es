@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 2e60c5134e7a847c99f81eb3f7ecee1f5efeeace Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: eaec4ab10a65c4515ee2fb899d06e89bae3754b0 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
-<!-- CREDITS: DavidA. -->
-
 <refentry xml:id="function.list" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>list</refname>
@@ -16,24 +14,36 @@
    <methodparam rep="repeat" choice="opt"><type>mixed</type><parameter>vars</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Al igual que <function>array</function>, <function>list</function> no es una
-   función real, sino un elemento de lenguaje, que permite agrupar
-   las variables <parameter>varname</parameter>, <parameter>...</parameter>
-   en forma de array, para asignarlas en una sola línea.
-   Las strings no pueden ser desestructuradas y las expresiones
-   <function>list</function> no pueden estar completamente vacías.
+   Al igual que <function>array</function>, esto no es realmente una función,
+   sino una construcción del lenguaje. <function>list</function> se utiliza para
+   asignar una lista de variables en una sola operación.
+   Solo se pueden desempaquetar arrays y objetos que implementen <link linkend="class.arrayaccess">ArrayAccess</link>.
+   Las expresiones <function>list</function> no pueden estar completamente vacías.
   </para>
   <note>
    <para>
-    Antes de PHP 7.1.0, <function>list</function> solo funciona con arrays
-    de índices numéricos y asume que el índice numérico comienza en 0.
+    Antes de PHP 7.1.0, <function>list</function> solo funcionaba con arrays numéricos y asumía
+    que los índices numéricos comenzaban en 0.
    </para>
   </note>
   <para>
-   A partir de PHP 7.1.0, <function>list</function> también puede contener claves explícitas, permitiendo así la
-   desestructuración de arrays con claves no enteras o no secuenciales. Para más detalles sobre
-   la desestructuración de arrays, ver la <link linkend="language.types.array.syntax.destructuring">sección sobre la desestructuración de arrays</link>.
+   A partir de PHP 7.1.0, <function>list</function> también puede contener claves explícitas, permitiendo
+   la desestructuración de arrays con claves no enteras o no secuenciales. Para más detalles sobre
+   la desestructuración de arrays, consulte la <link linkend="language.types.array.syntax.destructuring">sección de desestructuración de arrays</link>.
   </para>
+  <note>
+   <para>
+    Intentar acceder a una clave de array que no ha sido definida es
+    lo mismo que acceder a cualquier otra variable no definida:
+    se emitirá un mensaje de error de nivel <constant>E_WARNING</constant>
+    (nivel <constant>E_NOTICE</constant> antes de PHP 8.0.0) y
+    el resultado será &null;.
+   </para>
+   <para>
+    Intentar desempaquetar un escalar asigna &null; a todas las variables.
+    Intentar desempaquetar un objeto que no implementa ArrayAccess es un error fatal.
+   </para>
+  </note>
  </refsect1>
  <refsect1 role="parameters">
   &reftitle.parameters;
@@ -81,16 +91,14 @@
       <row>
        <entry>7.3.0</entry>
        <entry>
-        Se añadió el soporte para la asignación por referencia en la desestructuración
-        de arrays.
+        Se añadió soporte para asignaciones por referencia en la desestructuración de arrays.
        </entry>
       </row>
       <row>
        <entry>7.1.0</entry>
        <entry>
-        Ahora es posible especificar claves en
-        <function>list</function>. Esto permite desestructurar arrays
-        con claves no enteras o no secuenciales.
+        Ahora es posible especificar claves en <function>list</function>. Esto
+        permite la desestructuración de arrays con claves no enteras o no secuenciales.
        </entry>
       </row>
      </tbody>
@@ -102,22 +110,22 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo con <function>list</function></title>
+    <title>Ejemplos de <function>list</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 $info = array('coffee', 'brown', 'caffeine');
 
-// Lista todas las variables
+// Listando todas las variables
 list($drink, $color, $power) = $info;
 echo "$drink is $color and $power makes it special.\n";
 
-// Lista algunas variables
+// Listando algunas de ellas
 list($drink, , $power) = $info;
 echo "$drink has $power.\n";
 
-// O bien, solo usamos el tercero
+// O saltemos solo a la tercera
 list( , , $power) = $info;
 echo "I need $power!\n";
 
@@ -131,7 +139,7 @@ var_dump($bar); // NULL
   </para>
   <para>
    <example>
-    <title>Ejemplo de uso de <function>list</function></title>
+    <title>Un ejemplo de uso de <function>list</function></title>
     <programlisting role="php" annotations="non-interactive">
 <![CDATA[
 <?php
@@ -146,7 +154,7 @@ while (list($id, $name) = $result->fetch(PDO::FETCH_NUM)) {
   </para>
   <para>
    <example>
-    <title>Uso de un sub-<function>list</function></title>
+    <title>Uso de <function>list</function> anidado</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -169,12 +177,12 @@ int(3)
    </example>
   </para>
   <para>
-    El orden en el que se definen los índices de un array a procesar por
-    <function>list</function> no es relevante.
+   El orden en el que se definen los índices del array a ser consumido por
+   <function>list</function> es irrelevante.
   </para>
   <para>
    <example>
-    <title><function>list</function> y el orden de definición de los índices</title>
+    <title><function>list</function> y el orden de las definiciones de índices</title>
     <programlisting role="php">
 <![CDATA[
 <?php
@@ -185,9 +193,8 @@ var_dump($foo, $x, $y, $z);
 ]]>
     </programlisting>
     <para>
-     Dado el siguiente resultado (note el orden de los elementos comparados
-     y en qué orden se escribieron en la sintaxis
-     de la <function>list</function>) :
+     Produce la siguiente salida (note el orden de los elementos comparado con
+     el orden en que fueron escritos en la sintaxis <function>list</function>):
     </para>
     <screen>
 <![CDATA[
@@ -214,8 +221,8 @@ string(1) "a"
     <simpara>
      A partir de PHP 7.1.0 <function>list</function> ahora también puede contener
      claves explícitas, que pueden ser dadas como expresiones arbitrarias.
-     La mezcla de claves &integer; y &string; está permitida; Sin embargo, los elementos
-     con y sin claves no pueden mezclarse.
+     Se permite mezclar claves enteras y string; sin embargo, no se pueden mezclar
+     elementos con y sin claves.
     </simpara>
     <programlisting role="php">
 <![CDATA[
@@ -244,6 +251,7 @@ id: 2, name: Fred
    </example>
   </para>
  </refsect1>
+
  <refsect1 role="seealso">
   &reftitle.seealso;
   <para>
