@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: c999c7066ede7dc2df80e0bd3364bfa0ef1f9533 Maintainer: Marqitos Status: ready -->
+<!-- Reviewed: no -->
+<sect1 xml:id="language.operators.functional">
+ <title>Operadores funcionales</title>
+ <titleabbrev>Funcional</titleabbrev>
+ <para>
+  PHP 8.5 y versiones posteriores admiten un operador que funciona directamente con callables. El operador <literal>|&gt;</literal>,
+  o “pipe”, acepta un callable de un solo parámetro en el lado derecho y le pasa
+  el valor del lado izquierdo, evaluando el resultado del callable. El callable
+  en el lado derecho puede ser cualquier callable válido en PHP: una <classname>Closure</classname>,
+  un <link linkend="functions.first_class_callable_syntax">callable de primera clase</link>,
+  un objeto que implemente <link linkend="object.invoke">__invoke()</link>, etc.
+ </para>
+ <para>
+  Esto significa que las siguientes dos líneas son lógicamente equivalentes.
+  <example>
+   <title>Usando <literal>|&gt;</literal></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$result = "Hola Mundo" |> strlen(...);
+echo $result, PHP_EOL;
+
+$result = strlen("Hola Mundo");
+echo $result, PHP_EOL;
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+10
+10
+]]>
+   </screen>
+  </example>
+ </para>
+ <para>
+  Para una única llamada, no resulta especialmente útil. Se vuelve útil cuando se encadenan múltiples llamadas.
+  Es decir, los siguientes dos fragmentos de código son lógicamente equivalentes:
+  <example>
+   <title>Encadenando llamadas |&gt;</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$result = "PHP Rocks"
+    |> htmlentities(...)
+    |> str_split(...)
+    |> (fn($x) => array_map(strtoupper(...), $x))
+    |> (fn($x) => array_filter($x, fn($v) => $v != 'O'))
+;
+echo $result, PHP_EOL;
+
+$temp = "PHP Rocks";
+$temp = htmlentities($temp);
+$temp = str_split($temp);
+$temp = array_map(strtoupper(...), $temp);
+$temp = array_filter($temp, fn($v) => $v != 'O');
+$result = $temp;
+echo $result, PHP_EOL;
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+Array
+(
+    [0] => P
+    [1] => H
+    [2] => P
+    [3] =>
+    [4] => R
+    [6] => C
+    [7] => K
+    [8] => S
+)
+Array
+(
+    [0] => P
+    [1] => H
+    [2] => P
+    [3] =>
+    [4] => R
+    [6] => C
+    [7] => K
+    [8] => S
+)
+]]>
+   </screen>
+  </example>
+ </para>
+ <para>
+  El lado izquierdo del operador pipe puede ser cualquier valor o expresión. El lado derecho
+  puede ser cualquier callable válido en PHP que acepte un solo parámetro, o cualquier expresión
+  que se evalúe como tal. Las funciones que requieren más de un parámetro
+  no están permitidas y fallarán como si se llamaran normalmente
+  con argumentos insuficientes. Las funciones que reciben variables por referencia tampoco están permitidas.
+  Si el lado derecho no se evalúa como un callable válido, se lanzará un error.
+ </para>
+ <note>
+  <para>
+   Tenga en cuenta que, para evitar ambigüedades de sintaxis, las <link linkend="functions.arrow">funciones de flecha</link>
+   DEBEN estar entre paréntesis cuando se utilicen con el operador pipe, como en los ejemplos anteriores.
+   No hacerlo provocará un error fatal.
+  </para>
+ </note>
+
+ <sect2 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><classname>Closure</classname></member>
+   </simplelist>
+  </para>
+ </sect2>
+</sect1>
