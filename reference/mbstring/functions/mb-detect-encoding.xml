@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 34f90a65914c900173f9a42331acc45bc53d8eee Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 7c4b5fb40ac3149a5b931f1e31b1050ab5eaab7e Maintainer: Marqitos Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.mb-detect-encoding" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>mb_detect_encoding</refname>
-  <refpurpose>Detecta un encodage</refpurpose>
+  <refpurpose>Detectar la codificación de caracteres</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -17,8 +17,12 @@
    <methodparam choice="opt"><type>bool</type><parameter>strict</parameter><initializer>&false;</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Detecta el encodage más probable para la &string;
-   <parameter>string</parameter> desde una lista ordenada de candidatos.
+   Detectar la codificación de caracteres más probable para la <type>string</type> <parameter>string</parameter>
+   desde una lista de candidatos.
+  </para>
+  <para>
+   A partir de PHP 8.1, esta función utiliza heurística para detectar cuál de las codificaciones de texto válidas en la lista
+   especificada tiene más probabilidades de ser correcta y puede no estar en el orden de <parameter>encodings</parameter> proporcionado.
   </para>
   <para>
    La detección automática del juego de caracteres previsto nunca es totalmente
@@ -26,20 +30,19 @@
    como el encabezado HTTP "Content-Type".
   </para>
   <para>
-   Esta función se utiliza principalmente con encodages multioctetos, donde
-   no todas las secuencias de octetos forman una cadena válida. Si la cadena
-   de entrada contiene una secuencia de este tipo, este encodage será rechazado, y el
-   siguiente encodage será verificado.
+   Esta función se utiliza principalmente con codificaciones multibyte, donde no todas las secuencias de
+   bytes forman una cadena válida. Si la cadena de entrada contiene una secuencia de este tipo, esta
+   codificación será rechazada.
   </para>
 
   <warning>
    <title>El resultado no es fiable</title>
    <para>
-    El nombre de esta función es engañoso, realiza una « suposición » en lugar de una « detección ».
+    El nombre de esta función es engañoso, realiza una «suposición» en lugar de una «detección».
    </para>
    <para>
     Las suposiciones están lejos de ser precisas, y por lo tanto, esta función no permite
-    detectar de manera fiable el encodage correcto de los caracteres.
+    detectar de manera fiable la codificación correcto de los caracteres.
    </para>
   </warning>
  </refsect1>
@@ -52,7 +55,7 @@
      <term><parameter>string</parameter></term>
      <listitem>
       <para>
-       La <type>string</type> siendo inspeccionada.
+       El <type>string</type> que será inspeccionado.
       </para>
      </listitem>
     </varlistentry>
@@ -60,15 +63,14 @@
      <term><parameter>encodings</parameter></term>
      <listitem>
       <para>
-       Una lista de encodages de caracteres a probar, en orden.
-       Esta lista puede ser especificada como un &array; de &string;,
-       o como una &string; única separada por comas.
+       Una lista de codificaciones de caracteres a probar. Esta lista puede ser especificada como
+       un &array; de &string;, o como un &string; único separado por comas.
       </para>
       <para>
        Si <parameter>encodings</parameter> es omitido o &null;,
-       el detect_order actual (definido con la opción de configuración
+       el será utilizado el detect_order actual (definido con la opción de configuración
        <link linkend="ini.mbstring.detect-order">mbstring.detect_order</link>,
-       o la función <function>mb_detect_order</function>) será utilizado.
+       o la función <function>mb_detect_order</function>).
       </para>
      </listitem>
     </varlistentry>
@@ -78,9 +80,9 @@
       <para>
        Controla el comportamiento cuando <parameter>string</parameter> no es
        válido en ninguno de los <parameter>encodings</parameter> listados.
-       Si <parameter>strict</parameter> está definido como &false;, el encodage que
-       corresponda más será devuelto; si <parameter>strict</parameter>
-       está definido como &true;, &false; será devuelto.
+       Si <parameter>strict</parameter> está definido como &false;, se devolverá la codificación
+       más coincidente; si <parameter>strict</parameter>
+       está definido como &true;, devolverá &false;.
       </para>
       <para>
        El valor por omisión de <parameter>strict</parameter> puede ser definido
@@ -96,8 +98,8 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   El encodage de caracteres detectado, o &false; si la cadena no es válida
-   en uno de los encodages listados.
+   La codificación caracteres detectado, o &false; si la cadena no es válida
+   en ninguna de las codificaciones listadas.
   </para>
  </refsect1>
 
@@ -115,8 +117,8 @@
      <row>
       <entry>8.2.0</entry>
       <entry>
-       <function>mb_detect_encoding</function> ya no devolverá los siguientes
-       encodages no textuales:
+       <function>mb_detect_encoding</function> ya no devolverá las siguientes
+       codificaciones que no sean de texto:
        <literal>"Base64"</literal>, <literal>"QPrint"</literal>,
        <literal>"UUencode"</literal>, <literal>"HTML entities"</literal>,
        <literal>"7 bit"</literal> y <literal>"8 bit"</literal>.
@@ -138,7 +140,7 @@
 
 $str = "\x95\xB6\x8E\x9A\x83\x52\x81\x5B\x83\x68";
 
-// Detecta el encodage con el detect_order actual
+// Detecta la codificación con el detect_order actual
 var_dump(mb_detect_encoding($str));
 
 // "auto" es modificado según mbstring.language
@@ -174,14 +176,14 @@ string(5) "ASCII"
     <programlisting role="php">
 <![CDATA[
 <?php
-// 'áéóú' encoded in ISO-8859-1
+// 'áéóú' codificado en ISO-8859-1
 $str = "\xE1\xE9\xF3\xFA";
 
-// La cadena no es válida en ASCII o UTF-8, pero UTF-8 es considerado un mejor ajuste
+// La cadena no válica en ASCII ni UTF-8, pero UTF-8 se considera una coincidencia más cercana
 var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8'], false));
 var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8'], true));
 
-// Si un encodage válido es encontrado, el parámetro strict no cambia el resultado
+// Si se encuentra una codificación válida, el parámetro "strict" no cambia el resultado
 var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8', 'ISO-8859-1'], false));
 var_dump(mb_detect_encoding($str, ['ASCII', 'UTF-8', 'ISO-8859-1'], true));
 ?>
@@ -199,10 +201,10 @@ string(10) "ISO-8859-1"
    </example>
   </para>
   <para>
-   En ciertos casos, la misma secuencia de octetos puede formar una cadena válida
-   en diferentes encodages de caracteres, y es imposible determinar
+   En ciertos casos, la misma secuencia de bytes puede formar una cadena válida
+   en diferentes codificaciones de caracteres, y es imposible determinar
    cuál interpretación era prevista. Un ejemplo, entre otros,
-   la secuencia de octetos "\xC4\xA2" podría ser:
+   la secuencia de bytes "\xC4\xA2" podría ser:
   </para>
   <para>
    <simplelist>
@@ -221,14 +223,15 @@ string(10) "ISO-8859-1"
   </para>
   <para>
    <example>
-    <title>Efecto del orden cuando múltiples encodages coinciden</title>
+    <title>Efecto del orden cuando coinciden múltiples codificaciones</title>
     <programlisting role="php">
 <![CDATA[
 <?php
 $str = "\xC4\xA2";
 
-// La cadena es válida en los tres encodages, por lo que el primero listado será devuelto
-var_dump(mb_detect_encoding($str, ['UTF-8', 'ISO-8859-1', 'ISO-8859-5']));
+// La cadena es válida en las tres codificaciones, pero no siempre devolverá el primero de la lista
+var_dump(mb_detect_encoding($str, ['UTF-8']));
+var_dump(mb_detect_encoding($str, ['UTF-8', 'ISO-8859-1', 'ISO-8859-5'])); // A partir de PHP 8.1 esto devolverá ISO-8859-1 en vez de UTF-8
 var_dump(mb_detect_encoding($str, ['ISO-8859-1', 'ISO-8859-5', 'UTF-8']));
 var_dump(mb_detect_encoding($str, ['ISO-8859-5', 'UTF-8', 'ISO-8859-1']));
 ?>
@@ -238,6 +241,7 @@ var_dump(mb_detect_encoding($str, ['ISO-8859-5', 'UTF-8', 'ISO-8859-1']));
     <screen>
 <![CDATA[
 string(5) "UTF-8"
+string(10) "ISO-8859-1"
 string(10) "ISO-8859-1"
 string(10) "ISO-8859-5"
 ]]>
