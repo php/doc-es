@@ -1,86 +1,217 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: eac9eff7b66d8c2b168c25c72de0422126daf8cb Maintainer: PhilDaiguille Status: ready -->
-<!-- Reviewed: no Maintainer: Marqitos -->
+<!-- EN-Revision: 147b80d1974b969caad1db188a48f4bcd90f5eb8 Maintainer: Marqitos Status: ready -->
+<!-- Reviewed: no -->
 <sect1 xml:id="language.types.callable">
- <title>Funciones de retrollamada / Tipos Callable</title>
+ <title>Callables</title>
 
- <para>
-  Las funciones de retrollamada pueden ser identificadas a través del tipo <type>callable</type>.
- </para>
+ <simpara>
+  Un callable es una referencia a una función o método que se pasa a
+  otra función como argumento.
+  Se representa con la declaración de tipo <type>callable</type>.
+ </simpara>
+ <informalexample>
+  <programlisting role="php" annotations="non-interactive">
+<![CDATA[
+<?php
+function foo(callable $callback) {
+    $callback();
+}
+?>
+]]>
+  </programlisting>
+ </informalexample>
 
- <para>
-  Algunas funciones, como <function>call_user_func</function> o
-  <function>usort</function>, aceptan como argumento funciones de retrollamada
-  definidas por el usuario. Las funciones de retrollamada pueden ser funciones
-  simples, pero también métodos de &object;s, incluyendo métodos
-  estáticos de clase.
- </para>
+ <simpara>
+  Algunas funciones aceptan funciones de retrollamada como parámetro, por ejemplo
+  <function>array_map</function>, <function>usort</function>, o
+  <function>preg_replace_callback</function>.
+ </simpara>
 
  <sect2 xml:id="language.types.callable.passing">
-  <title>Paso de una función de retrollamada</title>
+  <title>Creación de callables</title>
 
-  <para>
-   Una función PHP es pasada por su nombre, como un &string; o como
-   un <link linkend="functions.first_class_callable_syntax">callable de primera clase</link>..
-   Se puede usar cualquier función interna o definida por el usuario, excepto las construcciones del lenguaje
-   como: <function>array</function>, <function>echo</function>,
-   <function>empty</function>, <function>eval</function>,
-   <function>exit</function>, <function>isset</function>,
-   <function>list</function>, <function>print</function>, o
-   <function>unset</function>.
-  </para>
+  <simpara>
+   Un callable es un tipo que representa algo que se puede invocar.
+   Los callables se pueden pasar como argumentos a funciones o métodos que
+   esperan un parámetro de retrollamada o se pueden invocar directamente.
+   El tipo <type>callable</type> no se puede usar como declaración de tipo para propiedades
+   de clase. En su lugar, use una declaración de tipo <classname>Closure</classname>.
+  </simpara>
 
-  <para>
-   Un método de un &object; instanciado es pasado como un &array; que contiene
-   un &object; en el índice 0, y el nombre del método en el índice 1.
-   Acceder a los métodos protegidos y privados dentro de una clase
-   está permitido.
-  </para>
+  <simpara>
+   Los callables se pueden crear de varias maneras diferentes:
+  </simpara>
 
-  <para>
-   Los métodos estáticos de clase también pueden ser pasados sin instanciar
-   un &object; de esa clase, ya sea pasando el nombre de la clase en lugar de un
-   &object; en el índice 0, o pasando
-   <literal>'NombreDeLaClase::NombreDelMetodo'</literal>.
-  </para>
+  <itemizedlist>
+   <listitem>
+    <simpara>Un objeto <classname>Closure</classname></simpara>
+   </listitem>
+   <listitem>
+    <simpara>Un &string; conteniendo el nombre de una función o método</simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Un &array; conteniendo un nombre de clase o un <type>object</type>
+     en el índice 0 y el nombre del método en el índice 1
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Un &object; implementando el método mágico
+     <link linkend="object.invoke">__invoke()</link>
+    </simpara>
+   </listitem>
+  </itemizedlist>
 
-  <para>
-   Además de las funciones definidas normalmente por el usuario,
-   las <link linkend="functions.anonymous">funciones anónimas</link> y
-   las <link linkend="functions.arrow">funciones flecha</link>
-   también pueden ser utilizadas como argumento de tipo callback.
-  </para>
+  <simpara>
+   Un objeto <classname>Closure</classname> puede ser creado usando la sintaxis de
+   <link linkend="functions.anonymous">funciones anónimas</link>, sintaxis de
+   <link linkend="functions.arrow">funciones de flecha</link>,
+   <link linkend="functions.first_class_callable_syntax">sintaxis callable de primera
+   clase</link>, o el método <methodname>Closure::fromCallable</methodname>.
+  </simpara>
 
   <note>
-   <para>
-    A partir de PHP 8.1.0, las funciones anónimas también pueden ser creadas utilizando la
-    <link linkend="functions.first_class_callable_syntax">sintaxis callable de primera clase</link>.
-   </para>
+   <simpara>
+    La <link linkend="functions.first_class_callable_syntax">sintaxis callable de primera
+   clase</link> solo está disponible a partir de PHP 8.1.0.
+   </simpara>
   </note>
 
-  <para>
-   Generalmente, cualquier objeto que implemente <link linkend="object.invoke">__invoke()</link>
-   también puede ser pasado al argumento callback.
-  </para>
+  <example>
+   <title>
+    Ejemplo de callback usando una <classname>Closure</classname>
+   </title>
+  <programlisting role="php">
+<![CDATA[
+<?php
+// Usando sintaxis de función anónima
+$double1 = function ($a) {
+    return $a * 2;
+};
 
-  <para>
-   <example>
-    <title>
-     Ejemplos de funciones de retrollamada
-    </title>
-    <programlisting role="php">
+// Usando sintaxis de callable de primera clase
+function double_function($a) {
+    return $a * 2;
+}
+$double2 = double_function(...);
+
+// Usando sintaxis de función de flecha
+$double3 = fn($a) => $a * 2;
+
+// Usando Closure::fromCallable
+$double4 = Closure::fromCallable('double_function');
+
+// Utilizar clousure como función de devolución de retrollamada
+// para duplicar el tamaño de cada elemento en nuestro rango
+$new_numbers = array_map($double1, range(1, 5));
+print implode(' ', $new_numbers) . PHP_EOL;
+
+$new_numbers = array_map($double2, range(1, 5));
+print implode(' ', $new_numbers) . PHP_EOL;
+
+$new_numbers = array_map($double3, range(1, 5));
+print implode(' ', $new_numbers) . PHP_EOL;
+
+$new_numbers = array_map($double4, range(1, 5));
+print implode(' ', $new_numbers);
+
+?>
+]]>
+   </programlisting>
+   &example.outputs.81;
+   <screen>
+<![CDATA[
+2 4 6 8 10
+2 4 6 8 10
+2 4 6 8 10
+2 4 6 8 10
+]]>
+   </screen>
+  </example>
+
+  <simpara>
+   Un callable también puede ser un string que contenga el nombre de una función o
+   método estático.
+   Cualquier función interna o definida por el usuario puede ser usada, excepto las construcciones del lenguaje
+   como: <function>array</function>, <function>echo</function>,
+   <function>empty</function>, <function>eval</function>,
+   <function>isset</function>,
+   <function>list</function>, <function>print</function>, o
+   <function>unset</function>.
+  </simpara>
+
+  <simpara>
+   Un método de clase estático puede ser usado sin instanciar un
+   <type>object</type> de esa clase, ya sea creando un array con
+   el nombre de la clase en el índice 0 y el nombre del método en el índice 1, o usando
+   la sintaxis especial con el operador de resolución de ámbito
+   <literal>::</literal>, como en <literal>'ClassName::methodName'</literal>.
+  </simpara>
+
+  <simpara>
+   Un método de un <type>object</type> instanciado puede ser un callable
+   cuando se pasa como un array con el <type>object</type> en el índice 0
+   y el nombre del método en el índice 1.
+  </simpara>
+
+  <simpara>
+   La principal diferencia entre un objeto <classname>Closure</classname> y el
+   tipo <type>callable</type> es que un objeto <classname>Closure</classname> es
+   independiente del ámbito y siempre se puede invocar, mientras que un tipo
+   callable puede depender del ámbito y puede que no se pueda invocar directamente.
+   <classname>Closure</classname> es la forma preferida de crear callables.
+  </simpara>
+
+  <note>
+   <simpara>
+    Mientras que los objetos <classname>Closure</classname> están vinculados al ámbito
+    donde se crean, los callables que hacen referencia a métodos de clase como strings
+    o arrays se resuelven en el ámbito donde se llaman.
+    Para crear un callable a partir de un método privado o protegido, que luego se pueda
+    invocar desde fuera del ámbito de la clase, use
+    <methodname>Closure::fromCallable</methodname> o la
+    <link linkend="functions.first_class_callable_syntax">sintaxis callable de primera
+    clase</link>.
+   </simpara>
+  </note>
+
+  <simpara>
+   PHP permite la creación de callables que pueden ser usados como argumento de retrollamada
+   pero que no pueden ser llamados directamente.
+   Estos son callables dependientes del contexto que hacen referencia a un método de clase en la
+   jerarquía de herencia de una clase, por ejemplo
+   <literal>'parent::method'</literal> o <literal>["static", "method"]</literal>.
+  </simpara>
+
+  <note>
+   <simpara>
+    A partir de PHP 8.2.0, los callables dependientes del contexto
+    están obsoletos. Elimine la dependencia del contexto reemplazando
+    <literal>'parent::method'</literal> con
+    <literal>parent::class . '::method'</literal> o use la
+    <link linkend="functions.first_class_callable_syntax">sintaxis callable de primera
+    clase</link>.
+   </simpara>
+  </note>
+
+  <example>
+   <title>
+    Invocando varios tipos de callables con <function>call_user_func</function>
+   </title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 
 // Un ejemplo de función de retrollamada
 function my_callback_function() {
-    echo 'hello world!', PHP_EOL;
+    echo '¡hola mundo!', PHP_EOL;
 }
 
 // Un ejemplo de método de retrollamada
 class MyClass {
     static function myCallbackMethod() {
-        echo 'Hello World!', PHP_EOL;
+        echo '¡Hola Mundo!', PHP_EOL;
     }
 }
 
@@ -88,33 +219,37 @@ class MyClass {
 call_user_func('my_callback_function');
 
 // Tipo 2: Llamada a un método estático de clase
-call_user_func(array('MyClass', 'myCallbackMethod'));
+call_user_func(['MyClass', 'myCallbackMethod']);
 
 // Tipo 3: Llamada a un método de objeto
 $obj = new MyClass();
-call_user_func(array($obj, 'myCallbackMethod'));
+call_user_func([$obj, 'myCallbackMethod']);
 
 // Tipo 4: Llamada a un método estático de clase
 call_user_func('MyClass::myCallbackMethod');
 
-// Tipo 5: Llamada a un método estático de clase relativo
+// Type 5: Llamada a un método estático de clase usando la palabla clave ::class
+call_user_func([MyClass::class, 'myCallbackMethod']);
+
+// Tipo 6: Llamada a un método estático de clase relativo
 class A {
     public static function who() {
-        echo "A", PHP_EOL;
+        echo 'A', PHP_EOL;
     }
 }
 
 class B extends A {
     public static function who() {
-        echo "B", PHP_EOL;
+        echo 'B', PHP_EOL;
     }
 }
 
-call_user_func(array('B', 'parent::who')); // A, obsoleto a partir de PHP 8.2.0
-// Tipo 6: Los objetos que implementan __invoke pueden ser utilizados como callables
+call_user_func(['B', 'parent::who']); // obsoleto a partir de PHP 8.2.0
+
+// Tipo 7: Los objetos que implementan __invoke pueden ser utilizados como callables
 class C {
     public function __invoke($name) {
-        echo 'Hello ', $name, PHP_EOL;
+        echo 'Hola ', $name;
     }
 }
 
@@ -122,41 +257,22 @@ $c = new C();
 call_user_func($c, 'PHP!');
 ?>
 ]]>
-    </programlisting>
-   </example>
-  </para>
-  <para>
-   <example>
-    <title>
-     Ejemplo de una función de retrollamada utilizando una <classname>Closure</classname>
-    </title>
-   <programlisting role="php">
+   </programlisting>
+   &example.outputs;
+   <screen>
 <![CDATA[
-<?php
-// Nuestra closure
-$double = function($a) {
-    return $a * 2;
-};
+¡hola mundo!
+¡Hola Mundo!
+¡Hola Mundo!
+¡Hola Mundo!
+¡Hola Mundo!
 
-// Este es nuestro rango de números
-$numbers = range(1, 5);
-
-// Uso de la closure como función de retrollamada.
-// Aquí, para duplicar el tamaño de cada elemento de nuestro rango
-$new_numbers = array_map($double, $numbers);
-
-print implode(' ', $new_numbers);
-?>
+Deprecated: Callables of the form ["B", "parent::who"] are deprecated in script on line 41
+A
+Hola PHP!
 ]]>
-    </programlisting>
-    &example.outputs;
-    <screen>
-<![CDATA[
-2 4 6 8 10
-]]>
-    </screen>
-   </example>
-  </para>
+   </screen>
+  </example>
 
   &note.func-callback-exceptions;
  </sect2>
