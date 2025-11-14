@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: be8baf89c0016c1c39ab0b85cafca28c8364e95b Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 372350f3bfad45ba01db850a1a3be40c803e196b Maintainer: Marqitos Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="function.session-gc" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -13,25 +13,34 @@
    <type class="union"><type>int</type><type>false</type></type><methodname>session_gc</methodname>
    <void/>
   </methodsynopsis>
-  <para>
-   <function>session_gc</function> se utiliza para ejecutar la
-   recolección de basura (Garbage Collection, abreviado GC). PHP utiliza
-   un método probabilístico para ejecutar la recolección de basura de sesión por defecto.
-  </para>
-  <para>
-   La recolección de basura (GC) basada en un método probabilístico funciona
-   en cierta medida pero presenta algunos problemas. 1) Los datos de sesión de los sitios con
-   poco tráfico pueden no ser eliminados durante el período deseado.
-   2) Los sitios con mucho tráfico pueden ejecutar la recolección de basura con demasiada frecuencia.
-   3) La recolección de basura se ejecuta en una solicitud del usuario y este notará una latencia debido a la recolección de basura.
-  </para>
-  <para>
-   Por lo tanto, se recomienda ejecutar la recolección de basura periódicamente en
-   los sistemas de producción, por ejemplo, "cron" para los sistemas de tipo UNIX.
-   Asegúrese de desactivar la recolección de basura por método probabilístico definiendo
-   <link linkend="ini.session.gc-probability">session.gc_probability</link>
-   a 0.
-  </para>
+  <simpara>
+   Por omisión, PHP utiliza <link linkend="ini.session.gc-probability">session.gc_probability</link>
+   para ejecutar el recolector de basura de sesión de forma probabilística en cada
+   solicitud. Este enfoque presenta algunas limitaciones:
+  </simpara>
+  <simplelist>
+   <member>Es posible que sitios con poco tráfico no eliminen sus datos de sesión dentro del plazo preferido.</member>
+   <member>Sitios con mucho tráfico pueden hacer que el recolector de basura funcione con demasiada frecuencia, realizando trabajo extra innecesario.</member>
+   <member>La recolección de basura se realiza a petición del usuario, y este puede experimentar una demora.</member>
+  </simplelist>
+  <simpara>
+   Para sistemas de producción, se recomienda deshabilitar la
+   recolección de basura basada en probabilidad configurando
+   <link linkend="ini.session.gc-probability">session.gc_probability</link> en <literal>0</literal>
+   y activar explícitamente el recolector de basura periódicamente, por ejemplo, utilizando "cron" en
+   sistemas tipo UNIX para ejecutar un script que llame a <function>session_gc</function>.
+  </simpara>
+
+  <note>
+   <simpara>
+    Al llamar a <function>session_gc</function> desde un script PHP de línea de comandos,
+    <link linkend="ini.session.save-path">session.save_path</link> debe tener
+    el mismo valor que las solicitudes web, y el script debe tener permisos de acceso y eliminación
+    para los archivos de sesión. Esto puede verse afectado por el usuario con el que se ejecuta el script
+    y por características de contenedor o aislamiento, como la opción <literal>PrivateTmp=</literal>
+    de systemd.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -41,23 +50,24 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   <function>session_gc</function> devuelve el número de datos de sesión
-   eliminados como éxito, &false; en caso de fallo.
-  </para>
-  <para>
-   Los antiguos gestores de almacenamiento no devuelven el número de datos de sesión eliminados
-   sino solo el flag de éxito/fallo. En este caso, el número de datos de sesión eliminados es 1
-   independientemente del número real de datos eliminados.
-  </para>
+  <simpara>
+   <function>session_gc</function> devuelve el número de datos de sesión eliminados
+   en caso de éxito, &return.falseforfailure;.
+  </simpara>
+  <note>
+   <simpara>
+    Los antiguos gestores de almacenamiento de sesiones no devuelven el número de entradas de sesión eliminadas, sino
+    solo un indicador de éxito/fracaso. En este caso, se devuelve <literal>1</literal> independientemente de
+    cuántas entradas de sesión se hayan eliminado realmente.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
-  <para>
-   <example>
-    <title>Ejemplo de <function>session_gc</function> para planificadores de tareas como cron</title>
-    <programlisting role="php">
+  <example>
+   <title>Ejemplo de <function>session_gc</function> para planificadores de tareas como cron</title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 // Nota: Este script debe ser ejecutado por el mismo usuario que el proceso del servidor web.
@@ -68,15 +78,15 @@ session_start();
 // Ejecutar la recolección de basura inmediatamente
 session_gc();
 
-// Eliminar el ID de sesión creado por session_gc()
+// Eliminar el ID de sesión creado por session_start()
 session_destroy();
 ?>
 ]]>
-    </programlisting>
-   </example>
-   <example>
-    <title>Ejemplo de <function>session_gc</function> para scripts accesibles por el usuario</title>
-    <programlisting role="php">
+   </programlisting>
+  </example>
+  <example>
+   <title>Ejemplo de <function>session_gc</function> para scripts accesibles por el usuario</title>
+   <programlisting role="php">
 <![CDATA[
 <?php
 // Nota: Se recomienda que session_gc() sea utilizado por un planificador de tareas,
@@ -88,7 +98,7 @@ $gc_period = 1800;
 
 session_start();
 // Ejecutar la recolección de basura solo cuando haya transcurrido el período.
-// Llamar a session_gc() en cada solicitud es un desperdicio de recursos.
+// Es decir, llamar a session_gc() en cada solicitud es un desperdicio de recursos.
 if (file_exists($gc_time)) {
     if (filemtime($gc_time) < time() - $gc_period) {
         session_gc();
@@ -99,20 +109,17 @@ if (file_exists($gc_time)) {
 }
 ?>
 ]]>
-    </programlisting>
-   </example>
-  </para>
+   </programlisting>
+  </example>
  </refsect1>
 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>session_start</function></member>
-    <member><function>session_destroy</function></member>
-    <member><link linkend="ini.session.gc-probability">session.gc_probability</link></member>
-   </simplelist>
-  </para>
+  <simplelist>
+   <member><function>session_start</function></member>
+   <member><function>session_destroy</function></member>
+   <member><link linkend="ini.session.gc-probability">session.gc_probability</link></member>
+  </simplelist>
  </refsect1>
 </refentry>
 <!-- Keep this comment at the end of the file
