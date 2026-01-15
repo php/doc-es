@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 44428b04b7b046593e9ab33874eddd1fea7dfab1 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: bfa334803465822457b4dabcf9d9f9a5a990c4d3 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no Maintainer: PhilDaiguille -->
-
-<refentry xml:id="function.dba-open" xmlns="http://docbook.org/ns/docbook">
+<refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.dba-open">
  <refnamediv>
   <refname>dba_open</refname>
   <refpurpose>Abre una base de datos DBA</refpurpose>
@@ -28,198 +27,196 @@
  </refsect1>
  <refsect1 role="parameters">
   &reftitle.parameters;
-  <para>
-   <variablelist>
-    <varlistentry>
-     <term><parameter>path</parameter></term>
-     <listitem>
+  <variablelist>
+   <varlistentry>
+    <term><parameter>path</parameter></term>
+    <listitem>
+     <para>
+      Ruta en el sistema de archivos.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>mode</parameter></term>
+    <listitem>
+     <para>
+      Puede ser <literal>r</literal> para solo lectura, <literal>w</literal> para
+      lectura/escritura, <literal>c</literal> para lectura/escritura y creación si la base no existe,
+      y <literal>n</literal> para creación, sobrescritura y acceso en lectura/escritura.
+      La base de datos se crea en modo BTree; los otros modos (como Hash o Queue) no son soportados.
+     </para>
+     <para>
+      Además, se puede elegir el método de bloqueo de la base con el
+      carácter siguiente. Utilice <literal>l</literal> para bloquear la base con un
+      fichero <filename>.lck</filename>, o <literal>d</literal> para bloquear
+      la base misma. Es importante que las aplicaciones utilicen estas
+      opciones de manera coherente.
+     </para>
+     <para>
+      Si se desea probar la posibilidad de acceso sin esperar la disponibilidad del bloqueo,
+      se puede añadir la letra <literal>t</literal> como tercer carácter. Cuando se está absolutamente seguro
+      de que la base no requiere bloqueo, se puede utilizar el guión <literal>-</literal>
+      en lugar de <literal>l</literal> o <literal>d</literal>.
+      Cuando no se utiliza ni <literal>d</literal>, ni <literal>l</literal> ni
+      <literal>-</literal>, dba bloqueará en modo <literal>d</literal>.
+     </para>
+     <note>
       <para>
-       Ruta en el sistema de archivos.
+       Solo puede haber un tipo de escritura en la base. Cuando se utiliza dba en un servidor web,
+       y varias peticiones HTTP realizan escrituras, estas solo pueden realizarse una tras otra. De igual
+       manera, la lectura durante la escritura no es posible. La extensión dba utiliza un bloqueo para evitar
+       estos problemas. A continuación se muestra la tabla de bloqueo:
+       <table>
+        <title>Bloqueo DBA</title>
+        <tgroup cols="9">
+         <thead>
+          <row>
+           <entry>ya abierta</entry>
+           <entry><parameter>mode</parameter> = "rl"</entry>
+           <entry><parameter>mode</parameter> = "rlt"</entry>
+           <entry><parameter>mode</parameter> = "wl"</entry>
+           <entry><parameter>mode</parameter> = "wlt"</entry>
+           <entry><parameter>mode</parameter> = "rd"</entry>
+           <entry><parameter>mode</parameter> = "rdt"</entry>
+           <entry><parameter>mode</parameter> = "wd"</entry>
+           <entry><parameter>mode</parameter> = "wdt"</entry>
+          </row>
+         </thead>
+         <tbody>
+          <row>
+           <entry>no abierta</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+          </row>
+          <row>
+           <entry><parameter>mode</parameter> = "rl"</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+          </row>
+          <row>
+           <entry><parameter>mode</parameter> = "wl"</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+          </row>
+          <row>
+           <entry><parameter>mode</parameter> = "rd"</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ok</entry>
+           <entry>ok</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+          </row>
+          <row>
+           <entry><parameter>mode</parameter> = "wd"</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>ilegal</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+           <entry>esperando</entry>
+           <entry>&false;</entry>
+          </row>
+         </tbody>
+        </tgroup>
+       </table>
+       <simplelist>
+        <member>ok: La segunda llamada tiene éxito.</member>
+        <member>esperando: La segunda llamada espera a que <function>dba_close</function>
+         sea llamada por el primer script.</member>
+        <member>false: La segunda llamada devuelve &false;.</member>
+        <member>ilegal: No se deben mezclar las opciones
+         <literal>"l"</literal> y <literal>"d"</literal> para el parámetro
+         <parameter>mode</parameter>.</member>
+       </simplelist>
       </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>mode</parameter></term>
-     <listitem>
-      <para>
-       Puede ser <literal>r</literal> para solo lectura, <literal>w</literal> para
-       lectura/escritura, <literal>c</literal> para lectura/escritura y creación si la base no existe,
-       y <literal>n</literal> para creación, sobrescritura y acceso en lectura/escritura.
-       La base de datos se crea en modo BTree; los otros modos (como Hash o Queue) no son soportados.
-      </para>
-      <para>
-       Además, se puede elegir el método de bloqueo de la base con el
-       carácter siguiente. Utilice <literal>l</literal> para bloquear la base con un
-       fichero <filename>.lck</filename>, o <literal>d</literal> para bloquear
-       la base misma. Es importante que las aplicaciones utilicen estas
-       opciones de manera coherente.
-      </para>
-      <para>
-       Si se desea probar la posibilidad de acceso sin esperar la disponibilidad del bloqueo,
-       se puede añadir la letra <literal>t</literal> como tercer carácter. Cuando se está absolutamente seguro
-       de que la base no requiere bloqueo, se puede utilizar el guión <literal>-</literal>
-       en lugar de <literal>l</literal> o <literal>d</literal>.
-       Cuando no se utiliza ni <literal>d</literal>, ni <literal>l</literal> ni
-       <literal>-</literal>, dba bloqueará en modo <literal>d</literal>.
-      </para>
-      <note>
-       <para>
-        Solo puede haber un tipo de escritura en la base. Cuando se utiliza dba en un servidor web,
-        y varias peticiones HTTP realizan escrituras, estas solo pueden realizarse una tras otra. De igual
-        manera, la lectura durante la escritura no es posible. La extensión dba utiliza un bloqueo para evitar
-        estos problemas. A continuación se muestra la tabla de bloqueo:
-        <table>
-         <title>Bloqueo DBA</title>
-         <tgroup cols="9">
-          <thead>
-           <row>
-            <entry>ya abierta</entry>
-            <entry><parameter>mode</parameter> = "rl"</entry>
-            <entry><parameter>mode</parameter> = "rlt"</entry>
-            <entry><parameter>mode</parameter> = "wl"</entry>
-            <entry><parameter>mode</parameter> = "wlt"</entry>
-            <entry><parameter>mode</parameter> = "rd"</entry>
-            <entry><parameter>mode</parameter> = "rdt"</entry>
-            <entry><parameter>mode</parameter> = "wd"</entry>
-            <entry><parameter>mode</parameter> = "wdt"</entry>
-           </row>
-          </thead>
-          <tbody>
-           <row>
-            <entry>no abierta</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-           </row>
-           <row>
-            <entry><parameter>mode</parameter> = "rl"</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-           </row>
-           <row>
-            <entry><parameter>mode</parameter> = "wl"</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-           </row>
-           <row>
-            <entry><parameter>mode</parameter> = "rd"</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ok</entry>
-            <entry>ok</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-           </row>
-           <row>
-            <entry><parameter>mode</parameter> = "wd"</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>ilegal</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-            <entry>esperando</entry>
-            <entry>&false;</entry>
-           </row>
-          </tbody>
-         </tgroup>
-        </table>
-        <simplelist>
-         <member>ok: La segunda llamada tiene éxito.</member>
-         <member>esperando: La segunda llamada espera a que <function>dba_close</function>
-          sea llamada por el primer script.</member>
-         <member>false: La segunda llamada devuelve &false;.</member>
-         <member>ilegal: No se deben mezclar las opciones
-          <literal>"l"</literal> y <literal>"d"</literal> para el parámetro
-          <parameter>mode</parameter>.</member>
-        </simplelist>
-       </para>
-      </note>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>handler</parameter></term>
-     <listitem>
-      <para>
-       El nombre del <link linkend="dba.requirements">gestor</link>
-       que debe ser utilizado para acceder a <parameter>path</parameter>.
-       Se pasa a todos los parámetros opcionales dados a
-       <function>dba_open</function> y puede actuar en su nombre.
-       Si el parámetro <parameter>handler</parameter> es &null;,
-       entonces se invoca el gestor por defecto.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>permission</parameter></term>
-     <listitem>
-      <para>
-       Parámetro opcional de tipo &integer; que se pasa al controlador. Tiene el mismo significado que
-       el parámetro <parameter>permissions</parameter> de la función <function>chmod</function>,
-       y tiene un valor por omisión de <literal>0644</literal>.
-      </para>
-      <para>
-       Los controladores <literal>db1</literal>, <literal>db2</literal>,
-       <literal>db3</literal>, <literal>db4</literal>, <literal>dbm</literal>,
-       <literal>gdbm</literal>,
-       Los controladores <literal>ndbm</literal> y <literal>lmdb</literal> soportan el
-       parámetro <parameter>permission</parameter>.
-      </para>
-      <para>
-       El controlador <literal>lmdb</literal> soporta dos parámetros adicionales.
-       El primero permite definir el <literal>$filemode</literal>
-       (ver descripción anterior), y el segundo permite definir la
-       <literal>$mapsize</literal>, cuyo valor debería ser un múltiplo del tamaño de página del sistema operativo,
-       o cero para utilizar la mapsize por defecto.
-       El parámetro <literal>$mapsize</literal> es soportado a partir de
-       PHP 7.3.14 y 7.4.2, respectivamente.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>map_size</parameter></term>
-     <listitem>
-      <para>
-       Parámetro opcional de tipo &integer; que se pasa al controlador. Su valor debe ser un múltiplo del
-       tamaño de página del sistema operativo, o cero para utilizar el tamaño de mappage por defecto.
-      </para>
-      <para>
-       Solo el controlador <literal>lmdb</literal> acepta el parámetro <parameter>map_size</parameter>.
-      </para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><parameter>flags</parameter></term>
-     <listitem>
-      <para>
-       Bandera a pasar a los controladores de base de datos. Si es &null;, se proporcionarán las banderas por defecto.
-       Actualmente, solo el controlador LMDB soporta las siguientes banderas:
-       <constant>DBA_LMDB_USE_SUB_DIR</constant> y
-       <constant>DBA_LMDB_NO_SUB_DIR</constant>.
-      </para>
-     </listitem>
-    </varlistentry>
-   </variablelist>
-  </para>
+     </note>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>handler</parameter></term>
+    <listitem>
+     <para>
+      El nombre del <link linkend="dba.requirements">gestor</link>
+      que debe ser utilizado para acceder a <parameter>path</parameter>.
+      Se pasa a todos los parámetros opcionales dados a
+      <function>dba_open</function> y puede actuar en su nombre.
+      Si el parámetro <parameter>handler</parameter> es &null;,
+      entonces se invoca el gestor por defecto.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>permission</parameter></term>
+    <listitem>
+     <para>
+      Parámetro opcional de tipo &integer; que se pasa al controlador. Tiene el mismo significado que
+      el parámetro <parameter>permissions</parameter> de la función <function>chmod</function>,
+      y tiene un valor por omisión de <literal>0644</literal>.
+     </para>
+     <para>
+      Los controladores <literal>db1</literal>, <literal>db2</literal>,
+      <literal>db3</literal>, <literal>db4</literal>, <literal>dbm</literal>,
+      <literal>gdbm</literal>,
+      Los controladores <literal>ndbm</literal> y <literal>lmdb</literal> soportan el
+      parámetro <parameter>permission</parameter>.
+     </para>
+     <para>
+      El controlador <literal>lmdb</literal> soporta dos parámetros adicionales.
+      El primero permite definir el <literal>$filemode</literal>
+      (ver descripción anterior), y el segundo permite definir la
+      <literal>$mapsize</literal>, cuyo valor debería ser un múltiplo del tamaño de página del sistema operativo,
+      o cero para utilizar la mapsize por defecto.
+      El parámetro <literal>$mapsize</literal> es soportado a partir de
+      PHP 7.3.14 y 7.4.2, respectivamente.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>map_size</parameter></term>
+    <listitem>
+     <para>
+      Parámetro opcional de tipo &integer; que se pasa al controlador. Su valor debe ser un múltiplo del
+      tamaño de página del sistema operativo, o cero para utilizar el tamaño de mappage por defecto.
+     </para>
+     <para>
+      Solo el controlador <literal>lmdb</literal> acepta el parámetro <parameter>map_size</parameter>.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>flags</parameter></term>
+    <listitem>
+     <para>
+      Bandera a pasar a los controladores de base de datos. Si es &null;, se proporcionarán las banderas por defecto.
+      Actualmente, solo el controlador LMDB soporta las siguientes banderas:
+      <constant>DBA_LMDB_USE_SUB_DIR</constant> y
+      <constant>DBA_LMDB_NO_SUB_DIR</constant>.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
  </refsect1>
  <refsect1 role="errors">
   &reftitle.errors;
@@ -279,12 +276,10 @@
 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>dba_popen</function></member>
-    <member><function>dba_close</function></member>
-   </simplelist>
-  </para>
+  <simplelist>
+   <member><function>dba_popen</function></member>
+   <member><function>dba_close</function></member>
+  </simplelist>
  </refsect1>
 </refentry>
 <!-- Keep this comment at the end of the file
