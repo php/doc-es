@@ -3,29 +3,29 @@
 <!-- EN-Revision: 009f215fc983eeded6161676bcffdd8cf3b6b080 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <sect1 xml:id="language.oop5.late-static-bindings" xmlns="http://docbook.org/ns/docbook">
-  <title>Late Static Bindings (Résolution statique a la volée)</title>
+  <title>Late Static Bindings (Resolución estática en tiempo de ejecución)</title>
   <para>
    PHP implementa una funcionalidad llamada
    <literal>late static binding</literal>, en español la resolución
-   estática a la volée, que puede ser utilizada para referenciar la clase llamada
+   estática en tiempo de ejecución, que puede ser utilizada para referenciar la clase llamada
    en un contexto de herencia estática.
   </para>
 
   <para>
-   Más precisamente, las resoluciones estáticas a la volée funcionan registrando
-   el nombre de la clase en el último "llamado no transmitido". En el caso de los llamados de
+   Más precisamente, las resoluciones estáticas en tiempo de ejecución funcionan registrando
+   el nombre de la clase en la última "llamada no reenviada". En el caso de las llamadas de
    métodos estáticos, se trata de la clase explícitamente nombrada (generalmente, la que está a
    la izquierda del operador
    <link linkend="language.oop5.paamayim-nekudotayim"><literal>::</literal></link>) ;
-   en el caso de métodos no estáticos, se trata de la clase del objeto. Un "llamado
-   transmitido" es un llamado estático desencadenado por <literal>self::</literal>,
-   <literal>parent::</literal>, <literal>static::</literal>, o, en la parte superior de la
+   en el caso de métodos no estáticos, se trata de la clase del objeto. Una "llamada
+   reenviada" es una llamada estática introducida por <literal>self::</literal>,
+   <literal>parent::</literal>, <literal>static::</literal>, o, subiendo en la
    jerarquía de clases, <function>forward_static_call</function>.
    <!-- técnicamente, static:: puede no ser de reenvío, pero es irrelevante -->
 
    La función <function>get_called_class</function> puede ser utilizada para recuperar
    una cadena que contiene el nombre de la clase llamada, y <literal>static::</literal>
-   introduce su espacio.
+   introduce su ámbito.
   </para>
 
   <para>
@@ -33,8 +33,9 @@
    con un punto de vista interno. <literal>"Late binding"</literal>, literalmente
    resolución tardía, proviene del hecho de que los elementos <literal>static::</literal>
    no serán resueltos utilizando la clase donde el método ha sido definido, sino
-   la que está activa durante la ejecución. El adjetivo estático ha sido
-   añadido porque este problema se aplica (sin estar limitado a) a los métodos estáticos.
+   que será calculada utilizando la información en tiempo de ejecución.
+   También se denomina "static binding" ya que puede ser utilizado para (sin estar
+   limitado a) los métodos estáticos.
   </para>
 
   <sect2 xml:id="language.oop5.late-static-bindings.self">
@@ -52,19 +53,20 @@
 
 class A
 {
-    public static function qui()
+    public static function who()
     {
         echo __CLASS__;
     }
+
     public static function test()
     {
-        self::qui();
+        self::who();
     }
 }
 
 class B extends A
 {
-    public static function qui()
+    public static function who()
     {
          echo __CLASS__;
     }
@@ -86,10 +88,10 @@ A
   </sect2>
 
   <sect2 xml:id="language.oop5.late-static-bindings.usage">
-   <title>Uso de la resolución estática a la volée</title>
+   <title>Uso de la resolución estática en tiempo de ejecución</title>
 
    <para>
-    La resolución estática a la volée intenta superar esta limitación
+    La resolución estática en tiempo de ejecución intenta superar esta limitación
     introduciendo una palabra clave que hace referencia a la clase
     que ha sido llamada durante la ejecución. Para simplificar, esta palabra clave
     permite la referencia a <literal>B</literal> desde
@@ -107,19 +109,20 @@ A
 
 class A
 {
-    public static function qui()
+    public static function who()
     {
         echo __CLASS__;
     }
+
     public static function test()
     {
-        static::qui(); // Aquí, resolución a la volée
+        static::who(); // Aquí, resolución estática en tiempo de ejecución
     }
 }
 
 class B extends A
 {
-    public static function qui()
+    public static function who()
     {
          echo __CLASS__;
     }
@@ -141,10 +144,10 @@ B
     <para>
      En contextos no estáticos, la clase llamada será la del objeto.
      Como <literal>$this-></literal> intentará llamar
-     a métodos privados desde el mismo contexto, utilizar <literal>static::</literal>
+     a métodos privados desde el mismo ámbito, utilizar <literal>static::</literal>
      podría dar resultados diferentes. Tenga en cuenta también que
-     <literal>static::</literal> solo puede hacer referencia a atributos/métodos
-     estáticos.
+     <literal>static::</literal> solo puede hacer referencia a propiedades
+     estáticas.
     </para>
    </note>
    <example>
@@ -157,8 +160,9 @@ class A
 {
     private function foo()
     {
-        echo "success!\n";
+        echo "Success!\n";
     }
+
     public function test()
     {
         $this->foo();
@@ -168,7 +172,7 @@ class A
 
 class B extends A
 {
-   /* foo() será copiada en B, por lo tanto su contexto será siempre A
+   /* foo() será copiada en B, por lo tanto su ámbito será siempre A
     * y la llamada se realizará sin problemas */
 }
 
@@ -176,7 +180,7 @@ class C extends A
 {
     private function foo()
     {
-        /* El método original es reemplazado; el contexto es el de C */
+        /* El método original es reemplazado; el ámbito es el de C */
     }
 }
 
@@ -205,13 +209,13 @@ Call to private method C::foo() from scope A
    </example>
    <note>
     <para>
-     La resolución de estáticos a la volée se detendrá en un llamado estático
-     completamente resuelto. Por otro lado, los llamados estáticos utilizando
+     La resolución de estáticos en tiempo de ejecución se detendrá en una llamada estática
+     completamente resuelta. Por otro lado, las llamadas estáticas utilizando
      una palabra clave como <literal>parent::</literal> o <literal>self::</literal>
-     transmitirán la información de llamada.
+     reenviarán la información de llamada.
     </para>
     <example>
-     <title>Llamada con o sin transmisión</title>
+     <title>Llamadas con o sin reenvío</title>
      <programlisting role="php">
 <![CDATA[
 <?php
@@ -220,10 +224,10 @@ class A
 {
     public static function foo()
     {
-        static::qui();
+        static::who();
     }
 
-    public static function qui()
+    public static function who()
     {
         echo __CLASS__."\n";
     }
@@ -238,14 +242,14 @@ class B extends A
         self::foo();
     }
 
-    public static function qui()
+    public static function who()
     {
         echo __CLASS__."\n";
     }
 }
 class C extends B
 {
-    public static function qui()
+    public static function who()
     {
         echo __CLASS__."\n";
     }
