@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: bdf9a4e40204c805f2c2a5c94c2f2f8f5556195a Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: cd4180557a185469a64a7eb26f7be98d0a5f1ebb Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 
 <chapter xml:id="features.http-auth" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -16,8 +16,8 @@
   <varname>AUTH_TYPE</varname> conteniendo respectivamente el nombre de usuario, la contraseña y
   el tipo de identificación. Estas variables predefinidas se encuentran en los arrays
   <varname>$_SERVER</varname>.
-  <emphasis>Solo</emphasis> los métodos de identificación simple ("Basic")
-  son soportados. Consulte la función
+  <emphasis>Solo</emphasis> el método de identificación "Basic"
+  es soportado. Consulte la función
   <function>header</function> para más información.
  </simpara>
 
@@ -32,8 +32,8 @@
 <![CDATA[
 <?php
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('HTTP/1.1 401 Unauthorized');
     header('WWW-Authenticate: Basic realm="My Realm"');
-    header('HTTP/1.0 401 Unauthorized');
     echo 'Texto utilizado si el visitante usa el botón de cancelación';
     exit;
 } else {
@@ -47,14 +47,14 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
  </para>
 
  <note>
-  <title>Nota de compatibilidad</title>
+  <title>Compatibilidad</title>
   <para>
    Sea muy cuidadoso al usar encabezados HTTP con PHP. Para
    garantizar la máxima compatibilidad entre los navegadores, la palabra clave
    "Basic" debe escribirse con una B mayúscula, y el texto de presentación
    debe colocarse entre comillas dobles (no simples), y exactamente un espacio debe
    preceder al código <emphasis>401</emphasis> en el encabezado
-   <emphasis>HTTP/1.0 401</emphasis>. Los parámetros de autenticación deben
+   <emphasis>HTTP/1.1 401</emphasis>. Los parámetros de autenticación deben
    estar separados por comas.
   </para>
  </note>
@@ -67,22 +67,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
   o buscando en un fichero dbm.
  </para>
 
- <para>
-  Desconfíe de los navegadores con errores, como Internet Explorer.
-  Parecen ser muy susceptibles en cuanto al orden de los encabezados.
-  Enviar el encabezado de identificación (<emphasis>WWW-Authenticate</emphasis>)
-  antes del código de <literal>HTTP/1.0 401</literal> parece convenirle
-  hasta ahora.
- </para>
-
  <note>
-  <title>Nota de configuración</title>
+  <title>Configuración de Apache</title>
   <para>
    PHP utiliza la presencia de la directiva <literal>AuthType</literal>
    para determinar si una identificación externa está activada.
-   Evite esta directiva de contexto si desea utilizar
-   la identificación de PHP (de lo contrario, ambas identificaciones se contradirán,
-   y fallarán).
   </para>
  </note>
 
@@ -92,69 +81,36 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
   robe las contraseñas de las páginas protegidas,
   en el mismo servidor.
  </simpara>
- <simpara>
-  Netscape e Internet Explorer borrarán la caché de identificación del cliente
-  si reciben una respuesta 401. Esto permite desconectar
-  a un usuario, para forzarlo a ingresar nuevamente su nombre de cuenta
-  y su contraseña. Algunos programadores lo utilizan para proporcionar un
-  tiempo de expiración o, de lo contrario, proporcionan un botón de desconexión.
- </simpara>
- <para>
-  <example>
-   <title>Identificación HTTP con nombre de usuario/contraseña forzada</title>
-   <programlisting role="php">
-<![CDATA[
-<?php
-function authenticate() {
-    header('WWW-Authenticate: Basic realm="Test Authentication System"');
-    header('HTTP/1.0 401 Unauthorized');
-    echo "Debe ingresar un identificador y una contraseña válidos para acceder
-    a este recurso.\n";
-    exit;
-}
 
-if ( !isset($_SERVER['PHP_AUTH_USER']) ||
-     ($_POST['SeenBefore'] == 1 && $_POST['OldAuth'] == $_SERVER['PHP_AUTH_USER'])) {
-    authenticate();
-} else {
-    echo "<p>Bienvenido: " . htmlspecialchars($_SERVER['PHP_AUTH_USER']) . "<br />";
-    echo "Anterior: " . htmlspecialchars($_REQUEST['OldAuth']);
-    echo "<form action='' method='post'>\n";
-    echo "<input type='hidden' name='SeenBefore' value='1' />\n";
-    echo "<input type='hidden' name='OldAuth' value=\"" . htmlspecialchars($_SERVER['PHP_AUTH_USER']) . "\" />\n";
-    echo "<input type='submit' value='Re Authenticate' />\n";
-    echo "</form></p>\n";
-}
-?>
-]]>
-   </programlisting>
-  </example>
- </para>
- <simpara>
-  Este comportamiento no es necesario por el estándar
-  de identificación <literal>HTTP Basic</literal>. Las pruebas con
-  <literal>Lynx</literal> han mostrado que no afectaba
-  la información de sesión al recibir un
-  mensaje de tipo 401. Esto hace que presionar la tecla "retroceso"
-  a un cliente <literal>Lynx</literal>
-  previamente identificado dé acceso directo a
-  la fuente. Sin embargo, el usuario puede usar la tecla
-  <literal>'_'</literal> para destruir las identificaciones anteriores.
- </simpara>
- <simpara>
-  Para hacer funcional la autenticación HTTP con un servidor IIS con
-  la versión CGI de PHP, debe editar
-  su configuración "<literal>Directory Security</literal>". Haga clic
-  en "<literal>Edit</literal>" y active solo
-  "<literal>Anonymous Access</literal>", todos los demás campos deben
-  dejarse inactivos.
- </simpara>
  <note>
-  <title>Nota para los usuarios de IIS:</title>
+  <title>Comportamiento del navegador</title>
   <simpara>
-   Para que la identificación HTTP funcione con IIS, la directiva PHP
+   La autenticación HTTP Basic es realmente básica, y no fue diseñada para
+   soportar cierres de sesión. Dado que HTTP es un protocolo sin estado, la mayoría
+   de los navegadores almacenarán en caché las credenciales proporcionadas tan pronto como
+   se reciba un código de estado <literal>2xx</literal>, y las enviarán en cada solicitud,
+   hasta que se cierre el navegador. No existe una forma definida para que un servidor
+   solicite nuevas credenciales.
+
+   A lo largo de los años, varias soluciones alternativas se han difundido como consejos
+   en Internet, pero todas dependen de cómo los diferentes navegadores han elegido
+   manejar casos límite no definidos (o incluso violaciones del estándar HTTP).
+   Es mejor evitar tales soluciones alternativas y no utilizar la autenticación Basic
+   para nada serio.
+  </simpara>
+ </note>
+
+ <note>
+  <title>Configuración de IIS</title>
+  <simpara>
+   Para que la identificación HTTP funcione con un servidor IIS con
+   la versión CGI de PHP, la directiva PHP
    <link linkend="ini.cgi.rfc2616-headers">cgi.rfc2616_headers</link>
-   debe establecerse en <literal>0</literal> (el valor por defecto).
+   debe establecerse en <literal>0</literal> (el valor por defecto),
+   y debe editar la configuración "<literal>Directory Security</literal>"
+   de IIS. Haga clic en "<literal>Edit</literal>" y active solo
+   "<literal>Anonymous Access</literal>", todos los demás campos deben
+   dejarse inactivos.
   </simpara>
  </note>
 
