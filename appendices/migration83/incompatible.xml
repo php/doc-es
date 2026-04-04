@@ -7,42 +7,130 @@
  <sect2 xml:id="migration83.incompatible.core">
   <title>Núcleo de PHP</title>
 
-  <sect3 xml:id="migration83.incompatible.core.saner-inc-dec-operators">
-   <title>Operadores de incremento/decremento más seguros</title>
+  <sect3 xml:id="migration83.incompatible.core.overflowing-call-stack">
 
+   <title>Programas que estaban muy cerca de desbordar la pila de llamadas</title>
    <para>
-    El uso del operador de <link linkend="language.operators.increment">incremento</link>
-    (<literal>++</literal>) en cadenas vacías, no numéricas
-    o no alfanuméricas está ahora depreciado.
-    Además, la incrementación de cadenas no numéricas está fuertemente depreciada.
-    Esto significa que ningún diagnóstico <constant>E_DEPRECATED</constant> se emite,
-    pero esta funcionalidad no debe usarse para producir nuevo código.
-    La nueva función <function>str_increment</function> debe usarse en su lugar.
+    Los programas que estaban muy cerca de desbordar la pila de llamadas ahora pueden lanzar
+    un <classname>Error</classname> cuando usan más de
+    <!-- link linkend="zend.max_allowed_stack_size-zend.reserved_stack_size" -->zend.max_allowed_stack_size-zend.reserved_stack_size<!-- </link>--> bytes de pila
+    (<!-- link linkend="fiber.stack_size-zend.reserved_stack_size" -->fiber.stack_size-zend.reserved_stack_size<!-- </link>--> para fibras).
    </para>
-
-   <para>
-    El uso del operador de <link linkend="language.operators.increment">decremento</link>
-    (<literal>--</literal>) en cadenas vacías o no numéricas está ahora depreciado.
-   </para>
-   <!-- RFC: https://wiki.php.net/rfc/saner-inc-dec-operators -->
   </sect3>
 
-  <sect3 xml:id="migration83.incompatible.core.get-class">
-   <title>get_class()/get_parent_class() llamadas sin argumentos</title>
-
+  <sect3 xml:id="migration83.incompatible.core.proc-get-status-multiple-times">
+   <title>Ejecución de proc_get_status() varias veces</title>
    <para>
-    Llamar a <function>get_class</function> y <function>get_parent_class</function>
-    sin argumentos está ahora depreciado.
+    Ejecutar <function>proc_get_status</function> varias veces ahora siempre
+    devolverá el valor correcto en sistemas POSIX. Anteriormente, sólo la primera llamada
+    de la función devolvía el valor correcto. Ejecutar
+    <function>proc_close</function> después de <function>proc_get_status</function>
+    ahora también devolverá el código de salida correcto. Anteriormente esto devolvía
+    <literal>-1</literal>.
+    Internamente, esto funciona almacenando en caché el resultado en sistemas POSIX.
+    Si se requiere el comportamiento anterior, es posible verificar la
+    clave <literal>"cached"</literal> en el array devuelto por
+    <function>proc_get_status</function> para verificar si el resultado fue almacenado en caché.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration83.incompatible.core.zend-max-execution-timers">
+   <title>Temporizadores de ejecución máxima de Zend</title>
+   <para>
+    Los temporizadores de ejecución máxima de Zend ahora están habilitados por defecto para compilaciones ZTS en
+    Linux.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration83.incompatible.core.traits-with-static-properties">
+   <title>Uso de traits con propiedades estáticas</title>
+   <para>
+    El uso de traits con propiedades estáticas ahora redeclarará las propiedades estáticas
+    heredadas de la clase padre. Esto creará un almacenamiento de propiedades estáticas separado
+    para la clase actual. Esto es análogo a agregar la propiedad estática a la clase directamente sin traits.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration83.incompatible.core.negative-index-to-empty-array">
+   <title>Asignación de un índice negativo a un array vacío</title>
+   <para>
+    Asignar un índice negativo <varname>$n</varname> a un array vacío ahora garantizará que el
+    siguiente índice sea <code>$n+1</code> en lugar de <literal>0</literal>.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration83.incompatible.core.class-constant-visibility-check">
+   <title>Verificación de varianza de visibilidad de constantes de clase</title>
+   <para>
+    La varianza de visibilidad de constantes de clase ahora se verifica correctamente cuando se hereda
+    de interfaces.
+   </para>
+  </sect3>
+
+  <sect3 xml:id="migration83.incompatible.core.weakmap-entries-maps-to-itself">
+   <title>Entradas de WeakMap cuya clave se mapea a sí misma</title>
+   <para>
+    Las entradas de <classname>WeakMap</classname> cuya clave se mapea a sí misma (posiblemente
+    de forma transitiva) ahora pueden ser eliminadas durante la recolección de ciclos si la clave no
+    es alcanzable excepto iterando sobre el WeakMap (la alcanzabilidad mediante iteración se
+    considera débil).
+    Anteriormente, dichas entradas nunca se eliminaban automáticamente.
    </para>
   </sect3>
  </sect2>
 
- <sect2 xml:id="migration83.incompatible.core.dba">
-  <title>DBA</title>
+ <sect2 xml:id="migration83.incompatible.date">
+  <title>Date</title>
 
   <para>
-   Llamar a <function>dba_fetch</function> con <parameter>$dba</parameter> como
-   tercer argumento está ahora depreciado.
+   La extensión DateTime ha introducido excepciones y errores específicos de la extensión Date
+   bajo las jerarquías <classname>DateError</classname> y
+   <classname>DateException</classname>, en lugar de advertencias y excepciones genéricas.
+   Esto mejora el manejo de errores, a expensas de tener que verificar errores y excepciones.
+  </para>
+ </sect2>
+
+ <sect2 xml:id="migration83.incompatible.dom">
+  <title>DOM</title>
+
+  <para>
+   Llamar a <methodname>DOMChildNode::after</methodname>,
+   <methodname>DOMChildNode::before</methodname>,
+   <methodname>DOMChildNode::replaceWith</methodname>
+   en un nodo que no tiene padre ahora es una operación sin efecto en lugar de una excepción de jerarquía,
+   que es el comportamiento requerido por la especificación DOM.
+  </para>
+
+  <para>
+   Usar los métodos de <classname>DOMParentNode</classname>
+   y <classname>DOMChildNode</classname> sin un documento ahora
+   funciona en lugar de lanzar un <constant>DOM_HIERARCHY_REQUEST_ERR</constant>
+   <classname>DOMException</classname>.
+   Esto está en línea con el comportamiento requerido por la especificación DOM.
+  </para>
+
+  <para>
+   Llamar a <methodname>DOMDocument::createAttributeNS</methodname> sin especificar
+   un prefijo incorrectamente creaba un espacio de nombres predeterminado, colocando el elemento
+   dentro del espacio de nombres en lugar del atributo. Este error ahora está corregido.
+  </para>
+
+  <para>
+   <methodname>DOMDocument::createAttributeNS</methodname> anteriormente
+   lanzaba incorrectamente un <constant>DOM_NAMESPACE_ERRNAMESPACE_ERR</constant>
+   <classname>DOMException</classname> cuando el prefijo ya se usaba para una
+   URI diferente. Ahora elige correctamente un prefijo diferente cuando hay un
+   conflicto de nombre de prefijo.
+  </para>
+
+  <para>
+   Se añadieron nuevos métodos y propiedades a algunas clases DOM.
+   Si una clase de espacio de usuario hereda de estas clases y declara un método o propiedad
+   con el mismo nombre, las declaraciones deben ser compatibles. De lo contrario, se lanzará un
+   error de compilación típico sobre declaraciones incompatibles.
+   Ver la <link linkend="migration83.new-features.dom">lista de nuevas funcionalidades</link>
+   y las <link linkend="migration83.new-functions.dom">nuevas funciones</link> para
+   una lista de los métodos y propiedades recién implementados.
   </para>
  </sect2>
 
@@ -50,42 +138,23 @@
   <title>FFI</title>
 
   <para>
-   Llamar a <methodname>FFI::cast</methodname>, <methodname>FFI::new</methodname>,
-   y <methodname>FFI::type</methodname> de manera estática está ahora depreciado.
+   Las funciones C que tienen un tipo de retorno <type>void</type> ahora devuelven &null; en lugar de
+   devolver el siguiente objeto <literal>object(FFI\CData:void) { }</literal>
   </para>
  </sect2>
 
- <sect2 xml:id="migration83.incompatible.intl">
-  <title>Intl</title>
+ <sect2 xml:id="migration83.incompatible.opcache">
+  <title>Opcache</title>
 
   <para>
-   Las constantes <constant>U_MULTIPLE_SEPARATOR_SEPARATORS</constant>
-   han sido depreciadas, se recomienda usar la constante
-   <constant>U_MULTIPLE_SEPARATOR_SEPARATORS</constant>
-   en su lugar.
-  </para>
-  <para>
-   La constante <constant>NumberFormatter::TYPE_CURRENCY</constant> ha sido depreciada.
-  </para>
- </sect2>
-
- <sect2 xml:id="migration83.incompatible.ldap">
-  <title>LDAP</title>
-
-  <para>
-   Llamar a <function>ldap_connect</function> con
-   <parameter>$hostname</parameter> y <parameter>$port</parameter> separados está
-   depreciado.
-   <!-- RFC: https://wiki.php.net/rfc/deprecations_php_8_3#deprecate_calling_ldap_connect_with_2_parameters -->
-  </para>
- </sect2>
-
- <sect2 xml:id="migration83.incompatible.mbstring">
-  <title>MBString</title>
-
-  <para>
-   Pasar un <parameter>$width</parameter> negativo a
-   <function>mb_strimwidth</function> está ahora depreciado.
+   La directiva INI <link linkend="ini.opcache.consistency-checks">opcache.consistency_checks</link>
+   fue eliminada. Esta funcionalidad estaba rota con el JIT de rastreo,
+   así como con la caché de herencia, y ha estado deshabilitada sin forma de
+   habilitarla desde PHP 8.1.18 y PHP 8.2.5.
+   Tanto el JIT de rastreo como la caché de herencia pueden modificar la shm después de que el script
+   haya sido persistido al invalidar su suma de verificación. El intento de corrección omitía
+   los punteros modificables pero fue rechazado debido a la complejidad. Por esta
+   razón, se decidió eliminar la funcionalidad.
   </para>
  </sect2>
 
@@ -93,29 +162,7 @@
   <title>Phar</title>
 
   <para>
-   Llamar a <methodname>Phar::setStub</methodname> con un
-   <type>resource</type> y un <parameter>$length</parameter>
-   está ahora depreciado. Estas llamadas deben ser reemplazadas por:
-   <code>$phar->setStub(stream_get_contents($resource));</code>
-  </para>
- </sect2>
-
- <sect2 xml:id="migration83.incompatible.random">
-  <title>Random</title>
-
-  <para>
-   La variante MT19937 <constant>MT_RAND_PHP</constant> está depreciada.
-   <!-- RFC: https://wiki.php.net/rfc/deprecations_php_8_3#mt_rand_php -->
-  </para>
- </sect2>
-
- <sect2 xml:id="migration83.incompatible.reflection">
-  <title>Reflection</title>
-
-  <para>
-   Llamar a <methodname>ReflectionProperty::setValue</methodname> con solo un
-   parámetro está depreciado.
-   Para definir propiedades estáticas, pasar <literal>null</literal> como primer parámetro.
+   Los tipos de las constantes de la clase <classname>Phar</classname> ahora están declarados.
   </para>
  </sect2>
 
@@ -123,38 +170,68 @@
   <title>Standard</title>
 
   <para>
-   La función <function>assert_options</function> está ahora depreciada.
-  </para>
-  <para>
-   Las constantes <constant>ASSERT_ACTIVE</constant>, <constant>ASSERT_BAIL</constant>,
-   <constant>ASSERT_CALLBACK</constant>, <constant>ASSERT_EXCEPTION</constant>,
-   y <constant>ASSERT_WARNING</constant> están ahora depreciadas.
+   La función <function>range</function> ha tenido varios cambios:
+   <simplelist>
+    <member>Ahora se lanza un <classname>TypeError</classname> cuando se pasan <type>object</type>s,
+    <type>resource</type>s, o <type>array</type>s como entradas de límite.</member>
+    <member>Se lanza un <classname>ValueError</classname> más descriptivo cuando
+    se pasa <literal>0</literal> para <parameter>$step</parameter>.</member>
+    <member>Ahora se lanza un <classname>ValueError</classname> cuando se usa un
+    <parameter>$step</parameter> negativo para rangos crecientes.</member>
+    <member>Si <parameter>$step</parameter> es un float que puede interpretarse
+    como un int, ahora se hace así.</member>
+    <member>Ahora se lanza un <classname>ValueError</classname> si cualquier argumento
+    es infinito o NAN.</member>
+    <member>Ahora se emite un <constant>E_WARNING</constant> si
+    <parameter>$start</parameter> o <parameter>$end</parameter> es la cadena vacía.
+    El valor continúa siendo convertido al valor <literal>0</literal>.</member>
+    <member>Ahora se emite un <constant>E_WARNING</constant> si
+    <parameter>$start</parameter> o <parameter>$end</parameter> tiene más de
+    un byte, solo si es una cadena no numérica.</member>
+    <member>Ahora se emite un <constant>E_WARNING</constant> si
+    <parameter>$start</parameter> o <parameter>$end</parameter> se convierte a un
+    entero porque la otra entrada de límite es un número.
+    (p.ej. <code>range(5, 'z');</code>).</member>
+    <member>Ahora se emite un <constant>E_WARNING</constant> si
+    <parameter>$step</parameter> es un float al intentar generar un rango de
+    caracteres, excepto si ambas entradas de límite son cadenas numéricas (p.ej.
+    <code>range('5', '9', 0.5);</code> no produce una advertencia).</member>
+    <member><function>range</function> ahora produce una lista de caracteres si una
+    de las entradas de límite es un dígito de cadena en lugar de convertir la otra entrada
+    a int (p.ej. <code>range('9', 'A');</code>).</member>
+   </simplelist>
+
+   <informalexample>
+    <programlisting role="php">
+<![CDATA[
+<?php
+range('9', 'A');  // ["9", ":", ";", "<", "=", ">", "?", "@", "A"], a partir de PHP 8.3.0
+range('9', 'A');  // [9, 8, 7, 6, 5, 4, 3, 2, 1, 0], antes de PHP 8.3.0
+?>
+]]>
+    </programlisting>
+   </informalexample>
   </para>
 
   <para>
-   Las directivas INI <literal>assert.*</literal> han sido depreciadas.
-   Ver la página
-   <link linkend="migration83.other-changes.ini">Cambios en la gestión del fichero INI</link>
-   para más detalles.
+   <function>number_format</function> ahora maneja valores negativos de
+   <parameter>$decimals</parameter> redondeando
+   <parameter>$num</parameter> a <code>abs($decimals)</code> dígitos antes del
+   punto decimal. Anteriormente, los valores negativos de <parameter>$decimals</parameter>
+   eran ignorados.
   </para>
-  <!-- RFC: https://wiki.php.net/rfc/assert-string-eval-cleanup -->
+
+  <para>
+   La verificación de errores de flags de <function>file</function> ahora captura todos los flags inválidos.
+   Notablemente, <constant>FILE_APPEND</constant> era anteriormente aceptado silenciosamente.
+  </para>
  </sect2>
 
- <sect2 xml:id="migration83.incompatible.sqlite3">
-  <title>SQLite3</title>
+ <sect2 xml:id="migration83.incompatible.SNMP">
+  <title>SNMP</title>
 
   <para>
-   El uso de excepciones está ahora desaconsejado, y las advertencias serán eliminadas en el futuro.
-   Llamar a <code>SQLite3::enableExceptions(false)</code> suprimirá una advertencia de depreciación en esta versión.
-  </para>
- </sect2>
-
- <sect2 xml:id="migration83.incompatible.zip">
-  <title>Zip</title>
-
-  <para>
-   La constante <constant>ZipArchive::FL_RECOMPRESS</constant> está depreciada
-   y será eliminada en una versión futura de libzip.
+   Los tipos de las constantes de la clase <classname>SNMP</classname> ahora están declarados.
   </para>
  </sect2>
 
