@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: e80ef2394f0c64be66917a5d4335736ae05b774f Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: f72c6031982a6f8152ef351d20f8e0d90e8f1612 Maintainer: lacatoire Status: ready -->
 <!-- Reviewed: no Maintainer: Marqitos -->
 <refentry xml:id="function.http-build-query" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -40,6 +40,14 @@
        Si <parameter>data</parameter> es un objeto, entonces solo los
        atributos públicos serán utilizados en el resultado.
       </para>
+      <note>
+       <simpara>
+        El método mágico <link linkend="object.tostring">__toString()</link>
+        no se invoca cuando un objeto es evaluado. Para utilizar la representación
+        en string de un objeto en la cadena de consulta, el objeto debe ser
+        convertido explícitamente a string.
+       </simpara>
+      </note>
      </listitem>
     </varlistentry>
     <varlistentry>
@@ -265,6 +273,44 @@ echo http_build_query($parent);
    <screen>
 <![CDATA[
 pub=publicParent&pub_bar%5Bpub%5D=publicChild
+]]>
+   </screen>
+  </example>
+
+  <example>
+   <title>Uso de <function>http_build_query</function> con objetos que contienen
+    <link linkend="object.tostring">__toString()</link>
+   </title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Foo {
+    public $publicProperty = 'visible';
+
+    public function __toString() {
+        return "bar";
+    }
+}
+
+$params = array(
+    'a' => 'b',
+    'foo' => new Foo()
+);
+
+// Sin conversión, http_build_query lee las propiedades públicas
+echo http_build_query($params) . "\n";
+
+// Con conversión explícita, http_build_query usa la salida de __toString()
+$params['foo'] = (string) new Foo();
+echo http_build_query($params) . "\n";
+?>
+]]>
+   </programlisting>
+ &example.outputs;
+   <screen>
+<![CDATA[
+a=b&foo%5BpublicProperty%5D=visible
+a=b&foo=bar
 ]]>
    </screen>
   </example>
