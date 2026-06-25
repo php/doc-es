@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 9b69a8dcce47d6619d6459914e784627cbb02a5f Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 205c3b8ad9af665e2b49dcc6020005bb479217a3 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 <refentry xml:id="pdo-pgsql.copyfromarray" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -12,7 +12,7 @@
   <methodsynopsis role="Pdo\\Pgsql">
    <modifier>public</modifier> <type>bool</type><methodname>Pdo\Pgsql::copyFromArray</methodname>
    <methodparam><type>string</type><parameter>tableName</parameter></methodparam>
-   <methodparam><type>array</type><parameter>rows</parameter></methodparam>
+   <methodparam><type class="union"><type>array</type><type>Traversable</type></type><parameter>rows</parameter></methodparam>
    <methodparam choice="opt"><type>string</type><parameter>separator</parameter><initializer>"\t"</initializer></methodparam>
    <methodparam choice="opt"><type>string</type><parameter>nullAs</parameter><initializer>"\\\\N"</initializer></methodparam>
    <methodparam choice="opt"><type class="union"><type>string</type><type>null</type></type><parameter>fields</parameter><initializer>&null;</initializer></methodparam>
@@ -39,8 +39,9 @@
     <term><parameter>rows</parameter></term>
     <listitem>
      <simpara>
-      Un <type>array</type> indexado de <type>string</type>s con los campos
-      separados por <parameter>separator</parameter>.
+      Un <type>array</type> indexado (o <type>Traversable</type>) de
+      <type>string</type>s con los campos separados por
+      <parameter>separator</parameter>.
      </simpara>
     </listitem>
    </varlistentry>
@@ -77,6 +78,69 @@
   <simpara>
    &return.success;
   </simpara>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.5.0</entry>
+      <entry>
+       <parameter>rows</parameter> ahora también acepta un
+       <classname>Traversable</classname>; anteriormente sólo se aceptaba un
+       <type>array</type>.
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example xml:id="pdo-pgsql.copyfromarray.example.basic">
+   <title>Ejemplo de <methodname>Pdo\Pgsql::copyFromArray</methodname></title>
+   <simpara>
+    Cada elemento de <parameter>rows</parameter> es un registro cuyos campos se
+    unen mediante <parameter>separator</parameter> (un tabulador por omisión).
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$db = new Pdo\Pgsql('pgsql:dbname=test host=localhost', $user, $pass);
+$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db->exec('CREATE TABLE fruits (id int, name text, qty int)');
+
+$rows = [
+    "1\tapple\t10",
+    "2\tbanana\t20",
+    "3\tcherry\t30",
+];
+$db->copyFromArray('fruits', $rows);
+
+foreach ($db->query('SELECT * FROM fruits ORDER BY id') as $row) {
+    echo "{$row['id']} {$row['name']} {$row['qty']}\n";
+}
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+1 apple 10
+2 banana 20
+3 cherry 30
+]]>
+   </screen>
+  </example>
  </refsect1>
 
  <refsect1 role="seealso">
