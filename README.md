@@ -1,11 +1,11 @@
-# Traducción al Español de la Documentación de PHP
+# Documentación de PHP en español
 
-Este documento pretende explicar cómo participar en la redacción de la documentación de PHP.
+Este documento explica cómo participar en la redacción de la documentación de PHP en español.
 
-Si desea leer la documentación y no escribirla, vaya al sitio PHP.net: https://www.php.net/manual/es/
+Si desea leer la documentación en lugar de escribirla, puede consultar el sitio oficial: https://www.php.net/manual/es/
 
-Además, si hay un error en la documentación, comprueba que tampoco está en la documentación en inglés, si es así, corrígelo antes.
-La traducción al español seguirá la modificación realizada en la documentación en inglés.
+En caso de detectar algún error en la traducción, se debe verificar si también está presente en la versión original en inglés y corregirlo en ella primero. La traducción al español siempre sigue los cambios y actualizaciones de la documentación en inglés.
+
 
 [![Build][build-badge]][build-action]
 
@@ -23,24 +23,11 @@ La traducción al español seguirá la modificación realizada en la documentaci
 
 ## ¿Cómo contribuir?
 
-Lee la `guia.pdf` para ayuda de cómo traducir el manual de PHP.
+Consulte la guía de contribución [GUIDE.md](GUIDE.md) para obtener ayuda detallada sobre cómo traducir el manual de PHP, configurar el entorno y validar los cambios.
 
-Además, se está preparando una nueva guía que te ayudará a [contribuir](CONTRIBUTING.md).
-
-Por favor, consulta para saber más detalles.
 
 ## Información de interés para todos los usuarios
 
-Por favor date de alta en la lista de correo oficial: <doc-es-subscribe@lists.php.net> desde [PHP Docs ES Mailing List](https://news-web.php.net/php.doc.es), o enviando un correo en blanco a <doc-es+subscribe@lists.php.net>.
+Por favor, suscríbase a la lista de correo oficial: <doc-es-subscribe@lists.php.net> a través de [PHP Docs ES Mailing List](https://news-web.php.net/php.doc.es), o bien envíe un correo en blanco a <doc-es+subscribe@lists.php.net>.
 
-O en otras Mailing Lists de PHP desde [PHP Mailing Lists](https://www.php.net/mailing-lists.php).
-
-## Construyendo con make y Docker
-
-- Instala Docker (https://docs.docker.com/get-docker/)
-- Reconstruye la documentación usando `make`
-- Abre output/php-chunked-xhtml/ en tu navegador.
-
-Si los repositorios `doc-base` o `phd` están disponibles en directorios adyacentes a este directorio, esos se utilizarán para la construcción. Para forzar que la imagen de Docker utilizada para la construcción se reconstruya a sí misma, puedes ejecutar `make -B build`; de lo contrario, el `Makefile` solo la construirá si no existe ya.
-
-También puedes construir la versión `web` de la documentación con `make php` y la salida se colocará en output/php-web.
+También puede unirse a otras listas de correo de PHP en [PHP Mailing Lists](https://www.php.net/mailing-lists.php).

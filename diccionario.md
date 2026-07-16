@@ -1,0 +1,278 @@
+# Diccionario
+
+Sugerencias y estilo en la traducción de la documentación de PHP
+
+## 1. Lenguaje
+
+Habla de usted.
+Trata de impersonalizar todo lo que puedas.
+
+**Ejemplo:**
+
+**Fuente:** `You can even configure your web server to process all your HTML files with PHP.`
+
+* **Correcto**: El servidor web puede ser incluso configurado para que procese todos los ficheros HTML con PHP.
+* **Incorrecto**: Usted puede incluso configurar su servidor web para que procese todos los ficheros HTML con PHP.
+
+## 2. Vocabulario
+
+Esta página puede ser útil para poder sacar las traducciones de algunas palabras: [Free Online Dictionary Of Computing](http://foldoc.org)
+
+### A
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `acceptable` | admisible |
+| `accessor` | método de acceso |
+| `array` | array |
+| `adapter` | adaptador |
+| `archive` | archivo (no fichero, un archivo contiene ficheros) |
+| `argument` | argumento (no "parámetro"; argumento es el valor que se le pasa a un parámetro) |
+| `available as of PHP` | disponible a partir de PHP |
+
+### B
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `Backward Incompatible Changes` | Cambios incompatibles con versiones anteriores |
+| `binary-safe` | (ser) seguro al trabajar/tratar con datos binarios |
+| `binding` | ligadura / adaptación (según el contexto) |
+| `bound` | ligado / enlazado |
+| `bitwise` | a nivel de bits |
+| `built-in` | interno |
+
+### C
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `cache hit` | búsqueda coincidente/exitosa en la caché |
+| `callback` | retrollamada / devolución de llamada / llamada de retorno |
+| `callback function` | funciones de retrollama/devolución de llamada/llamada de retorno |
+| `casting` | conversión, moldeado |
+| `changelog` | registro de cambios |
+| `charset` | juego/conjunto de caracteres |
+| `check` | verificar, comprobar |
+| `client-side` | lado-cliente |
+| `code point` | punto de código (carácter -valor numérico- de una página de código) |
+| `code position` | igual que 'code point' |
+| `construct` | constructor |
+| `core` | memoria (sólo en algunos contextos como in-core, core dump) |
+| `curly brackets` | llaves (se refiere a los {}) |
+| `custom` | personalizado |
+
+### D
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `debugging` | depuración |
+| `deprecated` | deprecado, obsoleto |
+| `developer` | desarrollador |
+| `display` | mostrar (no: desplegar) |
+| `drop-in` | a corto plazo (como adjetivo), atenuante (como nombre) |
+| `By default` | Por omisión |
+
+### E
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `encoding` | codificación |
+| `environment` | entorno, ámbito |
+| `if an error occurs` | en caso de error |
+| `eventual/eventually` | final, consiguiente / al final, finalmente (expresa un resultado o algo final y definitivo - NO traducir por eventual/eventualmente) |
+
+### F
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `failover` | tolerancia a fallos |
+| `faq` | preguntas frecuentes. |
+| `file` | fichero (no: archivo. Un archivo contiene ficheros. p.e.j. Archivo zip) |
+| `flag` | flags (no traducir: bandera) |
+| `flush` | volcar, verter (contenido) |
+
+### G
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `guideline` | pauta |
+
+### H
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `handle` | gestor / manejador / controlador (según el contexto) |
+
+### K
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `key` | clave / llave (según el contexto) |
+
+### L
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `layout` | layout |
+| `lazy connection` | conexión retardada |
+| `library` | biblioteca (NO librería) |
+| `list` | (como verbo) enumerar, incluir (NO listar) |
+| `locale` | localismo, configuración local/regional |
+| `loop` | ciclo, bucle |
+| `loose comparison` | comparaciones flexibles |
+
+### N
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `namespace` | espacio de nombres |
+| `note` | anotación / Observe (según contexto). |
+
+### M
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `mirror` | servidor copia. (no traducir: servidor espejo) |
+
+### O
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `online` | online (no traducir: en lí­nea) |
+| `overhead` | carga adicional |
+
+### P
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `padded` | rellenado (en el contexto de cadenas) |
+| `parse` | analizar, interpretar |
+| `parse into` | convertir |
+| `path` | ruta de acceso |
+| `payload` | carga útil, cuerpo, datos (en el contexto del envío de información a través de un protocolo) |
+| `plugin` | complemento |
+| `population` | llenar, completar |
+| `prepend` | anteponer, añadir delante / al principio (lo contrario de append) |
+| `predefined` | predefinidas, por defecto |
+| `procedural` | procedimental / por procedimientos |
+| `placeholder` | parámetro de sustitución |
+
+### R
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `raw` | sin tratar |
+| `read into` | transferir (contenido) |
+| `readonly properties` | propiedades readonly (no se traduce a solo lectura) |
+| `request` | petición |
+| `rollback` | revertir, volver a un estado anterior |
+| `run out of` | agotar, quedarse sin |
+| `runtime` | tiempo de ejecución |
+
+### S
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `sandbox` | entorno de pruebas |
+| `scale` | escalar / redimensionar / mejorar el rendimiento (según contexto) |
+| `scope` | ámbito (variable scope = ámbito de las variables) |
+| `script` | script, secuencia de comandos. |
+| `See <function>` | Véase |
+| `see also` | Véase también |
+| `server-side` | lado-servidor |
+| `statement` | sentencia |
+| `stream` | secuencia, flujo (de datos). |
+| `superglobal` | superglobal (no traducir: autoglobal) |
+| `set (to set)` | fijar, configurar |
+| `settings` | opciones, preferencias, parámetros. |
+| `stub` | rutina de interoperabilidad / improductiva / auxiliar (según contexto) |
+| `on success` | en caso de éxito |
+
+### T
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `throttling` | estrangulamiento, limitación (en el contexto de transmisiones) |
+| `timestamp` | Fecha Unix |
+| `time out` | desconexión por tiempo, tiempo agotado, tiempo límite (según contexto) |
+| `Toolchain` | cadena de herramientas. |
+| `trailer/trailor` | tráiler (se refiere a esto: https://en.wikipedia.org/wiki/Trailer_(computing) ) |
+| `tweaking` | modificación menor, ajuste, perfeccionamiento |
+| `Type juggling` | manipulación de tipos. |
+| `Typed properties` | Propiedades tipadas. |
+
+### U
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `Underlying framework` | marco de referencia base. |
+
+### W
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `workflow` | flujo de trabajo, flujo de procesos, diagrama de procesos, diagrama de transiciones, diagrama de estados, flujo de estados |
+| `wrappers` | envolturas |
+
+### Misc
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `refer to` | consulte |
+| `array` | array (no traducir: matriz) |
+| `string` | string (no traducir: cadena) |
+| `integer` | integer (no traducir: entero) |
+| `bool` | bool (no traducir: booleano) |
+| `float` | float (no traducir: flotante) |
+
+## 3. Vocabulario específico
+
+### Artes gráficas
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `ascender/ascend` | ascendente (p.ej., la "b" y la "d" tiene ascendente) |
+| `charspacing ` | espaciado/espacio entre caracteres |
+| `descender/descent` | descendente (p.ej., la "p" y la "q" tiene descendente) |
+| `glyph` | glifo |
+| `hyphenation ` | partición silábica, división mediante guiones |
+| `indent/indentation` | sangría |
+| `kerning` | interletraje, interletra, (¿cran?) |
+| `leading/line spacing` | interlínea, espaciado/espacio entre líneas |
+| `ligature` | ligadura |
+| `line cap/end` | extremo de línea |
+| `overline` | suprarayado |
+| `overprint` | sobreimpresión |
+| `spot color` | color directo |
+| `strikethrough/strikeout` | tachado |
+| `underline` | subrayado |
+| `wordspacing` | interpalabra, espaciado/espacio entre palabras |
+
+### Dibujo e Imagen
+
+| Término en Inglés | Traducción / Sugerencia |
+| :--- | :--- |
+| `bounding box` | caja circundante |
+| `clip` | recortar |
+| `clipping area` | área de recorte |
+| `dashed line` | línea discontinua |
+| `drop shadow` | sombra paralela |
+| `flatness` | planicidad |
+| `miter` | inglete |
+| `path` | trazado |
+| `scale` | redimensionar, escala (según contexto) |
+| `shading` | sombreado |
+| `stroke` | contorno |
+| `translate` | trasladar (y NO traducir) |
+| `translation` | traslación (y NO traducción) |
+
+Nota:
+Hay que hacerlo entendible, tampoco vamos a seguir la RAE al pié de la letra, he visto mucho 'script' por todos lados según el contexto lo dejaría como está. Hay
+palabras que no hace falta traducirlas, he visto traducido on, off, true, false ¡no hace falta! Todo el mundo sabe que es on y off, online, offline. Y en programación
+todo el mundo sabe que es true y false, Array, bool, integer y string.
+
+## 4. Errores más comunes
+
+* ❌ `así­ mismo` &rarr; la forma correcta es "asimismo"
+* ❌ `preveer` &rarr; la forma correcta es "prever"
+* ❌ `carácteres` &rarr; la forma correcta es "caracteres"
+* ❌ `sobre escribir` &rarr; la forma correcta es "sobrescribir"
