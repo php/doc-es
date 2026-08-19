@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: a0434e05111acabf2b9b2c7847e7e733f8dab0dc Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: c083c88c8e7ed7eb0d14662c0471693dcac42daf Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <!-- splitted from ./en/functions/pcre.xml, last change in rev 1.2 -->
 <chapter xml:id="reference.pcre.pattern.syntax" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -1427,6 +1427,10 @@
    también por nombre. Hay dos sintaxis alternativas
    <literal>(?&lt;name&gt;pattern)</literal> y <literal>(?'name'pattern)</literal>.
   </para>
+  <simpara>
+   A partir de PHP 8.4.0, que incluye PCRE2 10.44, la longitud máxima del nombre
+   de un subpatrón es de 128 caracteres; anteriormente era de 32 caracteres.
+  </simpara>
 
   <para>
    A veces es necesario tener múltiples coincidencias alternativas
@@ -1723,33 +1727,53 @@
    en absoluto, porque la afirmación (?!foo) es siempre &true;
    cuando los siguientes tres caracteres son "bar". Se necesita una afirmación de retroceso para lograr este efecto.
   </para>
-  <para>
+  <simpara>
    <emphasis>Afirmaciones de retroceso</emphasis> comienzan con (?&lt;= para afirmaciones positivas y (?&lt;! para afirmaciones negativas. Por ejemplo,
 
    <literal>(?&lt;!foo)bar</literal>
 
    sí encuentra una ocurrencia de "bar" que no está precedida por
-   "foo". El contenido de una afirmación de retroceso está restringido
-   de tal manera que todas las cadenas que coincide deben tener una longitud fija. Sin embargo, si hay varias alternativas, no todas tienen que tener la misma longitud fija. Por lo tanto
-
-   <literal>(?&lt;=bullock|donkey)</literal>
-
-   está permitido, pero
+   "foo". Una afirmación de retroceso puede coincidir con cadenas de longitud
+   variable, hasta una longitud máxima definida por la implementación.
+   Las alternativas de longitudes diferentes, como
 
    <literal>(?&lt;!dogs?|cats?)</literal>
 
-   causa un error en el momento de la compilación. Las ramas que coinciden con cadenas de diferentes longitudes están permitidas solo al nivel superior
-   de una afirmación de retroceso. Esto es una extensión en comparación con Perl 5.005, que requiere que todas las ramas coincidan con la misma longitud de cadena. Una afirmación como
+   y las ramas de nivel superior que pueden coincidir con más de una longitud, como
 
    <literal>(?&lt;=ab(c|de))</literal>
 
-   no está permitida, porque su única rama de nivel superior puede coincidir con dos longitudes diferentes, pero es aceptable si se reescribe para usar dos ramas de nivel superior:
-
-   <literal>(?&lt;=abc|abde)</literal>
+   están permitidas.
 
    La implementación de afirmaciones de retroceso es, para cada alternativa, mover temporalmente la posición actual hacia atrás por el ancho fijo y luego intentar coincidir. Si no hay suficientes caracteres antes de la posición actual, la coincidencia se considera fallida. Los retrocesos en conjunto con subpatrones de una sola vez pueden ser particularmente útiles para coincidir al final de las cadenas; se da un ejemplo al final
    de la sección sobre subpatrones de una sola vez.
-  </para>
+  </simpara>
+  <simpara>
+   Antes de PHP 8.4.0, que incluye PCRE2 10.44, el contenido de una afirmación de
+   retroceso estaba restringido de tal manera que todas las cadenas con las que
+   coincidía debían tener una longitud fija. Si había varias alternativas, no todas
+   tenían que tener la misma longitud fija, por lo tanto
+
+   <literal>(?&lt;=bullock|donkey)</literal>
+
+   estaba permitido, pero
+
+   <literal>(?&lt;!dogs?|cats?)</literal>
+
+   causaba un error en el momento de la compilación. Las ramas que coincidían con
+   cadenas de diferentes longitudes estaban permitidas solo al nivel superior de una
+   afirmación de retroceso. Esto era una extensión en comparación con Perl 5.005, que
+   requería que todas las ramas coincidieran con la misma longitud de cadena. Una
+   afirmación como
+
+   <literal>(?&lt;=ab(c|de))</literal>
+
+   no estaba permitida, porque su única rama de nivel superior podía coincidir con dos
+   longitudes diferentes, pero era aceptable si se reescribía para usar dos ramas de
+   nivel superior:
+
+   <literal>(?&lt;=abc|abde)</literal>
+  </simpara>
   <para>
    Varias afirmaciones (de cualquier tipo) pueden ocurrir en sucesión.
    Por ejemplo,
