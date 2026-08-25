@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 61374bbe228e8e9c55a24aba59a1e2bb2a871148 Maintainer: PhilDaiguille Status: ready -->
-<!-- Reviewed: yes -->
+<!-- EN-Revision: e43fb30acb61e76ef50174ec84c2aa33674a3828 Maintainer: lacatoire Status: ready -->
 <refentry xml:id="function.pcntl-rfork" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>pcntl_rfork</refname>
-  <refpurpose>Manipula los recursos del proceso</refpurpose>
+  <refpurpose>Manipula los recursos de un proceso</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -15,7 +14,7 @@
    <methodparam choice="opt"><type>int</type><parameter>signal</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
   <para>
-   Manipula los recursos del proceso.
+   Manipula los recursos de un proceso.
   </para>
  </refsect1>
 
@@ -27,42 +26,42 @@
      <term><parameter>flags</parameter></term>
      <listitem>
       <para>
-       El parámetro <parameter>flags</parameter> determina qué recursos del proceso llamante (padre)
-       son compartidos por el nuevo proceso (hijo) o inicializados a sus valores por omisión.
+       El parámetro <parameter>flags</parameter> determina qué recursos del proceso invocante (el padre)
+       son compartidos por el nuevo proceso (el hijo) o inicializados a sus valores por defecto.
       </para>
       <para>
-       <parameter>flags</parameter> es el OU lógico de un subconjunto de los siguientes valores:
+       <parameter>flags</parameter> es el OR lógico de algún subconjunto de:
        <simplelist>
         <member>
-         <constant>RFPROC</constant>: Si está definido, se crea un nuevo proceso;
-         de lo contrario, los cambios afectan al proceso actual.
+         <constant>RFPROC</constant>: Si está establecido, se crea un nuevo proceso;
+         en caso contrario, los cambios afectan al proceso actual.
         </member>
         <member>
-         <constant>RFNOWAIT</constant>: Si está definido, el proceso hijo será disociado del padre.
-         Al salir, el proceso hijo no dejará un estado a recolectar para el padre.
+         <constant>RFNOWAIT</constant>: Si está establecido, el proceso hijo será disociado del padre.
+         Al terminar, el hijo no dejará un estado que el padre pueda recoger.
         </member>
         <member>
-         <constant>RFFDG</constant>: Si está definido, la tabla de descriptores de ficheros del llamante es copiada;
-         de lo contrario, ambos procesos comparten una sola tabla.
+         <constant>RFFDG</constant>: Si está establecido, la tabla de descriptores de archivo del invocante es copiada;
+         en caso contrario, los dos procesos comparten una única tabla.
         </member>
         <member>
-         <constant>RFCFDG</constant>: Si está definido, el nuevo proceso comienza con una tabla de descriptores de ficheros propia.
+         <constant>RFCFDG</constant>: Si está establecido, el nuevo proceso comienza con una tabla de descriptores de archivo limpia.
          Es mutuamente excluyente con <constant>RFFDG</constant>.
         </member>
         <member>
-         <constant>RFLINUXTHPN</constant>: Si está definido, el núcleo devolverá SIGUSR1 en lugar de SIGCHILD al salir del hilo para el hijo.
-         Esto está destinado a hacer la notificación de salida del padre de salida del hilo Linux clone.
+         <constant>RFLINUXTHPN</constant>: Si está establecido, el kernel devolverá SIGUSR1 en lugar de SIGCHLD cuando el hilo del hijo termine.
+         Está destinado a realizar la notificación al padre de la terminación de un clone de Linux.
         </member>
         <member>
-         <constant>RFTSIGZMB</constant>: Si está definido, el núcleo enviará la señal especificada
-         por el parámetro <parameter>signal</parameter> al padre al salir el hijo,
-         en lugar del SIGCHLD por omisión. Especificar el número de señal 0 desactiva
-         la entrega de señal al salir el hijo.
+         <constant>RFTSIGZMB</constant>: Si está establecido, el kernel entregará al padre la señal
+         especificada por el parámetro <parameter>signal</parameter> cuando el hijo termine,
+         en lugar de la señal SIGCHLD por defecto. Especificar el número de señal 0 desactiva
+         la entrega de la señal cuando el hijo termina.
         </member>
         <member>
-         <constant>RFTHREAD</constant>: Si está definido, el nuevo proceso comparte el descriptor de fichero
-         a la tabla de líderes de proceso con su padre. Solo se aplica cuando ni
-         <constant>RFFDG</constant> ni <constant>RFCFDG</constant> están definidos.
+         <constant>RFTHREAD</constant>: Si está establecido, el nuevo proceso comparte con su padre
+         la tabla que asocia los descriptores de archivo a los líderes de proceso. Solo se aplica cuando
+         ni <constant>RFFDG</constant> ni <constant>RFCFDG</constant> están establecidos.
         </member>
        </simplelist>
       </para>
@@ -71,11 +70,11 @@
     <varlistentry>
      <term><parameter>signal</parameter></term>
      <listitem>
-      <para>
-       El número de señal a enviar al padre cuando el hijo sale.
-       Solo se usa cuando el indicador <constant>RFTSIGZMB</constant> está definido.
-       Especificar <literal>0</literal> desactiva la entrega de señal al salir el hijo.
-      </para>
+      <simpara>
+       El número de la señal a entregar al padre cuando el hijo termina.
+       Solo se utiliza cuando el flag <constant>RFTSIGZMB</constant> está establecido.
+       Especificar <literal>0</literal> desactiva la entrega de la señal cuando el hijo termina.
+      </simpara>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -85,10 +84,11 @@
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
   <para>
-   En caso de éxito, el PID del proceso hijo es devuelto en el contexto del padre,
-   y un <literal>0</literal> es devuelto en el contexto del proceso hijo.
-   En caso de fallo, un <literal>-1</literal> será devuelto en el contexto del padre,
-   ningún proceso hijo será creado, y se lanzará un error PHP.
+   En caso de éxito, el PID del proceso hijo es devuelto en el hilo de
+   ejecución del padre, y se devuelve un <literal>0</literal> en el hilo
+   de ejecución del hijo.
+   En caso de fallo, se devolverá un <literal>-1</literal> en el contexto
+   del padre, no se creará ningún proceso hijo, y se generará un error de PHP.
   </para>
  </refsect1>
 
@@ -96,19 +96,19 @@
   &reftitle.examples;
   <para>
    <example>
-    <title>Ejemplo de <function>pcntl_rfork</function></title>
+    <title>Ejemplo con <function>pcntl_rfork</function></title>
     <programlisting role="php">
 <![CDATA[
 <?php
 
 $pid = pcntl_rfork(RFNOWAIT|RFTSIGZMB, SIGUSR1);
 if ($pid > 0) {
-  // Esto es el proceso padre.
+  // Este es el proceso padre.
   var_dump($pid);
 } else {
-  // Esto es el proceso hijo.
+  // Este es el proceso hijo.
   var_dump($pid);
-  sleep(2); // mientras el hijo no duerma, vemos su "pid"
+  sleep(2); // como el hijo no espera, se ve su "pid"
 }
 ?>
 ]]>
@@ -128,7 +128,7 @@ int(0)
   &reftitle.notes;
   <note>
    <para>
-    Esta función solo está disponible en sistemas BSD.
+    Esta función solo está disponible en los sistemas BSD.
    </para>
   </note>
  </refsect1>
