@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 627f933cfe6a033dccac32982cd68e7c1b86927f Maintainer: Marqitos Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 85264ba268a398c4b90c1948839d54ce688dd5cd Maintainer: Marqitos Status: ready -->
 <refentry xmlns="http://docbook.org/ns/docbook" xml:id="function.filter-var-array">
  <refnamediv>
   <refname>filter_var_array</refname>
@@ -50,7 +48,7 @@
      </simpara>
      <simpara>
       La array de opciones es un array asociativo donde la clave corresponde
-      a una clave en la matriz de datos <parameter>array</parameter> y el valor
+      a una clave del array de entrada y el valor
       asociado es el filtro a aplicar a esta entrada,
       o un array asociativo que describe cómo y qué filtro se debe
       aplicar a esta entrada.
@@ -64,7 +62,7 @@
       <constant>FILTER_UNSAFE_RAW</constant>, o
       <constant>FILTER_CALLBACK</constant>.
       Opcionalmente, puede contener la clave <literal>'flags'</literal>,
-      que especifica los indicadores que se aplican al filtro,
+      que especifica cualquier flag que se aplique al filtro,
       y la clave <literal>'options'</literal>, que especifica las opciones
       que se aplican al filtro.
      </simpara>
@@ -83,17 +81,39 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   En caso de éxito un array que contiene los valores de las variables que se
-   han pedido o &false; en caso de fallo. El valor del array será &false; si
-   el filtro falla o &null; si la variable no está definida.
-  </para>
+  <simpara>
+   En caso de éxito, un &array; que contiene los valores de las variables solicitadas.
+  </simpara>
+  <simpara>
+   En caso de fallo, se devuelve &false;.
+  </simpara>
+  <simpara>
+   Las entradas faltantes del array de entrada se añaden al &array; devuelto
+   como &null; si <parameter>add_empty</parameter> es &true;,
+   y se omiten por completo si es &false;.
+  </simpara>
+  <simpara>
+   Un valor del array devuelto será &false; si el filtro falla,
+   a menos que se use el flag <constant>FILTER_NULL_ON_FAILURE</constant>,
+   en cuyo caso será &null;.
+   Con el flag <constant>FILTER_FORCE_ARRAY</constant>,
+   ese valor de fallo se envuelve en un &array; de un solo elemento
+   como cualquier otro resultado.
+  </simpara>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
    <title>Ejemplo de <function>filter_var_array</function></title>
+   <simpara>
+    Las entradas se filtran como escalares a menos que se use
+    <constant>FILTER_REQUIRE_ARRAY</constant> o
+    <constant>FILTER_FORCE_ARRAY</constant>.
+    Por lo tanto, el flag <constant>FILTER_REQUIRE_SCALAR</constant> en
+    <literal>testscalar</literal>, a continuación, solo indica ese
+    comportamiento por defecto de forma explícita.
+   </simpara>
    <programlisting role="php">
 <![CDATA[
 <?php
@@ -157,6 +177,78 @@ array(6) {
   }
   ["doesnotexist"]=>
   NULL
+}
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Aplicación de un único filtro a todos los valores</title>
+   <simpara>
+    Cuando <parameter>options</parameter> es un &integer;, se aplica el mismo
+    filtro a cada entrada del array.
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$data = [
+    'name'  => '<b>John</b>',
+    'email' => 'john@example<script>.com',
+    'bio'   => 'Developer & writer',
+];
+
+var_dump(filter_var_array($data, FILTER_SANITIZE_SPECIAL_CHARS));
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(3) {
+  ["name"]=>
+  string(27) "&#60;b&#62;John&#60;/b&#62;"
+  ["email"]=>
+  string(32) "john@example&#60;script&#62;.com"
+  ["bio"]=>
+  string(22) "Developer &#38; writer"
+}
+]]>
+   </screen>
+  </example>
+  <example>
+   <title>Uso de <constant>FILTER_CALLBACK</constant></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$data = [
+    'name'  => '  John Doe  ',
+    'city'  => '  New York  ',
+];
+
+$options = [
+    'name' => [
+        'filter'  => FILTER_CALLBACK,
+        'options' => 'trim',
+    ],
+    'city' => [
+        'filter'  => FILTER_CALLBACK,
+        'options' => function ($value) {
+            return strtoupper(trim($value));
+        },
+    ],
+];
+
+var_dump(filter_var_array($data, $options));
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+array(2) {
+  ["name"]=>
+  string(8) "John Doe"
+  ["city"]=>
+  string(8) "NEW YORK"
 }
 ]]>
    </screen>
