@@ -1,30 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 331fbfeac522d4ad00de1e043cc11610d66b88f9 Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 07275f5d03cf34c5a2218e0c103978f8024da153 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yar-server.handle" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yar_Server::handle</refname>
-  <refpurpose>Iniciar un servidor RPC</refpurpose>
+  <refpurpose>Inicia el servidor RPC</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
-  <methodsynopsis>
-   <modifier>public</modifier> <type>bool</type> <methodname>Yar_Server::handle</methodname>
-   <void/>
+  <methodsynopsis role="Yar_Server">
+   <modifier>public</modifier> <type>bool</type><methodname>Yar_Server::handle</methodname>
+   <void />
   </methodsynopsis>
-  <para>
-   Inicia un servidor de HTTP de RPC listo para aceptar peticiones RPC.
-   <note>
-    <para>
-     Las llamadas RPC usuales serán emitidas como peticiones POST de HTTP. Si se emite
-     una petición GET de HTTP al URI, se imprimierá en la página la información
-     del servicio (la sección comentada anteriormente).
-    </para>
-   </note>
-  </para>
+  <simpara>
+   Empieza a atender la petición RPC entrante.
+  </simpara>
+  <note>
+   <simpara>
+    Las llamadas RPC habituales se emiten como peticiones HTTP POST. Si en
+    su lugar se emite una petición HTTP GET, se muestra la página de
+    información del servicio, generada a partir de los métodos públicos y
+    de sus bloques de documentación del objeto ejecutor. Este
+    comportamiento se puede desactivar con la directiva
+    <link linkend="ini.yar.expose-info">yar.expose_info</link>,
+    en cuyo caso una petición GET lanza una
+    <exceptionname>Yar_Server_Exception</exceptionname>.
+   </simpara>
+  </note>
+  <note>
+   <simpara>
+    A partir de Yar 2.3.0, la página de información del servicio se puede
+    personalizar definiendo un método <literal>protected</literal> llamado
+    <literal>__info</literal> en el objeto ejecutor. Cuando llega una
+    petición GET, Yar llama a este método pasándole el marcado de la página
+    que mostraría en otro caso; si el método devuelve una &string;, esa
+    cadena se envía al cliente en lugar de la página predeterminada.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -34,25 +47,98 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
+  <simpara>
+   Devuelve &true;.
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="errors">
+  &reftitle.errors;
   <para>
-   boolean
+   <table>
+    <title>Errores de <methodname>Yar_Server::handle</methodname></title>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>Condición</entry>
+       <entry>Excepción</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>
+        El método remoto lanzó una excepción.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Exception</exceptionname> (con el nombre
+        de clase original en su propiedad <literal>_type</literal>).
+       </entry>
+      </row>
+      <row>
+       <entry>
+        El método remoto no se encontró o no es público.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Request_Exception</exceptionname>.
+       </entry>
+      </row>
+      <row>
+       <entry>
+        El cuerpo de la petición no se pudo desempaquetar.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Packager_Exception</exceptionname>.
+       </entry>
+      </row>
+      <row>
+       <entry>
+        La petición está mal formada a nivel de protocolo.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Protocol_Exception</exceptionname>.
+       </entry>
+      </row>
+      <row>
+       <entry>
+        La salida del servidor no se pudo capturar.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Output_Exception</exceptionname>.
+       </entry>
+      </row>
+      <row>
+       <entry>
+        La autenticación falló, o se solicitó la página de información
+        mientras
+        <link linkend="ini.yar.expose-info">yar.expose_info</link> está
+        desactivada.
+       </entry>
+       <entry>
+        <exceptionname>Yar_Server_Exception</exceptionname> con el código
+        <constant>YAR_ERR_FORBIDDEN</constant>.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
   </para>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>Yar_Server::handle</function></title>
+   <title>Ejemplo de <methodname>Yar_Server::handle</methodname></title>
    <programlisting role="php">
 <![CDATA[
 <?php
 class API {
     /**
-     * the doc info will be generated automatically into service info page.
-     * @params
-     * @return
+     * El bloque de documentación se muestra en la página de información del servicio.
+     * @param string $parameter
+     * @return string
      */
     public function some_method($parameter, $option = "foo") {
+        return "some_method";
     }
 
     protected function client_can_not_see() {
@@ -64,20 +150,43 @@ $service->handle();
 ?>
 ]]>
    </programlisting>
-   &example.outputs.similar;
-   <screen>
+  </example>
+  <example>
+   <title>Personalización de la página de información del servicio con
+   <literal>__info</literal> (a partir de Yar 2.3.0)</title>
+   <programlisting role="php">
 <![CDATA[
+<?php
+class API {
+    public function some_method($parameter, $option = "foo") {
+        return "some_method";
+    }
+
+    /*
+     * Debe ser protected. Se llama en las peticiones GET con el marcado de
+     * la página que Yar mostraría en otro caso, y el valor de cadena que
+     * devuelve se envía al cliente en su lugar.
+     */
+    protected function __info($markup) {
+        return "Hola mundo";
+    }
+}
+
+$service = new Yar_Server(new API());
+$service->handle();
+?>
 ]]>
-   </screen>
+   </programlisting>
   </example>
  </refsect1>
 
-
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <simplelist>
-   <member><methodname>Yar_Server::__construct</methodname></member>
-  </simplelist>
+  <para>
+   <simplelist>
+    <member><methodname>Yar_Server::__construct</methodname></member>
+   </simplelist>
+  </para>
  </refsect1>
 
 </refentry>
