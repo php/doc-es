@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 53242ee6628dc1ae6989fe002231fddfd8f005c6 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: d3a03f8f542cd083d793bbd8ef3d7756aae7711f Maintainer: andresdzphp Status: ready -->
 
 <refentry xml:id="yac.delete" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yac::delete</refname>
-  <refpurpose>Eliminar los artículos de la memoria caché</refpurpose>
+  <refpurpose>Elimina elementos de la caché</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -14,11 +12,26 @@
   <methodsynopsis>
    <modifier>public</modifier> <type>bool</type><methodname>Yac::delete</methodname>
    <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>keys</parameter></methodparam>
-   <methodparam choice="opt"><type>int</type><parameter>ttl</parameter></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>delay</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
-  <para>
-   retira los artículos de la memoria caché
-  </para>
+  <simpara>
+   Elimina uno o varios elementos de la caché.
+  </simpara>
+  <note>
+   <simpara>
+    La eliminación se implementa marcando la entrada como caducada en lugar
+    de liberar su ranura: la entrada deja de poder leerse de inmediato, pero
+    la ranura permanece ocupada hasta que se almacena de nuevo la misma clave
+    o hasta que una escritura posterior recupera dicha ranura. Como
+    consecuencia, el número de ranuras usadas que informa
+    <methodname>Yac::info</methodname> no disminuye tras una eliminación, y
+    <methodname>Yac::dump</methodname> sigue mostrando la entrada eliminada
+    hasta que su ranura se recicla; un valor <literal>ttl</literal> distinto
+    de cero situado en el pasado indica una entrada eliminada o caducada, por
+    lo que, al examinar la salida de <methodname>Yac::dump</methodname>, tales
+    entradas deben ser filtradas por el llamador.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -27,17 +40,21 @@
    <varlistentry>
     <term><parameter>keys</parameter></term>
     <listitem>
-     <para>
-      clave string, o array de multiples claves para ser removidas.
-     </para>
+     <simpara>
+      Una clave de tipo <type>string</type>, o un <type>array</type> de claves
+      que serán eliminadas.
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
-    <term><parameter>ttl</parameter></term>
+    <term><parameter>delay</parameter></term>
     <listitem>
-     <para>
-      si se establece un retraso, la eliminación marcará los elementos como inválidos en ttl segundo.
-     </para>
+     <simpara>
+      Número de segundos antes de que el elemento deje de ser válido. Si se
+      omite o vale <literal>0</literal>, el elemento se invalida de inmediato.
+      Un valor positivo mantiene el elemento legible durante ese número de
+      segundos antes de que caduque.
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -45,11 +62,65 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-
-  </para>
+  <simpara>
+   Devuelve &true; en caso de éxito, o &false; si la clave no estaba presente
+   en la caché. Dado que una eliminación solo marca la entrada como caducada,
+   una clave que ha sido eliminada pero aún no sobrescrita se sigue
+   considerando presente: eliminar de nuevo la misma clave devuelve &true;.
+  </simpara>
+  <simpara>
+   Cuando se proporciona un <type>array</type> de claves, se devuelve &true;
+   únicamente si todas las claves estaban presentes; si falta alguna clave, se
+   devuelve &false;.
+  </simpara>
  </refsect1>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Yac::delete</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$yac = new Yac();
+$yac->set("foo", "bar");
+
+var_dump($yac->delete("foo"));      // bool(true): marcada como caducada
+var_dump($yac->get("foo"));         // bool(false): a partir de ahora, un fallo
+var_dump($yac->delete("foo"));      // bool(true) de nuevo: la ranura aún no
+                                     // ha sido sobrescrita
+var_dump($yac->delete("never"));    // bool(false): nunca fue almacenada
+
+// una eliminación no libera la ranura: slots_used no disminuye, y
+// la entrada caducada sigue apareciendo en el volcado
+var_dump($yac->info()["slots_used"]); // int(1)
+print_r($yac->dump());                // "foo" sigue apareciendo; su ttl
+                                       // está en el pasado
+
+// eliminación retardada: mantiene la entrada legible durante 60 segundos más
+$yac->set("tmp", "value");
+var_dump($yac->delete("tmp", 60));    // bool(true)
+
+// eliminar varias claves a la vez devuelve true solo cuando todas las
+// claves estaban presentes
+var_dump($yac->delete(array("tmp", "nope"))); // bool(false): falta "nope"
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><methodname>Yac::set</methodname></member>
+    <member><methodname>Yac::flush</methodname></member>
+    <member><methodname>Yac::info</methodname></member>
+    <member><methodname>Yac::dump</methodname></member>
+   </simplelist>
+  </para>
+ </refsect1>
 
 </refentry>
 

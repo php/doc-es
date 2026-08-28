@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 68c2c871505aadf983f16113c5b077b335ce8d76 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: d3a03f8f542cd083d793bbd8ef3d7756aae7711f Maintainer: andresdzphp Status: ready -->
 
 <book xml:id="book.yac" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <?phpdoc extension-membership="pecl" ?>
@@ -10,9 +8,55 @@
 
  <preface xml:id="intro.yac">
   &reftitle.intro;
-  <para>
-   Yac (Otro caché), es un caché de datos de usuario de memoria compartida sin bloqueo, podría utilizarse para reemplazar el APC, el memcache local.
-  </para>
+  <simpara>
+   Yac (Yet Another Cache) es una caché de datos de usuario en memoria
+   compartida y sin bloqueos, que puede utilizarse para reemplazar a APC
+   o a un memcached local.
+  </simpara>
+  <simpara>
+   Yac almacena los datos en memoria compartida, lo que los hace visibles
+   para todos los procesos de trabajo de PHP de la misma máquina sin
+   ninguna comunicación entre procesos. En lugar de bloqueos, Yac se basa
+   en actualizaciones atómicas de las ranuras junto con unos pocos sondeos
+   de colisión, de modo que un fallo de caché nunca bloquea una petición y
+   una escritura concurrente puede provocar, en el peor de los casos, un
+   almacenamiento fallido o una lectura perdida que quien la invoca puede
+   simplemente reintentar.
+  </simpara>
+  <simpara>
+   Al no haber bloqueos ni comunicación entre procesos en la ruta de
+   acceso, una lectura es esencialmente una búsqueda hash en memoria
+   compartida. Como resultado, Yac es extremadamente rápida, con una
+   latencia de lectura del orden de microsegundos, y su rendimiento puede
+   escalar con el número de procesos de trabajo mientras las escrituras se
+   repartan entre distintas claves.
+  </simpara>
+  <simpara>
+   Dado que Yac sacrifica garantías de corrección a cambio de velocidad y
+   rendimiento, resulta más adecuada para datos que son costosos de
+   producir pero fáciles de recrear: fragmentos de página, instantáneas de
+   configuración, respuestas pequeñas de servicios y otras cachés locales.
+   No debería utilizarse como almacén de referencia para datos
+   irremplazables.
+  </simpara>
+  <simpara>
+   A partir de yac 2.4.0, los valores escalares pequeños —
+   <constant>NULL</constant>, booleanos, enteros, cadenas cortas de hasta
+   7 bytes y arrays vacíos — se almacenan directamente dentro de la ranura
+   hash en lugar de en un bloque de valor separado («valores
+   incrustados»), lo que elimina la reserva de memoria del valor y la
+   copia del bloque en cada acceso, mejorando significativamente el
+   rendimiento al tiempo que reduce el uso de memoria. La versión 2.4.0
+   también cambió el motor de compresión de FastLZ a LZ4, haciendo que las
+   lecturas comprimidas sean varias veces más rápidas.
+  </simpara>
+  <note>
+   <simpara>
+    La memoria compartida solo es visible dentro de una misma máquina.
+    Para compartir una caché entre varios servidores, se debe utilizar en
+    su lugar una caché en red como Memcached o Redis.
+   </simpara>
+  </note>
  </preface>
 
  &reference.yac.setup;

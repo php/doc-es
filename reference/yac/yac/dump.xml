@@ -1,34 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 4de6272a1f15efc9e3df21d255965fd890da0d6f Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: d3a03f8f542cd083d793bbd8ef3d7756aae7711f Maintainer: andresdzphp Status: ready -->
 
 <refentry xml:id="yac.dump" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yac::dump</refname>
-  <refpurpose>Volcar cache</refpurpose>
+  <refpurpose>Vuelca las entradas de la caché para su inspección</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <modifier>public</modifier> <type>mixed</type><methodname>Yac::dump</methodname>
-   <methodparam><type>int</type><parameter>num</parameter></methodparam>
+   <modifier>public</modifier> <type>array</type><methodname>Yac::dump</methodname>
+   <methodparam choice="opt"><type>int</type><parameter>limit</parameter><initializer>100</initializer></methodparam>
+   <methodparam choice="opt"><type>int</type><parameter>offset</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
-  <para>
-   Volcar valores almacenados en caché
-  </para>
+  <simpara>
+   Vuelca los metadatos de las entradas almacenadas actualmente en la caché.
+   Los valores en sí no son devueltos.
+  </simpara>
  </refsect1>
 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <variablelist>
    <varlistentry>
-    <term><parameter>num</parameter></term>
+    <term><parameter>limit</parameter></term>
     <listitem>
-     <para>
-       El número máximo de artículos debe ser devuelto
-     </para>
+     <simpara>
+      Número máximo de entradas a devolver.
+     </simpara>
+     <simpara>
+      Pasar <literal>-1</literal> como <parameter>limit</parameter> vuelca
+      todas las entradas que la caché contiene en ese momento. Es de tener en
+      cuenta que construir la lista completa puede consumir una cantidad
+      considerable de memoria en una caché grande; cuando la memoria importa,
+      es preferible recorrer las entradas por páginas con
+      <parameter>limit</parameter> y <parameter>offset</parameter>.
+     </simpara>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>offset</parameter></term>
+    <listitem>
+     <simpara>
+      Número de entradas a omitir antes de empezar a recopilar. Este parámetro
+      está disponible a partir de PECL yac 2.4.0; las versiones anteriores
+      siempre comienzan por la primera entrada. Combinado con
+      <parameter>limit</parameter>, permite recorrer por páginas una caché que
+      contiene más entradas de las que una sola llamada puede devolver.
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -36,11 +56,220 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   mixed
-  </para>
+  <simpara>
+   Un <type>array</type> con un elemento por cada entrada volcada. Cada
+   elemento es a su vez un array que describe la entrada:
+  </simpara>
+  <variablelist>
+   <varlistentry>
+    <term><literal>index</literal></term>
+    <listitem><simpara>
+     El índice de la ranura de la entrada en la tabla hash.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>hash</literal></term>
+    <listitem><simpara>
+     El hash de 64 bits de la clave, utilizado para el sondeo de ranuras.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>crc</literal></term>
+    <listitem><simpara>
+     La suma de comprobación CRC32 del valor almacenado, utilizada para
+     detectar lecturas inconsistentes. <literal>0</literal> para las entradas
+     empotradas, que no tienen bloque de valor.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>ttl</literal></term>
+    <listitem><simpara>
+     La marca de tiempo de expiración (tiempo Unix). <literal>0</literal>
+     significa que la entrada nunca expira por tiempo. Es de tener en cuenta
+     que <methodname>Yac::delete</methodname> solamente marca una entrada como
+     expirada, por lo que las entradas eliminadas pueden seguir apareciendo en
+     el volcado; un <literal>ttl</literal> distinto de cero situado en el
+     pasado indica una entrada expirada o eliminada.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>k_len</literal></term>
+    <listitem><simpara>
+     La longitud de la clave, en bytes.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>v_len</literal></term>
+    <listitem><simpara>
+     La longitud del valor, en bytes. Para las entradas comprimidas se trata de
+     la longitud del valor <emphasis>original</emphasis> antes de la compresión
+     (a partir de yac 2.4.0; las versiones anteriores informaban de la longitud
+     almacenada, ya comprimida).
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>c_len</literal></term>
+    <listitem><simpara>
+     Presente únicamente para las entradas comprimidas (a partir de yac 2.4.0):
+     la longitud de la carga útil comprimida realmente almacenada en la memoria
+     compartida, en bytes. Comparar <literal>c_len</literal> con
+     <literal>v_len</literal> muestra cuánto ahorra la compresión en cada
+     entrada.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>size</literal></term>
+    <listitem><simpara>
+     El tamaño asignado al bloque de valor en la memoria compartida, en bytes.
+     <literal>0</literal> para las entradas empotradas.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>atime</literal></term>
+    <listitem><simpara>
+     La hora del último acceso (tiempo Unix), actualizada en cada
+     <methodname>Yac::get</methodname> con éxito. Cuando la caché está llena, la
+     entrada con el <literal>atime</literal> más antiguo de entre las ranuras
+     candidatas es la primera en ser desalojada (a partir de yac 2.4.0).
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>hits</literal></term>
+    <listitem><simpara>
+     Un contador de aciertos por entrada, incrementado en cada
+     <methodname>Yac::get</methodname> con éxito, y reiniciado cuando la entrada
+     es sobrescrita, eliminada o expira (a partir de yac 2.4.0).
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>embedded</literal></term>
+    <listitem><simpara>
+     Indica si el valor se almacena directamente dentro de la ranura en lugar de
+     en un bloque de valor separado (a partir de yac 2.4.0). Los valores
+     pequeños — <constant>NULL</constant>, booleanos, enteros pequeños, cadenas
+     de hasta 7 bytes y arrays vacíos — se incrustan de esta forma y no reservan
+     memoria de valor alguna; para ellos <literal>crc</literal> y
+     <literal>size</literal> se indican como <literal>0</literal>.
+    </simpara></listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><literal>key</literal></term>
+    <listitem><simpara>
+     La clave de la caché, sin ningún prefijo de instancia.
+    </simpara></listitem>
+   </varlistentry>
+  </variablelist>
  </refsect1>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Yac::dump</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$yac = new Yac();
+$yac->set("foo", "bar");
+$yac->set("baz", "qux");
+
+print_r($yac->dump());
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+Array
+(
+    [0] => Array
+        (
+            [index] => 12345
+            [hash] => 14463105906481965911
+            [crc] => 0
+            [ttl] => 0
+            [k_len] => 3
+            [v_len] => 3
+            [size] => 0
+            [atime] => 1725955200
+            [hits] => 0
+            [embedded] => 1
+            [key] => foo
+        )
+
+    [1] => Array
+        (
+            [index] => 12987
+            [hash] => 15132029420525657053
+            [crc] => 0
+            [ttl] => 0
+            [k_len] => 3
+            [v_len] => 3
+            [size] => 0
+            [atime] => 1725955200
+            [hits] => 0
+            [embedded] => 1
+            [key] => baz
+        )
+
+)
+]]>
+   </screen>
+   <simpara>
+    Las entradas se listan en el orden de las ranuras, no en el orden en que
+    fueron almacenadas. Las entradas empotradas (escalares cortos conservados
+    dentro de la propia ranura) tienen <literal>crc</literal> y
+    <literal>size</literal> a cero; las entradas almacenadas en un bloque de
+    valor separado llevan su suma de comprobación y el tamaño del bloque, y las
+    entradas comprimidas llevan además <literal>c_len</literal>.
+   </simpara>
+  </example>
+  <example>
+   <title>Recorrido por páginas de una caché grande</title>
+   <simpara>
+    <parameter>limit</parameter> limita cuántas entradas devuelve una sola
+    llamada, y <parameter>offset</parameter> omite esa cantidad de entradas
+    antes de empezar a recopilar, de modo que ambos pueden combinarse para
+    recorrer por páginas una caché que contiene más entradas de las que una sola
+    llamada puede devolver.
+   </simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$yac = new Yac();
+
+$page_size = 100;
+$page_num  = 2;
+
+// omite las 100 primeras entradas y devuelve las 100 siguientes (página 2)
+$page = $yac->dump($page_size, $page_size * ($page_num - 1));
+
+var_dump(count($page));
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+int(100)
+]]>
+   </screen>
+   <simpara>
+    Se devuelven menos entradas de las solicitadas cuando la caché contiene
+    menos entradas de las que abarca la página pedida, y se devuelve un array
+    vacío en cuanto el desplazamiento apunta más allá de la última ranura
+    ocupada.
+   </simpara>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><methodname>Yac::info</methodname></member>
+   </simplelist>
+  </para>
+ </refsect1>
 
 </refentry>
 
