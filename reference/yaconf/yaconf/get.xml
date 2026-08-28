@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: a464df4c7d82ef16d94fff2582eeb8dd7579b894 Maintainer: andresdzphp Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 3b052562d228be18fa6dce221df7e375469fb7ad Maintainer: andresdzphp Status: ready -->
 
 <refentry xml:id="yaconf.get" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yaconf::get</refname>
-  <refpurpose>Recuperar un elemento</refpurpose>
+  <refpurpose>Recupera un valor de configuración por su nombre</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -14,11 +12,19 @@
   <methodsynopsis>
    <modifier>public</modifier> <modifier>static</modifier> <type>mixed</type><methodname>Yaconf::get</methodname>
    <methodparam><type>string</type><parameter>name</parameter></methodparam>
-   <methodparam choice="opt"><type>mixed</type><parameter>default_value</parameter><initializer>NULL</initializer></methodparam>
+   <methodparam choice="opt"><type>mixed</type><parameter>default</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
-  <para>
-
-  </para>
+  <simpara>
+   Recupera el valor de configuración almacenado bajo
+   <parameter>name</parameter>. Los nombres emplean la notación de punto
+   para recorrer las claves anidadas: <literal>"app"</literal> hace
+   referencia al archivo <filename>app.ini</filename> analizado por
+   completo, <literal>"app.name"</literal> a una clave dentro de él y, desde
+   Yaconf 1.2.0, <literal>"users.database.master"</literal> a una clave del
+   archivo <filename>database.ini</filename> situado en el subdirectorio
+   <filename>users/</filename>. La notación de punto admite hasta 64 niveles
+   de anidamiento.
+  </simpara>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -27,17 +33,22 @@
    <varlistentry>
     <term><parameter>name</parameter></term>
     <listitem>
-     <para>
-      Clave de configuración, la clave se ve como "filename.key", o "filename.sectionName,key".
-     </para>
+     <simpara>
+      El nombre de configuración a buscar, empleando la notación de punto
+      para recorrer las claves anidadas, por ejemplo
+      <literal>"app.name"</literal>, <literal>"app.features.1"</literal>
+      o, desde Yaconf 1.2.0, <literal>"users.database.master"</literal>
+      para los archivos en subdirectorios.
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
-    <term><parameter>default_value</parameter></term>
+    <term><parameter>default</parameter></term>
     <listitem>
-     <para>
-      si la clave no existe, Yaconf::get devolverá esto como resultado.
-     </para>
+     <simpara>
+      El valor a devolver cuando no se encuentra
+      <parameter>name</parameter>. Si se omite, se devuelve &null;.
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -45,50 +56,70 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   Devuelve el resultado de configuración (string o array) si la clave existe,
-   devuelve default_value si no.
-  </para>
+  <simpara>
+   El valor de configuración almacenado, un <type>string</type> o un
+   <type>array</type>, cuando <parameter>name</parameter> existe; en caso
+   contrario, <parameter>default</parameter> (o &null; si no se indicó
+   ningún valor por defecto).
+  </simpara>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
-  <example>
-   <title>Ejemplo de <function>INI</function></title>
-   <programlisting role="ini">
+  <simpara>
+   Los ejemplos siguientes suponen los dos archivos mostrados a
+   continuación, situados en el directorio configurado con
+   <literal>yaconf.directory</literal>.
+  </simpara>
+  <programlisting role="ini">
 <![CDATA[
-;filenmame foo.ini, colocado en el directorio que es yaconf.directoy
-[SectionA]
-;key value pair
-key=val
-;hash[a]=val
-hash.a=val
-;arr[0]=val
-arr.0=val
-;or
-arr[]=val
+; app.ini
+name="shop"                     ; valor escalar
+debug=0                         ; número
+features[]="checkout"           ; entradas de array, ambas notaciones
+features.1="wishlist"
+]]>
+  </programlisting>
+  <programlisting role="ini">
+<![CDATA[
+; users/database.ini, en un subdirectorio (Yaconf 1.2.0+)
+master="192.168.0.10"
+replica="192.168.0.20"
+]]>
+  </programlisting>
+  <example>
+   <title>Ejemplo de <methodname>Yaconf::get</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+// recupera un archivo analizado completo como un array
+var_dump(Yaconf::get("app"));
 
-;SectionB hereda SectionA
-[SectionB:SectionA]
-;reemplazar la clave de configuración en SectionA
-key=new_val
+// la notación de punto recorre las claves anidadas
+var_dump(Yaconf::get("app.name"));           // string(4) "shop"
+var_dump(Yaconf::get("app.features.1"));     // string(8) "wishlist"
+
+// desde 1.2.0: los archivos en subdirectorios quedan bajo el espacio de
+// nombres del nombre del directorio
+var_dump(Yaconf::get("users.database.master")); // string(12) "192.168.0.10"
+
+// cuando la clave no existe, se devuelve el valor por defecto
+var_dump(Yaconf::get("app.missing"));             // NULL
+var_dump(Yaconf::get("app.missing", "fallback")); // string(8) "fallback"
+?>
 ]]>
    </programlisting>
-   &example.outputs.similar;
-   <screen>
-<![CDATA[
-php7 -r 'var_dump(Yaconf::get("foo.SectionA.key"));'
-//string(3) "val"
-
-php7 -r 'var_dump(Yaconf::get("foo.SectionB.key"));'
-//string(7) "new_val"
-
-php7 -r 'var_dump(Yaconf::get("foo")["SectionA"]["hash"]);'
-//array(1)
-
-]]>
-   </screen>
   </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <para>
+   <simplelist>
+    <member><methodname>Yaconf::has</methodname></member>
+    <member><methodname>Yaconf::__debug_info</methodname></member>
+   </simplelist>
+  </para>
  </refsect1>
 
 </refentry>

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 4a87d61dbfcaddeafeebe5fd9546c5d9c6bc9ea2 Maintainer: Marqitos Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: 3b052562d228be18fa6dce221df7e375469fb7ad Maintainer: Marqitos Status: ready -->
 
 <book xml:id="book.yaconf" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <?phpdoc extension-membership="pecl" ?>
@@ -9,65 +8,61 @@
 
  <preface xml:id="intro.yaconf">
   &reftitle.intro;
-  <para>
-   <literal>Otro contenedor de configuraciones</literal>
-   (<acronym>Yaconf</acronym>) es un contenedor de configuraciones,
-   analiza los archivos <literal>INI</literal>, y almacena el resultado
-   en PHP cuando se inicia PHP, el resultado vive con el
-   todo el ciclo de vida de PHP.
-  </para>
-  <para>
-   Yaconf almacena todas las configuraciones como
-   string interno o array inmutable, eso significa que no se pueden
-   devolver, por lo que al recuperar las configuraciones
-   de <acronym>Yaconf</acronym>, podría considerarse como una copia cero, muy rápido.
-  </para>
-  <para>
-   Yaconf soporta secciones y hrencia de secciones
-   en los archivos del <literal>INI</literal>. si PHP se construye como una construcción no-ZTS,
-   Yaconf también soporta la recarga automática después de que se cambien
-   los archivos del <literal>INI</literal>.
-  </para>
-  <para>
+  <simpara>
+   <literal>Yet Another Configurations Container</literal>
+   (<acronym>Yaconf</acronym>) es un contenedor de configuraciones. Analiza
+   los archivos <literal>INI</literal> cuando PHP se inicia y conserva el
+   resultado en memoria persistente durante todo el ciclo de vida de PHP,
+   de modo que cada recuperación es una rápida búsqueda en una tabla hash,
+   sin E/S de archivos y sin análisis por petición.
+  </simpara>
+  <simpara>
+   Yaconf almacena todas las configuraciones como cadenas internalizadas o
+   arrays inmutables. No están sujetas al conteo de referencias, por lo que
+   recuperar una configuración de Yaconf es, en la práctica, una operación
+   sin copia. Desde Yaconf 1.2.0, todo el árbol de configuración analizado
+   se compacta además en un único bloque contiguo, lo que reduce el consumo
+   de memoria y mejora la localidad de caché.
+  </simpara>
+  <simpara>
+   La configuración analizada reside en memoria persistente compartida por
+   todos los procesos de trabajo de PHP-FPM mediante copia al escribir:
+   mientras un archivo de configuración no cambie, los procesos de trabajo
+   comparten las mismas páginas físicas de memoria sin importar cuántos
+   estén en ejecución.
+  </simpara>
+  <simpara>
+   Yaconf admite secciones y herencia de secciones en los archivos INI. En
+   las compilaciones no ZTS también recarga los archivos automáticamente
+   cuando cambian; en las compilaciones ZTS (seguras para hilos), las
+   configuraciones se cargan al inicio y es necesario reiniciar para tener
+   en cuenta los cambios.
+  </simpara>
+  <simpara>
+   Desde Yaconf 1.2.0, los subdirectorios del directorio configurado se
+   cargan de forma recursiva (hasta 16 niveles de profundidad) y se
+   referencian usando el nombre del directorio como un nivel de clave: por
+   ejemplo, <literal>Yaconf::get("users.database.master")</literal> lee la
+   clave <literal>master</literal> del archivo
+   <filename>database.ini</filename> situado en el subdirectorio
+   <filename>users/</filename>.
+  </simpara>
+  <simpara>
+   Almacenar las configuraciones sensibles fuera del árbol web también
+   reduce la superficie de ataque. Los archivos de configuración situados
+   bajo la raíz web pueden ser recuperados por un atacante, por ejemplo a
+   través de una vulnerabilidad de divulgación de archivos. Con Yaconf, los
+   archivos <filename>.ini</filename> pueden colocarse en su lugar en un
+   directorio legible únicamente por root, como
+   <filename>/etc/yaconf</filename>: el proceso maestro de PHP-FPM carga las
+   configuraciones cuando el servicio arranca, mientras que los procesos de
+   trabajo derivados —que se ejecutan con un usuario sin privilegios y son
+   los que atienden las peticiones web— no necesitan, y no reciben, acceso a
+   ese directorio.
+  </simpara>
+  <simpara>
    Yaconf requiere PHP 7.0 o superior.
-  </para>
-  <example>
-   <title>Ejemplo INI</title>
-   <programlisting role="ini">
-<![CDATA[
-;Simple clave valor
-key=valor
-
-;Hash
-hash.a=valor
-
-;Array
-arr.0=valor
-;o
-arr[]=valor
-
-;Constante PHP
-version=PHP_VERSION
-
-;Variable de entorno
-env=${PATH}
-]]>
-   </programlisting>
-  </example>
-  <example>
-   <title>Ejemplo de secciones INI</title>
-   <programlisting role="ini">
-<![CDATA[
-[SectionA]
-key=valor
-hash.a=valor
-
-;SectionB hereda de SectionA
-[SectionB:SectionA]
-key=nuevo_valor                  ;Sobrescribe la clave de configuración en la SecciónA
-]]>
-   </programlisting>
-  </example>
+  </simpara>
  </preface>
 
  &reference.yaconf.setup;
