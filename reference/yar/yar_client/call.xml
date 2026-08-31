@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 75d48299ef85693f10eee31af1be88488fb84c6f Maintainer: seros Status: ready -->
+<!-- EN-Revision: 60ce1c5c7cc6d340191828de21f1d6b48cd83807 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yar-client.call" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -17,8 +17,8 @@
   <simpara>
    Emite una llamada RPC al método remoto <literal>method</literal>. Esto
    es exactamente lo que ocurre cuando se invoca un método inexistente sobre
-   un objeto <classname>Yar_Client</classname> (véase
-   <methodname>Yar_Client::__call</methodname>);
+   un objeto <classname>Yar_Client</classname> (a través del método mágico
+   <literal>__call</literal> de PHP);
    <methodname>Yar_Client::call</methodname> solo existe para que los métodos
    remotos llamados literalmente <literal>call</literal> o
    <literal>__call</literal> sigan siendo accesibles.
@@ -57,18 +57,51 @@
  <refsect1 role="errors">
   &reftitle.errors;
   <simpara>
-   Cuando el método <literal>call</literal> no existe en el lado del
-   servidor, se lanza una
-   <exceptionname>Yar_Server_Request_Exception</exceptionname>. Véase
-   <methodname>Yar_Client::__call</methodname> para la lista completa de
-   fallos y sus clases de excepción.
+   Cuando el método remoto no existe en el servidor, o no es público, el
+   cliente lanza una
+   <exceptionname>Yar_Client_Exception</exceptionname> con el código
+   <constant>YAR_ERR_REQUEST</constant>. Véase
+   <link linkend="class.yar-client-exception">Yar_Client_Exception</link>
+   para los demás fallos del lado del cliente y sus clases de excepción.
   </simpara>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Yar_Client::call</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$client = new Yar_Client("http://api.example.com/operator.php");
+
+/* La forma habitual: invocar el método remoto como si fuera local.
+ * Esto se traduce internamente en call("add", array(1, 2)). */
+var_dump($client->add(1, 2));
+
+/* Equivalente: llamar al método explícitamente por su nombre */
+var_dump($client->call("add", array(1, 2)));
+
+/* Solo es necesario cuando el servicio remoto expone literalmente un método
+ * llamado call (o __call), al que el __call mágico no puede acceder */
+var_dump($client->call("call", array($some_argument)));
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+int(3)
+int(3)
+...
+]]>
+   </screen>
+  </example>
  </refsect1>
 
  <refsect1 role="seealso">
   &reftitle.seealso;
   <simplelist>
-   <member><methodname>Yar_Client::__call</methodname></member>
    <member><methodname>Yar_Client::setOpt</methodname></member>
   </simplelist>
  </refsect1>
