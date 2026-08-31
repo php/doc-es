@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 9ee27f088aefb55de20529000792c4deefc0226b Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: ddcf673c59d1708557680946fbffeee361d7fca6 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yaf-view-interface.display" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yaf_View_Interface::display</refname>
-  <refpurpose>Interpretar e imprimir una plantilla</refpurpose>
+  <refpurpose>Renderiza e imprime una plantilla</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,13 +12,11 @@
   <methodsynopsis>
    <modifier>abstract</modifier> <modifier>public</modifier> <type>bool</type><methodname>Yaf_View_Interface::display</methodname>
    <methodparam><type>string</type><parameter>tpl</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>tpl_vars</parameter></methodparam>
+   <methodparam choice="opt"><type>array</type><parameter>tpl_vars</parameter><initializer>NULL</initializer></methodparam>
   </methodsynopsis>
-  <para>
-   Interpreta e imprime el resultado inmediatamente.
-  </para>
-
-  &warn.undocumented.func;
+  <simpara>
+   Renderiza e imprime el resultado inmediatamente.
+  </simpara>
 
  </refsect1>
 
@@ -29,17 +26,18 @@
    <varlistentry>
     <term><parameter>tpl</parameter></term>
     <listitem>
-     <para>
-
-     </para>
+     <simpara>
+      La ruta de la plantilla, relativa al directorio de plantillas.
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>tpl_vars</parameter></term>
     <listitem>
-     <para>
-
-     </para>
+     <simpara>
+      Variables opcionales a asignar solo para esta plantilla; tienen
+      prioridad sobre las variables asignadas con el mismo nombre.
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -47,11 +45,85 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-
-  </para>
+<simpara>Devuelve &true; en caso de éxito, o &false; en caso de error.
+   </simpara>
  </refsect1>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Yaf_View_Interface::display</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class MyView implements Yaf_View_Interface
+{
+    private $tpl_dir;
+    private $vars = array();
+
+    public function __construct($template_dir, $options = null)
+    {
+        $this->tpl_dir = $template_dir;
+    }
+
+    public function assign($name, $value = null)
+    {
+        $this->vars[$name] = $value;
+        return true;
+    }
+
+    public function display($tpl, $tpl_vars = null)
+    {
+        echo $this->render($tpl, $tpl_vars);
+        return true;
+    }
+
+    public function render($tpl, $tpl_vars = null)
+    {
+        extract($this->vars);
+        if ($tpl_vars !== null) {
+            extract($tpl_vars);
+        }
+        ob_start();
+        include $this->tpl_dir . "/" . $tpl;
+        return ob_get_clean();
+    }
+
+    public function setScriptPath($template_dir)
+    {
+        $this->tpl_dir = $template_dir;
+        return $this;
+    }
+
+    public function getScriptPath()
+    {
+        return $this->tpl_dir;
+    }
+}
+
+/* se conecta el motor de vistas personalizado al despachador en el bootstrap */
+class Bootstrap extends Yaf_Bootstrap_Abstract
+{
+    public function _initView(Yaf_Dispatcher $dispatcher)
+    {
+        $dispatcher->setView(new MyView(APPLICATION_PATH . "/views"));
+    }
+}
+?>
+]]>
+   </programlisting>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>Yaf_View_Interface::render</methodname></member>
+   <member><methodname>Yaf_View_Interface::assign</methodname></member>
+   <member><methodname>Yaf_View_Interface::setScriptPath</methodname></member>
+   <member><methodname>Yaf_View_Interface::getScriptPath</methodname></member>
+  </simplelist>
+ </refsect1>
 
 </refentry>
 

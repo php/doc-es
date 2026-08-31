@@ -1,59 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: e2f2172bf114599926878017ab2dce356956fa9e Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: 052c737e204db470a7ddd4f082a4069103b64203 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yaf-loader.registerlocalnamespace" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Yaf_Loader::registerLocalNamespace</refname>
-  <refpurpose>Registra un prefijo de clase local</refpurpose>
+  <refpurpose>Registrar un namespace local</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <modifier>public</modifier> <type>void</type><methodname>Yaf_Loader::registerLocalNamespace</methodname>
-   <methodparam><type>mixed</type><parameter>prefix</parameter></methodparam>
+   <modifier>public</modifier> <type class="union"><type>Yaf_Loader</type><type>false</type></type><methodname>Yaf_Loader::registerLocalNamespace</methodname>
+   <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>namespace</parameter></methodparam>
+   <methodparam choice="opt"><type>string</type><parameter>path</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
-  <para>
-   Registra un nombre de prefijo de clase local. <classname>Yaf_Loader</classname> busca
-   clases en dos directorios de bibliotecas, uno se configura mediante <link
-   linkend="configuration.yaf.library">application.library.directory</link> (en
-   application.ini) al que se le llama directorio de bibliotecas local; el otro se
-   configura mediante <link linkend="ini.yaf.library">yaf.library</link> (en
-   php.ini) al que se llamma le directorio de bibliotecas global, ya que puede ser compartido
-   mediante muchas apliacionies en el mismo servidor.
-  </para>
-  <para>
-   Al desencadenar una autocarga, <classname>Yaf_Loader</classname> determinará
-   en que directorio de bibliotecas debería buscar examinando el nombre de
-   prefijo del nombre de clase faltante.
-
-   Si el nombre de prefijo está registrado como un paquete de nombres local, entonces se le buscará
-   en el directorio de bibliotecas local, si no, se buscará en el directorio de bibliotecas global.
-   <note>
-    <para>
-     Si yaf.library no está configurado, se asume que el directorio de bibliotecas global es
-     el directorio de bibliotecas local. En este caso, todas las auto cargas
-     buscarán en el directorio de bibliotecas local.
-
-     Aunque si se quiere que una aplicación Yaf sea fuerte, se han de registrar siempre
-     las propias clases como clases locales.
-    </para>
-   </note>
-  </para>
+  <simpara>Registra un namespace local. Las clases cuyo prefijo pertenezca a un namespace local se buscan bajo la ruta indicada (o el directorio de biblioteca local si no se especifica ruta) en lugar del directorio global.</simpara>
+  <simpara>Esto permite colocar las propias clases en el directorio de biblioteca local, mientras que las clases compartidas residen en el directorio de biblioteca global (véase el parámetro <literal>yaf.library</literal> en php.ini).</simpara>
  </refsect1>
 
  <refsect1 role="parameters">
   &reftitle.parameters;
   <variablelist>
    <varlistentry>
-    <term><parameter>prefix</parameter></term>
+    <term><parameter>namespace</parameter></term>
     <listitem>
-     <para>
-      Un string o un a array con el prefijo del nombre de la clase.
-      Todas las clases con este prefijo se cargarán en la ruta de la biblioteca local.
-     </para>
+     <simpara>Una cadena de prefijo de namespace, o un array de pares prefijo/ruta (cuando el valor es una cadena de ruta) o cadenas de prefijos.</simpara>
+     <simpara>Un prefijo solo coincide en un límite de guión bajo o barra invertida: registrar <literal>Models</literal> hace que <literal>Models_User</literal> y <literal>Models</literal> sean locales, pero no <literal>ModelsUser</literal>. Se ignora la barra invertida inicial, y un nombre de clase escrito con barras invertidas se busca como si fueran guiones bajos.</simpara>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><parameter>path</parameter></term>
+    <listitem>
+     <simpara>El directorio en el que buscar el namespace. Si no se indica, se utiliza el directorio de biblioteca local.</simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -61,31 +39,47 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   Devuelve un booleano.
-  </para>
+  <simpara>Devuelve la instancia del cargador en caso de éxito, o &false; si se proporciona un parámetro no válido.</simpara>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>Yaf_Loader::registerLocalNamespace</function></title>
+   <title>Ejemplo de <methodname>Yaf_Loader::registerLocalNamespace</methodname></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-$loader = Yaf_Loader::getInstance('/local/library/', '/global/library');
-$loader->registerLocalNamespace("Baidu");
-$loader->registerLocalNamespace(array("Sina", "Weibo"));
+class Bootstrap extends Yaf_Bootstrap_Abstract
+{
+    public function _initLoader()
+    {
+        $loader = Yaf_Loader::getInstance();
 
-$loader->autoload("Baidu_Name"); // buscar en '/local/library/'
-$loader->autoload("Sina");       // buscar en '/local/library/'
-$loader->autoload("Global_Name");// buscar en '/global/library/'
-$loader->autoload("Foo_Bar");    // buscar en '/global/library/'
+        /* Models_User se busca ahora en
+                  * APPLICATION_PATH/library/Models/User.php */
+        $loader->registerLocalNamespace("Models");
 
+        /* se registran varios prefijos a la vez, cada uno con su
+                  * propio directorio de búsqueda */
+        $loader->registerLocalNamespace(array(
+            "Services" => APPLICATION_PATH . "/services",
+            "Vendor"   => APPLICATION_PATH . "/vendor",
+        ));
+    }
+}
 ?>
 ]]>
    </programlisting>
   </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>Yaf_Loader::getLocalNamespace</methodname></member>
+   <member><methodname>Yaf_Loader::clearLocalNamespace</methodname></member>
+   <member><methodname>Yaf_Loader::isLocalName</methodname></member>
+  </simplelist>
  </refsect1>
 
 </refentry>
