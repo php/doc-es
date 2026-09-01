@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 73fae4ee51b644b72028e610abefefced57c18ad Maintainer: seros Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: ddcf673c59d1708557680946fbffeee361d7fca6 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yaf-plugin-abstract.routershutdown" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -15,11 +14,13 @@
    <methodparam><type>Yaf_Request_Abstract</type><parameter>request</parameter></methodparam>
    <methodparam><type>Yaf_Response_Abstract</type><parameter>response</parameter></methodparam>
   </methodsynopsis>
-  <para>
-   Este enganche será provocado después de que finalice el proceso de enrutamiento. Este enganche
-   se usa normalmente para la verificación de identificación.
-  </para>
-
+  <simpara>
+   Este enganche se dispara una vez terminado el proceso de enrutamiento y
+   resueltos los nombres del controlador y de la acción, pero antes de que
+   comience el bucle de despacho. Se usa habitualmente para comprobaciones de
+   control de acceso, como la verificación de identificación, porque el
+   controlador y la acción de destino ya se conocen.
+  </simpara>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -28,17 +29,16 @@
    <varlistentry>
     <term><parameter>request</parameter></term>
     <listitem>
-     <para>
-
-     </para>
+     <simpara>
+      La instancia de <classname>Yaf_Request_Abstract</classname> que se está
+      despachando.
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>response</parameter></term>
     <listitem>
-     <para>
-
-     </para>
+     <simpara>La instancia de <classname>Yaf_Response_Abstract</classname>.</simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -46,39 +46,44 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-
-  </para>
+<simpara>No se devuelve ningún valor.</simpara>
  </refsect1>
 
  <refsect1 role="examples">
   &reftitle.examples;
   <example>
-   <title>Ejemplo de <function>Yaf_Plugin_Abstract::routerShutdown</function></title>
+   <title>Ejemplo de <methodname>Yaf_Plugin_Abstract::routerShutdown</methodname></title>
    <programlisting role="php">
 <![CDATA[
 <?php
-class UserInitPlugin extends Yaf_Plugin_Abstract {
+class AuthPlugin extends Yaf_Plugin_Abstract
+{
+    public function routerShutdown(Yaf_Request_Abstract $request, Yaf_Response_Abstract $response)
+    {
+        /* el enrutamiento ha terminado, así que el controlador y la acción
+         * de destino se conocen: se comprueba si el usuario puede acceder */
+        $public = array("Index" => array("index"), "User" => array("login"));
 
-    public function routerShutdown(Yaf_Request_Abstract $petición, Yaf_Response_Abstract $respuesta) {
-        $controlador = $petición->getControllerName();
+        $controller = $request->getControllerName();
+        $action = $request->getActionName();
 
-        /**
-         * El uso de accesos a controladores no es necesario para APIs
-         */
-        if (in_array(strtolower($controlador), array(
-            'api',
-        ))) {
-            return TRUE;
+        if (isset($public[$controller]) && in_array($action, $public[$controller])) {
+            return;
         }
 
-        if (Yaf_Session::getInstance()->has("login")) {
-            return TRUE;
+        if (!Yaf_Session::getInstance()->has("login")) {
+            $response->setRedirect("/user/login");
+            $request->setDispatched(true); // no despachar la petición
         }
+    }
+}
 
-        /* El uso de verificación de acceso falló, se necesita identificarse */
-        $respuesta->setRedirect("http://yourdomain.com/login/");
-        return FALSE;
+/* los plugins se registran en el bootstrap */
+class Bootstrap extends Yaf_Bootstrap_Abstract
+{
+    public function _initPlugin(Yaf_Dispatcher $dispatcher)
+    {
+        $dispatcher->registerPlugin(new AuthPlugin());
     }
 }
 ?>
@@ -95,6 +100,7 @@ class UserInitPlugin extends Yaf_Plugin_Abstract {
    <member><methodname>Yaf_Plugin_Abstract::preDispatch</methodname></member>
    <member><methodname>Yaf_Plugin_Abstract::postDispatch</methodname></member>
    <member><methodname>Yaf_Plugin_Abstract::dispatchLoopShutdown</methodname></member>
+   <member><methodname>Yaf_Plugin_Abstract::preResponse</methodname></member>
   </simplelist>
  </refsect1>
 

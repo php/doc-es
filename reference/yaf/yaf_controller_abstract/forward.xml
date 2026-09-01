@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: c9389e4a0e96801fd14d91336ff3f12e45929a73 Maintainer: seros Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: ddcf673c59d1708557680946fbffeee361d7fca6 Maintainer: seros Status: ready -->
 
 <refentry xml:id="yaf-controller-abstract.forward" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -11,32 +10,39 @@
  <refsect1 role="description">
   &reftitle.description;
   <methodsynopsis>
-   <modifier>public</modifier> <type>bool</type><methodname>Yaf_Controller_Abstract::forward</methodname>
+   <modifier>public</modifier> <type class="union"><type>bool</type><type>null</type></type><methodname>Yaf_Controller_Abstract::forward</methodname>
    <methodparam><type>string</type><parameter>action</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>paramters</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>parameters</parameter></methodparam>
   </methodsynopsis>
   <methodsynopsis>
-   <modifier>public</modifier> <type>bool</type><methodname>Yaf_Controller_Abstract::forward</methodname>
+   <modifier>public</modifier> <type class="union"><type>bool</type><type>null</type></type><methodname>Yaf_Controller_Abstract::forward</methodname>
    <methodparam><type>string</type><parameter>controller</parameter></methodparam>
    <methodparam><type>string</type><parameter>action</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>paramters</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>parameters</parameter></methodparam>
   </methodsynopsis>
   <methodsynopsis>
-   <modifier>public</modifier> <type>bool</type><methodname>Yaf_Controller_Abstract::forward</methodname>
+   <modifier>public</modifier> <type class="union"><type>bool</type><type>null</type></type><methodname>Yaf_Controller_Abstract::forward</methodname>
    <methodparam><type>string</type><parameter>module</parameter></methodparam>
    <methodparam><type>string</type><parameter>controller</parameter></methodparam>
    <methodparam><type>string</type><parameter>action</parameter></methodparam>
-   <methodparam choice="opt"><type>array</type><parameter>paramters</parameter></methodparam>
+   <methodparam choice="opt"><type class="union"><type>array</type><type>null</type></type><parameter>parameters</parameter></methodparam>
   </methodsynopsis>
-  <para>
-   Avanza el proceso de ejecución actual a otra acción.
-   <note>
-    <para>
-     Este método no cambia a la acción destino de inmediato,
-     toma lugar después de la finalización del flujo actual.
-    </para>
-   </note>
-  </para>
+  <simpara>
+   Avanza el proceso de ejecución actual a otra acción. El destino se
+   determina por el número y tipo de los argumentos:
+  </simpara>
+  <simplelist>
+   <member>Solo <parameter>action</parameter>: avanza a otra acción del controlador actual.</member>
+   <member><parameter>controller</parameter> y <parameter>action</parameter>: avanza a otro controlador.</member>
+   <member><parameter>module</parameter>, <parameter>controller</parameter> y <parameter>action</parameter>: avanza a otro módulo.</member>
+   <member>El array opcional <parameter>parameters</parameter> lleva argumentos de invocación recuperables con <methodname>Yaf_Request_Abstract::getParam</methodname>.</member>
+  </simplelist>
+  <note>
+   <simpara>
+    Este método no cambia a la acción destino de inmediato;
+    el cambio tiene lugar después de que el flujo actual finalice.
+   </simpara>
+  </note>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -45,34 +51,34 @@
    <varlistentry>
     <term><parameter>module</parameter></term>
     <listitem>
-     <para>
+     <simpara>
       El nombre del módulo destino. Si es NULL, se asume el nombre del
-      módulo predeterminado
-     </para>
+      módulo por omisión
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>controller</parameter></term>
     <listitem>
-     <para>
+     <simpara>
       El nombre del controlador destino
-     </para>
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>action</parameter></term>
     <listitem>
-     <para>
+     <simpara>
       El nombre de la acción destino
-     </para>
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>paramters</parameter></term>
     <listitem>
-     <para>
+     <simpara>
       Argumentos de llamada
-     </para>
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -80,9 +86,9 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
+  <simpara>
    &return.success;
-  </para>
+  </simpara>
  </refsect1>
 
  <refsect1 role="examples">
@@ -94,19 +100,19 @@
 <?php
 class IndexController extends Yaf_Controller_Abstract
 {
-    public function indexAction(){
-         $logined = $_SESSION["login"];
-         if (!$logined) {
-             $this->forward("login", array("from" => "Index")); // forward to login action
-             return FALSE;  // this is important, this finish current working flow
-                            // and tell the Yaf do not doing auto-render
-         }
+    public function indexAction() {
+        $logined = $_SESSION["login"];
+        if (!$logined) {
+            $this->forward("login", array("from" => "Index")); // reenvía a la acción login
+            return false; // esto es importante, termina el flujo actual
+                          // y le indica a Yaf que no haga el auto-renderizado
+        }
 
-         // otros procesos
+        // otros procesos
     }
 
     public function loginAction() {
-         echo "login, redirected from ", $this->getInvokeArg("from") , " action";
+        echo "login, redirected from ", $this->_request->getParam("from") , " action";
     }
 }
 ?>
@@ -123,9 +129,11 @@ class IndexController extends Yaf_Controller_Abstract
 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <simplelist>
-   <member><methodname>Yaf_Request_Abstrace::getParam</methodname></member>
-  </simplelist>
+  <para>
+   <simplelist>
+    <member><methodname>Yaf_Request_Abstract::getParam</methodname></member>
+   </simplelist>
+  </para>
  </refsect1>
 
 </refentry>

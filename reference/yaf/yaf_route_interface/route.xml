@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Revision$ -->
-<!-- EN-Revision: 7418592d82d6cde8d052effd3607e5761d6c4e67 Maintainer: argosback Status: ready -->
-<!-- Reviewed: no Maintainer: andresdzphp -->
+<!-- EN-Revision: ddcf673c59d1708557680946fbffeee361d7fca6 Maintainer: argosback Status: ready -->
 
 <refentry xml:id="yaf-route-interface.route" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -19,10 +17,10 @@
    <methodname>Yaf_Route_Interface::route</methodname> es el único método
    que debería implementar un enrutamiento personalizado.
     <note>
-     <para>
+     <simpara>
       Desde la 2.3.0, hay otro método que también debería ser implementado,
       ver <methodname>Yaf_Route_Interface::assemble</methodname>.
-     </para>
+     </simpara>
     </note>
   </para>
   <para>
@@ -67,6 +65,90 @@
   </para>
  </refsect1>
 
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo de <methodname>Yaf_Route_Interface::route</methodname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class ApiRoute implements Yaf_Route_Interface {
+
+    private $_prefix;
+
+    public function __construct(string $prefix) {
+        $this->_prefix = $prefix;
+    }
+
+    public function route(Yaf_Request_Abstract $request): bool {
+        $uri = $request->getRequestUri();
+        if (0 !== strpos($uri, $this->_prefix)) {
+            /* no es cosa nuestra, que el enrutador pruebe la siguiente ruta */
+            return false;
+        }
+
+        /* analiza el URI "/api/user/list" en controlador/acción */
+        $segments = explode("/", ltrim(substr($uri, strlen($this->_prefix)), "/"));
+        $controller = isset($segments[0]) ? ucfirst($segments[0]) : NULL;
+        $action = isset($segments[1]) ? $segments[1] : NULL;
+
+        if (empty($controller)) {
+            return false;
+        }
+
+        $request->setModuleName("index");
+        $request->setControllerName($controller);
+        $request->setActionName($action);
+        $request->setRouted(); /* el proceso de enrutamiento termina aquí */
+
+        return true;
+    }
+
+    public function assemble(array $info, ?array $query = null): string {
+        $uri = $this->_prefix . "/" . strtolower($info[':c']);
+        if (isset($info[':a'])) {
+            $uri .= "/" . $info[':a'];
+        }
+
+        if (!empty($query)) {
+            $uri .= "?" . http_build_query($query);
+        }
+
+        return $uri;
+    }
+}
+
+/**
+  * se registra la ruta personalizada
+  */
+Yaf_Dispatcher::getInstance()->getRouter()->addRoute("api", new ApiRoute("/api"));
+?>
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+/* http://yourdomain.com/api/user/list
+ * enruta a los siguientes valores:
+ */
+array(
+  "module"     => "index",
+  "controller" => "User",
+  "action"     => "list",
+)
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><methodname>Yaf_Route_Interface::assemble</methodname></member>
+   <member><methodname>Yaf_Router::addRoute</methodname></member>
+   <member><methodname>Yaf_Request_Abstract::setRouted</methodname></member>
+  </simplelist>
+ </refsect1>
 
 </refentry>
 
