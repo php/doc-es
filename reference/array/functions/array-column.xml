@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 8bf3587d8f70239a65d9aa44d42ced8a696a3e86 Maintainer: PhilDaiguille Status: ready -->
-<!-- Reviewed: no -->
+<!-- EN-Revision: b91033ba3d6831cfa2ef6745150cd5d6b4af65c9 Maintainer: PhilDaiguille Status: ready -->
 <!-- CREDITS: DavidA. -->
 <refentry xml:id="function.array-column" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -23,6 +22,14 @@
    en el array devuelto por los valores de la columna
    <parameter>index_key</parameter> del array de entrada.
   </para>
+  <simpara>
+   <parameter>array</parameter> se trata como una lista de filas, cada una de las cuales es
+   a su vez un array o un objeto; una columna es la entrada o propiedad que
+   <parameter>column_key</parameter> nombra en cada fila.
+   Las filas que no son ni un array ni un objeto, y las filas en las que dicha entrada
+   o propiedad está ausente, se omiten sin diagnóstico.
+   Las claves de <parameter>array</parameter> nunca se conservan.
+  </simpara>
  </refsect1>
  <refsect1 role="parameters">
   &reftitle.parameters;
@@ -31,27 +38,31 @@
     <varlistentry>
      <term><parameter>array</parameter></term>
      <listitem>
-      <para>
-       Un array multidimensional o un array de objetos a partir del cual
-       se extrae una columna de valor. Si se proporciona un array de objetos,
-       entonces las propiedades públicas pueden ser directamente extraídas.
-       Para que las propiedades protegidas o privadas sean extraídas,
-       la clase debe implementar las dos métodos mágicos
-       <function>__get</function> y <function>__isset</function>.
-      </para>
+      <simpara>
+       Una lista cuyas filas son arrays u objetos, a partir de la cual se extrae
+       una columna de valores. Si una fila es un objeto, las propiedades públicas
+       se leen directamente. Para que una propiedad no accesible públicamente sea leída,
+       la clase debe implementar tanto los métodos mágicos
+       <link linkend="object.get">__get()</link> como
+       <link linkend="object.isset">__isset()</link>: sin
+       <link linkend="object.isset">__isset()</link> la fila se omite, y con
+       <link linkend="object.isset">__isset()</link> pero sin
+       <link linkend="object.get">__get()</link> se lanza un
+       <exceptionname>Error</exceptionname>.
+      </simpara>
      </listitem>
     </varlistentry>
     <varlistentry>
      <term><parameter>column_key</parameter></term>
      <listitem>
-      <para>
+      <simpara>
        La columna de valores a devolver. Este valor puede ser la clave
-       entera de la columna que se desea recuperar, o bien el
+       entera de la columna a recuperar, o bien el
        nombre de la clave para un array asociativo o el nombre de la propiedad.
-       También puede valer &null; para devolver el array completo o
-       los objetos (esto puede ser útil en conjunción con el argumento
+       También puede valer &null; para devolver las filas completas
+       (esto puede ser útil en conjunción con el argumento
        <parameter>index_key</parameter> para reindexar el array).
-      </para>
+      </simpara>
      </listitem>
     </varlistentry>
     <varlistentry>
@@ -71,10 +82,11 @@
  </refsect1>
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
+  <simpara>
    Devuelve un array de valores que representan una sola columna desde el
-   array de entrada.
-  </para>
+   array de entrada. Si <parameter>column_key</parameter> es &null;, se devuelven
+   las propias filas.
+  </simpara>
  </refsect1>
  <refsect1 role="changelog">
   &reftitle.changelog;
@@ -94,6 +106,20 @@
         Los objetos en las columnas indicadas por el argumento <parameter>index_key</parameter>
         ya no se convertirán en string y lanzarán ahora
         una <classname>TypeError</classname> en su lugar.
+       </entry>
+      </row>
+      <row>
+       <entry>7.1.0</entry>
+       <entry>
+        Ahora se respeta la visibilidad de las propiedades. Anteriormente, las propiedades
+        protegidas y privadas se leían directamente.
+       </entry>
+      </row>
+      <row>
+       <entry>7.0.0</entry>
+       <entry>
+        Las filas de <parameter>array</parameter> ahora también pueden ser objetos,
+        además de arrays.
        </entry>
       </row>
      </tbody>
@@ -255,8 +281,8 @@ Array
    <example>
     <title>
      Recupera la columna de nombres desde la propiedad privada "name" de un
-     objeto utilizando los métodos mágicos <function>__isset</function> y
-     <function>__get</function>
+     objeto utilizando los métodos mágicos <link linkend="object.isset">__isset()</link>
+     y <link linkend="object.get">__get()</link>
     </title>
     <programlisting role="php">
 <![CDATA[
@@ -304,8 +330,8 @@ Array
 ]]>
     </screen>
    </example>
-   Si <function>__isset</function> no está definido, entonces se devolverá un array
-   vacío.
+   Si <link linkend="object.isset">__isset()</link> no está definido, el objeto
+   no contribuye con ninguna entrada al array devuelto.
   </para>
  </refsect1>
 
