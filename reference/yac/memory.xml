@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: c05fbe7250c43b75034ac776ed78f4e67163e4d3 Maintainer: andresdzphp Status: ready -->
+<!-- Reviewed: no -->
+
+<chapter xml:id="yac.memory-management" xmlns="http://docbook.org/ns/docbook">
+ <title>Gestión de la memoria</title>
+
+ <simpara>
+  Yac guarda sus datos en dos reservas de memoria compartida independientes,
+  configuradas con
+  <link linkend="ini.yac.keys-memory-size">yac.keys_memory_size</link>
+  y
+  <link linkend="ini.yac.values-memory-size">yac.values_memory_size</link>.
+  Se llenan y se liberan de maneras distintas, por lo que conviene saber a qué
+  reserva pertenece un síntoma antes de tocar cualquiera de los dos ajustes.
+ </simpara>
+
+ <section xml:id="yac.memory-layout" annotations="chunk:false">
+  <title>Qué contiene cada reserva</title>
+  <simpara>
+   Las dos reservas almacenan mitades distintas de una entrada. La reserva de
+   claves contiene las claves: una ranura por clave en caché, que lleva la
+   propia clave (hasta 48 bytes) junto con su hash, su TTL, su número de
+   aciertos y su fecha de último acceso; el valor solo se referencia mediante
+   un puntero a la reserva de valores. La reserva de valores contiene los
+   valores: cada valor almacenado ocupa un bloque de bytes serializados, en su
+   forma comprimida cuando la entrada ha pasado por
+   <link linkend="ini.yac.compress-threshold">yac.compress_threshold</link>.
+  </simpara>
+  <simpara>
+   La única excepción son los valores incrustados: los escalares pequeños
+   (&null;, &true;, &false;, la mayoría de los enteros —los que caben en
+   60 bits con signo en compilaciones de 64 bits—, las cadenas de hasta
+   7 bytes y los arrays vacíos) se almacenan directamente dentro de la ranura,
+   en el puntero que de otro modo referenciaría un bloque. Esos valores no
+   ocupan espacio alguno en la reserva de valores; solo lo hace su clave.
+  </simpara>
+  <para>
+   Como guía aproximada de dimensionamiento:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      la reserva de claves contiene unas 8 000 claves por MB, así que hay que
+      dimensionar
+      <link linkend="ini.yac.keys-memory-size">yac.keys_memory_size</link>
+      como el número de claves distintas dividido entre 8 000 por MB,
+      redondeando al entero superior: el valor predeterminado de
+      <literal>8M</literal> contiene unas 64 000 claves;
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      la reserva de valores debe contener todos los valores que todavía puedan
+      leerse, así que hay que dimensionar
+      <link linkend="ini.yac.values-memory-size">yac.values_memory_size</link>
+      como el número de valores vivos multiplicado por su tamaño serializado
+      medio (después de la compresión), y prever aproximadamente el doble: la
+      reserva es un anillo, y un valor no muere hasta que el cursor del
+      asignador vuelve a pasar por encima de él.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+   Los valores incrustados ocupan una ranura como cualquier otra entrada, pero
+   no consumen espacio en la reserva de valores, así que hay que dejarlos
+   fuera del segundo cálculo.
+  </para>
+ </section>
+
+ <section xml:id="yac.memory-keys" annotations="chunk:false">
+  <title>La reserva de claves (ranuras)</title>
+  <simpara>
+   <link linkend="ini.yac.keys-memory-size">yac.keys_memory_size</link>
+   contiene una tabla de ranuras de tamaño fijo: el valor predeterminado de
+   <literal>8M</literal> proporciona unas 65 536 ranuras. Cada clave
+   almacenada ocupa exactamente una ranura, de modo que esta reserva limita el
+   número de entradas que pueden existir a la vez; a diferencia de la reserva
+   de valores, las ranuras nunca se liberan individualmente. Una ranura
+   caducada —más allá de su TTL, o el marcador de borrado que deja
+   <methodname>Yac::delete</methodname>— se recicla sin coste cuando una clave
+   nueva la necesita. Solo cuando las cuatro ranuras candidatas de un camino
+   de sondeo contienen entradas vivas se expulsa una de ellas para hacer
+   sitio: un <literal>kick</literal> (el contador
+   <literal>kicks</literal> de <methodname>Yac::info</methodname>).
+  </simpara>
+  <para>
+   La expulsión elige únicamente entre las cuatro candidatas vivas del camino
+   de sondeo en colisión:
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      se expulsa la usada menos recientemente (el <literal>atime</literal> más
+      antiguo);
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      en caso de empate, la entrada con menos aciertos y, después, la primera
+      posición de sondeo.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+  </para>
+  <simpara>
+   Un punto de confusión frecuente: que <literal>slots_used</literal> alcance
+   <literal>slots_size</literal> <emphasis>no</emphasis> es una condición de
+   error. Una caché cuyo conjunto de trabajo de claves sea mayor que la tabla
+   de ranuras simplemente funciona al 100 % de ocupación a partir de ese
+   momento, expulsando y reinsertando según haga falta. Lo único que indica si
+   la reserva de claves está bien dimensionada es la tasa de aciertos
+   (<literal>hits / (hits + miss)</literal>, calculada sobre las diferencias
+   entre dos instantáneas de <methodname>Yac::info</methodname> y no sobre la
+   media desde el arranque). Un contador <literal>kicks</literal> alto no
+   significa por sí mismo que haya un problema: sencillamente la distribución
+   de las claves no es uniforme y algunos caminos de sondeo colisionan más que
+   otros. Solo cuando la tasa de aciertos <emphasis>y</emphasis>
+   <literal>kicks</literal> son ambos malos la tabla es demasiado pequeña para
+   el conjunto de claves, y el remedio es un
+   <link linkend="ini.yac.keys-memory-size">yac.keys_memory_size</link> mayor.
+  </simpara>
+  <simpara>
+   Una segunda consecuencia de que las ranuras nunca se liberen: las entradas
+   sin TTL (<literal>ttl = 0</literal>) que ya no vuelven a leerse siguen
+   ocupando una ranura hasta que una expulsión da la casualidad de elegirlas.
+   Si una aplicación almacena grandes cantidades de datos de un solo uso,
+   conviene darles un TTL para que caduquen y puedan reciclarse sin desplazar
+   entradas vivas, o dimensionar la reserva de claves para el conjunto
+   completo de claves.
+  </simpara>
+ </section>
+
+ <section xml:id="yac.memory-values" annotations="chunk:false">
+  <title>La reserva de valores (segmentos)</title>
+  <simpara>
+   <link linkend="ini.yac.values-memory-size">yac.values_memory_size</link>
+   se divide en segmentos de 4M cada uno, gestionados como anillos: las
+   escrituras hacen avanzar un cursor por segmento y el espacio nunca se
+   libera por entrada. Cuando una asignación ya no cabe, el cursor vuelve al
+   principio de un segmento: un <literal>recycle</literal> (el contador
+   <literal>recycles</literal> de <methodname>Yac::info</methodname>). Un
+   reciclado no invalida el segmento de inmediato: los valores sobrescritos
+   siguen siendo legibles hasta que el cursor que ha dado la vuelta los
+   sobrescribe realmente, momento en el que sus lecturas no superan el control
+   de integridad y se convierten en fallos de caché.
+  </simpara>
+  <simpara>
+   Para esta reserva importan dos tamaños: el total de
+   <link linkend="ini.yac.values-memory-size">yac.values_memory_size</link>
+   debe contener el conjunto de trabajo de los valores vivos, y una única
+   entrada puede ocupar como mucho 1 MB una vez almacenada
+   (<constant>YAC_MAX_RAW_COMPRESSED_LEN</constant>). Por eso los valores
+   mayores se comprimen siempre antes de almacenarse; un valor que no puede
+   reducirse por debajo de 1 MB —lo más habitual, porque son datos
+   aleatorios— es rechazado e incrementa el contador
+   <literal>fails</literal>. El límite absoluto sobre el valor en sí es mucho
+   más alto: los valores serializados por encima de 64 MB
+   (<constant>YAC_MAX_VALUE_RAW_LEN</constant>, es decir
+   <literal>(1 &lt;&lt; 26) - 1</literal> bytes) se rechazan de plano.
+  </simpara>
+ </section>
+
+ <section xml:id="yac.memory-tuning" annotations="chunk:false">
+  <title>Dimensionamiento y qué vigilar</title>
+  <simpara>
+   Conviene empezar con los valores predeterminados y vigilar los contadores de
+   <methodname>Yac::info</methodname>: se acumulan desde
+   <literal>start_time</literal>, así que hay que comparar dos instantáneas
+   tomadas con cierta separación en el tiempo:
+  </simpara>
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     tasa de aciertos saludable (por ejemplo &gt;= 90 %): la caché está bien;
+     no hay nada que hacer, sea lo que sea que muestren los demás contadores;
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     tasa de aciertos baja y <literal>kicks</literal> en aumento: la reserva de
+     claves es demasiado pequeña para el conjunto de claves, las entradas vivas
+     se expulsan antes de volver a leerse. Hay que aumentar
+     <link linkend="ini.yac.keys-memory-size">yac.keys_memory_size</link>;
+    </simpara>
+   </listitem>
+   <listitem>
+    <para>
+     <literal>recycles</literal> frecuentes: esto sí es un problema real, no un
+     contador inofensivo. Un reciclado significa que el asignador de valores ha
+     dado la vuelta y está a punto de sobrescribir entradas: todo lo
+     sobrescrito muere antes de poder volver a leerse, de modo que los bytes
+     gastados en almacenarlo se han desperdiciado y la tasa de aciertos se
+     resiente. La reserva de valores es demasiado pequeña para el volumen de
+     datos vivos. Por orden de impacto:
+     <itemizedlist>
+      <listitem>
+       <simpara>
+        hay que dar un TTL a las entradas. Los valores escritos con
+        <literal>ttl = 0</literal> siguen vivos para siempre, de modo que
+        ocupan la reserva y obligan al cursor a dar la vuelta antes. Un TTL
+        limita cuánto puede vivir cada entrada y reduce el conjunto de trabajo
+        vivo que la reserva debe contener;
+       </simpara>
+      </listitem>
+      <listitem>
+       <simpara>
+        hay que aumentar
+        <link linkend="ini.yac.values-memory-size">yac.values_memory_size</link>
+        para que la reserva contenga todo el conjunto de valores vivos (hay que
+        recordar prever aproximadamente el doble de la huella viva: un valor no
+        muere hasta que el cursor vuelve a pasar por encima de él);
+       </simpara>
+      </listitem>
+      <listitem>
+       <simpara>
+        hay que almacenar menos por entrada y bajar
+        <link linkend="ini.yac.compress-threshold">yac.compress_threshold</link>
+        si está por encima del mínimo de <literal>1024</literal>, para que las
+        cargas útiles grandes se compriman, y recortar los valores que no
+        necesitan almacenarse por completo;
+       </simpara>
+      </listitem>
+     </itemizedlist>
+    </para>
+   </listitem>
+   <listitem>
+    <simpara>
+     <literal>fails</literal> en aumento: valores que no han podido
+     almacenarse, casi siempre un único valor mayor que el límite de 1 MB de
+     tamaño almacenado incluso después de comprimirlo; hay que dividir el
+     valor.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </section>
+
+</chapter>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+sgml-parent-document:nil
+sgml-default-dtd-file:"~/.phpdoc/manual.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+vim600: syn=xml fen fdm=syntax fdl=2 si
+vim: et tw=78 syn=sgml
+vi: ts=1 sw=1
+-->
