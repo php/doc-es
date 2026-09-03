@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 1a42637cd40d0f75af1435ff051c7caa9b1c83e0 Maintainer: andresdzphp Status: ready -->
+<!-- EN-Revision: c05fbe7250c43b75034ac776ed78f4e67163e4d3 Maintainer: andresdzphp Status: ready -->
 
 <refentry xml:id="yac.add" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
@@ -11,7 +11,7 @@
   &reftitle.description;
   <methodsynopsis>
    <modifier>public</modifier> <type>bool</type><methodname>Yac::add</methodname>
-   <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>keys</parameter></methodparam>
+   <methodparam><type class="union"><type>string</type><type>array</type></type><parameter>key</parameter></methodparam>
    <methodparam><type>mixed</type><parameter>value</parameter></methodparam>
    <methodparam choice="opt"><type>int</type><parameter>ttl</parameter><initializer>0</initializer></methodparam>
   </methodsynopsis>
@@ -31,7 +31,7 @@
   &reftitle.parameters;
   <variablelist>
    <varlistentry>
-    <term><parameter>keys</parameter></term>
+    <term><parameter>key</parameter></term>
     <listitem>
      <simpara>
       Una clave de tipo <type>string</type>, o un <type>array</type> de pares
@@ -45,7 +45,7 @@
      <simpara>
       El valor a almacenar. Puede almacenarse cualquier tipo de PHP excepto
       <type>resource</type>. Solo se utiliza en la forma de clave única; cuando
-      <parameter>keys</parameter> es un array, este argumento es en su lugar el
+      <parameter>key</parameter> es un array, este argumento es en su lugar el
       parámetro opcional <parameter>ttl</parameter>.
      </simpara>
     </listitem>
@@ -69,22 +69,6 @@
    también es rechazado (devolviendo &false;) cuando la clave ya existe y no ha
    expirado.
   </simpara>
-  <note>
-   <para>
-    Yac almacena las entradas sin bloqueos. Bajo una fuerte contención, un
-    almacenamiento puede fallar de forma transitoria; si el valor debe acabar
-    siendo almacenado, hay que reintentarlo:
-    <programlisting role="php">
-<![CDATA[
-<?php
-while (!$yac->add("key", "value")) {
-    // reintento en caso de fallo transitorio
-}
-?>
-]]>
-    </programlisting>
-   </para>
-  </note>
  </refsect1>
 
  <refsect1 role="examples">
@@ -98,11 +82,31 @@ $yac = new Yac();
 
 var_dump($yac->add("foo", "bar"));          // bool(true)
 var_dump($yac->add("foo", "baz"));          // bool(false): "foo" ya existe
+?>
+]]>
+   </programlisting>
+  </example>
+  <example>
+   <title>Añadir una entrada con un TTL</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$yac = new Yac();
 
 // ttl en segundos; 0 (el valor predeterminado) significa que la entrada nunca expira
 $yac->add("short-lived", "value", 5);
 sleep(6);
 var_dump($yac->get("short-lived"));        // bool(false): expirado
+?>
+]]>
+   </programlisting>
+  </example>
+  <example>
+   <title>Añadir varias entradas en una sola llamada</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+$yac = new Yac();
 
 // almacena varios pares clave => valor en una sola llamada, con un ttl
 $yac->add(array("a" => 1, "b" => 2), 60);
