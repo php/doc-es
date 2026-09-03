@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 4d17b7b4947e7819ff5036715dd706be87ae4def Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 6e77169fdc9c087749f357bef877607ccc05f442 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes Maintainer: Marqitos -->
 <reference xml:id="class.swoole-timer" role="class" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
  <title>La clase Swoole\Timer</title>
@@ -10,9 +10,75 @@
 <!-- {{{ Swoole\Timer intro -->
   <section xml:id="swoole-timer.intro">
    &reftitle.intro;
+   <simpara>
+    Temporizador con precisión de milisegundos. La implementación subyacente se
+    basa en epoll_wait y setitimer, con una estructura de datos de montículo
+    mínimo que permite añadir un gran número de temporizadores.
+   </simpara>
+   <simpara>
+    En los procesos con E/S síncrona, como los procesos Manager y TaskWorker, se
+    implementa mediante setitimer y señales.
+   </simpara>
+   <simpara>
+    En los procesos con E/S asíncrona, se implementa mediante el tiempo de
+    espera de epoll_wait/kevent/poll/select.
+   </simpara>
    <para>
-
+    El sistema subyacente no admite temporizadores con un retardo de
+    <literal>0</literal>; los valores inferiores a <literal>1</literal>
+    milisegundo emiten un <constant>E_WARNING</constant> y la llamada falla.
+    Esto difiere de lenguajes como Node.js.
+    <methodname linkend="swoole-event.defer">Swoole\Event::defer</methodname>
+    puede utilizarse para obtener una funcionalidad similar.
+    <programlisting role="php">
+<![CDATA[
+<?php
+Swoole\Event::defer(function () {
+  echo "hola\n";
+});
+?>
+]]>
+    </programlisting>
    </para>
+   <simpara>
+    Corrección del temporizador: el tiempo de ejecución de la función de
+    retrollamada no afecta al instante de la siguiente ejecución. Por ejemplo,
+    para un temporizador tick de 10 ms creado en 0,002 s, la primera
+    retrollamada se ejecuta en 0,012 s; si la función de retrollamada tarda
+    5 ms, el siguiente disparo se produce igualmente en 0,022 s, y no en
+    0,027 s.
+   </simpara>
+   <simpara>
+    En cambio, si la función de retrollamada tarda demasiado, hasta cubrir el
+    instante de la siguiente ejecución, el sistema subyacente corrige el tiempo:
+    descarta los disparos vencidos y vuelve a llamar a la función en el
+    siguiente instante disponible. Por ejemplo, si la retrollamada ejecutada en
+    0,012 s tarda 15 ms, lo que retrasa el temporizador previsto para 0,022 s,
+    la retrollamada se dispara de nuevo en 0,032 s.
+   </simpara>
+   <simpara>
+    De forma predeterminada, cuando un temporizador se dispara se crea
+    automáticamente una corrutina para ejecutar la función de retrollamada.
+    Este comportamiento puede desactivarse con
+    <function>swoole_async_set</function>.
+   </simpara>
+   <warning>
+    <simpara>
+     Un temporizador solo funciona en el espacio del proceso actual.
+    </simpara>
+   </warning>
+   <warning>
+    <simpara>
+     Los temporizadores son puramente asíncronos e incompatibles con las
+     funciones de E/S síncrona.
+    </simpara>
+   </warning>
+   <warning>
+    <simpara>
+     La ejecución de un temporizador puede presentar ligeras desviaciones de
+     tiempo.
+    </simpara>
+   </warning>
   </section>
 <!-- }}} -->
 
