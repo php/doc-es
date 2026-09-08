@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 80720e59fc88b2522fe2e119b0148caaaa214b0b Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: cf7dcffba0ab8ce14dbfd6019f2861f5a6843ed5 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 <refentry xml:id="closure.bindto" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>Closure::bindTo</refname>
   <refpurpose>
-   Duplica la cierre con un nuevo objeto vinculado y un nuevo contexto de clase.
+   Duplica el cierre con un nuevo objeto vinculado y un nuevo ámbito de clase.
   </refpurpose>
  </refnamediv>
 
@@ -16,38 +16,39 @@
    <methodparam><type class="union"><type>object</type><type>null</type></type><parameter>newThis</parameter></methodparam>
    <methodparam choice="opt"><type class="union"><type>object</type><type>string</type><type>null</type></type><parameter>newScope</parameter><initializer>"static"</initializer></methodparam>
   </methodsynopsis>
-  <para>
+  <simpara>
    Crea y devuelve una nueva <link linkend="functions.anonymous">función anónima
    </link> con el mismo cuerpo y las mismas variables vinculadas que la original, pero con un objeto vinculado
-   que puede ser diferente, y un nuevo contexto de clase.
-  </para>
+   que puede ser diferente, y un nuevo ámbito de clase.
+  </simpara>
 
-  <para>
+  <simpara>
    El objeto vinculado determina el valor que <literal>$this</literal> tendrá en el cuerpo de la función,
-   y el contexto de clase representa una clase que determina a qué miembros privados y protegidos
-   la función anónima tendrá acceso. En otras palabras, las propiedades que serán visibles serán las
-   mismas que si la función anónima fuera un método de la clase pasada a través del argumento
+   y el ámbito de clase representa una clase que determina a qué miembros privados y protegidos
+   la función anónima tendrá acceso. En otras palabras, los miembros que serán visibles serán los
+   mismos que si la función anónima fuera un método de la clase pasada a través del parámetro
    <parameter>newScope</parameter>.
-  </para>
+  </simpara>
 
-  <para>
-   Las cierres estáticas no pueden tener un objeto vinculado (el valor del argumento
+  <simpara>
+   Los cierres estáticos no pueden tener ningún objeto vinculado (el valor del parámetro
    <parameter>newThis</parameter> debería ser &null;), pero este método puede
-   utilizarse para cambiar su ámbito de clase.
-  </para>
+   utilizarse igualmente para cambiar su ámbito de clase.
+  </simpara>
 
-  <para>
-   Este método verificará que una cierre no estática a la que se le pase
-   un contexto de objeto se vincule a este objeto (y ya no sea no estática),
-   y viceversa. Con este fin, las cierres no estáticas a las que se les pase un
-   contexto de clase pero &null; como contexto de objeto serán convertidas en estáticas, y viceversa.
-  </para>
+  <simpara>
+   Este método garantiza que, para un cierre no estático, tener una instancia
+   vinculada implica tener un ámbito, y viceversa. Con este fin, los cierres no
+   estáticos a los que se les da un ámbito pero una instancia &null; se convierten
+   en estáticos, y los cierres no estáticos sin ámbito a los que se les da una
+   instancia no nula reciben como ámbito una clase no especificada.
+  </simpara>
 
   <note>
-   <para>
+   <simpara>
     Si solo se desea duplicar la función anónima, puede utilizarse
     <link linkend="language.oop5.cloning">el clonado</link> en su lugar.
-   </para>
+   </simpara>
   </note>
 
  </refsect1>
@@ -58,21 +59,22 @@
    <varlistentry>
     <term><parameter>newThis</parameter></term>
     <listitem>
-     <para>
-      El objeto al que vincular la función anónima, o &null; para una cierre estática.
-     </para>
+     <simpara>
+      El objeto al que vincular la función anónima, o &null; para que el cierre
+      quede desvinculado.
+     </simpara>
     </listitem>
    </varlistentry>
    <varlistentry>
     <term><parameter>newScope</parameter></term>
     <listitem>
-     <para>
-      El contexto de clase a asociar con la cierre, o 'static' para conservar el
-      contexto actual. Si se pasa un objeto, su tipo será utilizado.
+     <simpara>
+      El ámbito de clase a asociar con el cierre, o 'static' para conservar el
+      ámbito actual. Si se pasa un objeto, su tipo será utilizado.
       Esto determina la visibilidad de los métodos protegidos y privados del objeto vinculado.
       No está permitido pasar (un objeto de) una clase interna para
-      este argumento.
-     </para>
+      este parámetro.
+     </simpara>
     </listitem>
    </varlistentry>
   </variablelist>
@@ -80,10 +82,34 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   Devuelve la nueva cierre en forma de objeto <classname>Closure</classname>,
+  <simpara>
+   Devuelve el objeto <classname>Closure</classname> recién creado,
    o &null; en caso de error.
-  </para>
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="changelog">
+  &reftitle.changelog;
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>&Version;</entry>
+      <entry>&Description;</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry>8.5.0</entry>
+      <entry>
+       Vincular una instancia a un cierre estático, o vincular un método de una
+       jerarquía de clases incompatible, ahora está obsoleto (estos casos ya
+       emitían un <constant>E_WARNING</constant>).
+      </entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
  </refsect1>
 
  <refsect1 role="examples">
@@ -105,7 +131,7 @@ class A
 
     public function getClosure()
     {
-        //Retorna una cierre vinculada a este objeto y contexto
+        //Retorna un cierre vinculado a este objeto y ámbito
         return function() {
             return $this->val;
         };
