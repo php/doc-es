@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: a758e79c3bf173203550cb78ef07509cf859b212 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 3e6082f609ead63cfa7b33a06d8e0c723d51bc65 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no Maintainer: Marqitos -->
 <refentry xml:id="function.stream-select" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -16,12 +16,15 @@
    <methodparam><type class="union"><type>int</type><type>null</type></type><parameter>seconds</parameter></methodparam>
    <methodparam choice="opt"><type class="union"><type>int</type><type>null</type></type><parameter>microseconds</parameter><initializer>&null;</initializer></methodparam>
   </methodsynopsis>
-  <para>
+  <simpara>
    <function>stream_select</function> acepta un array de flujos y
-   espera a que alguno de ellos cambie de estado. Esta operación es
-   equivalente a lo que hace la función <function>socket_select</function>,
-   salvo que trabaja sobre un flujo.
-  </para>
+   espera a que alguno de ellos cambie de estado. Es el equivalente de
+   <function>socket_select</function> para los flujos, pero ambas funciones no
+   se comportan igual en todos los aspectos: no señalan los argumentos
+   inválidos de la misma manera, y <function>stream_select</function> puede
+   terminar sin consultar en absoluto al sistema operativo, tal como se describe
+   en las notas siguientes.
+  </simpara>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -232,18 +235,28 @@ if (false === stream_select($r, $w, $e, 0)) {
    </para>
   </note>
   <note>
-   <para>
-    Si ha escrito o leído en un flujo que es retornado en los arrays
-    de flujos, sea consciente de que estos flujos pueden no haber escrito
-    o leído la totalidad de los datos solicitados. Sea
-    capaz de leer un solo byte.
-   </para>
+   <simpara>
+    Al leer de un flujo devuelto en los arrays, o al escribir en él, tenga en
+    cuenta que no se lee ni se escribe necesariamente la totalidad de los datos
+    solicitados. Esté preparado para tratar tan solo un byte.
+   </simpara>
   </note>
   <note>
-   <para>
+   <simpara>
     Algunos flujos (como <literal>zlib</literal>) no pueden ser
     seleccionados por esta función.
-   </para>
+   </simpara>
+  </note>
+  <note>
+   <simpara>
+    Un flujo que ya dispone de datos almacenados en el búfer del lado de PHP se
+    señala como listo sin que se realice la llamada
+    <literal>select()</literal> subyacente. En ese caso, los arrays
+    <parameter>write</parameter> y <parameter>except</parameter> se vacían sin
+    haber sido examinados: un flujo que estaba listo para escritura no se
+    señala, y el valor de retorno solo cuenta los flujos disponibles para
+    lectura.
+   </simpara>
   </note>
   <note>
    <title>Compatibilidad con Windows</title>
@@ -264,6 +277,7 @@ if (false === stream_select($r, $w, $e, 0)) {
   &reftitle.seealso;
   <simplelist>
    <member><function>stream_set_blocking</function></member>
+   <member><function>socket_select</function></member>
   </simplelist>
  </refsect1>
 </refentry>
