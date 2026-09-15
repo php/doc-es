@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 36d18e7d4a32ecfdacc1eb086276ffb1baf0393c Maintainer: lacatoire Status: ready -->
+<!-- EN-Revision: 83c44e16897a8f6371b0c652ce9610b396514fb8 Maintainer: lacatoire Status: ready -->
 <!-- Reviewed: yes Maintainer: Marqitos -->
 <sect1 xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xml:id="opcache.configuration">
  &reftitle.runtime;
@@ -27,7 +27,7 @@
       <entry><link linkend="ini.opcache.enable-cli">opcache.enable_cli</link></entry>
       <entry>0</entry>
       <entry><constant>INI_SYSTEM</constant></entry>
-      <entry>Entre PHP 7.1.2 y 7.1.6 inclusive, el valor por omisión era 1</entry>
+      <entry>Entre PHP 7.1.2 y 7.1.6 inclusive, el valor por omisión era <literal>1</literal></entry>
      </row>
      <row>
       <entry><link linkend="ini.opcache.memory-consumption">opcache.memory_consumption</link></entry>
@@ -99,7 +99,7 @@
       <entry><link linkend="ini.opcache.optimization-level">opcache.optimization_level</link></entry>
       <entry>"0x7FFEBFFF"</entry>
       <entry><constant>INI_SYSTEM</constant></entry>
-      <entry>Modificado desde 0x7FFFBFFF en PHP 7.3.0</entry>
+      <entry>Modificado desde <literal>0x7FFFBFFF</literal> en PHP 7.3.0</entry>
      </row>
      <row>
       <entry><link linkend="ini.opcache.inherited-hack">opcache.inherited_hack</link></entry>
@@ -129,7 +129,7 @@
       <entry><link linkend="ini.opcache.consistency-checks">opcache.consistency_checks</link></entry>
       <entry>0</entry>
       <entry><constant>INI_ALL</constant></entry>
-      <entry>&gt;Desactivado a partir de PHP 8.1.18 y 8.2.5. Eliminado a partir de PHP 8.3.0.</entry>
+      <entry>Desactivado a partir de PHP 8.1.18 y 8.2.5. Eliminado a partir de PHP 8.3.0.</entry>
      </row>
      <row>
       <entry><link linkend="ini.opcache.force-restart-timeout">opcache.force_restart_timeout</link></entry>
@@ -171,7 +171,7 @@
       <entry><link linkend="ini.opcache.mmap-base">opcache.mmap_base</link></entry>
       <entry>&null;</entry>
       <entry><constant>INI_SYSTEM</constant></entry>
-      <entry/>
+      <entry>Solo para Windows.</entry>
      </row>
      <row>
       <entry><link linkend="ini.opcache.restrict-api">opcache.restrict_api</link></entry>
@@ -205,7 +205,7 @@
      </row>
      <row>
       <entry><link linkend="ini.opcache.file-cache">opcache.file_cache</link></entry>
-      <entry>NULL</entry>
+      <entry>&null;</entry>
       <entry><constant>INI_SYSTEM</constant></entry>
       <entry/>
      </row>
@@ -411,6 +411,14 @@
      El valor mínimo permisible es <literal>"8"</literal>,
      que se fuerza si se define un valor más pequeño.
     </simpara>
+    <simpara>
+     Cuando el JIT está activado, el segmento de memoria compartida también
+     contiene el búfer del JIT, por lo que su tamaño total es este valor más
+     <link linkend="ini.opcache.jit-buffer-size">opcache.jit_buffer_size</link>.
+     OPcache intenta primero asignar el segmento utilizando HUGE PAGES y,
+     si el sistema operativo no ha reservado suficientes, recurre
+     silenciosamente a páginas normales.
+    </simpara>
    </listitem>
   </varlistentry>
   <varlistentry xml:id="ini.opcache.interned-strings-buffer">
@@ -442,8 +450,7 @@
      números primos
      <literal>{ 223, 463, 983, 1979, 3907, 7963, 16229, 32531, 65407, 130987, 262237, 524521, 1048793 }</literal>
      que sea mayor o igual que el valor configurado. El valor mínimo es 200.
-     El valor máximo es 100000 en PHP &lt; 5.5.6, y 1000000 en versiones
-     posteriores.
+     El valor máximo es 1000000.
      Los valores fuera de este intervalo se ajustan al intervalo permitido.
     </simpara>
    </listitem>
@@ -526,7 +533,7 @@
     <simpara>
      Si está desactivado, los archivos en caché existentes que usan el mismo
      <link linkend="ini.include-path">include_path</link> serán reutilizados.
-     También, si un archivo con el mismo nombre está en otro lugar en el
+     Por lo tanto, si un archivo con el mismo nombre está en otro lugar en el
      include_path, no será encontrado.
     </simpara>
    </listitem>
@@ -983,6 +990,11 @@ function getA() { return A; }
      Activa o desactiva la copia de código PHP (segmento de texto) en HUGE PAGES.
      Esto debería mejorar el rendimiento, pero requiere una configuración
      adecuada del sistema operativo.
+     Solo se vuelve a mapear el segmento de texto del binario de PHP; el
+     segmento de memoria compartida descrito en
+     <link linkend="ini.opcache.memory-consumption">opcache.memory_consumption</link>
+     no se ve afectado por esta directiva. Si el remapeo falla, OPcache emite
+     un <constant>E_WARNING</constant>.
      Disponible en Linux a partir de PHP 7.0.0,
      y en FreeBSD a partir de PHP 7.4.0.
     </simpara>
@@ -1021,7 +1033,7 @@ function getA() { return A; }
     <simpara>
      Activa y define el directorio de caché de segundo nivel. Esto debería
      mejorar el rendimiento cuando la memoria SHM está llena, al reiniciar
-     el servidor o reinicializar SMH.
+     el servidor o reinicializar SHM.
      El valor por omisión "" desactiva el almacenamiento en caché basado en archivos.
     </simpara>
    </listitem>
@@ -1062,7 +1074,7 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     Sugiere opcache.file_cache_only=1 para un proceso determinado que ha fallado al
+     Implica <code>opcache.file_cache_only=1</code> para un proceso determinado que ha fallado al
      unirse a la memoria compartida (solo para Windows).
      Se requiere el caché de archivos activado explícitamente.
     </simpara>
@@ -1094,8 +1106,8 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     Impide las colisiones de nombres en entornos `chroot`. Esto debería
-     ser activado en todos los entornos `chroot` para impedir el acceso
+     Impide las colisiones de nombres en entornos chroot. Esto debería
+     ser activado en todos los entornos chroot para impedir el acceso
      a archivos fuera del chroot.
     </simpara>
    </listitem>
@@ -1154,9 +1166,6 @@ function getA() { return A; }
       Para IIS, diferentes grupos de aplicaciones pueden tener su propia
       instancia OPcache utilizando la variable de entorno
       <envar>APP_POOL_ID</envar> como <parameter>opcache.cache_id</parameter>.
-      For IIS, different application pools can have their own OPcache instance
-      by using the environment variable <envar>APP_POOL_ID</envar> as
-      <parameter>opcache.cache_id</parameter>.
      </simpara>
     </tip>
    </listitem>
@@ -1168,7 +1177,7 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     Para un uso típico, esta opción acepta una de las cuatro siguientes valores string:
+     Para un uso típico, esta opción acepta uno de los cuatro siguientes valores string:
     </simpara>
     <simplelist>
      <member><literal>disable</literal>: Desactivado completamente, no puede ser activado durante el tiempo de ejecución.</member>
@@ -1267,7 +1276,7 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     Una máscara de bits que especifica qué salida de depuración de JIT activar
+     Una máscara de bits que especifica qué salida de depuración de JIT activar.
      Para los valores posibles, consulte <link xlink:href="&url.php.git.src.master.view;ext/opcache/jit/zend_jit.h">zend_jit.h</link>
      (ver las definiciones de macro que comienzan con <code>ZEND_JIT_DEBUG</code>).
     </simpara>
@@ -1313,7 +1322,7 @@ function getA() { return A; }
    <listitem>
     <simpara>
      Número máximo de trazas raíz (root traces). La traza raíz es un flujo de ejecución que toma
-     primero un camino a través del código, que es una unidad de la compilación JIT. JIT no compilara
+     primero un camino a través del código, que es una unidad de la compilación JIT. JIT no compilará
      nuevo código si alcanza este límite.
     </simpara>
    </listitem>
@@ -1447,8 +1456,7 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     <!-- TODO: No estoy totalmente seguro tbh -->
-     Número máximo de llamadas recursivas desenrolladas en un bucle.
+     Número máximo de bucles de llamadas recursivas desenrollados.
     </simpara>
    </listitem>
   </varlistentry>
@@ -1459,8 +1467,7 @@ function getA() { return A; }
    </term>
    <listitem>
     <simpara>
-     <!-- TODO: No estoy totalmente seguro tbh -->
-     Número máximo de retornos recursivos desenrollados en un bucle.
+     Número máximo de bucles de retornos recursivos desenrollados.
     </simpara>
    </listitem>
   </varlistentry>
