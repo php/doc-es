@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: dff848b17dafaabfb7662ffb5fecfcb04e3b771d Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 4fc9f9ea7ba36a383613ede343a0820f5cc46aa2 Maintainer: PhilDaiguille Status: ready -->
 <sect1 xml:id="language.oop5.traits" xmlns="http://docbook.org/ns/docbook">
  <title>Traits</title>
  <para>
@@ -8,12 +8,12 @@
  <para>
   Los traits son un mecanismo de reutilización de código en un lenguaje de herencia simple
   como PHP. Un trait intenta reducir ciertas limitaciones de la herencia simple, permitiendo
-  al desarrollador reutilizar un cierto número de métodos en clases independientes. La sémantica entre las clases y los traits reduce la complejidad y evita los problemas
+  al desarrollador reutilizar un cierto número de métodos en clases independientes. La semántica entre las clases y los traits reduce la complejidad y evita los problemas
   típicos de la herencia múltiple y los Mixins.
  </para>
  <para>
   Un trait es similar a una clase, pero solo sirve para agrupar funcionalidades de una
-  manera interesante. No es posible instanciar un Trait en sí mismo. Es un
+  manera granular y coherente. No es posible instanciar un Trait en sí mismo. Es un
   añadido a la herencia tradicional, que permite la composición horizontal de comportamientos,
   es decir, el uso de métodos de clase sin necesidad de herencia.
  </para>
@@ -67,13 +67,29 @@ Hello World!
   <para>
    Un método heredado desde una clase madre es sobrescrito por un método proveniente de un Trait.
    El orden de precedencia hace que los métodos de la clase actual
-   sobrescriban los métodos provenientes de un Trait, ellos mismos sobrecargando los métodos heredados.
+   sobrescriban los métodos provenientes de un Trait, que a su vez sobrescriben los métodos heredados.
   </para>
+  <note>
+   <simpara>
+    A partir de PHP 8.5.0, los traits se ligan a una clase antes que su clase
+    madre; anteriormente se ligaban después. Esto refleja con mayor fidelidad
+    la semántica de copiar y pegar de los traits. En particular, cuando un trait
+    y la clase madre declaran ambos una propiedad o una constante con el mismo
+    nombre, la definición del trait prevalece ahora sobre la heredada, mientras
+    que las versiones anteriores generaban un error fatal por composición
+    incompatible. La resolución de métodos no se ve afectada. Consulte
+    <link linkend="migration85.incompatible.core.trait-binding">la guía de
+    migración</link> para más detalles.
+   </simpara>
+  </note>
   <example xml:id="language.oop5.traits.precedence.examples.ex1">
    <title>Ejemplo con el orden de precedencia</title>
    <para>
-    Un método heredado desde la clase base es sobrescrito por el que proviene
-    del Trait. No es el caso de los métodos reales, escritos en la clase base.
+    Un método heredado desde la clase base es sobrescrito por el método
+    insertado en MyHelloWorld desde el Trait SayWorld. El comportamiento es
+    el mismo para los métodos definidos en la clase MyHelloWorld. El orden de
+    precedencia hace que los métodos de la clase actual sobrescriban los métodos
+    del Trait, que a su vez sobrescriben los métodos de la clase base.
    </para>
    <programlisting role="php">
 <![CDATA[
@@ -341,7 +357,7 @@ Hello World!
    Los traits soportan el uso de métodos abstractos para imponer
    restricciones a las clases subyacentes. Se soportan los métodos públicos, protegidos,
    y privados.
-   Anterior a PHP 8.0.0, solo se soportaban los métodos públicos y protegidos abstractos.
+   Antes de PHP 8.0.0, solo se soportaban los métodos públicos y protegidos abstractos.
   </para>
   <caution>
     <simpara>
@@ -478,7 +494,7 @@ Doing something
 <![CDATA[
 <?php
 
-trait StaticExample
+trait T
 {
     public static $counter = 1;
 }
@@ -607,7 +623,7 @@ echo $example::FLAG_MUTABLE;
   <para>
    Si un trait define una constante, entonces una clase no puede definir una
    constante con el mismo nombre, a menos que sea compatible (misma
-   visibilidad, mismo valor, etc.), de lo contrario se produce un error fatal.
+   visibilidad, valor inicial y carácter final), de lo contrario se produce un error fatal.
   </para>
   <example xml:id="language.oop5.traits.constants.conflicts">
    <title>Resolución de conflicto</title>
@@ -634,8 +650,8 @@ class ConstantsExample {
     A partir de PHP 8.3.0, el modificador <link linkend="language.oop5.final">final</link>
     puede ser aplicado usando el operador <literal>as</literal>
     a los métodos importados desde los traits. Esto puede ser usado para impedir
-    que las clases hijas sobrecarguen el método. Sin embargo, la clase que usa
-    el trait puede seguir sobrecargando el método.
+    que las clases hijas sobrescriban el método. Sin embargo, la clase que usa
+    el trait puede seguir sobrescribiendo el método.
    </simpara>
    <example xml:id="language.oop5.traits.final-methods.example">
     <title>Definir un método proveniente de un trait como <literal>final</literal></title>
@@ -654,7 +670,7 @@ trait CommonTrait
 class FinalExampleA
 {
     use CommonTrait {
-        CommonTrait::method as final; // El 'final' impide que las clases hijas sobrecarguen el método
+        CommonTrait::method as final; // El 'final' impide que las clases hijas sobrescriban el método
     }
 }
 
