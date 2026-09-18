@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: dff848b17dafaabfb7662ffb5fecfcb04e3b771d Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 09c650422aec6f59dca08d1c65eaa633d391a525 Maintainer: PhilDaiguille Status: ready -->
 <sect1 xml:id="language.oop5.cloning" xmlns="http://docbook.org/ns/docbook">
   <title>Clonación de objetos</title>
 
@@ -11,6 +11,10 @@
    contiene el recurso que representa esa ventana GTK, al crear una copia,
    se puede desear crear una nueva ventana con las mismas propiedades,
    pero que el nuevo objeto contenga un recurso que represente la nueva ventana.
+   Otro ejemplo: si el objeto contiene una referencia a otro objeto que
+   utiliza, al replicar el objeto padre se puede desear crear una nueva
+   instancia de ese otro objeto, de modo que la réplica tenga su propia copia
+   independiente.
   </simpara>
 
   <para>
@@ -83,10 +87,10 @@ $obj->object2 = new SubObject();
 
 $obj2 = clone $obj;
 
-print "Objeto original :\n";
+print "Objeto original:\n";
 print_r($obj);
 
-print "Objeto clonado :\n";
+print "Objeto clonado:\n";
 print_r($obj2);
 
 ?>
@@ -95,7 +99,7 @@ print_r($obj2);
    &example.outputs;
    <screen role="php">
 <![CDATA[
-Objeto original :
+Objeto original:
 MyCloneable Object
 (
     [object1] => SubObject Object
@@ -109,7 +113,7 @@ MyCloneable Object
         )
 
 )
-Objeto clonado :
+Objeto clonado:
 MyCloneable Object
 (
     [object1] => SubObject Object
@@ -150,6 +154,61 @@ echo (clone $dateTime)->format('Y');
 ]]>
    </screen>
   </example>
+
+  <sect2 xml:id="language.oop5.cloning.with-properties">
+   <title>Clonación con sustitución de propiedades</title>
+
+   <simpara>
+    A partir de PHP 8.5.0, <literal>clone</literal> también está disponible como
+    función, cuyo segundo parámetro <parameter>withProperties</parameter> acepta
+    un array que asocia nombres de propiedades con los valores que recibe la
+    copia. Solo se sustituyen las propiedades indicadas; las demás conservan el
+    valor con el que fueron copiadas.
+   </simpara>
+
+   <simpara>
+    Las sustituciones se aplican después de la ejecución de
+    <link linkend="object.clone">__clone()</link> y respetan la visibilidad de
+    todas las propiedades.
+    Las <link linkend="language.oop5.properties.readonly-properties">propiedades readonly</link>
+    pueden modificarse en la copia aunque ya estuvieran inicializadas en el
+    objeto original, lo que hace que la función resulte adecuada para los
+    métodos que devuelven una copia modificada.
+   </simpara>
+
+   <example>
+    <title>Clonación de un objeto con sustitución de propiedades</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class Point {
+    public function __construct(
+        public readonly int $x,
+        public readonly int $y,
+    ) {}
+
+    public function withX(int $x): static
+    {
+        return clone($this, ['x' => $x]);
+    }
+}
+
+$p = new Point(1, 2);
+$q = $p->withX(10);
+
+echo $q->x, ' ', $q->y;
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+10 2
+]]>
+    </screen>
+   </example>
+  </sect2>
+
 </sect1>
 <!-- Keep this comment at the end of the file
 Local variables:
