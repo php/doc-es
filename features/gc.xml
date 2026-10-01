@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 23e84882d6654f995166d17e5610af6bf00ef18c Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 5e6ca803fc284739a7b1e7fba58b6b8466d5006f Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes Maintainer: PhilDaiguille -->
 
 <chapter xml:id="features.gc" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -15,7 +15,7 @@
    <para>
     Una variable PHP se almacena internamente en un contenedor llamado "zval". Un contenedor
     zval contiene, además del tipo de la variable y su valor, dos informaciones adicionales.
-    La primera se llama "is_ref" y es un valor booléano que indica si
+    La primera se llama "is_ref" y es un valor booleano que indica si
     una variable forma parte de una referencia o no. Gracias a esta información, el motor de
     PHP sabe diferenciar las variables normales de las referencias. Como PHP permite
     al programador utilizar referencias, mediante el operador &amp;, un contenedor
@@ -43,7 +43,7 @@ $a = "new string";
    <para>
     En este caso, el nuevo símbolo <literal>a</literal> se crea en el ámbito global,
     y se crea un nuevo contenedor con el tipo <type>string</type> y el valor
-    <literal>new string</literal>. El bit "is_ref" se establece por omisión en &false; ya que ninguna
+    <literal>new string</literal>. El bit "is_ref" se establece por defecto en &false; ya que ninguna
     referencia ha sido creada por el programador. El contador de referencias "refcount" se establece en
     <literal>1</literal> ya que solo hay un símbolo que utiliza este contenedor.
     Es de destacar que las referencias (es decir, "is_ref" es &true;) con "refcount"
@@ -331,7 +331,7 @@ a: (refcount=2, is_ref=1)=array (
      de estas fugas de memoria, entonces obviamente esto puede convertirse en un problema importante. Esto es particularmente problemático para los scripts
      que duran mucho tiempo, como los demonios para los cuales la solicitud nunca termina, o incluso en grandes suites de pruebas unitarias.
      Este último caso se encontró al lanzar las pruebas unitarias del componente Template de la
-     biblioteca eZ Components. En algunos casos, la suite de pruebas requería más de 2Go de
+     biblioteca eZ Components. En algunos casos, la suite de pruebas requería más de 2 GB de
      memoria, que el servidor de prueba no tenía realmente disponible.
     </para>
    </sect2>
@@ -339,20 +339,20 @@ a: (refcount=2, is_ref=1)=array (
 
   <sect1 xml:id="features.gc.collecting-cycles">
    <title>Limpieza de Ciclos</title>
-   <para>
+   <simpara>
     Tradicionalmente, los mecanismos de conteo de referencias, como los utilizados anteriormente
     en PHP, no saben manejar las fugas de memoria debidas a referencias circulares;
     sin embargo, desde PHP 5.3.0, un algoritmo síncrono derivado del análisis
     <link xlink:href="&url.gc-paper;">Concurrent Cycle Collection in Reference Counted Systems</link>
     se utiliza para abordar este problema en particular.
-   </para>
+   </simpara>
    <para>
     Una explicación completa del funcionamiento del algoritmo iría un poco más allá del alcance de esta sección,
     pero aquí presentaremos los principios básicos. En primer lugar, estableceremos algunas reglas básicas.
     Si un refcount se incrementa, el contenedor siempre se utiliza, por lo tanto, no se limpia. Si el refcount
-    se decrementa y llega a cero, el contenedor zval puede ser eliminado y la memoria liberada. En primer lugar, esto significa
-    que los ciclos perturbadores solo pueden crearse cuando el refcount se decrementa a un valor
-    diferente de cero. Luego, en un ciclo problemático, es posible detectar la basura verificando si es posible o no
+    se decrementa y llega a cero, el contenedor zval puede ser eliminado y la memoria liberada. Esto significa
+    que los ciclos de basura solo pueden crearse cuando el refcount se decrementa a un valor
+    diferente de cero. En segundo lugar, en un ciclo de basura, es posible detectar la basura verificando si es posible o no
     decrementar su refcount en uno, verificando luego qué zvals tienen un refcount a cero.
    </para>
    <para>
@@ -383,7 +383,7 @@ a: (refcount=2, is_ref=1)=array (
     paso anterior será entonces eliminada de la memoria.
    </para>
    <para>
-    Ahora que se sabe globalmente cómo funciona el algoritmo, se verá cómo se ha integrado en PHP. Por omisión, el recolector de basura de PHP está
+    Ahora que se sabe globalmente cómo funciona el algoritmo, se verá cómo se ha integrado en PHP. Por defecto, el recolector de basura de PHP está
     activado. Sin embargo, hay una opción de &php.ini; para cambiar esto:
     <link linkend="ini.zend.enable-gc">zend.enable_gc</link>.
    </para>
@@ -498,8 +498,8 @@ for ( $i = 0; $i <= 100000; $i++ )
      muy claramente en los gráficos de uso de memoria de PHP 5.3. Después de cada 10.000
      iteraciones, el mecanismo se desencadena y libera la memoria asociada a las variables circularmente
      referenciadas. El mecanismo en cuestión no tiene mucho trabajo en este ejemplo, porque la estructura que se fugó es extremadamente simple.
-     El diagrma muestra que el uso máximo de memoria de PHP 5.3 es de aproximadamente
-     9Mo, mientras que sigue aumentando con PHP 5.2.
+     El diagrama muestra que el uso máximo de memoria de PHP 5.3 es de aproximadamente
+     9 MB, mientras que sigue aumentando con PHP 5.2.
     </para>
    </sect2>
 
@@ -556,7 +556,7 @@ time php -dzend.enable_gc=1 -dmemory_limit=-1 -n example2.php
      En mi máquina, el primer comando parece durar siempre 10,7 segundos,
      mientras que el segundo comando tarda aproximadamente 11,4 segundos. Esto corresponde a un retraso
      de aproximadamente el 7%. Sin embargo, la cantidad total de memoria utilizada por el script se reduce
-     en un 98%, pasando de 931Mo a 10Mo. Este benchmark no es muy científico ni representativo de aplicaciones reales, pero demuestra concretamente en qué medida el mecanismo
+     en un 98%, pasando de 931 MB a 10 MB. Este benchmark no es muy científico ni representativo de aplicaciones reales, pero demuestra concretamente en qué medida el mecanismo
      de recolección de basura puede ser útil en términos de consumo de memoria. El punto positivo es que el retraso es siempre del 7%, en el caso particular de este script, mientras que
      la memoria preservada será cada vez más importante a medida que
      aparezcan referencias circulares durante la ejecución.
