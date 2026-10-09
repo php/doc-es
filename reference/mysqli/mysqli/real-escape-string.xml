@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: fc174e8d6162091550edde46159917ee7e5a2e73 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 01175bf92d73d885dc5a19793bc1d0c5d1a75bac Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 <refentry xml:id="mysqli.real-escape-string" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
@@ -22,7 +22,7 @@
    <methodparam><type>string</type><parameter>string</parameter></methodparam>
   </methodsynopsis>
   <para>
-   Esta función se utiliza para crear un string SQL válido que podrá ser utilizado en una consulta SQL. El string <literal>string</literal> se codifica para producir un string SQL escapado, teniendo en cuenta el juego de caracteres actual de la conexión.
+   Esta función se utiliza para crear un string SQL válido que podrá ser utilizado en una consulta SQL. El string dado se codifica para producir un string SQL escapado, teniendo en cuenta el juego de caracteres actual de la conexión.
   </para>
   <caution>
    <title>Seguridad: El juego de caracteres por defecto</title>
@@ -30,6 +30,19 @@
     El juego de caracteres debe ser definido ya sea a nivel de servidor, o con la función API <function>mysqli_set_charset</function> para que afecte a la función <function>mysqli_real_escape_string</function>. Ver la sección sobre los conceptos de <link linkend="mysqlinfo.concepts.charset">juegos de caracteres</link> para más información.
    </para>
   </caution>
+  <warning>
+   <simpara>
+    Esta función no añade comillas alrededor del resultado; deben ser añadidas
+    por quien la llama. Si el modo SQL <literal>NO_BACKSLASH_ESCAPES</literal> está
+    activado en la conexión, solo se escapa la comilla simple
+    (<literal>'</literal>), por lo que un valor colocado entre comillas dobles
+    (<literal>"</literal>) puede terminar el string y permitir una inyección SQL.
+    Utilice en su lugar <link linkend="mysqli.quickstart.prepared-statements">sentencias
+    preparadas</link>. Si esto no es posible, utilice
+    <methodname>mysqli::quote_string</methodname>, que siempre encierra el
+    resultado entre comillas simples.
+   </simpara>
+  </warning>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -43,9 +56,10 @@
       <para>
        El string a escapar.
       </para>
-      <para>
+      <simpara>
        Los caracteres codificados son <literal>NUL (ASCII 0)</literal>, <literal>\n</literal>, <literal>\r</literal>, <literal>\</literal>, <literal>'</literal>, <literal>"</literal>, y <keycombo action='simul'><keycap>CTRL</keycap><keycap>Z</keycap></keycombo>.
-      </para>
+       Si el modo SQL <literal>NO_BACKSLASH_ESCAPES</literal> está activado en la conexión, solo se codifica <literal>'</literal>, duplicándolo.
+      </simpara>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -108,7 +122,7 @@ $result = mysqli_query($mysqli, $query);
    &examples.outputs.similar;
    <screen>
 <![CDATA[
-Select returned 1 rows.
+La selección devolvió 1 filas.
 
 Fatal error: Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 's-Hertogenbosch'' at line 1 in...
 ]]>
@@ -118,11 +132,10 @@ Fatal error: Uncaught mysqli_sql_exception: You have an error in your SQL syntax
 
  <refsect1 role="seealso">
   &reftitle.seealso;
-  <para>
-   <simplelist>
-    <member><function>mysqli_set_charset</function></member>
-   </simplelist>
-  </para>
+  <simplelist>
+   <member><function>mysqli_set_charset</function></member>
+   <member><function>mysqli_quote_string</function></member>
+  </simplelist>
  </refsect1>
 
 </refentry>
