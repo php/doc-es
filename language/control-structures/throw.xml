@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 6b099f8dcc7a8f4a6863a6149d7cd97c7f43c470 Maintainer: lacatoire Status: ready -->
+<!-- Reviewed: no -->
+<sect1 xml:id="control-structures.throw" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <title>throw</title>
+ <?phpdoc print-version-for="throw"?>
+ <simpara>
+  La palabra clave &throw; es una expresión y puede utilizarse en cualquier
+  contexto de expresión.
+  Toma un objeto <exceptionname>Throwable</exceptionname> como argumento.
+ </simpara>
+ <caution>
+  <simpara>
+   Antes de PHP 8.0.0, la palabra clave &throw; era una sentencia y no una
+   expresión.
+  </simpara>
+ </caution>
+ <para>
+  Intentar lanzar con &throw; un objeto que no es
+  <exceptionname>Throwable</exceptionname> lanzará una
+  <exceptionname>Error</exceptionname>.
+  Como las clases de usuario no pueden implementar directamente
+  <exceptionname>Throwable</exceptionname>, el objeto lanzado debe ser una
+  instancia de <exceptionname>Error</exceptionname> o de
+  <exceptionname>Exception</exceptionname>, o de una subclase de alguna de
+  ellas.
+
+  <example>
+   <title>Lanzar un objeto que no es <exceptionname>Throwable</exceptionname></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+throw new class {};
+]]>
+   </programlisting>
+   &example.outputs.similar;
+   <screen>
+<![CDATA[
+PHP Fatal error:  Uncaught Error: Cannot throw objects that do not implement Throwable in Command line code:1
+Stack trace:
+#0 {main}
+]]>
+   </screen>
+  </example>
+ </para>
+
+ <simpara>
+  Después de utilizar &throw;, el flujo normal de ejecución se detiene y la
+  pila de llamadas se desenrolla hasta que el objeto es capturado por un bloque
+  &catch; o se alcanza el ámbito global. Todos los bloques &finally;
+  encontrados por el camino se ejecutan.
+  Si se alcanza el ámbito global, el objeto se pasa al manejador de
+  excepciones definido con <function>set_exception_handler</function>, si hay
+  uno, y el script termina una vez que el manejador retorna. De lo contrario,
+  el programa termina con un error fatal que contiene la traza de la pila que
+  indica dónde se lanzó el objeto <exceptionname>Throwable</exceptionname>.
+ </simpara>
+ <example>
+  <title>Lanzar una excepción en el ámbito global</title>
+  <programlisting role="php">
+<![CDATA[
+<?php
+echo "Antes de la excepción\n";
+throw new Exception('Detener la ejecución');
+echo "Después de la excepción\n";
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+<![CDATA[
+Antes de la excepción
+PHP Fatal error:  Uncaught Exception: Detener la ejecución in Command line code:2
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 2
+]]>
+  </screen>
+ </example>
+ <example>
+  <title>Lanzar una excepción en una función</title>
+  <programlisting role="php">
+   <![CDATA[
+<?php
+
+function foo() {
+    echo "Antes de la excepción\n";
+    throw new Exception('Detener la ejecución');
+    echo "Después de la excepción\n";
+}
+
+foo();
+]]>
+  </programlisting>
+  &example.outputs.similar;
+  <screen>
+<![CDATA[
+Antes de la excepción
+PHP Fatal error:  Uncaught Exception: Detener la ejecución in Command line code:3
+Stack trace:
+#0 Command line code(7): foo()
+#1 {main}
+  thrown in Command line code on line 3
+]]>
+  </screen>
+ </example>
+
+ <simpara>
+  Como &throw; es una expresión, puede utilizarse para ramificar según el
+  resultado de otra expresión si su valor es inapropiado.
+ </simpara>
+ <example>
+  <title>Uso de throw como expresión</title>
+  <simpara>Solo permitido a partir de PHP 8.0.0.</simpara>
+  <programlisting role="php">
+<![CDATA[
+<?php
+
+function test() {
+    do_something_risky() or throw new Exception('No funcionó');
+}
+
+function do_something_risky() {
+    return false; // Simular un fallo
+}
+
+try {
+    test();
+} catch (Exception $e) {
+    print $e->getMessage();
+}
+]]>
+  </programlisting>
+  &example.outputs;
+  <screen>
+<![CDATA[
+No funcionó
+]]>
+  </screen>
+ </example>
+
+ <simpara>
+  Es posible manejar un <exceptionname>Throwable</exceptionname> lanzado
+  mediante un bloque <link linkend="control-structures.try-catch">try-catch</link>.
+  Consulte la sección sobre el
+  <link linkend="language.error-handling.throwable">manejo de errores</link>
+  para más información.
+ </simpara>
+</sect1>

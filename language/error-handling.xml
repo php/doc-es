@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EN-Revision: 6b099f8dcc7a8f4a6863a6149d7cd97c7f43c470 Maintainer: lacatoire Status: ready -->
+<!-- Reviewed: no -->
+<chapter xml:id="language.error-handling" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" annotations="interactive">
+ <title>Manejo de errores</title>
+ <simpara>
+  Los errores son una parte normal del desarrollo y del ciclo de vida de una
+  aplicación. Por ello, PHP proporciona varias formas de notificar y tratar
+  los errores.
+ </simpara>
+ <para>
+  PHP dispone de dos mecanismos principales para notificar errores:
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     Los errores <exceptionname>Throwable</exceptionname>, que a su vez se
+     dividen en errores de <emphasis>programación</emphasis>, mediante la
+     jerarquía de clases <exceptionname>Error</exceptionname>, y errores
+     <emphasis>recuperables</emphasis>, mediante la jerarquía de clases
+     <exceptionname>Exception</exceptionname>. Estos errores pueden lanzarse
+     con la palabra clave &throw; y capturarse con la palabra clave &catch;.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     Los errores de diagnóstico, que se clasifican en distintos
+     <link linkend="errorfunc.constants">niveles de gravedad</link>.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+ </para>
+
+ <sect1 xml:id="language.error-handling.throwable">
+  <title>Errores <exceptionname>Throwable</exceptionname></title>
+  <anchor xml:id="language.exceptions"/>
+  <simpara>
+   Un error <exceptionname>Throwable</exceptionname> es un evento de ejecución
+   que interrumpe el flujo normal de las instrucciones. Cuando se lanza con
+   &throw; un error <exceptionname>Throwable</exceptionname>, desenrolla la pila
+   de llamadas hasta que es capturado por un bloque &catch; o se alcanza el
+   ámbito global.
+   Todos los bloques &finally; que encuentra por el camino se ejecutarán.
+   Un error <exceptionname>Throwable</exceptionname> no capturado se pasa al
+   manejador de excepciones definido con
+   <function>set_exception_handler</function>, si hay uno; de lo contrario, el
+   programa termina con un error fatal.
+  </simpara>
+  <simpara>
+   Para lanzar un error <exceptionname>Throwable</exceptionname> desde código
+   PHP, utilice la palabra clave &throw;.
+  </simpara>
+  <tip>
+   <simpara>
+    La <link linkend="intro.spl">biblioteca estándar de PHP (SPL)</link>
+    proporciona varias <link linkend="spl.exceptions">excepciones
+    integradas</link>.
+    También es posible crear excepciones personalizadas
+    <link linkend="language.error-handling.throwable.extending">extendiendo la
+    clase Exception</link>.
+   </simpara>
+  </tip>
+  <simpara>
+   Es posible manejar un error <exceptionname>Throwable</exceptionname> en PHP
+   rodeando el código que puede lanzar un error con un bloque &try;.
+  </simpara>
+  <warning>
+   <simpara>
+    Los objetos <exceptionname>Throwable</exceptionname> no pueden clonarse.
+    Intentar <link linkend="language.oop5.cloning">clonar</link> un objeto de
+    este tipo lanza una <exceptionname>Error</exceptionname> con el siguiente
+    mensaje:
+    <literal>Trying to clone an uncloneable object of class <replaceable>ClassName</replaceable></literal>.
+    Esto ocurre incluso si una subclase declara su propio método
+    <link linkend="object.clone">__clone()</link>.
+    Véanse <methodname>Exception::__clone</methodname> y
+    <methodname>Error::__clone</methodname>.
+   </simpara>
+  </warning>
+
+  <sect2 xml:id="language.error-handling.throwable.user">
+   <title>Manejador global de excepciones</title>
+   <simpara>
+    Es posible añadir un manejador para cualquier
+    <exceptionname>Throwable</exceptionname> no capturado con
+    <function>set_exception_handler</function>.
+    Esto es similar a envolver todo el código en un bloque &try;-&catch;,
+    salvo que la ejecución no se reanuda después: el script termina una vez
+    que el manejador retorna.
+   </simpara>
+  </sect2>
+
+  <sect2 xml:id="language.error-handling.throwable.extending">
+   <title>Extender las excepciones</title>
+   <simpara>
+    Una excepción definida por el usuario puede crearse extendiendo la clase
+    integrada <exceptionname>Exception</exceptionname>.
+   </simpara>
+   <simpara>
+    Si una clase extiende la clase integrada <exceptionname>Exception</exceptionname>
+    y redefine el <link linkend="language.oop5.decon">constructor</link>, se
+    recomienda encarecidamente que también llame a
+    <code>parent::__construct()</code> para asegurarse de que todos los datos
+    disponibles se han asignado correctamente.
+    El método <link linkend="object.tostring">__toString()</link> puede
+    sobrescribirse para proporcionar una salida personalizada cuando el objeto
+    se utiliza como un string.
+   </simpara>
+   <example>
+    <title>Extender <exceptionname>Exception</exceptionname></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+class CustomException extends Exception
+{
+    // Redefinir el constructor para que el mensaje no sea opcional
+    public function __construct($message, $code = 0, ?Throwable $previous = null) {
+        // algo de código
+
+        // Asegurarse de que todo se asigna correctamente
+        parent::__construct($message, $code, $previous);
+    }
+
+    // Representación personalizada del objeto como string
+    public function __toString() {
+        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
+    }
+
+    public function customFunction() {
+        echo "Una función personalizada para este tipo de excepción\n";
+    }
+}
+
+try {
+    throw new CustomException("Algo ha ocurrido", 5);
+} catch (CustomException $e) {
+    echo "Excepción personalizada capturada\n", $e;
+    $e->customFunction();
+}
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+Excepción personalizada capturada
+CustomException: [5]: Algo ha ocurrido
+Una función personalizada para este tipo de excepción
+]]>
+    </screen>
+   </example>
+  </sect2>
+
+  <sect2 xml:id="language.error-handling.throwable.hierarchy">
+   <title>Jerarquía de <exceptionname>Throwable</exceptionname></title>
+
+   <itemizedlist>
+    <listitem>
+     <simpara><exceptionname>Throwable</exceptionname></simpara>
+     <itemizedlist>
+      <listitem>
+       <simpara><exceptionname>Error</exceptionname></simpara>
+       <itemizedlist>
+        <listitem>
+         <simpara><exceptionname>ArithmeticError</exceptionname></simpara>
+         <itemizedlist>
+          <listitem>
+           <simpara><exceptionname>DivisionByZeroError</exceptionname></simpara>
+          </listitem>
+         </itemizedlist>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>AssertionError</exceptionname></simpara>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>CompileError</exceptionname></simpara>
+         <itemizedlist>
+          <listitem>
+           <simpara><exceptionname>ParseError</exceptionname></simpara>
+          </listitem>
+         </itemizedlist>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>TypeError</exceptionname></simpara>
+         <itemizedlist>
+          <listitem>
+           <simpara><exceptionname>ArgumentCountError</exceptionname></simpara>
+          </listitem>
+         </itemizedlist>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>ValueError</exceptionname></simpara>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>UnhandledMatchError</exceptionname></simpara>
+        </listitem>
+        <listitem>
+         <simpara><exceptionname>FiberError</exceptionname></simpara>
+        </listitem>
+       </itemizedlist>
+      </listitem>
+      <listitem>
+       <simpara><exceptionname>Exception</exceptionname></simpara>
+      </listitem>
+     </itemizedlist>
+    </listitem>
+   </itemizedlist>
+
+   <simpara>
+    La clase <exceptionname>Exception</exceptionname> tiene muchas subclases,
+    entre ellas las <link linkend="spl.exceptions">excepciones de SPL</link> y
+    las definidas por las extensiones.
+   </simpara>
+  </sect2>
+ </sect1>
+
+ <sect1 xml:id="language.error-handling.diagnostic">
+  <title>Errores de diagnóstico</title>
+  <simpara>
+   Los errores de diagnóstico, también conocidos como errores tradicionales, se
+   utilizan para señalar diversas condiciones y pueden mostrarse y/o
+   registrarse según se necesite.
+   Por defecto, PHP notifica todos los errores de diagnóstico. (Antes de
+   PHP 8.0.0, los diagnósticos <constant>E_NOTICE</constant> y
+   <constant>E_DEPRECATED</constant> no se notificaban por defecto.)
+  </simpara>
+  <simpara>
+   A diferencia de los errores <exceptionname>Throwable</exceptionname>, la
+   mayoría de los errores de diagnóstico <emphasis>no</emphasis> interrumpen el
+   flujo normal de ejecución.
+   Los diagnósticos fatales, como <constant>E_ERROR</constant>, terminan el
+   script.
+  </simpara>
+  <simpara>
+   Los diagnósticos que se notifican y los que se ignoran se controlan
+   mediante la directiva de &php.ini;
+   <link linkend="ini.error-reporting"><parameter>error_reporting</parameter></link>,
+   o en tiempo de ejecución llamando a <function>error_reporting</function>.
+   Se recomienda encarecidamente establecer la directiva de configuración,
+   ya que algunos errores pueden ocurrir antes de que comience la ejecución
+   del script.
+  </simpara>
+  <note>
+   <simpara>
+    En un entorno de desarrollo,
+    <link linkend="ini.error-reporting"><parameter>error_reporting</parameter></link>
+    debería establecerse siempre a <constant>E_ALL</constant> para que los
+    problemas señalados por PHP se noten y se corrijan.
+    En producción, el nivel de detalle puede reducirse a
+    <code>E_ALL &amp; ~E_NOTICE &amp; ~E_DEPRECATED</code>, aunque en muchos
+    casos <constant>E_ALL</constant> sigue siendo apropiado, ya que puede
+    proporcionar una alerta temprana de posibles problemas.
+   </simpara>
+  </note>
+
+  <simpara>
+   Lo que ocurre con los diagnósticos depende de otras dos directivas de
+   &php.ini;.
+   <link linkend="ini.display-errors"><parameter>display_errors</parameter></link>
+   controla si el diagnóstico se muestra como parte de la salida del script.
+   Esta debería estar siempre desactivada en un entorno de producción, ya que
+   la salida puede incluir información confidencial, como contraseñas de bases
+   de datos, pero a menudo es útil activarla en desarrollo, ya que garantiza
+   la notificación inmediata de los problemas.
+  </simpara>
+
+  <simpara>
+   Además de mostrar los errores, PHP puede registrar los diagnósticos cuando
+   la directiva
+   <link linkend="ini.log-errors"><parameter>log_errors</parameter></link>
+   está activada. Esto registrará cualquier diagnóstico en el fichero o en el
+   syslog definido por
+   <link linkend="ini.error-log"><parameter>error_log</parameter></link>.
+   Esto puede ser extremadamente útil en un entorno de producción, ya que los
+   diagnósticos se registran cuando ocurren y después pueden generarse informes
+   a partir de esos registros.
+  </simpara>
+  <simpara>
+   Los diagnósticos individuales pueden suprimirse utilizando el operador
+   <literal linkend="language.operators.errorcontrol">@</literal>.
+  </simpara>
+
+  <warning>
+   <simpara>
+    Antes de PHP 8.0.0, era posible suprimir diagnósticos críticos que
+    terminaban la ejecución del script PHP.
+   </simpara>
+  </warning>
+
+  <note>
+   <simpara>
+    Entre versiones de PHP, los diagnósticos pueden añadirse o eliminarse,
+    cambiar su gravedad o elevarse a errores
+    <exceptionname>Throwable</exceptionname>.
+   </simpara>
+  </note>
+
+  <sect2 xml:id="language.error-handling.diagnostic.user">
+   <title>Manejador de diagnósticos definido por el usuario</title>
+
+   <simpara>
+    Si el manejo de diagnósticos por defecto de PHP no es adecuado, es posible
+    sustituir el manejador de diagnósticos por defecto por uno personalizado,
+    que se establece con <function>set_error_handler</function>.
+    Algunos diagnósticos, como <constant>E_ERROR</constant> y
+    <constant>E_PARSE</constant>, no pueden manejarse de esta forma (véase
+    <function>set_error_handler</function> para la lista completa).
+    Los demás pueden manejarse de varias maneras. Por ejemplo, un manejador
+    personalizado puede mostrar una página de error al usuario y notificar el
+    error de forma más directa que un registro, por ejemplo enviando un correo
+    electrónico.
+   </simpara>
+
+   <simpara>
+    Otro uso típico es elevar los errores de diagnóstico a excepciones con
+    <link linkend="class.errorexception">ErrorException</link>.
+   </simpara>
+   <example>
+    <title>Elevar los errores de diagnóstico a excepciones</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function exceptions_error_handler($severity, $message, $filename, $lineno) {
+    if (error_reporting() & $severity) {
+        throw new ErrorException($message, 0, $severity, $filename, $lineno);
+    }
+}
+
+set_error_handler('exceptions_error_handler');
+]]>
+    </programlisting>
+    <note>
+     <simpara>
+      Es importante comprobar que la gravedad está incluida en la lista actual
+      de diagnósticos notificables; de lo contrario, el operador
+      <literal linkend="language.operators.errorcontrol">@</literal>
+      dejará de funcionar, ya que se lanzaría una excepción para un
+      diagnóstico suprimido.
+      <!-- TODO: add an example? -->
+     </simpara>
+    </note>
+   </example>
+  </sect2>
+
+  <sect2 role="changelog">
+   &reftitle.changelog;
+   <informaltable>
+    <tgroup cols="2">
+     <thead>
+      <row>
+       <entry>&Version;</entry>
+       <entry>&Description;</entry>
+      </row>
+     </thead>
+     <tbody>
+      <row>
+       <entry>8.5.0</entry>
+       <entry>
+        Los errores fatales (como un tiempo máximo de ejecución superado)
+        ahora incluyen una traza de la pila en su mensaje de error.
+       </entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </informaltable>
+  </sect2>
+ </sect1>
+</chapter>
