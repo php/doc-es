@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 5d8dfb31071496ffd2d51609ba098e6c9a3ce0d2 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: aa135ef2689157299c23fd4b8eb8c4f70733deaa Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="mysqli-stmt.insert-id" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>mysqli_stmt::$insert_id</refname>
   <refname>mysqli_stmt_insert_id</refname>
-  <refpurpose>Obtiene el ID generado por la última consulta INSERT</refpurpose>
+  <refpurpose>Devuelve el valor generado para una columna AUTO_INCREMENT por la última consulta ejecutada</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -18,9 +18,114 @@
    <type class="union"><type>int</type><type>string</type></type><methodname>mysqli_stmt_insert_id</methodname>
    <methodparam><type>mysqli_stmt</type><parameter>statement</parameter></methodparam>
   </methodsynopsis>
+  <simpara>
+   Devuelve el ID generado por una consulta <literal>INSERT</literal> o
+   <literal>UPDATE</literal> en una tabla con una columna que tiene el atributo
+   <literal>AUTO_INCREMENT</literal>. En el caso de una consulta
+   <literal>INSERT</literal> de varias filas, devuelve el primer valor generado
+   automáticamente que se insertó con éxito. Si se utiliza
+   <literal>LAST_INSERT_ID(expr)</literal> para establecer el valor de
+   <literal>AUTO_INCREMENT</literal>, o en una consulta <literal>UPDATE</literal>,
+   se devuelve en su lugar el valor de <literal>expr</literal>.
+  </simpara>
+  <simpara>
+   Devuelve <literal>0</literal> si la consulta no cambió ningún valor
+   <literal>AUTO_INCREMENT</literal>.
+  </simpara>
+ </refsect1>
 
-  &warn.undocumented.func;
+ <refsect1 role="parameters">
+  &reftitle.parameters;
+  <variablelist>
+   &mysqli.stmt.description;
+  </variablelist>
+ </refsect1>
 
+ <refsect1 role="returnvalues">
+  &reftitle.returnvalues;
+  <simpara>
+   El valor del campo <literal>AUTO_INCREMENT</literal> que fue modificado por
+   la consulta. Devuelve cero si la consulta aún no se ha ejecutado o si no
+   modificó ningún valor <literal>AUTO_INCREMENT</literal>.
+  </simpara>
+  <simpara>
+   El valor es específico del objeto de consulta. No se ve afectado por otras
+   consultas ejecutadas en la misma conexión después de esta consulta, ni por
+   las consultas emitidas mediante otras conexiones o clientes.
+  </simpara>
+  <note>
+   <simpara>
+    Si el número es mayor que el valor máximo de un integer, será devuelto como
+    un &string;.
+   </simpara>
+  </note>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Ejemplo con <varname>mysqli_stmt::$insert_id</varname></title>
+   <simpara>&style.oop;</simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$mysqli = new mysqli("localhost", "my_user", "my_password", "world");
+
+$mysqli->query("CREATE TEMPORARY TABLE myCity LIKE City");
+
+$stmt = $mysqli->prepare("INSERT INTO myCity (Name, CountryCode, District, Population) VALUES (?, ?, ?, ?)");
+
+$name = 'Stuttgart';
+$countryCode = 'DEU';
+$district = 'Stuttgart';
+$population = 617000;
+$stmt->bind_param('sssi', $name, $countryCode, $district, $population);
+$stmt->execute();
+
+printf("El nuevo registro tiene ID %d.\n", $stmt->insert_id);
+]]>
+   </programlisting>
+   <simpara>&style.procedural;</simpara>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$link = mysqli_connect("localhost", "my_user", "my_password", "world");
+
+mysqli_query($link, "CREATE TEMPORARY TABLE myCity LIKE City");
+
+$stmt = mysqli_prepare($link, "INSERT INTO myCity (Name, CountryCode, District, Population) VALUES (?, ?, ?, ?)");
+
+$name = 'Stuttgart';
+$countryCode = 'DEU';
+$district = 'Stuttgart';
+$population = 617000;
+mysqli_stmt_bind_param($stmt, 'sssi', $name, $countryCode, $district, $population);
+mysqli_stmt_execute($stmt);
+
+printf("El nuevo registro tiene ID %d.\n", mysqli_stmt_insert_id($stmt));
+]]>
+   </programlisting>
+   &examples.outputs;
+   <screen>
+<![CDATA[
+El nuevo registro tiene ID 1.
+]]>
+   </screen>
+  </example>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+
+  <simplelist>
+   <member><function>mysqli_insert_id</function></member>
+   <member><function>mysqli_stmt_affected_rows</function></member>
+   <member><function>mysqli_stmt_execute</function></member>
+  </simplelist>
  </refsect1>
 
 </refentry>
