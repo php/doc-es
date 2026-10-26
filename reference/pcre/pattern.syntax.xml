@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 75a5eb81be58ce50889c429c5d32b321af016d23 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 75ed9b0163e3e0563e82fdb98ef1cc9008c794a9 Maintainer: PhilDaiguille Status: ready -->
 <!-- splitted from ./en/functions/pcre.xml, last change in rev 1.2 -->
 <chapter xml:id="reference.pcre.pattern.syntax" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <title>Sintaxis de patrones</title>
@@ -310,7 +310,15 @@
     <varlistentry>
      <term><emphasis>\R</emphasis></term>
      <listitem>
-      <simpara>salto de línea: coincide con \n, \r y \r\n</simpara>
+      <simpara>
+       salto de línea. Por defecto, <literal>\R</literal> coincide con
+       cualquier secuencia de nueva línea Unicode: en modo de 8 bits sin UTF-8
+       equivale a <literal>(?&gt;\r\n|\n|\x0b|\f|\r|\x85)</literal>; en modo
+       UTF-8 se añaden dos caracteres más, U+2028 y U+2029. Si el patrón
+       contiene la secuencia especial <literal>(*BSR_ANYCRLF)</literal>,
+       <literal>\R</literal> coincide únicamente con <literal>\r\n</literal>,
+       <literal>\r</literal> y <literal>\n</literal>.
+      </simpara>
      </listitem>
     </varlistentry>
     <varlistentry>
@@ -324,6 +332,26 @@
      <listitem>
       <simpara>
        carácter con código hex hh
+      </simpara>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><emphasis>\x{hhhh}</emphasis></term>
+     <listitem>
+      <simpara>
+       en <emphasis>modo UTF-8</emphasis>, el carácter Unicode cuyo punto de
+       código es el número hexadecimal indicado
+      </simpara>
+     </listitem>
+    </varlistentry>
+    <varlistentry>
+     <term><emphasis>\N{U+hhhh}</emphasis></term>
+     <listitem>
+      <simpara>
+       en <emphasis>modo UTF-8</emphasis>, el carácter Unicode cuyo punto de
+       código es el número hexadecimal indicado, equivalente en ese modo a
+       <literal>\x{hhhh}</literal>; a diferencia de <literal>\x{hhhh}</literal>,
+       esta sintaxis no se reconoce fuera del modo UTF-8
       </simpara>
      </listitem>
     </varlistentry>
@@ -1059,13 +1087,19 @@
    con la propiedad "marca", y trata la secuencia como un grupo atómico (ver
    <xref linkend="regexp.reference.onlyonce"/>). Los caracteres con la propiedad "marca" son típicamente acentos que afectan al carácter anterior.
   </simpara>
-  <para>
+  <simpara>
    Coincidir con caracteres por propiedad Unicode no es rápido, porque PCRE tiene
    que buscar una estructura que contiene datos para más de quince mil
-   caracteres. Por eso las secuencias de escape tradicionales como
-   <literal>\d</literal> y <literal>\w</literal> no usan propiedades Unicode
-   en PCRE.
-  </para>
+   caracteres. Desde PHP 5.4.0, las secuencias de escape de tipo de carácter
+   genérico <literal>\d</literal>, <literal>\s</literal> y <literal>\w</literal>
+   (y sus equivalentes en mayúsculas) usan propiedades Unicode cuando el
+   modificador <link linkend="reference.pcre.pattern.modifiers">PCRE_UTF8</link>
+   (<literal>u</literal>) está establecido, de modo que, por ejemplo,
+   <literal>\d</literal> también coincide con dígitos decimales no ASCII. Antes
+   de PHP 5.4.0, estas secuencias de escape no usaban propiedades Unicode, por
+   razones de eficiencia, a menos que se añadiera explícitamente
+   <literal>(*UCP)</literal> al patrón.
+  </simpara>
  </section>
 
  <section xml:id="regexp.reference.anchors">
@@ -1738,12 +1772,13 @@
 
  <section xml:id="regexp.reference.assertions">
   <title>Afirmaciones</title>
-  <para>
+  <simpara>
    Una afirmación es una prueba sobre los caracteres que siguen o preceden al punto de coincidencia actual que no consume realmente ningún carácter. Las afirmaciones simples codificadas como \b,
    \B, \A, \Z, \z, ^ y $ se describen en <link linkend="regexp.reference.escape">secuencias de escape</link>. Las afirmaciones más complicadas se codifican como subpatrones. Hay dos
-   tipos: aquellos que <emphasis>miran hacia adelante</emphasis> de la posición actual en la
-   cadena de sujeto, y aquellos que <emphasis>miran hacia atrás</emphasis> de ella.
-  </para>
+   tipos: las afirmaciones de <emphasis>anticipación</emphasis>, que miran hacia
+   adelante de la posición actual en la cadena de sujeto, y las afirmaciones de
+   <emphasis>retroceso</emphasis>, que miran hacia atrás de ella.
+  </simpara>
   <para>
    Un subpatrón de afirmación se coincide de la manera normal, excepto
    que no hace que la posición de coincidencia actual cambie. <emphasis>Afirmaciones de anticipación</emphasis> comienzan con (?= para afirmaciones positivas y (?! para afirmaciones negativas. Por ejemplo,
