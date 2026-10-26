@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 9a8c593c09cf7d84085989e42f3b2b23536279db Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 0b916fb90f8862046a56a5e05057ef6cd78384c1 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <!-- CREDITS: DAnnebicque -->
 
@@ -60,7 +60,21 @@
     <varlistentry>
      <term><parameter>locale</parameter></term>
      <listitem>
-      &intl.param.grapheme.locale;
+      <simpara>
+       Configuración regional a utilizar. La configuración regional afecta a cómo se definen los
+       grupos de grafemas y a cómo se comparan las cadenas. Una cadena vacía o &null; utiliza la
+       configuración regional por defecto.
+      </simpara>
+      <simpara>
+       El identificador de la configuración regional puede incluir claves de extensión Unicode de
+       la configuración regional para controlar el comportamiento de la ordenación. En particular,
+       la clave <literal>ks</literal> controla la fuerza de ordenación: por ejemplo,
+       <literal>en_US-u-ks-identic</literal> activa la comparación de nivel idéntico, que distingue
+       los selectores de variación Unicode (como la presentación como emoji frente a la presentación
+       como texto) que de otro modo se tratan como equivalentes.
+       Consulte <methodname>Collator::setStrength</methodname> para ver la correspondencia completa
+       entre los valores de <literal>ks</literal> y los niveles de fuerza de ordenación.
+      </simpara>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -121,6 +135,42 @@ print grapheme_strpos( $char_a_ring_nfd . $char_a_ring_nfd . $char_o_diaeresis_n
 2
 ]]>
   </screen>
+  <example>
+   <title>Uso de la clave de configuración regional <literal>ks-identic</literal> para distinguir los selectores de variación</title>
+   <simpara>
+    Por defecto, los selectores de variación Unicode (U+FE0E texto, U+FE0F emoji) se ignoran
+    durante la comparación. El uso de la clave de extensión de configuración regional <literal>ks-identic</literal>
+    activa la ordenación de nivel idéntico, que los trata como caracteres distintos.
+   </simpara>
+   <note>
+    <simpara>
+     El parámetro <parameter>locale</parameter> está disponible desde PHP 8.5.0.
+    </simpara>
+   </note>
+   <programlisting role="php">
+<![CDATA[
+<?php
+
+$textStyle  = "\u{263A}\u{FE0E}"; // U+263A + U+FE0E (selector de presentación como texto)
+$emojiStyle = "\u{263A}\u{FE0F}"; // U+263A + U+FE0F (selector de presentación como emoji)
+
+// Configuración regional por defecto: los selectores de variación se ignoran, por lo que la aguja se encuentra en la posición 0.
+var_dump(grapheme_strpos($textStyle, $emojiStyle));
+
+// Con ks-identic: los selectores de variación son significativos, por lo que no hay coincidencia.
+var_dump(grapheme_strpos($textStyle, $emojiStyle, 0, 'en_US-u-ks-identic'));
+
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+int(0)
+bool(false)
+]]>
+   </screen>
+  </example>
  </refsect1>
 
  <refsect1 role="seealso">
@@ -132,6 +182,7 @@ print grapheme_strpos( $char_a_ring_nfd . $char_a_ring_nfd . $char_o_diaeresis_n
     <member><function>grapheme_strripos</function></member>
     <member><function>grapheme_strrpos</function></member>
     <member><function>grapheme_strstr</function></member>
+    <member><methodname>Collator::setStrength</methodname></member>
     <member>
      <link xlink:href="&uri.unicode.graphemes;">
       Unicode Text Segmentation: Grapheme Cluster Boundaries
