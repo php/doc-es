@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: f011a5989304239063769239761b5c39c68af12f Maintainer: lacatoire Status: ready -->
+<!-- EN-Revision: 8c42bb41c9ecc3b278c4be82e4280f7bc9c36283 Maintainer: lacatoire Status: ready -->
 <!-- Reviewed: no -->
 
 <section xml:id="ini.core" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -398,6 +398,12 @@ Fatal error: Maximum execution time of 30+2 seconds exceeded (terminated) in Unk
         <entry><constant>INI_SYSTEM</constant></entry>
         <entry>Disponible a partir de PHP 8.5.0</entry>
        </row>
+       <row>
+        <entry><link linkend="ini.memory-hard-limit-percent">memory_hard_limit_percent</link></entry>
+        <entry>&null;</entry>
+        <entry><constant>INI_ALL</constant></entry>
+        <entry>Disponible a partir de PHP 8.5.12, 8.4.27, 8.3.36 y 8.2.35</entry>
+       </row>
       </tbody>
      </tgroup>
     </table>
@@ -416,6 +422,16 @@ Fatal error: Maximum execution time of 30+2 seconds exceeded (terminated) in Unk
        <para>
         Esta opción determina la memoria límite, en bytes, que un script está permitido asignar. Esto evita que un script mal codificado use toda la memoria. Tenga en cuenta que para no tener ningún límite, debe establecer esta directiva en <literal>-1</literal>.
        </para>
+       <simpara>
+        A partir de PHP 8.5.12, 8.4.27, 8.3.36 y 8.2.35, este es un límite
+        flexible: una asignación que lo supera puede, en la mayoría de los
+        casos, completarse antes de que se produzca el error fatal, por lo que
+        el uso de memoria de un proceso puede superar brevemente
+        <parameter>memory_limit</parameter>. Un límite estricto independiente,
+        controlado por
+        <link linkend="ini.memory-hard-limit-percent">memory_hard_limit_percent</link>,
+        acota cuánto puede superarse.
+       </simpara>
 
        &ini.shorthandbytes;
 
@@ -441,6 +457,104 @@ Fatal error: Maximum execution time of 30+2 seconds exceeded (terminated) in Unk
 
        &ini.shorthandbytes;
 
+      </listitem>
+     </varlistentry>
+     <varlistentry xml:id="ini.memory-hard-limit-percent">
+      <term>
+       <parameter>memory_hard_limit_percent</parameter>
+       <type>int</type>
+      </term>
+      <listitem>
+       <simpara>
+        Disponible a partir de PHP 8.5.12, 8.4.27, 8.3.36 y 8.2.35. Establece
+        un límite estricto de memoria, expresado como porcentaje de
+        <link linkend="ini.memory-limit">memory_limit</link>.
+        Por ejemplo, con <literal>memory_limit=128M</literal> y
+        <literal>memory_hard_limit_percent=150</literal>, el límite estricto es
+        <literal>192M</literal>. A diferencia de
+        <link linkend="ini.memory-limit">memory_limit</link>, el límite
+        estricto nunca puede superarse.
+       </simpara>
+       <warning>
+        <simpara>
+         Esta directiva se introdujo en las versiones de seguridad del
+         21 de octubre de 2026, que corrigen dos vulnerabilidades críticas
+         (CVE-2026-109618, CVE-2026-109619) que pueden permitir la ejecución
+         remota de código sin autenticación, una de ellas desencadenada a
+         través del manejo de la falta de memoria. Si esta directiva no se
+         reconoce, la versión de PHP en uso está afectada por estas
+         vulnerabilidades y debe actualizarse de inmediato. Consulte el
+         <link xlink:href="&url.php;archive/2026.php#2026-10-21-5">aviso de seguridad</link>
+         para obtener más detalles.
+        </simpara>
+       </warning>
+       <simpara>
+        Cuando una asignación supera <link linkend="ini.memory-limit">memory_limit</link>
+        (el límite flexible), la memoria se asigna de todos modos, y el error
+        fatal habitual se produce cuando el motor alcanza un punto seguro.
+        Las funciones de cierre registradas con
+        <function>register_shutdown_function</function> se siguen ejecutando.
+       </simpara>
+       <simpara>
+        Cuando una asignación superaría el límite estricto, el proceso se
+        termina inmediatamente con el código de salida <literal>137</literal>.
+        Se escribe un mensaje directamente en el flujo de error estándar, con
+        un aspecto similar al siguiente:
+       </simpara>
+       <screen>
+<![CDATA[
+Hard memory limit of 201326592 bytes exhausted
+]]>
+       </screen>
+       <simpara>
+        El mensaje no pasa por el mecanismo de gestión de errores, por lo que
+        no se transmite a los manejadores de errores ni se escribe en el
+        <link linkend="ini.error-log">error_log</link>. No se ejecuta más
+        código PHP: las funciones de cierre, los destructores y los manejadores
+        del búfer de salida se omiten por completo.
+       </simpara>
+       <simpara>
+        El valor debe ser <literal>100</literal> o mayor, o
+        <literal>-1</literal>.
+       </simpara>
+       <simpara>
+        Cuando no está establecida (el valor por defecto) o está establecida a
+        <literal>-1</literal>, el límite estricto es el doble de
+        <link linkend="ini.memory-limit">memory_limit</link>
+        si <link linkend="ini.memory-limit">memory_limit</link> es
+        <literal>1G</literal> o menos, y
+        <link linkend="ini.memory-limit">memory_limit</link> más
+        <literal>1G</literal> en caso contrario. Por ejemplo, con el valor
+        predeterminado <literal>memory_limit=128M</literal>, el límite estricto
+        es <literal>256M</literal>, y con <literal>memory_limit=4G</literal>
+        es <literal>5G</literal>. Si
+        <link linkend="ini.memory-limit">memory_limit</link> está establecida a
+        <literal>-1</literal>, tampoco hay límite estricto.
+       </simpara>
+       <caution>
+        <simpara>
+         Un valor de <literal>100</literal> hace que el límite estricto sea
+         igual a <link linkend="ini.memory-limit">memory_limit</link>, lo que
+         convierte la mayoría de las condiciones de falta de memoria en una
+         terminación inmediata del proceso en lugar de un error fatal. El
+         trabajo de cierre, como el registro, la liberación de bloqueos o la
+         finalización de una respuesta, nunca se ejecutará entonces ante una
+         falta de memoria.
+        </simpara>
+       </caution>
+       <note>
+        <simpara>
+         Como el proceso termina sin producir salida, en entornos de múltiples
+         peticiones como PHP-FPM el worker que atiende la petición se termina
+         y el cliente no recibe ninguna respuesta de PHP; el gestor de procesos
+         inicia un worker de reemplazo. El código de salida
+         <literal>137</literal> es también el que se informa para un proceso
+         terminado por <literal>SIGKILL</literal>, por ejemplo por el OOM killer
+         del kernel o por un entorno de ejecución de contenedores, por lo que
+         conviene comprobar el flujo de error estándar para distinguir los
+         casos.
+        </simpara>
+       </note>
       </listitem>
      </varlistentry>
     </variablelist>
