@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: f03806fcd8fe03a0501bd40b6e3939ff6589a1d2 Maintainer: gui Status: ready -->
+<!-- EN-Revision: 76e420706b6f54cdca08416d1ecdc4d1a7dd69e4 Maintainer: gui Status: ready -->
 <!-- Reviewed: no -->
 <refentry xml:id="phar.decompress" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>Phar::decompress</refname>
-  <refpurpose>Descomprime el archivo tar completo</refpurpose>
+  <refpurpose>Descomprime el archivo Phar completo</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -15,9 +15,12 @@
   </methodsynopsis>
  &phar.write;
 
-  <para>
+  <simpara>
    Para los archivos phar basados en tar y en phar, este método descomprime el archivo completo.
-  </para>
+   El archivo descomprimido se escribe como un nuevo fichero en el mismo directorio que el
+   archivo original, y se devuelve como un nuevo objeto <classname>Phar</classname>.
+   El archivo original no se modifica.
+  </simpara>
   <para>
    Para los archivos phar basados en Zip, este método falla y lanza una excepción.
    La extensión <link linkend="ref.zlib">zlib</link> debe estar activa para descomprimir
@@ -27,13 +30,15 @@
    <link linkend="ini.phar.readonly">phar.readonly</link> debe estar a off
    para que funcione.
   </para>
-  <para>
-   Además, este método cambia automáticamente la extensión del archivo,
+  <simpara>
+   Además, este método cambia automáticamente la extensión del nuevo archivo,
    <literal>.phar</literal>
-   Por omisión para los archivos phar, o <literal>.phar.tar</literal> para los archivos phar basados en tar.
-   De lo contrario, se puede especificar una extensión de archivo utilizando el segundo
-   argumento.
-  </para>
+   por omisión para los archivos phar, o <literal>.phar.tar</literal> para los archivos phar basados en tar.
+   Por ejemplo, al descomprimir <filename>/ruta/al/mi.phar.gz</filename> se crea
+   <filename>/ruta/al/mi.phar</filename>.
+   De lo contrario, se puede especificar una extensión de archivo utilizando el
+   argumento <parameter>extension</parameter>.
+  </simpara>
  </refsect1>
 
  <refsect1 role="parameters">
@@ -50,6 +55,12 @@
        Cabe señalar que todos los archivos phar ejecutables deben contener <literal>.phar</literal>
        en su nombre de archivo.
       </para>
+      <simpara>
+       La extensión sustituye a la extensión propia del archivo (como <literal>.phar.gz</literal>
+       o <literal>.tar.gz</literal>), por lo que al pasar <literal>descomprimido.phar</literal>
+       al descomprimir <filename>/ruta/al/mi.phar.gz</filename> se crea
+       <filename>/ruta/al/mi.descomprimido.phar</filename>.
+      </simpara>
      </listitem>
     </varlistentry>
    </variablelist>
@@ -67,13 +78,13 @@
 
  <refsect1 role="errors">
   &reftitle.errors;
-  <para>
+  <simpara>
    Se lanza una excepción <classname>BadMethodCallException</classname> si
    la variable INI <link linkend="ini.phar.readonly">phar.readonly</link>
    está a on, si la extensión <link linkend="ref.zlib">zlib</link>
-   no está disponible, o si la extensión <link linkend="ref.bzip2">bzip2</link>
-   no está activada.
-  </para>
+   no está disponible, si la extensión <link linkend="ref.bzip2">bzip2</link>
+   no está activada, o si ya existe un phar con el nuevo nombre de fichero.
+  </simpara>
  </refsect1>
 
  <refsect1 role="changelog">
@@ -106,10 +117,11 @@
     <programlisting role="php">
 <![CDATA[
 <?php
-$p = new Phar('/ruta/al/mon.phar', 0, 'mon.phar.gz');
-$p['monfichero.txt'] = 'hola';
-$p['monfichero.txt'] = 'hola';
-$p3 = $p2->decompress(); // crea /ruta/al/mon.phar
+$p = new Phar('/ruta/al/mi.phar', 0, 'mi.phar');
+$p['mifichero.txt'] = 'hola';
+$p['mifichero2.txt'] = 'hola';
+$p2 = $p->compress(Phar::GZ); // crea /ruta/al/mi.phar.gz
+$p3 = $p2->decompress('descomprimido.phar'); // crea /ruta/al/mi.descomprimido.phar
 ?>
 ]]>
     </programlisting>
