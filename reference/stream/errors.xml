@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 96c9d88bad9a7d7d44bfb7f26c226df7ee9ddf26 Maintainer: seros Status: ready -->
+<!-- EN-Revision: 8d7f211071c3b37962c15528835d9971f6b7eef9 Maintainer: seros Status: ready -->
 
 <chapter xml:id="stream.errors">
  <title>Errores de Flujos</title>
@@ -8,12 +8,110 @@
   Como con cualquier función relacionada con un archivo o con un socket, una operación sobre un flujo
   puede fallar por varias razones normales (esto es: Incapaz de conectarse al host
   remoto, archivo no encontrado, etc...). Una llamada relacionada con un flujo puede también fallar
-  porque el flujo no está registrado en el sistema en ejecución. Véase la matriz devuelta
+  porque el flujo no está registrado en el sistema en ejecución. Véase el array devuelto
   por <function>stream_get_wrappers</function> para una lista de los flujos soportados por su
   instalación de PHP. Como con la mayoría de la funciones internas de PHP,
   si ocurre un error se generará un mensaje <constant>E_WARNING</constant>
   describiendo la naturaleza del error.
  </para>
+
+ <section xml:id="stream.errors.handling">
+  <title>Configuración del manejo de errores</title>
+  <simpara>
+   A partir de PHP 8.6.0, la forma en que se informan los errores de flujo puede
+   cambiarse para cada operación que utilice un
+   <link linkend="stream.contexts">contexto de flujo</link>, estableciendo las
+   <link linkend="context.stream">opciones de contexto de flujo</link>
+   <parameter>error_mode</parameter>, <parameter>error_store</parameter>
+   y <parameter>error_handler</parameter>.
+   Cada error se describe mediante un objeto <exceptionname>StreamError</exceptionname>,
+   cuya propiedad <link linkend="streamerror.props.code">code</link>
+   es un caso de <enumname>StreamErrorCode</enumname>.
+  </simpara>
+  <simpara>
+   Un error es o bien <emphasis>terminante</emphasis>, como un fichero que
+   no puede abrirse, o bien <emphasis>no terminante</emphasis>, en cuyo caso se
+   informa pero no lanza una excepción en el modo <constant>StreamErrorMode::Exception</constant>.
+   Una sola operación puede informar de varios errores.
+  </simpara>
+  <simpara>
+   La opción <parameter>error_mode</parameter> recibe un caso de
+   <enumname>StreamErrorMode</enumname> y selecciona cómo se
+   informan los errores:
+  </simpara>
+  <itemizedlist>
+   <listitem>
+    <simpara>
+     <constant>StreamErrorMode::Error</constant>, el valor predeterminado, emite
+     diagnósticos como <constant>E_WARNING</constant> y
+     <constant>E_NOTICE</constant>.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>StreamErrorMode::Exception</constant> lanza una
+     <exceptionname>StreamException</exceptionname> si la operación
+     informó de un error terminante. Los errores no terminantes no lanzan
+     ninguna excepción y no emiten diagnósticos.
+    </simpara>
+   </listitem>
+   <listitem>
+    <simpara>
+     <constant>StreamErrorMode::Silent</constant> no emite diagnósticos
+     ni lanza excepciones.
+    </simpara>
+   </listitem>
+  </itemizedlist>
+  <simpara>
+   La opción <parameter>error_store</parameter> recibe un caso de
+   <enumname>StreamErrorStore</enumname> y selecciona qué errores
+   se conservan para <function>stream_last_errors</function>. Con el valor predeterminado,
+   <constant>StreamErrorStore::Auto</constant>, esto depende del modo de error:
+  </simpara>
+  <informaltable>
+   <tgroup cols="2">
+    <thead>
+     <row>
+      <entry>Modo de error</entry>
+      <entry>Errores almacenados con <constant>StreamErrorStore::Auto</constant></entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><constant>StreamErrorMode::Error</constant></entry>
+      <entry>Ninguno</entry>
+     </row>
+     <row>
+      <entry><constant>StreamErrorMode::Exception</constant></entry>
+      <entry>Errores no terminantes</entry>
+     </row>
+     <row>
+      <entry><constant>StreamErrorMode::Silent</constant></entry>
+      <entry>Todos los errores</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </informaltable>
+  <simpara>
+   La opción <parameter>error_handler</parameter> es un
+   <type>callable</type> que recibe la lista de objetos
+   <exceptionname>StreamError</exceptionname> de cada operación que
+   informó de errores, salvo que se lance una
+   <exceptionname>StreamException</exceptionname>.
+  </simpara>
+  <note>
+   <simpara>
+    <function>stream_context_set_default</function> rechaza estas opciones.
+    Deben establecerse en un contexto creado con
+    <function>stream_context_create</function> que se pase a la
+    función, o con el que se abrió el flujo.
+   </simpara>
+  </note>
+  <simpara>
+   Consulte las <link linkend="context.stream">opciones de contexto de flujo</link>
+   para ver ejemplos de cada modo de error y de un manejador de errores.
+  </simpara>
+ </section>
 </chapter>
 
 <!-- Keep this comment at the end of the file
