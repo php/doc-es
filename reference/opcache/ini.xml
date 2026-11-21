@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 6fad47c6ec034be2050771ab0213af06936219dc Maintainer: lacatoire Status: ready -->
+<!-- EN-Revision: 3feebd8c17479a0fd12d714bf7c19e12e2eacd12 Maintainer: lacatoire Status: ready -->
 <!-- Reviewed: yes Maintainer: Marqitos -->
 <sect1 xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xml:id="opcache.configuration">
  &reftitle.runtime;
@@ -488,9 +488,26 @@
    </term>
    <listitem>
     <simpara>
-     Si está activado, OPcache añade el directorio de trabajo actual a la clave del script,
-     eliminando así posibles colisiones entre archivos con el mismo nombre base. Desactivar esta funcionalidad mejora
+     Si está activado, OPcache añade el directorio de trabajo actual, el
+     <link linkend="ini.include-path">include_path</link> y el directorio del
+     script que realiza la inclusión a la clave de un script incluido con una
+     ruta relativa, eliminando así posibles colisiones entre archivos distintos
+     incluidos con la misma ruta relativa. Desactivar esta funcionalidad mejora
      el rendimiento, pero puede romper aplicaciones existentes.
+    </simpara>
+    <simpara>
+     Si está desactivado, la ruta relativa se utiliza por sí sola como clave.
+     Por ejemplo, si <filename>foo/x.php</filename> y
+     <filename>bar/y.php</filename> contienen ambos
+     <code>include 'config.php';</code>, la segunda inclusión ejecuta el
+     <filename>foo/config.php</filename> almacenado en caché en lugar de
+     <filename>bar/config.php</filename>.
+    </simpara>
+    <simpara>
+     Esta directiva no tiene efecto en los scripts incluidos con una ruta
+     absoluta o a través de un contenedor de flujo (stream wrapper), ni cuando
+     <link linkend="ini.opcache.revalidate-path">opcache.revalidate_path</link>
+     está activado.
     </simpara>
    </listitem>
   </varlistentry>
@@ -543,10 +560,22 @@
    </term>
    <listitem>
     <simpara>
-     Si está desactivado, los archivos en caché existentes que usan el mismo
-     <link linkend="ini.include-path">include_path</link> serán reutilizados.
-     Por lo tanto, si un archivo con el mismo nombre está en otro lugar en el
-     include_path, no será encontrado.
+     Si está desactivado, OPcache busca primero un script en caché utilizando
+     como clave la ruta pasada a <function>include</function> o
+     <function>require</function> (véase
+     <link linkend="ini.opcache.use-cwd">opcache.use_cwd</link>), y utiliza ese
+     script sin resolver de nuevo la ruta. Por lo tanto, si la ruta se resuelve
+     ahora en otro archivo, se sigue utilizando el script almacenado
+     previamente en caché. Por ejemplo, un archivo con el mismo nombre que se
+     añada antes en el
+     <link linkend="ini.include-path">include_path</link> no será encontrado, y
+     un enlace simbólico en la ruta que se modifique para apuntar a otro
+     directorio no será seguido.
+    </simpara>
+    <simpara>
+     Si está activado, la ruta se resuelve siempre a la ruta real del archivo,
+     que se utiliza después para buscar el script en caché. Es más lento, pero
+     utiliza siempre el archivo en el que se resuelve actualmente la ruta.
     </simpara>
    </listitem>
   </varlistentry>
@@ -972,8 +1001,36 @@ function getA() { return A; }
    <listitem>
     <simpara>
      Permite la llamada a las funciones de la API de OPcache solo desde
-     scripts PHP cuyo camino comienza con una cadena específica.
+     scripts PHP cuya ruta comienza con la cadena especificada.
      El valor por omisión, "", significa "sin restricciones".
+     Cuando se aplica la restricción, <function>opcache_get_status</function>,
+     <function>opcache_get_configuration</function>,
+     <function>opcache_reset</function>, <function>opcache_invalidate</function>,
+     <function>opcache_is_script_cached</function> y
+     <function>opcache_is_script_cached_in_file_cache</function> (a partir de PHP 8.5.0)
+     emiten un <constant>E_WARNING</constant> y devuelven &false;.
+    </simpara>
+    <simpara>
+     La ruta que se comprueba es la del script principal, es decir, el
+     script solicitado al servidor web o pasado a la CLI, tal como lo informa
+     la SAPI. La ruta del archivo desde el que se llama a la función no
+     importa: los archivos incluidos por un script permitido pueden llamar a la
+     API, mientras que los archivos del directorio permitido no pueden hacerlo
+     si los incluye un script situado fuera de él. La SAPI CLI resuelve los
+     enlaces simbólicos en la ruta del script antes de comprobarla.
+    </simpara>
+    <simpara>
+     La comparación es una simple coincidencia de prefijo, sensible a mayúsculas
+     y minúsculas, sin ninguna normalización de las rutas. En consecuencia, un
+     valor de <literal>/var/www/admin</literal> también permite los scripts de
+     <literal>/var/www/administrator</literal>; termine el valor con un
+     separador de directorios para que coincida solo con ese directorio y sus
+     subdirectorios. El valor debe además utilizar los mismos separadores de
+     directorios que la ruta informada por la SAPI: con la SAPI apache2handler
+     en Windows, esa ruta utiliza barras diagonales (por ejemplo
+     <literal>C:/www/admin/status.php</literal>), por lo que hay que utilizar
+     <literal>C:/www/admin</literal> en lugar de
+     <literal>C:\www\admin</literal>.
     </simpara>
    </listitem>
   </varlistentry>
