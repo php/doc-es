@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 983b98c1a60e7c7eabb42323a3c4b52cc29e2c75 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: bcda69de512ca685721e09e8b8dc634a00d8b238 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: yes -->
 <refentry xml:id="reflectionattribute.gettarget" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
  <refnamediv>
   <refname>ReflectionAttribute::getTarget</refname>
-  <refpurpose>Devuelve el objetivo del atributo como máscara de bits</refpurpose>
+  <refpurpose>Devuelve el objetivo sobre el que está declarado el atributo</refpurpose>
  </refnamediv>
 
  <refsect1 role="description">
@@ -13,9 +13,10 @@
    <modifier>public</modifier> <type>int</type><methodname>ReflectionAttribute::getTarget</methodname>
    <void/>
   </methodsynopsis>
-  <para>
-   Devuelve el objetivo del atributo como máscara de bits.
-  </para>
+  <simpara>
+   Devuelve el tipo de declaración al que se aplica este atributo.
+   Esto es distinto del conjunto de objetivos permitidos por la clase del atributo.
+  </simpara>
 
  </refsect1>
 
@@ -26,10 +27,53 @@
 
  <refsect1 role="returnvalues">
   &reftitle.returnvalues;
-  <para>
-   Obtiene el objetivo del atributo en forma de máscara de bits
-   de las <link linkend="attribute.constants"><constant>constantes Attribute::TARGET_*</constant></link>.
-  </para>
+  <simpara>
+   Devuelve la
+   <link linkend="attribute.constants">constante <constant>Attribute::TARGET_*</constant></link>
+   correspondiente.
+   Los objetivos permitidos de la clase del atributo pueden obtenerse, en cambio, a partir
+   de la propiedad <property>flags</property> de su instancia de
+   <classname>Attribute</classname>.
+  </simpara>
+ </refsect1>
+
+ <refsect1 role="examples">
+  &reftitle.examples;
+  <example>
+   <title>Distinción entre los objetivos reales y los permitidos de un atributo</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PROPERTY)]
+class Marker {}
+
+#[Marker]
+class Example
+{
+    #[Marker]
+    public $value;
+}
+
+$class = new ReflectionClass(Example::class);
+$property = new ReflectionProperty(Example::class, 'value');
+
+var_dump($class->getAttributes(Marker::class)[0]->getTarget());
+var_dump($property->getAttributes(Marker::class)[0]->getTarget());
+
+$definition = new ReflectionClass(Marker::class);
+var_dump($definition->getAttributes(Attribute::class)[0]->newInstance()->flags);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+int(1)
+int(8)
+int(9)
+]]>
+   </screen>
+  </example>
  </refsect1>
 
 </refentry>
