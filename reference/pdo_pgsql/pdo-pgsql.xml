@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 371e92c3d8d9ee92542dfae4dee1d9fd0c940385 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 6816d24b1a44f0180c46b6dd28b5aeb60a15a30b Maintainer: PhilDaiguille Status: ready -->
 <reference xml:id="class.pdo-pgsql" xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude" role="class">
  <title>La clase Pdo\Pgsql</title>
  <titleabbrev>Pdo\Pgsql</titleabbrev>
@@ -74,9 +74,7 @@
      </ooclass>
 
      <classsynopsisinfo role="comment">&InheritedConstants;</classsynopsisinfo>
-     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:partintro/db:section/db:classsynopsis/db:fieldsynopsis[preceding-sibling::db:classsynopsisinfo[1][@role='comment' and text()='&Constants;']]))">
-      <xi:fallback/>
-     </xi:include>
+     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:partintro/db:section/db:classsynopsis/db:fieldsynopsis[preceding-sibling::db:classsynopsisinfo[1][@role='comment' and text()='&Constants;']]))"/>
 
      <classsynopsisinfo role="comment">&Constants;</classsynopsisinfo>
      <fieldsynopsis>
@@ -90,6 +88,12 @@
       <modifier>const</modifier>
       <type>int</type>
       <varname linkend="pdo-pgsql.constants.attr-result-memory-size">Pdo\Pgsql::ATTR_RESULT_MEMORY_SIZE</varname>
+     </fieldsynopsis>
+     <fieldsynopsis>
+      <modifier>public</modifier>
+      <modifier>const</modifier>
+      <type>int</type>
+      <varname linkend="pdo-pgsql.constants.attr-chunk-size">Pdo\Pgsql::ATTR_CHUNK_SIZE</varname>
      </fieldsynopsis>
      <fieldsynopsis>
       <modifier>public</modifier>
@@ -123,17 +127,11 @@
      </fieldsynopsis>
 
      <classsynopsisinfo role="comment">&Methods;</classsynopsisinfo>
-     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo-pgsql')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[@role='Pdo\\Pgsql'])">
-      <xi:fallback/>
-     </xi:include>
+     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo-pgsql')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[@role='Pdo\\Pgsql'])"/>
 
      <classsynopsisinfo role="comment">&InheritedMethods;</classsynopsisinfo>
-     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:refentry/db:refsect1[@role='description']/descendant::db:constructorsynopsis[@role='PDO'])">
-      <xi:fallback/>
-     </xi:include>
-     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[@role='PDO'])">
-      <xi:fallback/>
-     </xi:include>
+     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:refentry/db:refsect1[@role='description']/descendant::db:constructorsynopsis[@role='PDO'])"/>
+     <xi:include xpointer="xmlns(db=http://docbook.org/ns/docbook) xpointer(id('class.pdo')/db:refentry/db:refsect1[@role='description']/descendant::db:methodsynopsis[@role='PDO'])"/>
     </classsynopsis>
    </packagesynopsis>
    <!-- }}} -->
@@ -179,8 +177,12 @@
       <simpara>
        Puede establecerse por conexión con
        <methodname>PDO::setAttribute</methodname>, o por sentencia mediante
-       las opciones de controlador de <methodname>PDO::prepare</methodname> o
-       <methodname>PDO::query</methodname>.
+       las opciones de controlador de <methodname>PDO::prepare</methodname>.
+      </simpara>
+      <simpara>
+       Con la obtención perezosa, <methodname>PDOStatement::rowCount</methodname>
+       devuelve el número de filas recuperadas más recientemente del servidor,
+       no el total.
       </simpara>
       <caution>
        <simpara>
@@ -189,6 +191,44 @@
         no leídas de la anterior; no se genera ningún error.
        </simpara>
       </caution>
+     </listitem>
+    </varlistentry>
+    <varlistentry xml:id="pdo-pgsql.constants.attr-chunk-size">
+     <term><constant>Pdo\Pgsql::ATTR_CHUNK_SIZE</constant></term>
+     <listitem>
+      <simpara>
+       El número máximo de filas recuperadas del servidor a la vez durante la
+       obtención perezosa.
+       Permite equilibrar la velocidad con el uso de memoria.
+      </simpara>
+      <simpara>
+       Un valor de <literal>1</literal> a <literal>2147483647</literal>
+       activa la obtención perezosa y tiene prioridad sobre
+       <constant>PDO::ATTR_PREFETCH</constant>.
+       Con el valor por omisión de <literal>0</literal>,
+       <constant>PDO::ATTR_PREFETCH</constant> determina cómo se obtienen las filas.
+       Cualquier otro entero lanza una <exceptionname>ValueError</exceptionname>.
+      </simpara>
+      <simpara>
+       Al igual que <constant>PDO::ATTR_PREFETCH</constant>, puede establecerse
+       por conexión o por sentencia.
+       Establecer <constant>PDO::ATTR_PREFETCH</constant> en la conexión o en
+       una sentencia anula el tamaño de bloque de la conexión.
+      </simpara>
+      <simpara>
+       Una sentencia con <constant>PDO::ATTR_CURSOR</constant> establecido en
+       <constant>PDO::CURSOR_SCROLL</constant> ignora el tamaño de bloque de la
+       conexión.
+       Establecer este atributo en <literal>1</literal> o más en una sentencia
+       de este tipo lanza una <exceptionname>ValueError</exceptionname>.
+      </simpara>
+      <simpara>
+       Para conocer las salvedades de la obtención perezosa, consulte
+       <link linkend="pdo-pgsql.constants.attr-prefetch">PDO::ATTR_PREFETCH</link>.
+      </simpara>
+      <simpara>
+       Disponible a partir de PHP 8.6.0, cuando se compila con libpq &gt;= 17.
+      </simpara>
      </listitem>
     </varlistentry>
     <varlistentry xml:id="pdo-pgsql.constants.transaction-idle">
