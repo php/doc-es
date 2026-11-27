@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: dff848b17dafaabfb7662ffb5fecfcb04e3b771d Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: 3a0bf5e678f1023de7cd2148f2c5a70ffdff4a59 Maintainer: PhilDaiguille Status: ready -->
 <sect1 xml:id="language.oop5.property-hooks" xmlns="http://docbook.org/ns/docbook">
  <title>Hooks de propiedad</title>
 
@@ -409,6 +409,153 @@ class Person {
    Sobrecargar la propiedad de array completa está permitido, y se comporta de la misma manera que cualquier otra propiedad.
    Trabajar solo con elementos del array requiere atención especial.
   </simpara>
+ </sect2>
+ <sect2 xml:id="language.oop5.property-hooks.isset-unset">
+  <title><function>isset</function>, <function>empty</function> y <function>unset</function></title>
+  <simpara>
+   Cuando se utiliza <function>isset</function> o <function>empty</function> sobre una
+   propiedad que tiene un hook <literal>get</literal>, se llama al hook y
+   se comprueba el valor que devuelve en lugar del valor de respaldo de la propiedad.
+   <function>isset</function> devuelve &true; si ese valor no es &null;,
+   y <function>empty</function> devuelve &true; si ese valor es igual a &false;.
+   Esto es intencionado: un hook <literal>get</literal> puede calcular o inicializar
+   el valor cuando se lee, de modo que el código externo a los hooks de la propiedad
+   no puede observar directamente el valor de respaldo.
+  </simpara>
+  <simpara>
+   Como consecuencia, si el hook <literal>get</literal> lee un valor de respaldo
+   que no ha sido inicializado, utilizar <function>isset</function> o
+   <function>empty</function> sobre la propiedad lanza un <exceptionname>Error</exceptionname>,
+   igual que lo hace la lectura de la propiedad.
+   Lo mismo se aplica al
+   <link linkend="language.operators.comparison.coalesce">operador de fusión de null</link>.
+  </simpara>
+  <example>
+   <title><function>isset</function> sobre una propiedad con un hook <literal>get</literal></title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Article
+{
+    public ?string $title = null {
+        get => $this->title ?? 'Untitled';
+    }
+
+    public string $author {
+        get => ucfirst($this->author);
+        set => $this->author = $value;
+    }
+}
+
+$article = new Article();
+
+// El valor de respaldo es null, pero el hook get devuelve 'Untitled'.
+var_dump(isset($article->title));
+
+// El hook get lee un valor de respaldo no inicializado.
+try {
+    var_dump(isset($article->author));
+} catch (Error $e) {
+    echo $e->getMessage(), "\n";
+}
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+bool(true)
+Typed property Article::$author must not be accessed before initialization
+]]>
+   </screen>
+  </example>
+  <simpara>
+   Si una propiedad "backed" no tiene un hook <literal>get</literal>,
+   <function>isset</function> y <function>empty</function> comprueban directamente
+   el valor de respaldo, como hacen con una propiedad sin hooks.
+   En una propiedad virtual que no tiene un hook <literal>get</literal>,
+   lanzan un <exceptionname>Error</exceptionname>, porque la propiedad no se puede leer.
+  </simpara>
+  <simpara>
+   Dentro de los hooks de una propiedad, <code>$this->propName</code> hace referencia al
+   valor de respaldo de esa propiedad, por lo que <code>isset($this->propName)</code> comprueba
+   directamente el valor de respaldo.
+   Un hook <literal>get</literal> puede utilizarlo para gestionar un valor de respaldo no inicializado.
+   A menudo es más sencillo dar a la propiedad un valor por omisión, como &null;.
+  </simpara>
+  <example>
+   <title>Gestión de un valor de respaldo no inicializado</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Article
+{
+    // Inicializar el valor de respaldo evita el error.
+    public ?string $subtitle = null {
+        get => $this->subtitle !== null ? ucfirst($this->subtitle) : null;
+    }
+
+    // El hook get comprueba su propio valor de respaldo.
+    public string $author {
+        get => isset($this->author) ? ucfirst($this->author) : 'Anonymous';
+        set => $this->author = $value;
+    }
+}
+
+$article = new Article();
+
+var_dump(isset($article->subtitle));
+var_dump(isset($article->author));
+var_dump($article->author);
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+bool(false)
+bool(true)
+string(9) "Anonymous"
+]]>
+   </screen>
+  </example>
+  <simpara>
+   Una propiedad que tiene hooks no se puede destruir.
+   Utilizar <function>unset</function> sobre ella lanza un <exceptionname>Error</exceptionname>,
+   tanto si la propiedad es "backed" como virtual, e incluso cuando
+   <function>unset</function> se llama desde dentro de la clase o de uno de sus hooks.
+  </simpara>
+  <example>
+   <title><function>unset</function> sobre una propiedad con hooks</title>
+   <programlisting role="php">
+<![CDATA[
+<?php
+class Rectangle
+{
+    public int $area {
+        get => $this->h * $this->w;
+    }
+
+    public function __construct(public int $h, public int $w) {}
+}
+
+$r = new Rectangle(4, 5);
+
+try {
+    unset($r->area);
+} catch (Error $e) {
+    echo $e->getMessage(), "\n";
+}
+?>
+]]>
+   </programlisting>
+   &example.outputs;
+   <screen>
+<![CDATA[
+Cannot unset hooked property Rectangle::$area
+]]>
+   </screen>
+  </example>
  </sect2>
  <sect2>
   <title>Herencia</title>
