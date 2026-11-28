@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Revision$ -->
-<!-- EN-Revision: 04f10f9f8df60beadd833d6f48a4f01e835cdcaa Maintainer: agarzon Status: ready -->
+<!-- EN-Revision: 2dd432924c34dbbd18f77e57d2ae99b4e3171882 Maintainer: agarzon Status: ready -->
 <refentry xml:id="function.tidy-config-count" xmlns="http://docbook.org/ns/docbook">
  <refnamediv>
   <refname>tidy_config_count</refname>
@@ -51,17 +51,40 @@
 <?php
 $html = '<p>test</I>';
 
-$config = array('doctype' => 'bogus');
+// Los valores no válidos en un array de configuración lanzan un TypeError
+// a partir de PHP 8.5.0, por lo que el valor no válido se lee desde un
+// fichero de configuración
+$configFile = tempnam(sys_get_temp_dir(), 'tidy');
+file_put_contents($configFile, "wrap: abc\n");
 
-$tidy = tidy_parse_string($html, $config);
+$tidy = tidy_parse_string($html, $configFile);
 
-/* Saldrá 1, porque 'bogus' no es un doctype válido */
+/* Saldrá 1, porque 'abc' no es un valor válido para wrap */
 echo tidy_config_count($tidy);
+
+unlink($configFile);
 ?>
 ]]>
     </programlisting>
+    &example.outputs.similar;
+    <screen>
+<![CDATA[
+Notice: tidy_parse_string(): There were errors while parsing the Tidy configuration file "/tmp/tidyAbC123" in %s on line %d
+1
+]]>
+    </screen>
    </example>
   </para>
+ </refsect1>
+
+ <refsect1 role="seealso">
+  &reftitle.seealso;
+  <simplelist>
+   <member><function>tidy_get_config</function></member>
+   <member><function>tidy_getopt</function></member>
+   <member><function>tidy_error_count</function></member>
+   <member><function>tidy_warning_count</function></member>
+  </simplelist>
  </refsect1>
 </refentry>
 <!-- Keep this comment at the end of the file
