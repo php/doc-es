@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- EN-Revision: 594c8c0a0188faae493b7070b3c1e331678e1655 Maintainer: PhilDaiguille Status: ready -->
+<!-- EN-Revision: a8bfeea36a821f895dc4bd928d8001d55f408421 Maintainer: PhilDaiguille Status: ready -->
 <!-- Reviewed: no -->
 <chapter xml:id="language.functions" xmlns="http://docbook.org/ns/docbook" annotations="interactive">
   <title>Functions</title>
@@ -1714,6 +1714,31 @@ $privateMethod();  // Foo1::privateMethod
     </programlisting>
    </informalexample>
 
+   <para>
+    A partir de PHP 8.6.0, se pueden proporcionar algunos de los argumentos
+    al crear la <classname>Closure</classname>, utilizando el marcador de
+    posición <code>?</code> para los demás. Consulte
+    <link linkend="functions.partial-application">aplicación parcial de funciones</link>.
+    <example>
+     <title>Aplicación parcial de funciones simple</title>
+     <programlisting role="php" annotations="non-interactive">
+<![CDATA[
+<?php
+class Foo {
+    public function method($first, $second) {}
+    public static function staticmethod($first, $second) {}
+}
+
+$obj = new Foo();
+
+$partial1 = $obj->method(1, ?);          // acepta $second
+$partial2 = $obj->method(?, 2);          // acepta $first
+$partial3 = Foo::staticmethod(1, ...);   // acepta todos los argumentos restantes
+]]>
+     </programlisting>
+    </example>
+   </para>
+
    <note>
     <para>
      Object creation by this syntax (e.g <code>new Foo(...)</code>) is not supported, because <code>new Foo()</code> syntax is not considered a call.
@@ -1757,6 +1782,315 @@ $obj?->prop->method(...);
       </tbody>
      </tgroup>
     </informaltable>
+   </sect2>
+  </sect1>
+
+  <sect1 xml:id="functions.partial-application">
+   <title>Aplicación parcial de funciones</title>
+
+   <simpara>
+    La aplicación parcial de funciones está disponible a partir de PHP 8.6.0.
+    Una llamada a una función o método que proporciona algunos de los
+    argumentos y utiliza marcadores de posición para los demás no realiza la
+    llamada. En su lugar, crea una <classname>Closure</classname> cuyos
+    parámetros son aquellos que fueron reemplazados por un marcador de
+    posición. Extiende la
+    <link linkend="functions.first_class_callable_syntax">sintaxis de callable de primera clase</link>,
+    que es el caso particular en el que no se proporciona ningún argumento:
+    se puede utilizar cualquier expresión que pueda ser llamada, y la función
+    o método a llamar se determina cuando se crea la
+    <classname>Closure</classname>.
+   </simpara>
+
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      <code>?</code> representa exactamente un argumento. El parámetro
+      correspondiente de la <classname>Closure</classname> siempre es
+      obligatorio, incluso si el parámetro de la función original es
+      opcional.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      <code>...</code> representa todos los parámetros que no se han
+      mencionado de otro modo. Estos conservan sus valores por defecto, y un
+      parámetro variádico sigue siendo variádico. Solo puede aparecer una
+      vez, y debe ser el último argumento.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+   <example>
+    <title>Aplicación parcial de funciones</title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+function volume(int $length, int $width, int $height): int
+{
+    return $length * $width * $height;
+}
+
+// "?" representa exactamente un argumento
+$closure = volume(2, ?, 4);
+// equivalente a: static fn(int $width): int => volume(2, $width, 4)
+var_dump($closure(3));
+
+$closure = volume(?, 3, ?);
+// equivalente a: static fn(int $length, int $height): int => volume($length, 3, $height)
+var_dump($closure(2, 4));
+
+// "..." representa todos los argumentos restantes
+$closure = volume(2, ...);
+// equivalente a: static fn(int $width, int $height): int => volume(2, $width, $height)
+var_dump($closure(3, 4));
+
+// Con todos los argumentos proporcionados, "..." simplemente retrasa la llamada
+$closure = volume(2, 3, 4, ...);
+// equivalente a: static fn(): int => volume(2, 3, 4)
+var_dump($closure());
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+int(24)
+int(24)
+int(24)
+int(24)
+]]>
+    </screen>
+   </example>
+
+   <simpara>
+    La aplicación parcial de funciones es una forma práctica de proporcionar
+    el callable de un solo parámetro que espera el
+    <link linkend="language.operators.functional">operador pipe</link>.
+   </simpara>
+
+   <example>
+    <title>Aplicación parcial de funciones con <literal>|&gt;</literal></title>
+    <programlisting role="php">
+<![CDATA[
+<?php
+echo ' Hello  World '
+    |> trim(...)
+    |> str_replace(' ', '', ?)
+    |> strtoupper(...)
+    |> str_pad(?, 12, '*', STR_PAD_BOTH);
+?>
+]]>
+    </programlisting>
+    &example.outputs;
+    <screen>
+<![CDATA[
+*HELLOWORLD*
+]]>
+    </screen>
+   </example>
+
+   <simpara>
+    Los parámetros de la <classname>Closure</classname> toman su nombre, su
+    declaración de tipo y su modo de paso por referencia de la función
+    original, así como su tipo de retorno. La aplicación parcial de funciones
+    puede utilizarse en expresiones constantes, siempre que los argumentos
+    sean a su vez expresiones constantes.
+   </simpara>
+
+   <sect2 xml:id="functions.partial-application.named">
+    <title>Marcadores de posición con nombre</title>
+
+    <simpara>
+     Se pueden utilizar <link linkend="functions.named-arguments">argumentos
+     nombrados</link> para proporcionar un argumento, y un marcador de
+     posición también puede llevar nombre, mediante <code>name: ?</code>. Como
+     en una llamada normal, deben ir después de los argumentos posicionales.
+     Los parámetros de la <classname>Closure</classname> siguen el orden en
+     que se escriben los marcadores de posición con nombre, lo que permite
+     reordenarlos.
+    </simpara>
+
+    <example>
+     <title>Marcadores de posición con nombre</title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+// Los parámetros de la closure son $subject, y luego $search
+$remove = str_replace(subject: ?, search: ?, replace: '');
+
+var_dump($remove('a-b-c', '-'));
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+string(3) "abc"
+]]>
+     </screen>
+    </example>
+   </sect2>
+
+   <sect2 xml:id="functions.partial-application.evaluation">
+    <title>Evaluación de los argumentos</title>
+
+    <simpara>
+     Los argumentos proporcionados se evalúan una sola vez, cuando se crea la
+     <classname>Closure</classname>, y no cada vez que se la llama. Esto
+     difiere de una <link linkend="functions.arrow">función flecha</link> que
+     envuelve la misma llamada, cuyo cuerpo se evalúa en cada llamada.
+    </simpara>
+
+    <example>
+     <title>Los argumentos se evalúan cuando se crea la <classname>Closure</classname></title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+function now(): string
+{
+    echo "now() called\n";
+    return '12:00';
+}
+
+function greet(string $name, string $time): string
+{
+    return "Hello $name, it is $time\n";
+}
+
+$arrow = fn(string $name) => greet($name, now());
+echo "Arrow function created\n";
+echo $arrow('Alice');
+echo $arrow('Alice');
+
+echo "\n====\n\n";
+
+$partial = greet(?, now());
+echo "Partial application created\n";
+echo $partial('Bob');
+echo $partial('Bob');
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Arrow function created
+now() called
+Hello Alice, it is 12:00
+now() called
+Hello Alice, it is 12:00
+
+====
+
+now() called
+Partial application created
+Hello Bob, it is 12:00
+Hello Bob, it is 12:00
+]]>
+     </screen>
+    </example>
+   </sect2>
+
+   <sect2 xml:id="functions.partial-application.extra-arguments">
+    <title>Argumentos adicionales</title>
+
+    <simpara>
+     Si no se utiliza el marcador de posición <code>...</code>, los argumentos
+     pasados a la <classname>Closure</classname> más allá de sus parámetros
+     se ignoran. Si se utiliza, se reenvían a la función original. Esto es
+     relevante cuando la <classname>Closure</classname> se usa como
+     retrollamada de una función que pasa más argumentos de los esperados,
+     como la clave de un elemento de un array: con <code>...</code> estos
+     llegan a los parámetros opcionales de la función original.
+    </simpara>
+
+    <example>
+     <title>Los argumentos adicionales solo se reenvían con <code>...</code></title>
+     <programlisting role="php">
+<![CDATA[
+<?php
+function greet(string $name, string $greeting = 'Hello'): string
+{
+    return "$greeting $name\n";
+}
+
+// El segundo argumento se ignora
+$closure = greet(?);
+echo $closure('Alice', 'Goodbye');
+
+// El segundo argumento se reenvía a greet()
+$closure = greet(?, ...);
+echo $closure('Alice', 'Goodbye');
+?>
+]]>
+     </programlisting>
+     &example.outputs;
+     <screen>
+<![CDATA[
+Hello Alice
+Goodbye Alice
+]]>
+     </screen>
+    </example>
+   </sect2>
+
+   <sect2 xml:id="functions.partial-application.errors">
+    <title>Restricciones</title>
+
+    <itemizedlist>
+     <listitem>
+      <simpara>
+       La creación de objetos (por ejemplo <code>new Foo(1, ?)</code>) no
+       está soportada, porque la sintaxis <code>new Foo()</code> no se
+       considera una llamada.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       Los marcadores de posición no se pueden combinar con el
+       <link linkend="language.oop5.basic.nullsafe">operador nullsafe</link>.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       Los marcadores de posición no se pueden combinar con el
+       <link linkend="functions.variable-arg-list">desempaquetado de argumentos</link>.
+      </simpara>
+     </listitem>
+     <listitem>
+      <simpara>
+       No se pueden utilizar funciones que inspeccionan el ámbito de llamada,
+       como <function>compact</function>, <function>extract</function>,
+       <function>func_get_args</function> y
+       <function>get_defined_vars</function>.
+       Se lanza un <exceptionname>Error</exceptionname>.
+      </simpara>
+     </listitem>
+    </itemizedlist>
+
+    <example>
+     <title>Usos no válidos que provocan un error en tiempo de compilación</title>
+     <programlisting role="php" annotations="non-interactive">
+<![CDATA[
+<?php
+new Foo(1, ?);             // Cannot create Closure for new expression
+
+$obj?->method(1, ?);       // Cannot combine nullsafe operator with Closure creation
+
+foo(?, ...$array);         // Cannot combine partial application and unpacking
+
+foo(..., ?);               // Variadic placeholder must be last
+foo(a: 1, ?);              // Cannot use positional argument after named argument
+]]>
+     </programlisting>
+    </example>
+
+    <simpara>
+     Se lanza un <exceptionname>ArgumentCountError</exceptionname> cuando se
+     crea la <classname>Closure</classname> si el número de argumentos y
+     marcadores de posición no coincide con los parámetros de la función.
+    </simpara>
    </sect2>
   </sect1>
 
